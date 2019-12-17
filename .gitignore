@@ -1,0 +1,9 @@
+#Ignore folders
+/.idea
+/.gradle
+/build
+/logs
+/tmp/lib
+tmp/*.jar
+tmp/*.kt
+tmp/*.js

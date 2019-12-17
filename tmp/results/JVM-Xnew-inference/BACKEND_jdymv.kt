@@ -1,0 +1,1 @@
+val list1 = arrayListOf( (::foo),TODO())

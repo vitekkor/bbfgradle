@@ -1,0 +1,1 @@
+val ref = this<String>::invoke

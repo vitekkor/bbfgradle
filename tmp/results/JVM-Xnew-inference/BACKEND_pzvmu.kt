@@ -1,0 +1,2 @@
+fun 
+ Collection(): Any = ::Throwable!!

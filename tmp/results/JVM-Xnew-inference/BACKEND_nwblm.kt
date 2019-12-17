@@ -1,0 +1,2 @@
+fun 
+() = l@  return@l

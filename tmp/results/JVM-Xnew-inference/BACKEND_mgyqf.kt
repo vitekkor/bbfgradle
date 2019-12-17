@@ -1,0 +1,2 @@
+val an: Any
+ = (::foo)!!

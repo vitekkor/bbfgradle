@@ -1,0 +1,1 @@
+class Foo : (str : String) -> String
