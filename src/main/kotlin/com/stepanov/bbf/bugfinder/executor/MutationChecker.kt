@@ -51,8 +51,8 @@ object MutationChecker {
                 if (compiler.isCompilerBug(tmpPath)) {
                     foundCompilerBug = true
                     if (!gotBugFromCurrentFile) {
-                    log.debug("Found ${compiler.compilerInfo} BUG:\n Text:\n ${File(tmpPath).readText()}")
-                    saveCompilerBug(tmpPath, compiler)
+                        log.debug("Found ${compiler.compilerInfo} BUG:\n Text:\n ${File(tmpPath).readText()}")
+                        saveCompilerBug(tmpPath, compiler)
                     }
                 }
             }
@@ -185,7 +185,7 @@ object MutationChecker {
     private val foundBugs = hashSetOf<Pair<String, String>>()
     private val checkedConfigurations = hashMapOf<String, Boolean>()
 
-//    //TODO!!! REMOVE THIS
+    //    //TODO!!! REMOVE THIS
     private var gotBugFromCurrentFile = false
     private var gotCompDiffFromCurrentFile = false
 
