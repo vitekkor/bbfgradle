@@ -10,22 +10,34 @@ import com.stepanov.bbf.bugfinder.executor.CompilerArgs.shouldSaveCompileDiff
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors.simpleHaveDuplicatesErrors
+import com.stepanov.bbf.bugfinder.util.MutationSaver
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
+import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
+import java.util.NoSuchElementException
 
 object MutationChecker {
     fun checkCompiling(file: KtFile): Boolean =
         checkTextCompiling(file.text)
 
     fun checkTextCompiling(text: String): Boolean {
+        checkedConfigurations[text]?.let { log.debug("Already checked"); return it }
         //Checking syntax correction
         val tree = factory.createFile(text)
-        if (tree.node.getAllChildrenNodes().any { it.psi is PsiErrorElement })
+        if (tree.node.getAllChildrenNodes().any { it.psi is PsiErrorElement }) {
+            checkedConfigurations[text] = false
             return false
+        }
+        //Checking if fun box() is on top level and didnt changed
+        if (!tree.text.contains("fun box(): String")) return false
+        val funBox = tree.getAllPSIChildrenOfType<KtNamedFunction>().first { it.name == "box" }
+        if (!funBox.isTopLevel) return false
+
         val compilersToStatus = compilers.map { it to it.checkCompilingText(text) }
         var foundCompilerBug = false
         if (CompilerArgs.shouldSaveCompilerBugs) {
@@ -39,8 +51,8 @@ object MutationChecker {
                 if (compiler.isCompilerBug(tmpPath)) {
                     foundCompilerBug = true
                     if (!gotBugFromCurrentFile) {
-                        log.debug("Found ${compiler.compilerInfo} BUG:\n Text:\n ${File(tmpPath).readText()}")
-                        saveCompilerBug(tmpPath, compiler)
+                    log.debug("Found ${compiler.compilerInfo} BUG:\n Text:\n ${File(tmpPath).readText()}")
+                    saveCompilerBug(tmpPath, compiler)
                     }
                 }
             }
@@ -48,10 +60,10 @@ object MutationChecker {
         }
 
         if (!gotCompDiffFromCurrentFile && !foundCompilerBug && shouldSaveCompileDiff) {
-            gotCompDiffFromCurrentFile = true
             val grouped = compilersToStatus.groupBy { it.first.compilerInfo.split(" ").first() }
             for (g in grouped) {
                 if (g.value.map { it.second }.toSet().size != 1) {
+                    gotCompDiffFromCurrentFile = true
                     val diffCompilers =
                         g.value.groupBy { it.second }.mapValues { it.value.first().first.compilerInfo }.values
                     log.debug("Found compile diff bug on compilers $diffCompilers")
@@ -69,10 +81,13 @@ object MutationChecker {
         }
 
         val isAccepted = compilersToStatus.all { it.second }
-        if (isAccepted)
+        if (isAccepted) {
+            //MutationSaver.changeState(text)
             log.debug("Mutation accepted")
-        else
+        } else {
             log.debug("Mutation didnt accepted")
+        }
+        checkedConfigurations[text] = isAccepted
         return isAccepted
     }
 
@@ -120,9 +135,7 @@ object MutationChecker {
         replaceNodeIfPossible(file, node.node, replacement.node)
 
     fun replaceNodeIfPossible(file: KtFile, node: ASTNode, replacement: ASTNode): Boolean {
-        if (node.text.isEmpty() || node == replacement) return checkCompiling(
-            file
-        )
+        if (node.text.isEmpty() || node == replacement) return checkCompiling(file)
         for (p in node.getAllParentsWithoutNode()) {
             try {
                 if (node.treeParent.elementType.index == DUMMY_HOLDER_INDEX) continue
@@ -170,8 +183,9 @@ object MutationChecker {
     private const val DUMMY_HOLDER_INDEX: Short = 86
     private val log = Logger.getLogger("mutatorLogger")
     private val foundBugs = hashSetOf<Pair<String, String>>()
+    private val checkedConfigurations = hashMapOf<String, Boolean>()
 
-    //TODO!!! REMOVE THIS
+//    //TODO!!! REMOVE THIS
     private var gotBugFromCurrentFile = false
     private var gotCompDiffFromCurrentFile = false
 

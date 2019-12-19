@@ -248,12 +248,55 @@ fun KtNamedFunction.replaceReturnValueTypeOnUnit(psiFactory: KtPsiFactory) {
     this.typeReference = anyType
 }
 
-
 fun ASTNode.getAllChildrenOfType(type: IElementType): List<ASTNode> =
         this.getAllChildrenNodes().filter { it.elementType == type }
 
 inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfType(): List<T> =
         this.node.getAllChildrenNodes().filter { it.psi is T }.map { it.psi as T }
+
+fun PsiElement.getAllChildren(): List<PsiElement> = this.node.getAllChildrenNodes().map { it.psi }
+
+fun ASTNode.isEqual(other: ASTNode): Boolean {
+    if (other.elementType != this.elementType) return false
+    if (other.text != this.text) return false
+    val parentIndexes = other
+        .getAllParents()
+        .reversed()
+        .zipWithNext { a, b -> a.getAllChildrenOfCurLevel().indexOf(b) }
+    val thisParentIndexes = this
+        .getAllParents()
+        .reversed()
+        .zipWithNext { a, b -> a.getAllChildrenOfCurLevel().indexOf(b) }
+    if (parentIndexes != thisParentIndexes) return false
+    return true
+}
+
+//Returns null if different child is not only one
+fun ASTNode.getDiffChildOrNull(other: ASTNode): Pair<ASTNode, ASTNode>? {
+    if (other.elementType != this.elementType) return null
+    val otherChildren = other.getAllChildrenOfCurLevel()
+    val thisChildren = this.getAllChildrenOfCurLevel()
+    if (otherChildren.size != thisChildren.size) return null
+    val result = mutableListOf<Pair<ASTNode, ASTNode>>()
+    for ((index, thisChild) in thisChildren.withIndex()) {
+        val otherChild = otherChildren[index]
+        if (thisChild.text != otherChild.text) result.add(thisChild to otherChild)
+    }
+    return if (result.size == 1) result.first() else null
+}
+
+//fun ASTNode.isChildrenAreEquals(other: ASTNode): Boolean {
+//    if (other.elementType != this.elementType) return false
+//    val otherChildren = other.getAllChildrenOfCurLevel()
+//    val thisChildren = this.getAllChildrenOfCurLevel()
+//    if (otherChildren.size != thisChildren.size) return false
+//    for ((index, thisChild) in thisChildren.withIndex()) {
+//        val otherChild = otherChildren[index]
+//        if (thisChild.elementType != otherChild.elementType) return false
+//    }
+//
+//    return true
+//}
 
 fun PsiElement.debugPrint() {
     println("---BEGIN PSI STRUCTURE---")

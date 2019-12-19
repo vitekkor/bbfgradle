@@ -97,6 +97,7 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
         val pathToSave = StringBuilder(file.name)
         pathToSave.insert(pathToSave.indexOfLast { it == '/' }, "/minimized")
         checker.pathToFile = file.name
+        require(checker.checkTest(file.text)) { "No bug" }
         var rFile = file.copy() as KtFile
         try {
             if (isProject)

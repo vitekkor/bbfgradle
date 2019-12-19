@@ -18,6 +18,7 @@ import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyCfg
 import com.stepanov.bbf.kootstrap.util.opt
 import com.stepanov.bbf.kootstrap.util.targetRoots
 import org.jetbrains.kotlin.cli.jvm.compiler.*
+import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.js.analyze.TopDownAnalyzerFacadeForJS
 import org.jetbrains.kotlin.js.config.JSConfigurationKeys
@@ -133,11 +134,11 @@ class PSICreator(var projectDir: String) {
         return targetFiles
     }
 
-    fun getPSIForText(text: String): KtFile {
+    fun getPSIForText(text: String, generateCtx: Boolean = true): KtFile {
         //Save to tmp
         val path = "tmp/tmp.kt"
         File(path).writeText(text)
-        return getPSIForFile(path)
+        return getPSIForFile(path, generateCtx)
     }
 
 
@@ -172,8 +173,9 @@ class PSICreator(var projectDir: String) {
         val file = targetFiles.first()
         val configuration = env.configuration.copy()
 
-        //configuration.put(JSConfigurationKeys.LIBRARIES, JsConfig.JS_STDLIB)
-        //configuration.put(CommonConfigurationKeys.MODULE_NAME, "sample")
+        configuration.put(JSConfigurationKeys.LIBRARIES, JsConfig.JS_STDLIB)
+        configuration.put(CommonConfigurationKeys.MODULE_NAME, "sample")
+
         configuration.put(JSConfigurationKeys.LIBRARIES, listOf(
             CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
             CompilerArgs.getStdLibPath("kotlin-test-js")
