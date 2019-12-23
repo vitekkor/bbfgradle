@@ -10,7 +10,6 @@ import com.stepanov.bbf.bugfinder.executor.CompilerArgs.shouldSaveCompileDiff
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors.simpleHaveDuplicatesErrors
-import com.stepanov.bbf.bugfinder.util.MutationSaver
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
