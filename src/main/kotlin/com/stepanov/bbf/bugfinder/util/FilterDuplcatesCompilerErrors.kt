@@ -128,6 +128,15 @@ object FilterDuplcatesCompilerErrors {
                 )
             }
 
+    fun simpleDuplicateFile(path: String, dir: String, compiler: CommonCompiler): File? =
+        File(dir).listFiles().filter { it.path.endsWith(".kt") }.firstOrNull {
+            simpleIsSameErrs(
+                path,
+                it.absolutePath,
+                compiler
+            )
+        }
+
     fun getListOfDuplicates(path: String, dir: String, compiler: CommonCompiler): List<String> =
             File(dir).listFiles().filter {
                 isSameErrs(

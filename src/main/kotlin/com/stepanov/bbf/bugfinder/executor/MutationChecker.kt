@@ -9,9 +9,11 @@ import com.stepanov.bbf.bugfinder.executor.CompilerArgs.shouldFilterDuplicateCom
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs.shouldSaveCompileDiff
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
+import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors.simpleDuplicateFile
 import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors.simpleHaveDuplicatesErrors
 import com.stepanov.bbf.bugfinder.util.MutationSaver
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
+import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.apache.log4j.Logger
@@ -19,7 +21,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
-import java.util.NoSuchElementException
+import java.util.*
 
 object MutationChecker {
     fun checkCompiling(file: KtFile): Boolean =
@@ -117,17 +119,17 @@ object MutationChecker {
 
         if (!File(dirWithPotentialDuplicates).exists()) File(dirWithPotentialDuplicates).mkdirs()
         if (shouldFilterDuplicateCompilerBugs) log.debug("TRYING TO FIND DUPLICATE in $dirWithPotentialDuplicates")
-        if (shouldFilterDuplicateCompilerBugs && simpleHaveDuplicatesErrors(
-                path,
-                dirWithPotentialDuplicates,
-                compiler
-            )
-        ) {
-            log.debug("Found duplicates")
-        } else {
-            //File(newPath).writeText(oldText)
-            BugManager.saveBug(compiler.compilerInfo, compiler.getErrorMessageForText(oldText), oldText)
-            foundBugs.add(oldText to compiler.compilerInfo)
+        if (shouldFilterDuplicateCompilerBugs) {
+            val duplicateFile = simpleDuplicateFile(path, dirWithPotentialDuplicates, compiler)
+            if (duplicateFile != null) {
+                val randomName = Random().getRandomVariableName(5)
+                File("tmp/results/DUPLICATES/$randomName.kt").writeText("//Duplicate of ${duplicateFile.absolutePath}\n\n$oldText")
+                log.debug("Found duplicates")
+            } else {
+                //File(newPath).writeText(oldText)
+                BugManager.saveBug(compiler.compilerInfo, compiler.getErrorMessageForText(oldText), oldText)
+                foundBugs.add(oldText to compiler.compilerInfo)
+            }
         }
     }
 
