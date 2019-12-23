@@ -1,5 +1,6 @@
 package com.stepanov.bbf.bugfinder
 
+import com.stepanov.bbf.bugfinder.duplicates.util.MutationSequence
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.MutationChecker
@@ -72,6 +73,7 @@ class BugFinder(private val path: String) : Runnable {
             Transformation.file = psiFile
             MutationChecker.factory = KtPsiFactory(psiFile.project)
             MutationChecker.compilers = compilers
+            MutationChecker.mutSeq = MutationSequence(psiFile.copy())
 
             //Check for compiling
             if (!compilers.checkCompilingForAllBackends(psiFile)) {
@@ -81,20 +83,23 @@ class BugFinder(private val path: String) : Runnable {
             log.debug("Start to mutate")
 
             Mutator(psiFile, psiCreator.ctx, compilers).startMutate()
-            if (!compilers.checkCompilingForAllBackends(psiFile)) {
+            val mutationResult = Transformation.file
+
+            if (!compilers.checkCompilingForAllBackends(mutationResult)) {
                 log.debug("Could not compile after mutation $path")
-                log.debug(psiFile.text)
+                log.debug(mutationResult.text)
             }
             log.debug("Mutated = ${psiFile.text}")
+            log.debug("Mutated2 = ${Transformation.file.text}")
 
             //Save mutated file
             if (CompilerArgs.shouldSaveMutatedFiles) {
                 val pathToSave = "${CompilerArgs.baseDir}/${Random().getRandomVariableName(10)}.kt"
-                File(pathToSave).writeText(psiFile.text)
+                File(pathToSave).writeText(mutationResult.text)
             }
 
             //Now begin to trace mutated file
-            val mutatedFile = PSICreator("").getPSIForText(psiFile.text)
+            val mutatedFile = PSICreator("").getPSIForText(mutationResult.text)
             val tracer = Tracer(mutatedFile, psiCreator.ctx!!)
             val traced = tracer.trace()
             log.debug("Traced = ${traced.text}")

@@ -5,6 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.impl.source.tree.TreeElement
 import com.stepanov.bbf.bugfinder.Reducer
+import com.stepanov.bbf.bugfinder.duplicates.util.MutationSequence
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs.shouldFilterDuplicateCompilerBugs
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs.shouldSaveCompileDiff
 import com.stepanov.bbf.bugfinder.manager.BugManager
@@ -84,6 +85,7 @@ object MutationChecker {
 
         val isAccepted = compilersToStatus.all { it.second }
         if (isAccepted) {
+            mutSeq.stateChanged(tree.copy())
             //MutationSaver.changeState(text)
             log.debug("Mutation accepted")
         } else {
@@ -182,6 +184,7 @@ object MutationChecker {
 
     lateinit var factory: KtPsiFactory
     lateinit var compilers: List<CommonCompiler>
+    lateinit var mutSeq: MutationSequence
     private const val DUMMY_HOLDER_INDEX: Short = 86
     private val log = Logger.getLogger("mutatorLogger")
     private val foundBugs = hashSetOf<Pair<String, String>>()

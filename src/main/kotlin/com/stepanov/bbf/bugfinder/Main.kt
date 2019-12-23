@@ -1,11 +1,15 @@
 package com.stepanov.bbf.bugfinder
 
+import com.stepanov.bbf.bugfinder.duplicates.engine.Diff
+import com.stepanov.bbf.bugfinder.duplicates.lang.kotlin.KotlinCfg
+import com.stepanov.bbf.bugfinder.duplicates.lang.util.LangCfgFactory
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.util.BBFProperties
 import com.stepanov.bbf.bugfinder.util.FalsePositivesDeleter
 import com.stepanov.bbf.bugfinder.util.NodeCollector
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
@@ -26,6 +30,9 @@ fun main(args: Array<String>) {
         Logger.getLogger("reducerLogger").level = Level.OFF
         Logger.getLogger("transformationManagerLog").level = Level.OFF
     }
+
+//    BugFinder("/home/stepanov/Kotlin/bbfgradle/tmp/arrays/continueInWhile.kt").findBugsInFile()
+//    System.exit(0)
 
     val parser = ArgumentParsers.newFor("bbf").build()
     parser.addArgument("-r", "--reduce")

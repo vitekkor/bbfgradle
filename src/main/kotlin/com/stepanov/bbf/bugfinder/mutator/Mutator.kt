@@ -107,7 +107,7 @@ class Mutator(val file: KtFile, val context: BindingContext?, private val compil
         log.debug("End")
     }
 
-    private fun verify(): String = "${compilers.checkCompilingForAllBackends(file)}"
+    private fun verify(): String = "${compilers.checkCompilingForAllBackends(Transformation.file)}"
 
     private val log = Logger.getLogger("mutatorLogger")
 }
