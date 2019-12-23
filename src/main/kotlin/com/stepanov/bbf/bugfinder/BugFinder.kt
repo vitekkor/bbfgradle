@@ -81,21 +81,22 @@ class BugFinder(private val path: String) : Runnable {
             log.debug("Start to mutate")
 
             Mutator(psiFile, psiCreator.ctx, compilers).startMutate()
-            if (!compilers.checkCompilingForAllBackends(psiFile)) {
+            val resultingMutant = PSICreator("").getPSIForText(Transformation.file.text)
+
+            if (!compilers.checkCompilingForAllBackends(resultingMutant)) {
                 log.debug("Could not compile after mutation $path")
                 log.debug(psiFile.text)
             }
-            log.debug("Mutated = ${psiFile.text}")
+            log.debug("Mutated = ${resultingMutant.text}")
 
             //Save mutated file
             if (CompilerArgs.shouldSaveMutatedFiles) {
                 val pathToSave = "${CompilerArgs.baseDir}/${Random().getRandomVariableName(10)}.kt"
-                File(pathToSave).writeText(psiFile.text)
+                File(pathToSave).writeText(resultingMutant.text)
             }
 
             //Now begin to trace mutated file
-            val mutatedFile = PSICreator("").getPSIForText(psiFile.text)
-            val tracer = Tracer(mutatedFile, psiCreator.ctx!!)
+            val tracer = Tracer(resultingMutant, psiCreator.ctx!!)
             val traced = tracer.trace()
             log.debug("Traced = ${traced.text}")
             if (!compilers.checkCompilingForAllBackends(traced)) {
