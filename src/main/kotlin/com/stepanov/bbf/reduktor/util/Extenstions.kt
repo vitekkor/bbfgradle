@@ -6,25 +6,28 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
+import com.stepanov.bbf.bugfinder.util.MutationSaver
+import com.stepanov.bbf.bugfinder.util.getAllChildrenOfTheLevel
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
+import org.jetbrains.kotlin.psi.psiUtil.children
 import org.jetbrains.kotlin.psi.psiUtil.findDescendantOfType
 import kotlin.collections.ArrayList
 
 fun KtBinaryExpression.isAssigment(): Boolean = KtPsiUtil.isAssignment(this)
 
 fun KtProperty.getLeft(): List<PsiElement> =
-        if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList().takeWhile { it.node.elementType.index.toInt() != 179 }
-        else listOf()
+    if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList().takeWhile { it.node.elementType.index.toInt() != 179 }
+    else listOf()
 
 fun KtProperty.getLeftIdentifier(): PsiElement? =
-        this.allChildren.toList().first { it.node.elementType.index.toInt() == 141 }
+    this.allChildren.toList().first { it.node.elementType.index.toInt() == 141 }
 
 fun KtProperty.getRight(): List<PsiElement> =
-        if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList().takeLastWhile { it.node.elementType.index.toInt() != 179 }
-        else listOf()
+    if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList().takeLastWhile { it.node.elementType.index.toInt() != 179 }
+    else listOf()
 
 
 //TEMPORARY SOLUTION
@@ -75,7 +78,7 @@ fun ASTNode.getAllChildrenNodes(): ArrayList<ASTNode> {
 }
 
 fun ASTNode.getAllChildrenNodesOfType(type: IElementType): List<ASTNode> =
-        getAllChildrenNodes().filter { it.elementType == type }
+    getAllChildrenNodes().filter { it.elementType == type }
 
 fun ASTNode.getAllParents(): ArrayList<ASTNode> {
     val result = arrayListOf<ASTNode>()
@@ -196,10 +199,10 @@ fun KtNamedFunction.getSignature(): String {
 fun getClassWithName(projectFiles: List<KtFile>, name: String): KtClass? {
     for (f in projectFiles) {
         f.node.getAllChildrenNodes()
-                .filter { it.elementType == KtNodeTypes.CLASS }
-                .map { it.psi as KtClass }
-                .find { it.fqName?.asString() == name }
-                ?.let { return it }
+            .filter { it.elementType == KtNodeTypes.CLASS }
+            .map { it.psi as KtClass }
+            .find { it.fqName?.asString() == name }
+            ?.let { return it }
     }
     return null
 }
@@ -249,10 +252,10 @@ fun KtNamedFunction.replaceReturnValueTypeOnUnit(psiFactory: KtPsiFactory) {
 }
 
 fun ASTNode.getAllChildrenOfType(type: IElementType): List<ASTNode> =
-        this.getAllChildrenNodes().filter { it.elementType == type }
+    this.getAllChildrenNodes().filter { it.elementType == type }
 
 inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfType(): List<T> =
-        this.node.getAllChildrenNodes().filter { it.psi is T }.map { it.psi as T }
+    this.node.getAllChildrenNodes().filter { it.psi is T }.map { it.psi as T }
 
 fun PsiElement.getAllChildren(): List<PsiElement> = this.node.getAllChildrenNodes().map { it.psi }
 
@@ -271,8 +274,33 @@ fun ASTNode.isEqual(other: ASTNode): Boolean {
     return true
 }
 
+fun ASTNode.getLocation(): List<Int> = this
+    .getAllParents()
+    .reversed()
+    .zipWithNext { a, b -> a.getAllChildrenOfCurLevel().indexOf(b) }
+
+fun ASTNode.getNodeByLocation(indexes: List<Int>): ASTNode? {
+    var resNode = this
+    try {
+        indexes.forEach { ind -> resNode = resNode.children().elementAt(ind) }
+    } catch (e: Exception) {
+        return null
+    }
+    return resNode
+}
+
+fun ASTNode.getDiffChild(other: ASTNode): Pair<ASTNode, ASTNode> {
+    var result = this.getDiffChildOrNull(other)
+    var res = this to other
+    while (result != null) {
+        res = result.first()
+        result = res.first.getDiffChildOrNull(res.second)
+    }
+    return res
+}
+
 //Returns null if different child is not only one
-fun ASTNode.getDiffChildOrNull(other: ASTNode): Pair<ASTNode, ASTNode>? {
+fun ASTNode.getDiffChildOrNull(other: ASTNode): List<Pair<ASTNode, ASTNode>>? {
     if (other.elementType != this.elementType) return null
     val otherChildren = other.getAllChildrenOfCurLevel()
     val thisChildren = this.getAllChildrenOfCurLevel()
@@ -282,7 +310,7 @@ fun ASTNode.getDiffChildOrNull(other: ASTNode): Pair<ASTNode, ASTNode>? {
         val otherChild = otherChildren[index]
         if (thisChild.text != otherChild.text) result.add(thisChild to otherChild)
     }
-    return if (result.size == 1) result.first() else null
+    return if (result.size == 1 || result.size == 2) result else null
 }
 
 //fun ASTNode.isChildrenAreEquals(other: ASTNode): Boolean {

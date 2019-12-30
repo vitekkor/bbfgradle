@@ -14,9 +14,12 @@ class AddBracketsToExpression : Transformation() {
         }.forEach {
             //KOSTYL'!!!!!!
             if (it is KtWhenExpression) return@forEach
-
-            val newExpr = psiFactory.createExpression("(${it.text})")
-            MutationChecker.replacePSINodeIfPossible(file, it, newExpr)
+            try {
+                val newExpr = psiFactory.createExpression("(${it.text})")
+                MutationChecker.replacePSINodeIfPossible(file, it, newExpr)
+            } catch (e: Exception) {
+                return
+            }
         }
     }
 }

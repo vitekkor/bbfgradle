@@ -1,6 +1,10 @@
 package com.stepanov.bbf.bugfinder.util
 
+import com.stepanov.bbf.bugfinder.duplicates.util.MutationSequence
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.MutationChecker
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
 import org.apache.log4j.Logger
 import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch
 import java.io.File
@@ -45,6 +49,22 @@ object FilterDuplcatesCompilerErrors {
 //            val newName = oldName.dropLastWhile { it != '/' } + "/unique_" + oldName.split('/').last()
 //            BufferedWriter(FileWriter(File(newName))).apply { write(File(oldName).readText()); close() }
 //        }
+    }
+
+    fun haveSameErrsWithMutSeq(pathToFile: String, dirWithDuplicates: String): Boolean {
+        val fileMutSeq = File(pathToFile.changeExtension("json"))
+        if (!fileMutSeq.exists()) return false
+        val mutSeq = Json(JsonConfiguration.Stable).parse(MutationSequence.serializer(), fileMutSeq.readText())
+        for (file in File(dirWithDuplicates).listFiles().filter { it.name.endsWith(".kt") }) {
+            val jsonFile = File(file.absolutePath.changeExtension("json"))
+            if (!jsonFile.exists()) continue
+            val mutSeqOfPotDuplicate =
+                Json(JsonConfiguration.Stable).parse(MutationSequence.serializer(), jsonFile.readText())
+            //Compare sequences
+            println()
+        }
+        return false
+        //val jsonData = json.stringify(MutationSequence.serializer(), MutationChecker.mutSeq)
     }
 
     fun isSameErrs(path1: String, path2: String, compiler: CommonCompiler): Boolean {
@@ -111,22 +131,22 @@ object FilterDuplcatesCompilerErrors {
     }
 
     fun haveDuplicatesErrors(path: String, dir: String, compiler: CommonCompiler): Boolean =
-            File(dir).listFiles().filter { it.path.endsWith(".kt") }.any {
-                isSameErrs(
-                    path,
-                    it.absolutePath,
-                    compiler
-                )
-            }
+        File(dir).listFiles().filter { it.path.endsWith(".kt") }.any {
+            isSameErrs(
+                path,
+                it.absolutePath,
+                compiler
+            )
+        }
 
     fun simpleHaveDuplicatesErrors(path: String, dir: String, compiler: CommonCompiler): Boolean =
-            File(dir).listFiles().filter { it.path.endsWith(".kt") }.any {
-                simpleIsSameErrs(
-                    path,
-                    it.absolutePath,
-                    compiler
-                )
-            }
+        File(dir).listFiles().filter { it.path.endsWith(".kt") }.any {
+            simpleIsSameErrs(
+                path,
+                it.absolutePath,
+                compiler
+            )
+        }
 
     fun simpleDuplicateFile(path: String, dir: String, compiler: CommonCompiler): File? =
         File(dir).listFiles().filter { it.path.endsWith(".kt") }.firstOrNull {
@@ -138,13 +158,13 @@ object FilterDuplcatesCompilerErrors {
         }
 
     fun getListOfDuplicates(path: String, dir: String, compiler: CommonCompiler): List<String> =
-            File(dir).listFiles().filter {
-                isSameErrs(
-                    path,
-                    it.absolutePath,
-                    compiler
-                )
-            }.map { it.absolutePath }
+        File(dir).listFiles().filter {
+            isSameErrs(
+                path,
+                it.absolutePath,
+                compiler
+            )
+        }.map { it.absolutePath }
 //    {
 //        val text = File(path).readText()
 //        val comp = when (compiler) {
@@ -175,13 +195,13 @@ object FilterDuplcatesCompilerErrors {
     }
 
     private fun getStacktrace2(msg: String): String =
-            msg
-                    .split("Cause:")
-                    .last()
-                    .split("\n")
-                    .map { it.trim() }
-                    .filter { it.startsWith("at ") }
-                    .joinToString("\n")
+        msg
+            .split("Cause:")
+            .last()
+            .split("\n")
+            .map { it.trim() }
+            .filter { it.startsWith("at ") }
+            .joinToString("\n")
 
     private fun checkErrsMatching(a: String, b: String): Double {
         val diffs = patch.diffMain(a, b)

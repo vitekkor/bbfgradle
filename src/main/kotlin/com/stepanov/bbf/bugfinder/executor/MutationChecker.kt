@@ -15,8 +15,11 @@ import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors.simpleHaveD
 import com.stepanov.bbf.bugfinder.util.MutationSaver
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
@@ -78,6 +81,9 @@ object MutationChecker {
                             Reducer.reduceDiffCompile(CompilerArgs.pathToTmpFile, compilersForReducer)
                         else
                             text
+                    //Adding info to duplicates
+                    //mutSeq.stateChanged(tree)
+                    myMutSeq.changeState(tree.text)
                     BugManager.saveBug(diffCompilers.joinToString(separator = ","), "", reduced, BugType.DIFFCOMPILE)
                 }
             }
@@ -85,8 +91,8 @@ object MutationChecker {
 
         val isAccepted = compilersToStatus.all { it.second }
         if (isAccepted) {
-            mutSeq.stateChanged(tree.copy())
-            //MutationSaver.changeState(text)
+            //mutSeq.stateChanged(tree.copy())
+            myMutSeq.changeState(tree.text)
             log.debug("Mutation accepted")
         } else {
             log.debug("Mutation didnt accepted")
@@ -123,9 +129,20 @@ object MutationChecker {
         if (shouldFilterDuplicateCompilerBugs) log.debug("TRYING TO FIND DUPLICATE in $dirWithPotentialDuplicates")
         if (shouldFilterDuplicateCompilerBugs) {
             val duplicateFile = simpleDuplicateFile(path, dirWithPotentialDuplicates, compiler)
+            //Add info about mutation
+            //mutSeq.stateChanged(PSICreator("").getPSIForFile(path, false))
+            myMutSeq.changeState(File(path).readText())
             if (duplicateFile != null) {
                 val randomName = Random().getRandomVariableName(5)
+
+                //TEMPORARY!! Saving duplicate and json
                 File("tmp/results/DUPLICATES/$randomName.kt").writeText("//Duplicate of ${duplicateFile.absolutePath}\n\n$oldText")
+                val json = Json(JsonConfiguration.Stable)
+                //val jsonData = json.stringify(MutationSequence.serializer(), mutSeq)
+                val jsonData2 = json.stringify(MutationSaver.serializer(), myMutSeq)
+                //File("tmp/results/DUPLICATES/$randomName.json").writeText(jsonData)
+                File("tmp/results/DUPLICATES/${randomName}2.json").writeText(jsonData2)
+
                 log.debug("Found duplicates")
             } else {
                 //File(newPath).writeText(oldText)
@@ -185,6 +202,8 @@ object MutationChecker {
     lateinit var factory: KtPsiFactory
     lateinit var compilers: List<CommonCompiler>
     lateinit var mutSeq: MutationSequence
+    lateinit var myMutSeq: MutationSaver
+
     private const val DUMMY_HOLDER_INDEX: Short = 86
     private val log = Logger.getLogger("mutatorLogger")
     private val foundBugs = hashSetOf<Pair<String, String>>()

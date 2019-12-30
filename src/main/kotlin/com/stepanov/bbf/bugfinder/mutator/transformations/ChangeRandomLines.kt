@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.stepanov.bbf.bugfinder.executor.MutationChecker
+import ru.spbstu.kotlin.generate.util.nextInRange
 import java.util.*
 
 class ChangeRandomLines : Transformation() {
@@ -20,5 +21,5 @@ class ChangeRandomLines : Transformation() {
 
     private fun getText(text: MutableList<String>) = text.joinToString(separator = "\n")
 
-    private val shuffleConst = file.text.lines().size * 4
+    private val shuffleConst = Random().nextInRange(file.text.lines().size * 1, file.text.lines().size * 4)
 }

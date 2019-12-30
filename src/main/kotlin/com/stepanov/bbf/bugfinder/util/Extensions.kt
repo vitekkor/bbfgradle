@@ -306,3 +306,5 @@ fun removeMainFromFiles(dir: String) {
         fooStream.close()
     }
 }
+
+fun String.changeExtension(newExtenstion: String): String = "${this.substringBeforeLast(".")}.$newExtenstion"

@@ -13,10 +13,14 @@ import com.stepanov.bbf.bugfinder.mutator.Mutator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.tracer.Tracer
 import com.stepanov.bbf.bugfinder.util.BBFProperties
+import com.stepanov.bbf.bugfinder.util.MutationSaver
 import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
 import org.apache.log4j.Logger
+import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
 import java.util.*
@@ -73,7 +77,9 @@ class BugFinder(private val path: String) : Runnable {
             Transformation.file = psiFile
             MutationChecker.factory = KtPsiFactory(psiFile.project)
             MutationChecker.compilers = compilers
-            MutationChecker.mutSeq = MutationSequence(psiFile.copy())
+            MutationChecker.mutSeq = MutationSequence(psiFile.text)
+            MutationChecker.myMutSeq = MutationSaver(psiFile.text)
+            //MutationSaver.init(psiFile.copy() as KtFile)
 
             //Check for compiling
             if (!compilers.checkCompilingForAllBackends(psiFile)) {
@@ -83,24 +89,20 @@ class BugFinder(private val path: String) : Runnable {
             log.debug("Start to mutate")
 
             Mutator(psiFile, psiCreator.ctx, compilers).startMutate()
-            val mutationResult = Transformation.file
+            val mutationResult = PSICreator("").getPSIForText(Transformation.file.text)
 
             if (!compilers.checkCompilingForAllBackends(mutationResult)) {
                 log.debug("Could not compile after mutation $path")
                 log.debug(mutationResult.text)
             }
-            log.debug("Mutated = ${psiFile.text}")
-            log.debug("Mutated2 = ${Transformation.file.text}")
 
             //Save mutated file
             if (CompilerArgs.shouldSaveMutatedFiles) {
                 val pathToSave = "${CompilerArgs.baseDir}/${Random().getRandomVariableName(10)}.kt"
                 File(pathToSave).writeText(mutationResult.text)
             }
-
             //Now begin to trace mutated file
-            val mutatedFile = PSICreator("").getPSIForText(mutationResult.text)
-            val tracer = Tracer(mutatedFile, psiCreator.ctx!!)
+            val tracer = Tracer(mutationResult, psiCreator.ctx!!)
             val traced = tracer.trace()
             log.debug("Traced = ${traced.text}")
             if (!compilers.checkCompilingForAllBackends(traced)) {
