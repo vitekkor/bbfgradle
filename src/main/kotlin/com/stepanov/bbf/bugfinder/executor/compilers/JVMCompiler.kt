@@ -12,6 +12,7 @@ import com.stepanov.bbf.reduktor.util.MsgCollector
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.config.IncrementalCompilation
 import org.jetbrains.kotlin.config.Services
@@ -37,7 +38,11 @@ class JVMCompiler(private val arguments: String = "") : CommonCompiler() {
         return !MsgCollector.hasCompileError && !status.hasTimeout && !MsgCollector.hasException
     }
 
-    override fun getErrorMessage(pathToFile: String): String = tryToCompile(pathToFile).combinedOutput
+    override fun getErrorMessageWithLocation(pathToFile: String): Pair<String, List<CompilerMessageLocation>> {
+        val status = tryToCompile(pathToFile)
+        return status.combinedOutput to status.locations
+    }
+
     override fun isCompilerBug(pathToFile: String): Boolean =
         tryToCompile(pathToFile).hasException
 
@@ -161,7 +166,8 @@ class JVMCompiler(private val arguments: String = "") : CommonCompiler() {
                     MsgCollector.compileErrorMessages.joinToString("\n"),
             !MsgCollector.hasCompileError,
             MsgCollector.hasException,
-            hasTimeout
+            hasTimeout,
+            MsgCollector.locations.toMutableList()
         )
         return status
     }

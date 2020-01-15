@@ -9,12 +9,14 @@ object MsgCollector : MessageCollector {
     var hasCompileError = false
     var crashMessages = mutableListOf<String>()
     var compileErrorMessages = mutableListOf<String>()
+    val locations = mutableListOf<CompilerMessageLocation>()
 
     override fun clear() {
         hasException = false
         hasCompileError = false
         crashMessages.clear()
         compileErrorMessages.clear()
+        locations.clear()
     }
 
     override fun hasErrors(): Boolean {
@@ -25,10 +27,13 @@ object MsgCollector : MessageCollector {
         if (severity == CompilerMessageSeverity.EXCEPTION) {
             hasException = true
             crashMessages.add(message)
+            location?.let { locations.add(it) }
         }
         if (severity == CompilerMessageSeverity.ERROR) {
             compileErrorMessages.add(message)
             hasCompileError = true
+            location?.let { locations.add(it) }
         }
+
     }
 }

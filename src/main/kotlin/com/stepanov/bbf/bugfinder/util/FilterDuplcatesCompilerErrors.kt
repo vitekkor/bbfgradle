@@ -1,6 +1,8 @@
 package com.stepanov.bbf.bugfinder.util
 
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.apache.log4j.Logger
 import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch
 import java.io.File
@@ -46,6 +48,74 @@ object FilterDuplcatesCompilerErrors {
 //            BufferedWriter(FileWriter(File(newName))).apply { write(File(oldName).readText()); close() }
 //        }
     }
+
+    fun filterDiffCompErrors(dir: String, compilers: List<CommonCompiler>) {
+        val list = mutableListOf<Triple<File, String, String?>>()
+        val files = File(dir).listFiles().filter { it.absolutePath.endsWith(".kt") }
+        var i = 0
+        for (file in files) {
+            println("HAndling $i of ${files.size}")
+            i++
+            val errorToLocation2 = compilers
+                .map { it.compilerInfo to it.getErrorMessageForTextWithLocation(file.readText()) }
+                .firstOrNull { it.second.first.trim().isNotEmpty() }
+                ?.let { "${it.first}\n${it.second.first}" to it.second.second.first().lineContent } ?: continue
+            list.add(Triple(file, errorToLocation2.first, errorToLocation2.second))
+        }
+
+        var index = 0
+        while (index != list.size - 1) {
+            println("ind = $index")
+            val iterator = list.iterator()
+            for (ind in 0..index)
+                iterator.next()
+            val cur = iterator.next()
+            while (iterator.hasNext()) {
+                val next = iterator.next()
+
+                val k1 = newCheckErrsMatching(cur.second, next.second)
+                println("${cur.first.absolutePath} ${next.first.absolutePath} k1 = ${k1}")
+                if (k1 > 0.3) {
+                    val k2 = newCheckErrsMatching(cur.third ?: "", next.third ?: "1")
+                    println("k2 = $k2")
+                    if (k2 > 0.3) {
+                        println("removing ${cur.first.absolutePath}")
+                        next.first.delete()
+                        iterator.remove()
+                    }
+                }
+                println("\n\n")
+
+//                val stMatchingKoef = checkErrsMatching(
+//                    getStacktrace2(curFile.value),
+//                    getStacktrace2(anotherFile.value)
+//                )
+//                println("Stacks Matching = $stMatchingKoef ${curFile.key.name} ${anotherFile.key.name}\n\n")
+//                if (/*getStacktrace(curFile.value) == getStacktrace(anotherFile.value) || errsMatchingKoef < 0.5*/ stMatchingKoef < 0.2) {
+//                    println("removing ${anotherFile.key.name} - duplicate of ${curFile.key.name}")
+//                    iterator.remove()
+//                }
+
+            }
+            ++index
+        }
+
+//        val iterator = list.iterator()
+//        while (iterator.hasNext()) {
+//            val cur = iterator.next()
+//            val next = list[i + 1]
+//            val k1 = newCheckErrsMatching(cur.second, next.second)
+//            if (k1 > 0.3) {
+//                val k2 = newCheckErrsMatching(cur.third ?: "", next.third ?: "1")
+//                if (k2 > 0.3) {
+//
+//                }
+//
+//            }
+//        }
+
+    }
+
 
     fun isSameErrs(path1: String, path2: String, compiler: CommonCompiler): Boolean {
         val text = File(path1).readText()
@@ -111,31 +181,86 @@ object FilterDuplcatesCompilerErrors {
     }
 
     fun haveDuplicatesErrors(path: String, dir: String, compiler: CommonCompiler): Boolean =
-            File(dir).listFiles().filter { it.path.endsWith(".kt") }.any {
-                isSameErrs(
-                    path,
-                    it.absolutePath,
-                    compiler
-                )
-            }
+        File(dir).listFiles().filter { it.path.endsWith(".kt") }.any {
+            isSameErrs(
+                path,
+                it.absolutePath,
+                compiler
+            )
+        }
 
     fun simpleHaveDuplicatesErrors(path: String, dir: String, compiler: CommonCompiler): Boolean =
-            File(dir).listFiles().filter { it.path.endsWith(".kt") }.any {
-                simpleIsSameErrs(
-                    path,
-                    it.absolutePath,
-                    compiler
+        File(dir).listFiles().filter { it.path.endsWith(".kt") }.any {
+            simpleIsSameErrs(
+                path,
+                it.absolutePath,
+                compiler
+            )
+        }
+
+    fun isSameDiffCompileErrors(
+        path: String,
+        dir: String,
+        compilers: List<CommonCompiler>,
+        strictMode: Boolean
+    ): Boolean {
+        val k1 = if (strictMode) 0.3 else 0.45
+        val errorToLocation1 = compilers
+            .map { it.compilerInfo to it.getErrorMessageForTextWithLocation(File(path).readText()) }
+            .first { it.second.first.trim().isNotEmpty() }
+            .let { "${it.first}\n${it.second.first}" to it.second.second.first().lineContent }
+
+        for (file in File(dir).listFiles().filter { it.absolutePath.endsWith(".kt") }) {
+            if (file.absolutePath == path) continue
+            val errorToLocation2 = compilers
+                .map { it.compilerInfo to it.getErrorMessageForTextWithLocation(file.readText()) }
+                .firstOrNull { it.second.first.trim().isNotEmpty() }
+                ?.let { "${it.first}\n${it.second.first}" to it.second.second.first().lineContent } ?: continue
+            if (errorToLocation1.first.split("\n").first() != errorToLocation2.first.split("\n").first()) continue
+            val diff = newCheckErrsMatching(errorToLocation1.first, errorToLocation2.first)
+            println("${errorToLocation1.first} \n${errorToLocation2.first}\n$path ${file.absolutePath} $diff\n\n")
+            if (diff > 0.3) {
+                val diff2 = newCheckErrsMatching(
+                    errorToLocation1.second ?: "",
+                    errorToLocation2.second ?: "0"
                 )
+                println("$path ${file.absolutePath} $diff2")
+                if (diff2 > k1) {
+                    println("$path and ${file.absolutePath} are duplicates")
+                    log.debug("$path and ${file.absolutePath} are duplicates")
+                    return true
+                }
             }
+        }
+        return false
+    }
+
+    fun commonSimpleHaveDuplicatesErrors(
+        path: String,
+        dir: String,
+        oracle: (List<CommonCompiler>) -> Boolean
+    ): Boolean =
+        File(dir).listFiles().filter { it.path.endsWith(".kt") }.any {
+            commonSimpleIsSameErrs(
+                path,
+                it.absolutePath,
+                oracle
+            )
+        }
+
+
+    fun commonSimpleIsSameErrs(path1: String, path2: String, oracle: (List<CommonCompiler>) -> Boolean): Boolean {
+        return false
+    }
 
     fun getListOfDuplicates(path: String, dir: String, compiler: CommonCompiler): List<String> =
-            File(dir).listFiles().filter {
-                isSameErrs(
-                    path,
-                    it.absolutePath,
-                    compiler
-                )
-            }.map { it.absolutePath }
+        File(dir).listFiles().filter {
+            isSameErrs(
+                path,
+                it.absolutePath,
+                compiler
+            )
+        }.map { it.absolutePath }
 //    {
 //        val text = File(path).readText()
 //        val comp = when (compiler) {
@@ -166,13 +291,13 @@ object FilterDuplcatesCompilerErrors {
     }
 
     private fun getStacktrace2(msg: String): String =
-            msg
-                    .split("Cause:")
-                    .last()
-                    .split("\n")
-                    .map { it.trim() }
-                    .filter { it.startsWith("at ") }
-                    .joinToString("\n")
+        msg
+            .split("Cause:")
+            .last()
+            .split("\n")
+            .map { it.trim() }
+            .filter { it.startsWith("at ") }
+            .joinToString("\n")
 
     private fun checkErrsMatching(a: String, b: String): Double {
         val diffs = patch.diffMain(a, b)

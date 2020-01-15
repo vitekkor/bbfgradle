@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.cli.js.K2JSCompiler
 import org.jetbrains.kotlin.config.Services
 import com.stepanov.bbf.reduktor.executor.KotlincInvokeStatus
 import com.stepanov.bbf.reduktor.util.MsgCollector
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
 import java.io.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -22,7 +23,10 @@ class JSCompiler(private val arguments: String = "") : CommonCompiler() {
     override val pathToCompiled: String
         get() = "tmp/tmp.js"
 
-    override fun getErrorMessage(pathToFile: String): String = tryToCompile(pathToFile).combinedOutput
+    override fun getErrorMessageWithLocation(pathToFile: String): Pair<String, List<CompilerMessageLocation>> {
+        val status = tryToCompile(pathToFile)
+        return status.combinedOutput to status.locations
+    }
 
     override fun checkCompiling(pathToFile: String): Boolean {
         val status = tryToCompile(pathToFile)
@@ -103,7 +107,8 @@ class JSCompiler(private val arguments: String = "") : CommonCompiler() {
                     MsgCollector.compileErrorMessages.joinToString("\n"),
             !MsgCollector.hasCompileError,
             MsgCollector.hasException,
-            hasTimeout
+            hasTimeout,
+            MsgCollector.locations.toMutableList()
         )
         File(pathToCompiled).delete()
         return status

@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.executor
 import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.reduktor.executor.KotlincInvokeStatus
 import org.apache.commons.exec.*
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
 import org.jetbrains.kotlin.psi.KtFile
 import java.io.BufferedWriter
 import java.io.ByteArrayOutputStream
@@ -14,7 +15,7 @@ data class CompilingResult(val status: Int, val pathToCompiled: String)
 abstract class CommonCompiler {
 
     abstract fun checkCompiling(pathToFile: String): Boolean
-    abstract fun getErrorMessage(pathToFile: String): String
+    abstract fun getErrorMessageWithLocation(pathToFile: String): Pair<String, List<CompilerMessageLocation>>
     abstract fun compile(path: String): CompilingResult
     abstract fun tryToCompile(pathToFile: String): KotlincInvokeStatus
     abstract fun isCompilerBug(pathToFile: String): Boolean
@@ -34,11 +35,13 @@ abstract class CommonCompiler {
         return res
     }
 
-    fun getErrorMessageForText(text: String): String {
+    fun getErrorMessage(pathToFile: String): String = getErrorMessageWithLocation(pathToFile).first
+    fun getErrorMessageForText(text: String): String = getErrorMessageForTextWithLocation(text).first
+    fun getErrorMessageForTextWithLocation(text: String) : Pair<String, List<CompilerMessageLocation>> {
         val writer = BufferedWriter(FileWriter(CompilerArgs.pathToTmpFile))
         writer.write(text)
         writer.close()
-        return getErrorMessage(CompilerArgs.pathToTmpFile)
+        return getErrorMessageWithLocation(CompilerArgs.pathToTmpFile)
     }
 
     fun checkCompilingText(text: String): Boolean {
