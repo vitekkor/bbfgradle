@@ -9,6 +9,7 @@ import com.stepanov.bbf.bugfinder.executor.CompilerArgs.shouldFilterDuplicateCom
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs.shouldSaveCompileDiff
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
+import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
 import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors.simpleHaveDuplicatesErrors
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
@@ -74,6 +75,8 @@ object MutationChecker {
                             Reducer.reduceDiffCompile(CompilerArgs.pathToTmpFile, compilersForReducer)
                         else
                             text
+                    val dirWithPotDup = "${CompilerArgs.resultsDir}diffCompile/"
+                    if (!FilterDuplcatesCompilerErrors.haveSameDiffCompileErrors(CompilerArgs.pathToTmpFile, dirWithPotDup, compilers, true))
                     BugManager.saveBug(diffCompilers.joinToString(separator = ","), "", reduced, BugType.DIFFCOMPILE)
                 }
             }

@@ -198,7 +198,7 @@ object FilterDuplcatesCompilerErrors {
             )
         }
 
-    fun isSameDiffCompileErrors(
+    fun haveSameDiffCompileErrors(
         path: String,
         dir: String,
         compilers: List<CommonCompiler>,
@@ -218,15 +218,14 @@ object FilterDuplcatesCompilerErrors {
                 ?.let { "${it.first}\n${it.second.first}" to it.second.second.first().lineContent } ?: continue
             if (errorToLocation1.first.split("\n").first() != errorToLocation2.first.split("\n").first()) continue
             val diff = newCheckErrsMatching(errorToLocation1.first, errorToLocation2.first)
-            println("${errorToLocation1.first} \n${errorToLocation2.first}\n$path ${file.absolutePath} $diff\n\n")
+            log.debug("${errorToLocation1.first} \n${errorToLocation2.first}\n$path ${file.absolutePath} $diff\n\n")
             if (diff > 0.3) {
                 val diff2 = newCheckErrsMatching(
                     errorToLocation1.second ?: "",
                     errorToLocation2.second ?: "0"
                 )
-                println("$path ${file.absolutePath} $diff2")
+                log.debug("$path ${file.absolutePath} $diff2")
                 if (diff2 > k1) {
-                    println("$path and ${file.absolutePath} are duplicates")
                     log.debug("$path and ${file.absolutePath} are duplicates")
                     return true
                 }
