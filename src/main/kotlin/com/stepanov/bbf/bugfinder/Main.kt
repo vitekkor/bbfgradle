@@ -58,7 +58,7 @@ fun main(args: Array<String>) {
         File(tmpPath).writeText(File(it).readText())
         val res = when (type) {
             "DIFF_BEHAVIOR" -> Reducer.reduceDiffBehavior(tmpPath, compilers)
-            "BACKEND_CRASH" -> Reducer.reduce(tmpPath, compilers.first()).first().toString()
+            "BACKEND_CRASH" -> Reducer.reduce(tmpPath, compilers.first()).first().text
             else -> throw IllegalArgumentException("Illegal type of bug")
         }
         println("Result of reducing:\n$res")
