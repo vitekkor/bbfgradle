@@ -35,6 +35,13 @@ abstract class CommonCompiler {
         return res
     }
 
+    fun isCompilerBugForText(text: String): Boolean {
+        val writer = BufferedWriter(FileWriter(CompilerArgs.pathToTmpFile))
+        writer.write(text)
+        writer.close()
+        return isCompilerBug(CompilerArgs.pathToTmpFile)
+    }
+
     fun getErrorMessage(pathToFile: String): String = getErrorMessageWithLocation(pathToFile).first
     fun getErrorMessageForText(text: String): String = getErrorMessageForTextWithLocation(text).first
     fun getErrorMessageForTextWithLocation(text: String) : Pair<String, List<CompilerMessageLocation>> {

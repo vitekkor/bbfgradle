@@ -3,9 +3,11 @@ package com.stepanov.bbf.bugfinder
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.isolation.mutations.ChangeASTNodesFromAnotherTrees
 import com.stepanov.bbf.bugfinder.util.BBFProperties
 import com.stepanov.bbf.bugfinder.util.FalsePositivesDeleter
 import com.stepanov.bbf.bugfinder.util.NodeCollector
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
@@ -16,6 +18,12 @@ import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
+    val fileWitBug = PSICreator("").getPSIForFile("/home/stepanov/Kotlin/bbfgradle/tmp/results/JVM/BACKEND_vurow.kt")
+    val goodMutants = ChangeASTNodesFromAnotherTrees(fileWitBug).mutate()
+    goodMutants.forEach {
+        println("MUT = ${it.text}\n")
+    }
+    System.exit(0)
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
 
