@@ -27,6 +27,7 @@ class MinorSimplifyings(
                             customStructures.find { it.second == "$type" }?.let { getDefValueForCustomClass(it.first) }
                                 ?: generateDefValuesAsString("$type")
                         val exp = KtPsiFactory(file.project).createExpression(defValue)
+                        if (it.text.length < exp.text.length) return@forEach
                         checker.replaceNodeIfPossible(file, it, exp)
                     }
                 }
