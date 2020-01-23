@@ -1,9 +1,6 @@
 package com.stepanov.bbf.bugfinder
 
-import com.stepanov.bbf.bugfinder.executor.CommonCompiler
-import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
-import com.stepanov.bbf.bugfinder.executor.TracesChecker
+import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.manager.BugManager
@@ -70,6 +67,7 @@ class BugFinder(private val path: String) : Runnable {
 
             //Init lateinit vars
             Transformation.file = psiFile
+            Transformation.checker = MutationChecker//WitnessTestsCollector(psiFile, BugType.BACKEND, )
             MutationChecker.factory = KtPsiFactory(psiFile.project)
             MutationChecker.compilers = compilers
 

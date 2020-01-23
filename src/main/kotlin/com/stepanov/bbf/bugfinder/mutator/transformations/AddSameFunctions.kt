@@ -46,9 +46,9 @@ class AddSameFunctions(private val ctx: BindingContext) : Transformation() {
                     par.replaceThis(newParam)
                 }
                 newFunc.initBodyByValue(psiFactory, newRtv)
-                MutationChecker.addNodeIfPossible(file, func, psiFactory.createWhiteSpace("\n"), true)
-                MutationChecker.addNodeIfPossible(file, func, newFunc, true)
-                MutationChecker.addNodeIfPossible(file, func, psiFactory.createWhiteSpace("\n"), true)
+                checker.addNodeIfPossible(file, func, psiFactory.createWhiteSpace("\n"), true)
+                checker.addNodeIfPossible(file, func, newFunc, true)
+                checker.addNodeIfPossible(file, func, psiFactory.createWhiteSpace("\n"), true)
             }
         }
     }

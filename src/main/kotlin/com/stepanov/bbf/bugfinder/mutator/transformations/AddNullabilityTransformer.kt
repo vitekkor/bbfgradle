@@ -16,7 +16,7 @@ class AddNullabilityTransformer: Transformation() {
 
     fun addNullability(ref: KtTypeReference) {
         val newRef = psiFactory.createTypeIfPossible("(${ref.typeElement?.text})?") ?: return
-        MutationChecker.replacePSINodeIfPossible(file, ref, newRef)
+        checker.replacePSINodeIfPossible(file, ref, newRef)
     }
 
 }

@@ -39,7 +39,7 @@ class ChangeModifiers : Transformation() {
                     val oldKeyword = KtTokens.MODIFIER_KEYWORDS_ARRAY.find { it.value == m.text } ?: continue
                     parent.removeModifier(oldKeyword)
                     parent.addModifier(keyword)
-                    if (!MutationChecker.checkCompiling(file)) {
+                    if (!checker.checkCompiling(file)) {
                         parent.removeModifier(keyword)
                         parent.addModifier(oldKeyword)
                     }

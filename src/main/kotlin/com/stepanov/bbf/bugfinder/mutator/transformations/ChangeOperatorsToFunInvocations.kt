@@ -47,7 +47,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
             return
         val params = exp.indexExpressions.joinToString(separator = ",") { it.text }
         val newCall = createCall(base.text, "get", params)
-        MutationChecker.replacePSINodeIfPossible(file, exp, newCall)
+        checker.replacePSINodeIfPossible(file, exp, newCall)
         //exp.replaceThis(newCall)
     }
 
@@ -63,7 +63,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
         }
         exp.baseExpression?.let {
             //exp.replaceThis(createCall(it.text, newCall))
-            MutationChecker.replacePSINodeIfPossible(file, exp, createCall(it.text, newCall))
+            checker.replacePSINodeIfPossible(file, exp, createCall(it.text, newCall))
         }
     }
 
@@ -72,7 +72,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
         val right = exp.right ?: return
         if (exp.operationToken == KtTokens.EQEQ) {
             val newExp = psiFactory.createExpression("(${left.text})?.equals(${right.text}) ?: (${right.text} === null)")
-            MutationChecker.replacePSINodeIfPossible(file, exp, newExp)
+            checker.replacePSINodeIfPossible(file, exp, newExp)
             //exp.replaceThis(newExp)
             return
         } else if (exp.operationToken in allowedEqs) {
@@ -81,7 +81,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
                 val params = "${left.indexExpressions.joinToString(separator = ",") { it.text }}, ${right.text}"
                 val newCall = createCall(arrayExp.text, "set", params)
                 //exp.replaceThis(newCall)
-                MutationChecker.replacePSINodeIfPossible(file, exp, newCall)
+                checker.replacePSINodeIfPossible(file, exp, newCall)
                 return
             }
         }
@@ -99,7 +99,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
 //            KtTokens.DIVEQ -> "divAssign"
             else -> return
         }
-        MutationChecker.replacePSINodeIfPossible(file, exp, createCallWithBraces(left.text, newCall, right.text))
+        checker.replacePSINodeIfPossible(file, exp, createCallWithBraces(left.text, newCall, right.text))
         //exp.replaceThis(createCallWithBraces(left.text, newCall, right.text))
     }
 

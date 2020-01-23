@@ -22,7 +22,7 @@ class ReinitProperties(private val context: BindingContext?) : Transformation() 
             if (newValue.isEmpty()) return@forEach
             val newProp = it.copy() as KtProperty
             newProp.initializer = psiFactory.createExpression(newValue)
-            MutationChecker.replacePSINodeIfPossible(file, it, newProp)
+            checker.replacePSINodeIfPossible(file, it, newProp)
         }
     }
 

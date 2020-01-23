@@ -55,7 +55,7 @@ class ChangeOperators : Transformation() {
                     else
                         psiFactory.createExpression(replacement)
 
-            MutationChecker.replacePSINodeIfPossible(file, replace.psi, replacementNode)
+            checker.replacePSINodeIfPossible(file, replace.psi, replacementNode)
         }
     }
 

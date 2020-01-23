@@ -17,7 +17,7 @@ class AddNotNullAssertions : Transformation() {
     private fun tryToAddNotNullAssertion(exp: KtExpression) {
         try {
             val newExp = psiFactory.createExpressionIfPossible("${exp.text}!!") ?: return
-            MutationChecker.replacePSINodeIfPossible(file, exp, newExp)
+            checker.replacePSINodeIfPossible(file, exp, newExp)
         } catch (e: Exception) {
             return
         }

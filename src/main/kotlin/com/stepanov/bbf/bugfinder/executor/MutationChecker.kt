@@ -21,11 +21,11 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
 import java.util.NoSuchElementException
 
-object MutationChecker {
-    fun checkCompiling(file: KtFile): Boolean =
+object MutationChecker: Checker() {
+    override fun checkCompiling(file: KtFile): Boolean =
         checkTextCompiling(file.text)
 
-    fun checkTextCompiling(text: String): Boolean {
+    override fun checkTextCompiling(text: String): Boolean {
         checkedConfigurations[text]?.let { log.debug("Already checked"); return it }
         //Checking syntax correction
         val tree = factory.createFile(text)
@@ -133,56 +133,8 @@ object MutationChecker {
         }
     }
 
-    fun replacePSINodeIfPossible(file: KtFile, node: PsiElement, replacement: PsiElement) =
-        replaceNodeIfPossible(file, node.node, replacement.node)
-
-    fun replaceNodeIfPossible(file: KtFile, node: ASTNode, replacement: ASTNode): Boolean {
-        if (node.text.isEmpty() || node == replacement) return checkCompiling(file)
-        for (p in node.getAllParentsWithoutNode()) {
-            try {
-                if (node.treeParent.elementType.index == DUMMY_HOLDER_INDEX) continue
-                val oldText = file.text
-                val replCopy = replacement.copyElement()
-                if ((node as TreeElement).treeParent !== p) {
-                    continue
-                }
-                p.replaceChild(node, replCopy)
-                if (oldText == file.text)
-                    continue
-                if (!checkCompiling(file)) {
-                    p.replaceChild(replCopy, node)
-                    return false
-                } else {
-                    return true
-                }
-            } catch (e: Error) {
-            }
-        }
-        return false
-    }
-
-    fun addNodeIfPossible(file: KtFile, anchor: PsiElement, node: PsiElement, before: Boolean = false): Boolean {
-        if (node.text.isEmpty() || node == anchor) return checkCompiling(
-            file
-        )
-        try {
-            val addedNode =
-                if (before) anchor.parent.addBefore(node, anchor)
-                else anchor.parent.addAfter(node, anchor)
-            if (checkCompiling(file)) return true
-            file.node.removeChild(addedNode.node)
-            return false
-        } catch (e: Throwable) {
-            return false
-        }
-    }
-
-    fun addNodeIfPossible(file: KtFile, anchor: ASTNode, node: ASTNode, before: Boolean = false): Boolean =
-        addNodeIfPossible(file, anchor.psi, node.psi, before)
-
     lateinit var factory: KtPsiFactory
     lateinit var compilers: List<CommonCompiler>
-    private const val DUMMY_HOLDER_INDEX: Short = 86
     private val log = Logger.getLogger("mutatorLogger")
     private val foundBugs = hashSetOf<Pair<String, String>>()
     private val checkedConfigurations = hashMapOf<String, Boolean>()

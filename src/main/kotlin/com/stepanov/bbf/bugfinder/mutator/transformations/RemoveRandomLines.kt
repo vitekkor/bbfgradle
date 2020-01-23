@@ -11,7 +11,7 @@ class RemoveRandomLines: Transformation()  {
             val numLine = Random().nextInt(text.size)
             val old = text[numLine]
             text[numLine] = ""
-            if (!MutationChecker.checkTextCompiling(getText(text))) {
+            if (!checker.checkTextCompiling(getText(text))) {
                 text[numLine] = old
             }
         }

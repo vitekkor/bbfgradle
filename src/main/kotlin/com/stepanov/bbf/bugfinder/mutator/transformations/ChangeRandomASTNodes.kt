@@ -28,7 +28,7 @@ class ChangeRandomASTNodes : Transformation() {
                 else break
             }
             val new = swap(randomNode1, randomNode2)
-            if (!MutationChecker.checkTextCompiling(file.text)) {
+            if (!checker.checkTextCompiling(file.text)) {
                 swap(new.first, new.second)
             }
         }

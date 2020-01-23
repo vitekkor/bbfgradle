@@ -10,7 +10,7 @@ class ChangeVarToNull : Transformation() {
     override fun transform() {
         file.getAllPSIChildrenOfType<KtExpression>()
                 .filter { getRandomBoolean(16) }
-                .forEach { MutationChecker.replacePSINodeIfPossible(file, it, psiFactory.createExpression("null")) }
+                .forEach { checker.replacePSINodeIfPossible(file, it, psiFactory.createExpression("null")) }
     }
 
 }

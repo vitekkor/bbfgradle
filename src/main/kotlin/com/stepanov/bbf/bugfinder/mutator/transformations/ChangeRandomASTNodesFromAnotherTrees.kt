@@ -37,7 +37,7 @@ class ChangeRandomASTNodesFromAnotherTrees : Transformation() {
                         sameTypeNodes[0]
                     else
                         sameTypeNodes[Random.nextInt(0, sameTypeNodes.size - 1)]
-            MutationChecker.replaceNodeIfPossible(file, randomNode, targetNode)
+            checker.replaceNodeIfPossible(file, randomNode, targetNode)
         }
     }
 

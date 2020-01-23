@@ -11,7 +11,7 @@ class ChangeRandomLines : Transformation() {
             val numLine = Random().nextInt(text.size)
             val insLine = Random().nextInt(text.size)
             Collections.swap(text, numLine, insLine)
-            if (!MutationChecker.checkTextCompiling(getText(text))) {
+            if (!checker.checkTextCompiling(getText(text))) {
                 Collections.swap(text, numLine, insLine)
             }
         }
