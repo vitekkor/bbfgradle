@@ -10,10 +10,7 @@ import com.stepanov.bbf.reduktor.executor.error.ErrorType
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.passes.*
 import com.stepanov.bbf.reduktor.passes.slicer.Slicer
-import com.stepanov.bbf.reduktor.util.ReduKtorProperties
-import com.stepanov.bbf.reduktor.util.TaskType
-import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
-import com.stepanov.bbf.reduktor.util.startTasksAndSaveNewFiles
+import com.stepanov.bbf.reduktor.util.*
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
@@ -125,6 +122,10 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
                 rFile = KtPsiFactory(rFile.project).createFile(rFile.name, rFile.text)
                 log.debug("VERIFY RemoveSuperTypeList = ${checker.checkTest(rFile.text)}")
                 log.debug("CHANGES AFTER RemoveSuperTypeList ${rFile.text != oldRes}")
+                SimplifyContainerType(rFile, checker).transform()
+                rFile = KtPsiFactory(rFile.project).createFile(rFile.name, rFile.text)
+                log.debug("VERIFY SimplifyContainerType = ${checker.checkTest(rFile.text)}")
+                log.debug("CHANGES AFTER SimplifyContainerType ${rFile.text != oldRes}")
                 SimplifyControlExpression(rFile, checker).transform()
                 rFile = KtPsiFactory(rFile.project).createFile(rFile.name, rFile.text)
                 log.debug("VERIFY SimplifyControlExpression = ${checker.checkTest(rFile.text)}")
@@ -229,6 +230,10 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
                 rFile = KtPsiFactory(rFile.project).createFile(rFile.name, rFile.text)
                 log.debug("VERIFY ReplaceArgOnTODO = ${checker.checkTest(rFile.text)}")
                 log.debug("CHANGES AFTER ReplaceArgOnTODO ${rFile.text != oldRes}")
+                ValueArgumentListSimplifying(rFile, checker).transform()
+                rFile = KtPsiFactory(rFile.project).createFile(rFile.name, rFile.text)
+                log.debug("VERIFY ValueArgumentListSimplifying = ${checker.checkTest(rFile.text)}")
+                log.debug("CHANGES AFTER ValueArgumentListSimplifying ${rFile.text != oldRes}")
                 val newText = PeepholePasses(rFile.text, checker, false).transform()
                 log.debug("CHANGES AFTER PEEPHOLE ${newText != oldRes}")
                 log.debug("VERIFY PEEPHOLE = ${checker.checkTest(newText)}")
