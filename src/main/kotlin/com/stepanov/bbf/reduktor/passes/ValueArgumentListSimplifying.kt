@@ -13,7 +13,7 @@ class ValueArgumentListSimplifying(private val file: KtFile, private val checker
             var i = 0
             while (i < argList.arguments.size - 1) {
                 val cur = argList.arguments[i].copy() as KtValueArgument
-                val next = argList.arguments[i + 1].copy() as KtValueArgument
+                val next = argList.arguments[i + 1]
                 argList.removeArgument(i)
                 if (!checker.checkTest(file.text)) {
                     ++i
