@@ -1,7 +1,6 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import org.jetbrains.kotlin.psi.*
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import java.util.*
@@ -13,7 +12,7 @@ class AddBlockToExpression : Transformation() {
         val expr = file.getAllPSIChildrenOfType<KtExpression>()
         expr.forEach {
             generateRandomBooleanExpression(it)?.let { blockExpr ->
-                MutationChecker.replacePSINodeIfPossible(file, it, blockExpr)
+                checker.replacePSINodeIfPossible(file, it, blockExpr)
             }
         }
     }

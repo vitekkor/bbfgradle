@@ -1,6 +1,5 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtWhenExpression
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType

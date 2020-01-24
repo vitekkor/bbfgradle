@@ -1,7 +1,6 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import org.jetbrains.kotlin.psi.KtExpression
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getRandomBoolean
 
