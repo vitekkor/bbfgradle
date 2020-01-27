@@ -21,7 +21,7 @@ object BugIsolator {
         return collector.witnessDatabase
     }
 
-    fun mutate(context: BindingContext?) {
+    private fun mutate(context: BindingContext?) {
         executeMutation(AddNullabilityTransformer())
         executeMutation(AddPossibleModifiers())
         executeMutation(AddReifiedToType())
