@@ -56,6 +56,7 @@ object CompilerArgs {
     }
 
     val baseDir = getPropValueWithoutQuotes("MUTATING_DIR")
+    val dirForNewTests = "$baseDir/newTests"
 
     //PATHS TO COMPILERS
     val pathToJsKotlinLib = createJSLib()

@@ -91,7 +91,9 @@ class BugFinder(private val path: String) : Runnable {
 
             //Save mutated file
             if (CompilerArgs.shouldSaveMutatedFiles) {
-                val pathToSave = "${CompilerArgs.baseDir}/${Random().getRandomVariableName(10)}.kt"
+                val pathToNewTests = CompilerArgs.dirForNewTests
+                File(pathToNewTests).mkdirs()
+                val pathToSave = "$pathToNewTests/${Random().getRandomVariableName(10)}.kt"
                 File(pathToSave).writeText(resultingMutant.text)
             }
 
