@@ -1,6 +1,7 @@
 package com.stepanov.bbf
 
 import org.apache.commons.exec.*
+import org.apache.commons.io.FileUtils
 import java.io.File
 import java.util.*
 
@@ -27,8 +28,10 @@ val TIMEOUT_SEC = Properties()
 //    return BBFProcess(cmd, f, handler, executor)
 //}
 
-
+const val pathToErrorLogs = "tmp/results/errorLogs"
 fun main(args: Array<String>) {
+    val file = File(pathToErrorLogs)
+    if (!file.exists()) file.mkdirs()
     //val dir = File(args[0]).listFiles()
 //    val dir = File("tmp/arrays").listFiles()
 //    val threads = 1
@@ -68,6 +71,19 @@ fun main(args: Array<String>) {
     while (true) {
         println("Elapsed: $timeElapsed")
         if (handler.hasResult()) {
+            //IF error then save logs
+            if (handler.exitValue != 0) {
+                var i = 0
+                var newPath: String
+                while (true) {
+                    newPath = "$pathToErrorLogs/logs$i"
+                    if (File(newPath).exists()) i++
+                    else break
+                }
+                val dstDir = File(newPath)
+                dstDir.mkdirs()
+                FileUtils.copyDirectory(File("logs"), dstDir)
+            }
             cmdLine = CommandLine.parse("gradle runBBF")
             handler = DefaultExecuteResultHandler()
             executor = DefaultExecutor().also {
