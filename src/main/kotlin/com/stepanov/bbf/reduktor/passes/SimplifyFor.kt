@@ -12,7 +12,7 @@ import org.jetbrains.kotlin.psi.psiUtil.allChildren
 class SimplifyFor(private val file: KtFile, private val checker: CompilerTestChecker) {
 
     fun transform() {
-        val forExpressions = file.getAllPSIChildrenOfType<KtForExpression>()
+        var forExpressions = file.getAllPSIChildrenOfType<KtForExpression>()
         for (f in forExpressions) {
             if (f.loopParameter == null || f.loopRange == null || f.body == null) continue
             val oldFor = f.copy() as KtForExpression
@@ -40,8 +40,19 @@ class SimplifyFor(private val file: KtFile, private val checker: CompilerTestChe
             else
                 log.debug("SUCCESSFUL FOR SIMPLIFYING")
         }
+        //Trying to simplify loop parameter
+        forExpressions = file.getAllPSIChildrenOfType<KtForExpression>()
+        for (f in forExpressions) {
+            f.loopRange?.let { loopRange ->
+                for (replacement in loopParamReplacement) {
+                    val replacementExp = KtPsiFactory(file.project).createExpression(replacement)
+                    if (checker.replaceNodeIfPossible(file, loopRange, replacementExp)) break
+                }
+            }
+        }
     }
 
+    private val loopParamReplacement = listOf("\"\"", "listOf(1)", "0..1")
     private val log = Logger.getLogger("transformationManagerLog")
     private val psiFactory = KtPsiFactory(file.project)
 
