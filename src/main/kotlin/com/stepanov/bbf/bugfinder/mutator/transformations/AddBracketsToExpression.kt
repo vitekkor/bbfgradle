@@ -9,14 +9,16 @@ import com.stepanov.bbf.bugfinder.util.getRandomBoolean
 class AddBracketsToExpression : Transformation() {
 
     override fun transform() {
-        file.getAllPSIChildrenOfType<KtExpression>().filter {
-            getRandomBoolean(4)
-        }.forEach {
-            //KOSTYL'!!!!!!
-            if (it is KtWhenExpression) return@forEach
-
-            val newExpr = psiFactory.createExpression("(${it.text})")
-            MutationChecker.replacePSINodeIfPossible(file, it, newExpr)
-        }
+        file.getAllPSIChildrenOfType<KtExpression>()
+            .filter { getRandomBoolean(4) }
+            .forEach {
+                if (it is KtWhenExpression) return@forEach
+                try {
+                    val newExpr = psiFactory.createExpression("(${it.text})")
+                    MutationChecker.replacePSINodeIfPossible(file, it, newExpr)
+                } catch (e: Exception) {
+                    return@forEach
+                }
+            }
     }
 }

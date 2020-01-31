@@ -212,6 +212,11 @@ object FilterDuplcatesCompilerErrors {
 
         for (file in File(dir).listFiles().filter { it.absolutePath.endsWith(".kt") }) {
             if (file.absolutePath == path) continue
+            //Check if compiling or compiler bug
+            if (compilers.map { it.isCompilerBug(file.absolutePath) }.any { it }) {
+                file.delete()
+                continue
+            }
             val errorToLocation2 = compilers
                 .map { it.compilerInfo to it.getErrorMessageForTextWithLocation(file.readText()) }
                 .firstOrNull { it.second.first.trim().isNotEmpty() }
