@@ -107,7 +107,7 @@ class Tracer(private var tree: KtFile, private val ctx: BindingContext) : KtVisi
         }
         //If msg contains quotes
         val newMsg = msg.filter { it != '"' }
-        return factory.createBlock("println(\"$newMsg\");\n${expr.text}")
+        return factory.createBlock("println(\"\"\"$newMsg\"\"\");\n${expr.text}")
     }
 
     override fun visitNamedFunction(function: KtNamedFunction) {
