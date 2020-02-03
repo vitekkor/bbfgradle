@@ -11,8 +11,13 @@ import kotlin.random.Random
 class Mutator(val file: KtFile, val context: BindingContext?, private val compilers: List<CommonCompiler>) {
 
     private fun executeMutation(t: Transformation, probPercentage: Int = 50) {
-        if (Random.nextInt(0, 100) < probPercentage)
-            t.transform()
+        if (Random.nextInt(0, 100) < probPercentage) {
+            try {
+                t.transform()
+            } catch (e: Exception) {
+                log.debug("Exception ${e.localizedMessage}")
+            }
+        }
     }
 
 
@@ -112,7 +117,7 @@ class Mutator(val file: KtFile, val context: BindingContext?, private val compil
         log.debug("End")
     }
 
-    private fun verify(): String = "${compilers.checkCompilingForAllBackends(file)}"
+    private fun verify(): String = "${compilers.checkCompilingForAllBackends(Transformation.file)}"
 
     private val log = Logger.getLogger("mutatorLogger")
 }

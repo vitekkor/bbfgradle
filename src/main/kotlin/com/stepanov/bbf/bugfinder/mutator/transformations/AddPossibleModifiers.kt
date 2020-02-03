@@ -35,6 +35,7 @@ class AddPossibleModifiers : Transformation() {
                     }
                 val num = Random().nextInt(curWorkingList.size)
                 val keyword = KtTokens.MODIFIER_KEYWORDS_ARRAY.find { it.value == curWorkingList[num] } ?: return@forEach
+                if (el.hasModifier(keyword)) return@forEach
                 el.addModifier(keyword)
                 if (!MutationChecker.checkCompiling(file))
                     el.removeModifier(keyword)
@@ -50,6 +51,6 @@ class AddPossibleModifiers : Transformation() {
 
     private val possibleFunctionModifiers = listOf("tailrec", "operator", "infix", "external") //"suspend"
 
-    private val randomConstant = 50
+    private val randomConstant = 25
 
 }

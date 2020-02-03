@@ -4,9 +4,9 @@ import com.intellij.lang.ASTNode
 import com.intellij.lang.FileASTNode
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.impl.source.tree.TreeElement
-import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.executor.error.Error
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import com.stepanov.bbf.reduktor.util.getAllParentsWithoutNode
 import com.stepanov.bbf.reduktor.util.replaceThis
@@ -16,7 +16,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
 
-open class MultiCompilerCrashChecker(private val compiler: CommonCompiler?) : CompilerTestChecker, Transformation() {
+open class MultiCompilerCrashChecker(private val compiler: CommonCompiler?) : CompilerTestChecker {
 
     override fun removeNodeIfPossible(file: KtFile, node: ASTNode): Boolean {
         val tmp = KtPsiFactory(file.project).createWhiteSpace("\n")
@@ -116,6 +116,7 @@ open class MultiCompilerCrashChecker(private val compiler: CommonCompiler?) : Co
             log.debug("ALREADY CHECKED!!!")
             return true to alreadyChecked[hash]!!
         }
+        if (!::psiFactory.isInitialized) psiFactory = KtPsiFactory(PSICreator("").getPSIForText(text, false).project)
         if (psiFactory.createFile(text).node.getAllChildrenNodes().any { it.psi is PsiErrorElement }) {
             log.debug("Not correct syntax")
             alreadyChecked[hash] = false
@@ -173,10 +174,6 @@ open class MultiCompilerCrashChecker(private val compiler: CommonCompiler?) : Co
     }
 
 
-    override fun transform() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
     override fun getErrorInfo(): Error =
         Error("")
     override fun getErrorMessage(): String = errs
@@ -185,6 +182,7 @@ open class MultiCompilerCrashChecker(private val compiler: CommonCompiler?) : Co
     lateinit var compilingPath: String
     override lateinit var pathToFile: String
     private lateinit var errs: String
+    internal lateinit var psiFactory: KtPsiFactory
 
     private val log = Logger.getLogger("reducerLogger")
     private val patch = DiffMatchPatch()

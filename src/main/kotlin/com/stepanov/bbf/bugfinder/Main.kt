@@ -3,9 +3,7 @@ package com.stepanov.bbf.bugfinder
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.util.BBFProperties
-import com.stepanov.bbf.bugfinder.util.FalsePositivesDeleter
-import com.stepanov.bbf.bugfinder.util.NodeCollector
+import com.stepanov.bbf.bugfinder.util.*
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level

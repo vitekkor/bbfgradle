@@ -39,7 +39,6 @@ class BugFinder(private val path: String) : Runnable {
                         println("e = $e")
                         return
                     }
-
             //Init compilers
             val compilersConf = BBFProperties.getStringGroupWithoutQuotes("BACKENDS")
             compilersConf.filter { it.key.contains("JVM") }.forEach { compilers.add(
@@ -85,7 +84,8 @@ class BugFinder(private val path: String) : Runnable {
 
             if (!compilers.checkCompilingForAllBackends(resultingMutant)) {
                 log.debug("Could not compile after mutation $path")
-                log.debug(psiFile.text)
+                log.debug(resultingMutant.text)
+                System.exit(1)
             }
             log.debug("Mutated = ${resultingMutant.text}")
 

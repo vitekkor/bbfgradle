@@ -11,7 +11,7 @@ import java.util.*
 class AddSameFunctions(private val ctx: BindingContext) : Transformation() {
 
     override fun transform() {
-        val functions = file.getAllPSIChildrenOfType<KtNamedFunction>().filter { Random().nextBoolean() }
+        val functions = file.getAllPSIChildrenOfType<KtNamedFunction>()//.filter { Random().nextBoolean() }
         for (func in functions) {
             val retType = func.typeReference?.text ?: func.getType(ctx).toString()
             val newRtv = generateDefValuesAsString(retType)
@@ -46,9 +46,10 @@ class AddSameFunctions(private val ctx: BindingContext) : Transformation() {
                     par.replaceThis(newParam)
                 }
                 newFunc.initBodyByValue(psiFactory, newRtv)
-                MutationChecker.addNodeIfPossible(file, func, psiFactory.createWhiteSpace("\n"), true)
-                MutationChecker.addNodeIfPossible(file, func, newFunc, true)
-                MutationChecker.addNodeIfPossible(file, func, psiFactory.createWhiteSpace("\n"), true)
+                val newBlockFragment = psiFactory.createBlock(newFunc.text)
+                newBlockFragment.lBrace?.delete()
+                newBlockFragment.rBrace?.delete()
+                MutationChecker.addNodeIfPossible(file, func, newBlockFragment, true)
             }
         }
     }

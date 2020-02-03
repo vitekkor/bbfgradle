@@ -19,7 +19,6 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
-import java.util.NoSuchElementException
 
 object MutationChecker {
     fun checkCompiling(file: KtFile): Boolean =
@@ -34,7 +33,7 @@ object MutationChecker {
             return false
         }
         //Checking if fun box() is on top level and didnt changed
-        if (!tree.text.contains("fun box(): String")) return false
+        if (!tree.text.contains(Regex("""fun\s*box\s*\(\)\s*:\s*String"""))) return false
         val funBox = tree.getAllPSIChildrenOfType<KtNamedFunction>().first { it.name == "box" }
         if (!funBox.isTopLevel) return false
 
@@ -56,13 +55,17 @@ object MutationChecker {
                     }
                 }
             }
-            if (foundCompilerBug) gotBugFromCurrentFile = true
+            if (foundCompilerBug) {
+                gotBugFromCurrentFile = true
+                return false
+            }
         }
 
         if (!gotCompDiffFromCurrentFile && !foundCompilerBug && shouldSaveCompileDiff) {
             val grouped = compilersToStatus.groupBy { it.first.compilerInfo.split(" ").first() }
             for (g in grouped) {
                 if (g.value.map { it.second }.toSet().size != 1) {
+                    if (compilers.any { it.isCompilerBug(CompilerArgs.pathToTmpFile) }) break
                     gotCompDiffFromCurrentFile = true
                     val diffCompilers =
                         g.value.groupBy { it.second }.mapValues { it.value.first().first.compilerInfo }.values
@@ -76,8 +79,19 @@ object MutationChecker {
                         else
                             text
                     val dirWithPotDup = "${CompilerArgs.resultsDir}diffCompile/"
-                    if (!FilterDuplcatesCompilerErrors.haveSameDiffCompileErrors(CompilerArgs.pathToTmpFile, dirWithPotDup, compilers, true))
-                    BugManager.saveBug(diffCompilers.joinToString(separator = ","), "", reduced, BugType.DIFFCOMPILE)
+                    if (!FilterDuplcatesCompilerErrors.haveSameDiffCompileErrors(
+                            CompilerArgs.pathToTmpFile,
+                            dirWithPotDup,
+                            compilers,
+                            true
+                        )
+                    )
+                        BugManager.saveBug(
+                            diffCompilers.joinToString(separator = ","),
+                            "",
+                            reduced,
+                            BugType.DIFFCOMPILE
+                        )
                 }
             }
         }
@@ -170,9 +184,10 @@ object MutationChecker {
                 if (before) anchor.parent.addBefore(node, anchor)
                 else anchor.parent.addAfter(node, anchor)
             if (checkCompiling(file)) return true
-            file.node.removeChild(addedNode.node)
+            addedNode.parent.node.removeChild(addedNode.node)
             return false
         } catch (e: Throwable) {
+            println("e = $e")
             return false
         }
     }

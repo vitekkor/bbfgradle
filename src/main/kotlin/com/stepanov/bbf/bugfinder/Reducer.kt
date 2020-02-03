@@ -5,7 +5,6 @@ import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.DiffBehaviorChecker
 import com.stepanov.bbf.bugfinder.executor.DiffCompileChecker
 import com.stepanov.bbf.bugfinder.executor.MultiCompilerCrashChecker
-import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.manager.TransformationManager
 import com.stepanov.bbf.reduktor.parser.PSICreator
@@ -19,7 +18,6 @@ object Reducer {
         val files = if (f.isDirectory) f.listFiles().toList() else listOf(f)
         val res = files.asSequence()
             .map { PSICreator("").getPSIForFile(it.absolutePath, false) }
-            .map { Transformation.file = it; it }
             .map {
                 reduceFile(
                     it,
@@ -37,7 +35,6 @@ object Reducer {
 
     fun reduceDiffBehavior(pathToFile: String, compilers: List<CommonCompiler>, shouldSave: Boolean = false): String {
         val ktFile = PSICreator("").getPSIForFile(pathToFile, false)
-        Transformation.file = ktFile
         val res = reduceFile(
             ktFile,
             DiffBehaviorChecker(compilers)
@@ -48,7 +45,6 @@ object Reducer {
 
     fun reduceDiffCompile(pathToFile: String, compilers: List<CommonCompiler>, shouldSave: Boolean = false): String {
         val ktFile = PSICreator("").getPSIForFile(pathToFile, false)
-        Transformation.file = ktFile
         val res = reduceFile(
             ktFile,
             DiffCompileChecker(compilers)
