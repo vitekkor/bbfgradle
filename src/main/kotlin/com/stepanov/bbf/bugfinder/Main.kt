@@ -10,6 +10,7 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
 import java.io.File
+import kotlin.random.Random
 import kotlin.system.exitProcess
 
 
@@ -76,7 +77,8 @@ fun main(args: Array<String>) {
         FalsePositivesDeleter().cleanDirs()
         exitProcess(0)
     }
-    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: throw IllegalArgumentException("Wrong directory")
+    val file = (if (Random.nextInt(0, 10) in 0..2) File("${CompilerArgs.baseDir}/newTests").listFiles()?.random()
+    else File(CompilerArgs.baseDir).listFiles()?.random()) ?: throw IllegalArgumentException("Wrong directory")
     BugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 }
