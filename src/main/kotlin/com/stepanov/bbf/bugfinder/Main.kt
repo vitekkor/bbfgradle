@@ -3,12 +3,18 @@ package com.stepanov.bbf.bugfinder
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.generator.subjectgenerator.Constructor
+import com.stepanov.bbf.bugfinder.generator.subjectgenerator.Expression
+import com.stepanov.bbf.bugfinder.generator.subjectgenerator.Klass
 import com.stepanov.bbf.bugfinder.util.*
+import com.stepanov.bbf.reduktor.parser.PSICreator
+import com.stepanov.bbf.reduktor.util.generateDefValuesAsString
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
+import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
 import kotlin.random.Random
 import kotlin.system.exitProcess
@@ -17,6 +23,12 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
+    val file1 = PSICreator("").getPSIForFile("/home/stepanov/Kotlin/bbfgradle/tmp/results/test.kt")
+    val factory = KtPsiFactory(file1.project)
+    Expression.factory = factory
+    val klass = Klass().generate("data")
+    println(klass.text)
+    System.exit(0)
 
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
