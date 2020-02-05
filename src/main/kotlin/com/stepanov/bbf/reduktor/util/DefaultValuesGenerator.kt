@@ -14,9 +14,9 @@ fun generateDefValuesAsString(type: String): String {
         type == "Double" -> generateDefValuesForDefaultTypes<Double>(type).toString()
         type == "Boolean" -> generateDefValuesForDefaultTypes<Boolean>(type).toString()
         type == "Byte" -> generateDefValuesForDefaultTypes<Byte>(type).toString()
-        type == "Long" -> generateDefValuesForDefaultTypes<Long>(type).toString()
+        type == "Long" -> "${generateDefValuesForDefaultTypes<Long>(type)}L"
         type == "Short" -> generateDefValuesForDefaultTypes<Short>(type).toString()
-        type == "Float" -> generateDefValuesForDefaultTypes<Float>(type).toString()
+        type == "Float" -> "${generateDefValuesForDefaultTypes<Float>(type)}F"
         type.startsWith("List") -> {
             if (type.contains('<'))
                 createDefaultValueForContainer(

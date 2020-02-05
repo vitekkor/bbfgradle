@@ -4,7 +4,7 @@ import com.stepanov.bbf.bugfinder.util.generateRandomType
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import java.util.*
 
-class Parameter(fixedType: String) {
+class Parameter(fixedType: String = "") {
     val name: String = Random().getRandomVariableName(5)
     var type: String
         private set

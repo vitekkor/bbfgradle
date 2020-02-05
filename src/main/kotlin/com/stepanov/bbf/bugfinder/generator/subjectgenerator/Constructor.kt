@@ -4,15 +4,15 @@ import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.psi.KtPrimaryConstructor
 import java.util.*
 
-class Constructor(typeParam: String = "") : Expression() {
+class Constructor(typeParam: String = "", numOfParams: Int = 5) : Expression() {
 
-    val value: PsiElement
+    override val value: KtPrimaryConstructor
+
     init {
-        val numOfParams = 5
         value = generateConstructor(numOfParams, typeParam)
     }
 
-    private fun generateConstructor(numOfParams: Int, typeParam: String): PsiElement {
+    private fun generateConstructor(numOfParams: Int, typeParam: String): KtPrimaryConstructor {
         val params = mutableListOf<Parameter>()
         if (typeParam.isNotEmpty() && Random().nextBoolean()) params.add(Parameter(typeParam))
         while (params.size != numOfParams) params.add(Parameter(""))

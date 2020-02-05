@@ -1,10 +1,11 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.ProjectCompilingChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.generator.subjectgenerator.Constructor
-import com.stepanov.bbf.bugfinder.generator.subjectgenerator.Expression
+import com.stepanov.bbf.bugfinder.generator.subjectgenerator.*
+import com.stepanov.bbf.bugfinder.generator.subjectgenerator.Function
 import com.stepanov.bbf.bugfinder.generator.subjectgenerator.Klass
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
@@ -15,6 +16,7 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
 import org.jetbrains.kotlin.psi.KtPsiFactory
+import ru.spbstu.kotlin.generate.util.nextInRange
 import java.io.File
 import kotlin.random.Random
 import kotlin.system.exitProcess
@@ -26,8 +28,13 @@ fun main(args: Array<String>) {
     val file1 = PSICreator("").getPSIForFile("/home/stepanov/Kotlin/bbfgradle/tmp/results/test.kt")
     val factory = KtPsiFactory(file1.project)
     Expression.factory = factory
-    val klass = Klass().generate("data")
-    println(klass.text)
+    val t1 = File("/home/stepanov/Kotlin/corTrain1/src/main/kotlin/SecondFile.kt").readText()
+    val t2 = File("/home/stepanov/Kotlin/corTrain1/src/main/kotlin/Main.kt").readText()
+    ProjectCompilingChecker.compilers = listOf(JVMCompiler(""), JVMCompiler("-Xnew-inference"))
+    val res = ProjectCompilingChecker.checkTextCompiling(listOf(t1, t2))
+    println("res = $res")
+//    val klass = Interface().generate()
+//    println(klass.text)
     System.exit(0)
 
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
