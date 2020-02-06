@@ -15,12 +15,20 @@ object ProjectCompilingChecker {
 
     fun checkTextCompiling(texts: List<String>): Boolean {
         val textToTmpPath = texts.mapIndexed { index, s -> s to generateTmpPath(index) }
+        val res = checkTextCompiling1(texts)
+        textToTmpPath.forEach { File(it.second).delete() }
+        return res
+    }
+
+    fun checkTextCompiling1(texts: List<String>): Boolean {
+        val textToTmpPath = texts.mapIndexed { index, s -> s to generateTmpPath(index) }
         val commonTmpName = textToTmpPath.map { it.second }.joinToString(" ")
         textToTmpPath.forEach { File(it.second).writeText(it.first) }
         val text = textToTmpPath.map { "//File: ${it.second}\n${it.first}" }.joinToString("\n")
         var foundCompilerBug = false
         for (compiler in compilers) {
             if (compiler.isCompilerBug(commonTmpName)) {
+                println("FOUND BUG!!!")
                 BugManager.saveBug(compiler.compilerInfo, "", text, BugType.BACKEND)
                 foundCompilerBug = true
             }
@@ -41,7 +49,7 @@ object ProjectCompilingChecker {
                 return false
             }
         }
-        return true
+        return compilersToStatus.first().second
     }
 
     private fun generateTmpPath(idx: Int): String = "${CompilerArgs.pathToTmpFile.substringBefore(".kt")}$idx.kt"

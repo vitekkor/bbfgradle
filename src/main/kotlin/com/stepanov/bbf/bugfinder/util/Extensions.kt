@@ -34,6 +34,7 @@ fun KtProperty.getRight(): List<PsiElement> =
         if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList().takeLastWhile { it.node.elementType.index.toInt() != 179 }
         else listOf()
 
+fun PsiElement.getAllChildrenOfCurLevel(): List<PsiElement> = this.node.getAllChildrenOfCurLevel().map { it.psi }
 
 fun ASTNode.getAllChildrenOfCurLevel(): Array<ASTNode> = this.getChildren(TokenSet.ANY)
 fun ASTNode.getAllChildrenNodes(): ArrayList<ASTNode> {
@@ -240,9 +241,17 @@ fun ASTNode.getAllDFSChildren(): List<ASTNode> {
 inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfType(): List<T> =
         this.node.getAllChildrenNodes().asSequence().filter { it.psi is T }.map { it.psi as T }.toList()
 
+inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfTypeOfFirstLevel(): List<T> =
+    this.node.getAllChildrenOfCurLevel().asSequence().filter { it.psi is T }.map { it.psi as T }.toList()
+
 inline fun <reified T : PsiElement> PsiElement.getAllPSIDFSChildrenOfType(): List<T> =
         this.node.getAllDFSChildren().asSequence().filter { it.psi is T }.map { it.psi as T }.toList()
 
+inline fun <reified T : PsiElement> PsiElement.getFirstParentOfType(): T? =
+    this.node.getAllParentsWithoutNode().map { it.psi }.filter { it is T }.firstOrNull() as T?
+
+inline fun <reified T : PsiElement> PsiElement.getLastParentOfType(): T? =
+    this.node.getAllParentsWithoutNode().map { it.psi }.filter { it is T }.lastOrNull() as T?
 
 fun PsiElement.debugPrint() {
     println("---BEGIN PSI STRUCTURE---")
