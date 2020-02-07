@@ -1,9 +1,13 @@
 package com.stepanov.bbf.bugfinder.executor
 
+import com.intellij.psi.PsiErrorElement
 import com.stepanov.bbf.bugfinder.Reducer
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
+import com.stepanov.bbf.bugfinder.tracer.Tracer
 import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
+import com.stepanov.bbf.reduktor.parser.PSICreator
+import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 
@@ -20,9 +24,9 @@ object ProjectCompilingChecker {
         return res
     }
 
-    fun checkTextCompiling1(texts: List<String>): Boolean {
+    private fun checkTextCompiling1(texts: List<String>): Boolean {
         val textToTmpPath = texts.mapIndexed { index, s -> s to generateTmpPath(index) }
-        val commonTmpName = textToTmpPath.map { it.second }.joinToString(" ")
+        val commonTmpName = textToTmpPath.joinToString(" ") { it.second }
         textToTmpPath.forEach { File(it.second).writeText(it.first) }
         val text = textToTmpPath.map { "//File: ${it.second}\n${it.first}" }.joinToString("\n")
         var foundCompilerBug = false
@@ -50,6 +54,27 @@ object ProjectCompilingChecker {
             }
         }
         return compilersToStatus.first().second
+    }
+
+    fun compareExecutionTraces(texts: List<String>): Boolean {
+        val textToTmpPath = texts.mapIndexed { index, s -> s to generateTmpPath(index) }
+        val commonTmpName = textToTmpPath.map { it.second }.joinToString(" ")
+        textToTmpPath.forEach { File(it.second).writeText(it.first) }
+        val text = textToTmpPath.map { "//File: ${it.second}\n${it.first}" }.joinToString("\n")
+        val psi = PSICreator("").getPSIForText(text, false)
+        val tracedTexts = textToTmpPath.map {
+            val psiCreator = PSICreator("")
+            val f = Tracer(psiCreator.getPSIForFile(it.second), psiCreator.ctx!!).trace()
+            File(it.second).writeText(f.text)
+            f.text
+        }
+        if (!checkTextCompiling1(tracedTexts)) {
+            return false
+        }
+        val res = TracesChecker(MutationChecker.compilers).checkTestForProject(commonTmpName)
+        if (res != null) BugManager.saveBug("JVM and JVM-new-inf", "", text, BugType.DIFFBEHAVIOR)
+        textToTmpPath.forEach { File(it.second).delete() }
+        return true
     }
 
     private fun generateTmpPath(idx: Int): String = "${CompilerArgs.pathToTmpFile.substringBefore(".kt")}$idx.kt"

@@ -1,7 +1,9 @@
 package com.stepanov.bbf.bugfinder
 
+import com.stepanov.bbf.bugfinder.executor.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.ProjectCompilingChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.passes.ImportsGetter
@@ -22,6 +24,8 @@ class ProjectBugFinder(private val pathToDir: String) {
             .map { dir[Random.nextInt(0, dir.size)] }
             .map { PSICreator("").getPSIForText(it.readText()) }
         val factory = KtPsiFactory(files.first().project)
+        MutationChecker.factory = KtPsiFactory(files.first().project)
+        Transformation.file = files.first()
         //Rename of box() fun
         files.forEachIndexed { index, file ->
             file.getAllPSIChildrenOfType<KtNamedFunction>()
@@ -59,12 +63,14 @@ class ProjectBugFinder(private val pathToDir: String) {
         firstFile.addMain(files)
         val res = ProjectCompilingChecker.checkTextCompiling(files.map { it.text })
         println("result = $res\n")
+        if (!res) return
+        ProjectCompilingChecker.compareExecutionTraces(files.map { it.text })
         return
     }
 
     private fun KtFile.addMain(files: List<KtFile>) {
         val m = StringBuilder()
-        m.append("fun main(args: Array<String>) {\n")
+        m.append("\n\n\nfun main(args: Array<String>) {\n")
         for (i in files.indices) m.append("println(box$i())\n")
         m.append("}")
         val mainFun = KtPsiFactory(this.project).createFunction(m.toString())

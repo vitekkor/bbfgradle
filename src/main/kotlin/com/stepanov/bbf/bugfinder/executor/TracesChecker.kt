@@ -35,6 +35,25 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : Transformatio
         return res
     }
 
+    fun checkTestForProject(commonPath: String): List<CommonCompiler>? {
+        val results = mutableListOf<Pair<CommonCompiler, String>>()
+        for (comp in compilers) {
+            val status = comp.compile(commonPath)
+            if (status.status == -1)
+                return null
+            val res = comp.exec(status.pathToCompiled)
+            val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
+            log.debug("Result of ${comp.compilerInfo}: $res\n")
+            log.debug("Errors: $errors")
+            results.add(comp to res.trim())
+        }
+        val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first })
+        return if (groupedRes.size == 1) {
+            null
+        } else {
+            groupedRes.map { it.value.first() }
+        }
+    }
 
     fun checkTest(text: String, pathToFile: String): List<CommonCompiler>? {
         val hash = text.hashCode()
