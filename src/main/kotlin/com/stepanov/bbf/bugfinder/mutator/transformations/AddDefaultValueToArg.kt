@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import org.jetbrains.kotlin.psi.KtNamedFunction
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+
 import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getRandomBoolean
@@ -26,7 +26,7 @@ class AddDefaultValueToArg : Transformation() {
                         generateDefValuesAsString(typeText)
                     }
                     val newParam = psiFactory.createParameter("${par.name}: $typeText = $defaultValue")
-                    MutationChecker.replacePSINodeIfPossible(file, par, newParam)
+                    checker.replacePSINodeIfPossible(file, par, newParam)
                 }
     }
 

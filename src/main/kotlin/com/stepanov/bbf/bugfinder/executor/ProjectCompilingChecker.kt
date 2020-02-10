@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder.executor
 
 import com.intellij.psi.PsiErrorElement
 import com.stepanov.bbf.bugfinder.Reducer
+import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.tracer.Tracer
@@ -62,16 +63,19 @@ object ProjectCompilingChecker {
         textToTmpPath.forEach { File(it.second).writeText(it.first) }
         val text = textToTmpPath.map { "//File: ${it.second}\n${it.first}" }.joinToString("\n")
         val psi = PSICreator("").getPSIForText(text, false)
+        println("LOL")
         val tracedTexts = textToTmpPath.map {
             val psiCreator = PSICreator("")
-            val f = Tracer(psiCreator.getPSIForFile(it.second), psiCreator.ctx!!).trace()
+            val f = Tracer(psiCreator.getPSIForFile(it.second), psiCreator.ctx!!, MutationChecker(compilers)).trace()
             File(it.second).writeText(f.text)
             f.text
         }
         if (!checkTextCompiling1(tracedTexts)) {
             return false
         }
-        val res = TracesChecker(MutationChecker.compilers).checkTestForProject(commonTmpName)
+        println("LAL")
+        val res = TracesChecker(compilers).checkTestForProject(commonTmpName)
+        println("LiL")
         if (res != null) BugManager.saveBug("JVM and JVM-new-inf", "", text, BugType.DIFFBEHAVIOR)
         textToTmpPath.forEach { File(it.second).delete() }
         return true

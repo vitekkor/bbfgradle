@@ -1,12 +1,13 @@
 package com.stepanov.bbf.bugfinder.tracer
 
 import com.intellij.psi.PsiElement
+import com.stepanov.bbf.bugfinder.executor.ProjectCompilationChecker
+import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
 import org.jetbrains.kotlin.psi.*
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
 import org.jetbrains.kotlin.builtins.isFunctionType
 import org.jetbrains.kotlin.builtins.isFunctionTypeOrSubtype
 import org.jetbrains.kotlin.psi.psiUtil.*
@@ -21,7 +22,7 @@ import com.stepanov.bbf.bugfinder.util.replaceThis
 import java.lang.StringBuilder
 
 //TODO delete getType fun
-class Tracer(private var tree: KtFile, private val ctx: BindingContext) : KtVisitorVoid() {
+class Tracer(private var tree: KtFile, private val ctx: BindingContext, val checker: MutationChecker) : KtVisitorVoid() {
 
     fun trace(): KtFile {
         //Handle all functions
@@ -86,9 +87,9 @@ class Tracer(private var tree: KtFile, private val ctx: BindingContext) : KtVisi
         newFunc.node.addChild(block.node, null)
         //TODO addIfPossible
         if (klass.body != null)
-            MutationChecker.addNodeIfPossible(tree, klass.body!!.rBrace!!, newFunc, true)
+            checker.addNodeIfPossible(tree, klass.body!!.rBrace!!, newFunc, true)
         else
-            MutationChecker.addNodeIfPossible(tree, klass, factory.createBlock(newFunc.text))
+            checker.addNodeIfPossible(tree, klass, factory.createBlock(newFunc.text))
 //            klass.body!!.addBefore(newFunc, klass.body!!.rBrace)
 //        else
 //            klass.add(factory.createBlock(newFunc.text))

@@ -1,5 +1,7 @@
 package com.stepanov.bbf.bugfinder.manager
 
+import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+
 enum class BugType {
     BACKEND,
     FRONTEND,
@@ -11,9 +13,9 @@ enum class BugType {
 data class Bug(val compilerVersion: String, val msg: String, val crashingCode: String, val type: BugType) {
 
     fun compareTo(other: Bug): Int =
-            if (compilerVersion == other.compilerVersion)
-                type.compareTo(other.type)
-            else compilerVersion.compareTo(other.compilerVersion)
+        if (compilerVersion == other.compilerVersion)
+            type.compareTo(other.type)
+        else compilerVersion.compareTo(other.compilerVersion)
 
 }
 
@@ -22,17 +24,30 @@ object BugManager {
 
     private val bugs = mutableListOf<Bug>()
 
+    fun reduceAndSaveBug(
+        compilers: List<CommonCompiler>,
+        msg: String,
+        crashingCode: String,
+        type: BugType = BugType.UNKNOWN
+    ) {
+        return
+    }
+
     fun saveBug(compilerVersion: String, msg: String, crashingCode: String, type: BugType = BugType.UNKNOWN) {
         val bug =
-                if (type == BugType.UNKNOWN)
-                    Bug(
-                        compilerVersion,
-                        msg,
-                        crashingCode,
-                        parseTypeOfBugByMsg(msg)
-                    )
-                else
-                    Bug(compilerVersion, msg, crashingCode, type)
+            if (type == BugType.UNKNOWN)
+                Bug(
+                    compilerVersion,
+                    msg,
+                    crashingCode,
+                    parseTypeOfBugByMsg(msg)
+                )
+            else
+                Bug(compilerVersion, msg, crashingCode, type)
+        saveBug(bug)
+    }
+
+    fun saveBug(bug: Bug) {
         bugs.add(bug)
         //Report bugs
         if (ReportProperties.getPropAsBoolean("TEXT_REPORTER") == true) {
@@ -44,9 +59,9 @@ object BugManager {
     }
 
     private fun parseTypeOfBugByMsg(msg: String): BugType =
-            if (msg.contains("Exception while analyzing expression"))
-                BugType.FRONTEND
-            else
-                BugType.BACKEND
+        if (msg.contains("Exception while analyzing expression"))
+            BugType.FRONTEND
+        else
+            BugType.BACKEND
 }
 

@@ -1,7 +1,6 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.ProjectCompilingChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
@@ -28,9 +27,8 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
-    ProjectCompilingChecker.compilers = listOf(JVMCompiler(""), JVMCompiler("-Xnew-inference"))
-    MutationChecker.compilers = listOf(JVMCompiler(""), JVMCompiler("-Xnew-inference"))
-    ProjectBugFinder("tmp/arrays/classTests/").findBugsInProject()
+    val compilers = listOf(JVMCompiler(""), JVMCompiler("-Xnew-inference"))
+    ProjectBugFinder("tmp/arrays/classTests/").findBugsInProject(compilers)
     System.exit(0)
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF

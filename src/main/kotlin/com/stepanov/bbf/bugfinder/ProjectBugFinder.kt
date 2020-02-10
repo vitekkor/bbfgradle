@@ -1,8 +1,11 @@
 package com.stepanov.bbf.bugfinder
 
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.Project
+import com.stepanov.bbf.bugfinder.executor.ProjectCompilationChecker
 import com.stepanov.bbf.bugfinder.executor.ProjectCompilingChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
@@ -17,15 +20,15 @@ import kotlin.random.Random
 
 class ProjectBugFinder(private val pathToDir: String) {
 
-    fun findBugsInProject() {
+    fun findBugsInProject(compilers: List<CommonCompiler>) {
         val dir = File(pathToDir).listFiles()!!
         val numOfFiles = Random.nextInt(2, 4)
         val files = (1..numOfFiles)
             .map { dir[Random.nextInt(0, dir.size)] }
             .map { PSICreator("").getPSIForText(it.readText()) }
         val factory = KtPsiFactory(files.first().project)
-        MutationChecker.factory = KtPsiFactory(files.first().project)
-        Transformation.file = files.first()
+        Factory.file = files.first()
+        val checker = ProjectCompilationChecker(compilers)
         //Rename of box() fun
         files.forEachIndexed { index, file ->
             file.getAllPSIChildrenOfType<KtNamedFunction>()
@@ -37,7 +40,8 @@ class ProjectBugFinder(private val pathToDir: String) {
             file.packageDirective?.replaceThis(newPackageDirecrive)
             file.packageDirective?.add(factory.createWhiteSpace("\n\n\n"))
         }
-        val c = ProjectCompilingChecker.checkTextCompiling(files.map { it.text })
+        //val c = ProjectCompilingChecker.checkTextCompiling(files.map { it.text })
+        val c = checker.checkCompiling(Project(null, files))
         if (!c) return
         val imports = files.map { ImportsGetter().getAllImportsFromFile(it).filter { !it.text.contains(".box") } }
 
@@ -61,7 +65,7 @@ class ProjectBugFinder(private val pathToDir: String) {
             firstFile.addImport(newImport)
         }
         firstFile.addMain(files)
-        val res = ProjectCompilingChecker.checkTextCompiling(files.map { it.text })
+        val res = checker.checkCompiling(Project(files.map { it.text }))
         println("result = $res\n")
         if (!res) return
         ProjectCompilingChecker.compareExecutionTraces(files.map { it.text })

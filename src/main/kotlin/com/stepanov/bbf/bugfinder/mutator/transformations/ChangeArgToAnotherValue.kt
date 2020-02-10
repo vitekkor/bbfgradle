@@ -3,7 +3,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.psiUtil.getCallNameExpression
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+
 import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 
@@ -19,7 +19,7 @@ class ChangeArgToAnotherValue : Transformation() {
                         val newRandomValue = generateDefValuesAsString(type)
                         if (newRandomValue.isEmpty()) return@forEachIndexed
                         val newArg = psiFactory.createArgument(newRandomValue)
-                        MutationChecker.replacePSINodeIfPossible(file, arg, newArg)
+                        checker.replacePSINodeIfPossible(file, arg, newArg)
                     }
                 }
             }

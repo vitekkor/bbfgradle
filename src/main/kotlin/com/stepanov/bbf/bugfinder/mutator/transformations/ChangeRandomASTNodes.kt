@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.intellij.lang.ASTNode
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
 import com.stepanov.bbf.bugfinder.util.replaceThis
@@ -28,7 +28,7 @@ class ChangeRandomASTNodes : Transformation() {
                 else break
             }
             val new = swap(randomNode1, randomNode2)
-            if (!MutationChecker.checkTextCompiling(file.text)) {
+            if (!checker.checkTextCompiling(file.text)) {
                 swap(new.first, new.second)
             }
         }

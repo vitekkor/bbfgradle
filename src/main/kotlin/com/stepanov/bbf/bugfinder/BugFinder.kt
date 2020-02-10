@@ -2,10 +2,11 @@ package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+import com.stepanov.bbf.bugfinder.executor.ProjectCompilationChecker
 import com.stepanov.bbf.bugfinder.executor.TracesChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.Mutator
@@ -69,8 +70,8 @@ class BugFinder(private val path: String) : Runnable {
 
             //Init lateinit vars
             Transformation.file = psiFile
-            MutationChecker.factory = KtPsiFactory(psiFile.project)
-            MutationChecker.compilers = compilers
+//            MutationChecker.factory = KtPsiFactory(psiFile.project)
+//            MutationChecker.compilers = compilers
 
             //Check for compiling
             if (!compilers.checkCompilingForAllBackends(psiFile)) {
@@ -97,8 +98,9 @@ class BugFinder(private val path: String) : Runnable {
                 File(pathToSave).writeText(resultingMutant.text)
             }
 
+            val checker = MutationChecker(compilers)
             //Now begin to trace mutated file
-            val tracer = Tracer(resultingMutant, psiCreator.ctx!!)
+            val tracer = Tracer(resultingMutant, psiCreator.ctx!!, checker)
             val traced = tracer.trace()
             log.debug("Traced = ${traced.text}")
             if (!compilers.checkCompilingForAllBackends(traced)) {
