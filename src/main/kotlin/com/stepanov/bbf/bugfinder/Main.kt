@@ -79,6 +79,7 @@ fun main(args: Array<String>) {
     }
     val file = (if (Random.nextInt(0, 10) in 0..2) File("${CompilerArgs.baseDir}/newTests").listFiles()?.random()
     else File(CompilerArgs.baseDir).listFiles()?.random()) ?: throw IllegalArgumentException("Wrong directory")
+    if (file.length() / 1024 / 1024 > 1) exitProcess(0)
     BugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 }

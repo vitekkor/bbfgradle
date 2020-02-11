@@ -6,7 +6,7 @@ import java.io.File
 import java.util.*
 
 
-const val COMMAND = "gradle runBBF"
+const val COMMAND = "./gradlew runBBF"
 val TIMEOUT_SEC = Properties()
     .also { it.load(File("bbf.conf").inputStream()) }
     .getProperty("BBF_TIMEOUT")?.toLongOrNull() ?: throw IllegalArgumentException("Can't init timeout value")
@@ -52,7 +52,7 @@ fun main(args: Array<String>) {
 //        Thread.sleep(1000)
 //    }
     args.joinToString(separator = " ")
-    var cmdLine = CommandLine.parse("gradle runBBF")
+    var cmdLine = CommandLine.parse(COMMAND)
     var executor = DefaultExecutor().also {
         it.watchdog = ExecuteWatchdog(TIMEOUT_SEC * 1000)
         it.streamHandler = PumpStreamHandler(object : LogOutputStream() {
@@ -84,7 +84,7 @@ fun main(args: Array<String>) {
                 dstDir.mkdirs()
                 FileUtils.copyDirectory(File("logs"), dstDir)
             }
-            cmdLine = CommandLine.parse("gradle runBBF")
+            cmdLine = CommandLine.parse(COMMAND)
             handler = DefaultExecuteResultHandler()
             executor = DefaultExecutor().also {
                 it.watchdog = ExecuteWatchdog(TIMEOUT_SEC * 1000)

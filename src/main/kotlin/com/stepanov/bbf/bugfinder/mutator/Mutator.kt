@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.mutator
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
 import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
@@ -14,6 +15,7 @@ class Mutator(val file: KtFile, val context: BindingContext?, private val compil
         if (Random.nextInt(0, 100) < probPercentage) {
             try {
                 t.transform()
+                Transformation.file = PSICreator("").getPSIForText(Transformation.file.text)
             } catch (e: Exception) {
                 log.debug("Exception ${e.localizedMessage}")
             }
