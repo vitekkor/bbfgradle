@@ -15,5 +15,10 @@ class Project(texts: List<String>?, files: List<KtFile>? = null) {
     fun getCommonText(commonPath: String) =
         texts.mapIndexed { index, s -> "//File: ${commonPath.split(" ")[index]}\n$s" }.joinToString("\n")
 
+    fun getCommonTextWithDefaultPath() =
+        texts
+            .mapIndexed { index, s -> "//File: ${CompilerArgs.pathToTmpFile.substringBefore(".kt")}$index.kt\n$s" }
+            .joinToString("\n")
+
 
 }
