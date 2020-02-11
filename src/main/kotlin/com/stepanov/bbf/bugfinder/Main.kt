@@ -55,24 +55,25 @@ fun main(args: Array<String>) {
         .help("Database updating")
     val arguments = parser.parseArgs(args)
     arguments.getString("reduce")?.let {
-        val type = BBFProperties.getStringGroupWithoutQuotes("BUG_FOR_REDUCE").entries.first().value
-        val backends = BBFProperties.getStringGroupWithoutQuotes("BACKEND_FOR_REDUCE").entries
-        val compilers = backends.map { back ->
-            when {
-                back.key.startsWith("JVM") -> JVMCompiler(back.value)
-                back.key.startsWith("JS") -> JSCompiler(back.value)
-                else -> throw IllegalArgumentException("Illegal backend")
-            }
-        }
-        val tmpPath = CompilerArgs.pathToTmpFile
-        require(!File(it).isDirectory) { "Specify file to reducing" }
-        File(tmpPath).writeText(File(it).readText())
-        val res = when (type) {
-            "DIFF_BEHAVIOR" -> Reducer.reduceDiffBehavior(tmpPath, compilers)
-            "BACKEND_CRASH" -> Reducer.reduce(tmpPath, compilers.first()).first().text
-            else -> throw IllegalArgumentException("Illegal type of bug")
-        }
-        println("Result of reducing:\n$res")
+        //Fuck it
+//        val type = BBFProperties.getStringGroupWithoutQuotes("BUG_FOR_REDUCE").entries.first().value
+//        val backends = BBFProperties.getStringGroupWithoutQuotes("BACKEND_FOR_REDUCE").entries
+//        val compilers = backends.map { back ->
+//            when {
+//                back.key.startsWith("JVM") -> JVMCompiler(back.value)
+//                back.key.startsWith("JS") -> JSCompiler(back.value)
+//                else -> throw IllegalArgumentException("Illegal backend")
+//            }
+//        }
+//        val tmpPath = CompilerArgs.pathToTmpFile
+//        require(!File(it).isDirectory) { "Specify file to reducing" }
+//        File(tmpPath).writeText(File(it).readText())
+//        val res = when (type) {
+//            "DIFF_BEHAVIOR" -> Reducer.reduceDiffBehavior(tmpPath, compilers)
+//            "BACKEND_CRASH" -> Reducer.reduce(tmpPath, compilers.first()).first().text
+//            else -> throw IllegalArgumentException("Illegal type of bug")
+//        }
+//        println("Result of reducing:\n$res")
         exitProcess(0)
     }
     arguments.getString("fuzz")?.let {

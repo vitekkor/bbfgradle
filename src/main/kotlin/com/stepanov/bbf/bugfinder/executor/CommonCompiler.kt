@@ -24,17 +24,6 @@ abstract class CommonCompiler {
     abstract val compilerInfo: String
     abstract val pathToCompiled: String
 
-
-    fun compile(file: KtFile): CompilingResult = compile(file.name)
-    fun compileText(text: String): CompilingResult {
-        val writer = BufferedWriter(FileWriter(CompilerArgs.pathToTmpFile))
-        writer.write(text)
-        writer.close()
-        val res = compile(CompilerArgs.pathToTmpFile)
-        File(CompilerArgs.pathToTmpFile).delete()
-        return res
-    }
-
     fun getErrorMessage(pathToFile: String): String = getErrorMessageWithLocation(pathToFile).first
     fun getErrorMessageForText(text: String): String = getErrorMessageForTextWithLocation(text).first
     fun getErrorMessageForTextWithLocation(text: String) : Pair<String, List<CompilerMessageLocation>> {

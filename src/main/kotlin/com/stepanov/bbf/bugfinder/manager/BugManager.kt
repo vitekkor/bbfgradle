@@ -1,6 +1,8 @@
 package com.stepanov.bbf.bugfinder.manager
 
+import com.stepanov.bbf.bugfinder.Reducer
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.Project
 
 enum class BugType {
     BACKEND,
@@ -10,7 +12,16 @@ enum class BugType {
     DIFFCOMPILE
 }
 
-data class Bug(val compilerVersion: String, val msg: String, val crashingCode: String, val type: BugType) {
+data class Bug(val compilers: List<CommonCompiler>, val msg: String, val crashedProject: Project, val type: BugType) {
+
+    constructor(compiler: CommonCompiler, msg: String, crashedProject: Project, type: BugType) : this(
+        listOf(compiler),
+        msg,
+        crashedProject,
+        type
+    )
+
+    val compilerVersion = compilers.joinToString(", ")
 
     fun compareTo(other: Bug): Int =
         if (compilerVersion == other.compilerVersion)
@@ -21,34 +32,31 @@ data class Bug(val compilerVersion: String, val msg: String, val crashingCode: S
 
 
 object BugManager {
-
     private val bugs = mutableListOf<Bug>()
 
-    fun reduceAndSaveBug(
+    fun saveBug(
         compilers: List<CommonCompiler>,
         msg: String,
-        crashingCode: String,
+        crashedProject: Project,
         type: BugType = BugType.UNKNOWN
     ) {
-        return
-    }
-
-    fun saveBug(compilerVersion: String, msg: String, crashingCode: String, type: BugType = BugType.UNKNOWN) {
         val bug =
             if (type == BugType.UNKNOWN)
                 Bug(
-                    compilerVersion,
+                    compilers,
                     msg,
-                    crashingCode,
+                    crashedProject,
                     parseTypeOfBugByMsg(msg)
                 )
             else
-                Bug(compilerVersion, msg, crashingCode, type)
+                Bug(compilers, msg, crashedProject, type)
         saveBug(bug)
     }
 
-    fun saveBug(bug: Bug) {
+
+    private fun saveBug(bug: Bug) {
         bugs.add(bug)
+        val reduced = Reducer.reduce(bug, false)
         //Report bugs
         if (ReportProperties.getPropAsBoolean("TEXT_REPORTER") == true) {
             TextReporter.dump(bugs)
