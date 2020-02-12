@@ -2,14 +2,12 @@ package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.ProjectCompilationChecker
 import com.stepanov.bbf.bugfinder.executor.TracesChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
-import com.stepanov.bbf.bugfinder.manager.BugManager
-import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.Mutator
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.tracer.Tracer
 import com.stepanov.bbf.bugfinder.util.BBFProperties
@@ -17,11 +15,10 @@ import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.apache.log4j.Logger
-import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
 import java.util.*
 
-class BugFinder(private val path: String) : Runnable {
+class SingleFileBugFinder(private val pathToFile: String) : Runnable {
 
     override fun run() {
         findBugsInFile()
@@ -31,11 +28,11 @@ class BugFinder(private val path: String) : Runnable {
         try {
             println("Let's go")
             ++counter
-            log.debug("Name = $path")
+            log.debug("Name = $pathToFile")
             val psiCreator = PSICreator("")
             val psiFile =
                     try {
-                        psiCreator.getPSIForFile(path)
+                        psiCreator.getPSIForFile(pathToFile)
                     } catch (e: Throwable) {
                         println("e = $e")
                         return
@@ -69,22 +66,22 @@ class BugFinder(private val path: String) : Runnable {
             }
 
             //Init lateinit vars
-            Transformation.file = psiFile
-//            MutationChecker.factory = KtPsiFactory(psiFile.project)
-//            MutationChecker.compilers = compilers
+            Factory.file = psiFile
+            Transformation.checker = MutationChecker(compilers)
+            Transformation.checker.checkCompiling(psiFile)
+            System.exit(0)
 
             //Check for compiling
             if (!compilers.checkCompilingForAllBackends(psiFile)) {
-                log.debug("Could not compile $path")
+                log.debug("Could not compile $pathToFile")
                 return
             }
             log.debug("Start to mutate")
-
             Mutator(psiFile, psiCreator.ctx, compilers).startMutate()
             val resultingMutant = PSICreator("").getPSIForText(Transformation.file.text)
 
             if (!compilers.checkCompilingForAllBackends(resultingMutant)) {
-                log.debug("Could not compile after mutation $path")
+                log.debug("Could not compile after mutation $pathToFile")
                 log.debug(resultingMutant.text)
                 System.exit(1)
             }
@@ -104,7 +101,7 @@ class BugFinder(private val path: String) : Runnable {
             val traced = tracer.trace()
             log.debug("Traced = ${traced.text}")
             if (!compilers.checkCompilingForAllBackends(traced)) {
-                log.debug("Could not compile after tracing $path")
+                log.debug("Could not compile after tracing $pathToFile")
                 log.debug(traced.text)
             }
 

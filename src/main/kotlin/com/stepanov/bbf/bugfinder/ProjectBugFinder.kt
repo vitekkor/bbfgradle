@@ -1,16 +1,12 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.*
-import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.passes.ImportsGetter
-import com.stepanov.bbf.reduktor.passes.PreliminarySimplification
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.resolve.ImportPath
 import java.io.File
 import java.lang.StringBuilder
 import kotlin.random.Random
@@ -20,14 +16,17 @@ class ProjectBugFinder(private val pathToDir: String) {
     fun findBugsInProject(compilers: List<CommonCompiler>) {
         val dir = File(pathToDir).listFiles()!!
         val numOfFiles = Random.nextInt(2, 4)
-        val files = (1..numOfFiles)
-            .map { dir[Random.nextInt(0, dir.size)] }
-            .map { PSICreator("").getPSIForText(it.readText()) }
+//        val files = (1..numOfFiles)
+//            .map { dir[Random.nextInt(0, dir.size)] }
+//            .map { PSICreator("").getPSIForText(it.readText()) }
+        val files = listOf("tmp/results/test0.kt", "tmp/results/test1.kt").map { File(it) }.map { PSICreator("").getPSIForFile(it.absolutePath) }
 //        val files = listOf(File("tmp/results/test0.kt").readText(), File("tmp/results/test1.kt").readText())
 //            .map { PSICreator("").getPSIForText(it) }
         val factory = KtPsiFactory(files.first().project)
         Factory.file = files.first()
-        val checker = ProjectCompilationChecker(compilers)
+        val checker = CompilationChecker(compilers)
+        checker.checkCompiling(Project(null, files))
+        System.exit(0)
         //Rename of box() fun
         files.forEachIndexed { index, file ->
             file.getAllPSIChildrenOfType<KtNamedFunction>()
@@ -48,22 +47,6 @@ class ProjectBugFinder(private val pathToDir: String) {
             imports[i - 1].forEach { files[i].addImport(it) }
         }
         imports.last().forEach { files.first().addImport(it) }
-
-//        val boxFuncs = files.map { file ->
-//            file.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name?.contains("box") ?: false }!!
-//        }
-//        val copyOfBox = boxFuncs.map { it.copy() as KtNamedFunction }.toMutableList()
-//        val lastBox = copyOfBox.last().copy() as KtNamedFunction
-//        copyOfBox.add(0, lastBox)
-//        copyOfBox.removeAt(copyOfBox.size - 1)
-//        boxFuncs.forEachIndexed { index, f -> f.replaceThis(copyOfBox[index]) }
-//        //Add import of box_I functions
-//        val firstFile = files.first()
-//        for (i in 0 until files.size - 1) {
-//            val newImport = factory.createImportDirective(ImportPath(FqName("${'a' + i + 1}.box$i"), false))
-//            firstFile.addImport(newImport)
-//        }
-//        firstFile.addMain(files)
         val project = Project(null, files)
         val res = checker.checkCompiling(project)
         println("result = $res\n")

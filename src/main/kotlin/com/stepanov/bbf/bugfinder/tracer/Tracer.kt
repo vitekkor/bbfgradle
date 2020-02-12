@@ -1,7 +1,6 @@
 package com.stepanov.bbf.bugfinder.tracer
 
 import com.intellij.psi.PsiElement
-import com.stepanov.bbf.bugfinder.executor.ProjectCompilationChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
 import org.jetbrains.kotlin.psi.*
 import java.io.BufferedWriter

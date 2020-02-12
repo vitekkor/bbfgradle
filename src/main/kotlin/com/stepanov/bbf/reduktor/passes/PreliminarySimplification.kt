@@ -1,6 +1,7 @@
 package com.stepanov.bbf.reduktor.passes
 
 import com.intellij.psi.PsiFile
+import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.executor.backends.CommonBackend
 import com.stepanov.bbf.reduktor.util.TaskType
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
@@ -14,7 +15,7 @@ import org.jetbrains.kotlin.resolve.ImportPath
 import java.util.*
 
 
-class PreliminarySimplification(private val ktFile: KtFile, private val projPath: String, private val backend: CommonBackend) {
+class PreliminarySimplification(private val ktFile: KtFile, private val projPath: String, private val checker: CompilerTestChecker) {
     fun computeSlice(files: List<PsiFile> = listOf()) {
         //Get all imports of file
         //Map from node to import level
@@ -59,7 +60,7 @@ class PreliminarySimplification(private val ktFile: KtFile, private val projPath
                     filesToTransform,
                     projPath,
                     TaskType.TRANSFORM,
-                    backend
+                    checker
                 )
                 filesToTransform.forEach { transformedFiles.add(it) }
                 --level
@@ -72,7 +73,7 @@ class PreliminarySimplification(private val ktFile: KtFile, private val projPath
             filesToTransform,
             projPath,
             TaskType.TRANSFORM,
-            backend
+            checker
         )
         filesToTransform.forEach { transformedFiles.add(it) }
         filesToTransform.clear()
@@ -91,7 +92,7 @@ class PreliminarySimplification(private val ktFile: KtFile, private val projPath
             filesToTransform,
             projPath,
             TaskType.TRANSFORM,
-            backend
+            checker
         )
     }
 

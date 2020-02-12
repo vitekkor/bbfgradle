@@ -14,7 +14,8 @@ import java.io.File
 object Reducer {
 
     fun reduce(bug: Bug, shouldSave: Boolean = false): Project {
-        if (bug.crashedProject.texts.size != 1) throw UnsupportedOperationException("Reducing works only for single files")
+        //First we need to find more project bugs!!
+        if (bug.crashedProject.texts.size != 1) return bug.crashedProject
         //Saving to tmp
         val path = bug.crashedProject.saveOrRemoveToTmp(true)
         val compilers = bug.compilers
@@ -82,6 +83,12 @@ object Reducer {
         val psiFile = PSICreator("").getPSIForFile(path)
         return TransformationManager(listOf(psiFile))
             .doTransformationsForFile(psiFile, checker)
+    }
+
+    private fun reduceProject(path: String, checker: CompilerTestChecker): List<KtFile> {
+        val files = path.split(" ").map { PSICreator("").getPSIForFile(it) }
+        TransformationManager(files).doProjectTransformations(files, PSICreator(""), checker)
+        return listOf()
     }
 
     private fun reduceFile(file: KtFile, checker: CompilerTestChecker): KtFile {

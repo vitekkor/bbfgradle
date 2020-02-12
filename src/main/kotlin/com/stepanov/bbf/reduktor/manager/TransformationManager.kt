@@ -28,10 +28,9 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
         ktFactory = KtPsiFactory(ktFiles[0].project)
     }
 
-    fun doProjectTransformations(targetFiles: List<KtFile>, creator: PSICreator, backend: CommonBackend) {
+    fun doProjectTransformations(targetFiles: List<KtFile>, creator: PSICreator, checker: CompilerTestChecker) {
         val projectDir = CompilerArgs.projectDir
         //TODO Peephole passes for java files?
-        val checker = CommonCompilerCrashTestChecker(backend)
         val errorInfo = checker.init(projectDir, KtPsiFactory(targetFiles[0]))
         println("error = $errorInfo")
         println("FILE = ${Error.pathToFile}")
@@ -43,12 +42,12 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
                 creator.targetFiles,
                 projectDir,
                 TaskType.SIMPLIFYING,
-                backend
+                checker
             )
             creator.reinit(projectDir)
             checker.reinit()
             file = targetFiles.find { it.name == Error.pathToFile }!!
-            PreliminarySimplification(file, projectDir, backend).computeSlice(creator.targetFiles)
+            PreliminarySimplification(file, projectDir, checker).computeSlice(creator.targetFiles)
             creator.reinit(projectDir)
 //            checker.reinit()
 //            file = creator.targetFiles.find { it.name == Error.pathToFile }!!
@@ -308,7 +307,7 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
     }
 
 
-    fun doForParallelSimpleTransformations(isProject: Boolean = false, projectDir: String = "", backend: CommonBackend): KtFile? {
+    fun doForParallelSimpleTransformations(isProject: Boolean = false, projectDir: String = "", checker: CompilerTestChecker): KtFile? {
         //Temporary
         for ((i, file) in ktFiles.withIndex()) {
             log.debug("FILE NAME = ${file.name}")
@@ -316,29 +315,28 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
             file.beforeAstChange()
             val pathToSave = StringBuilder(file.name)
             pathToSave.insert(pathToSave.indexOfLast { it == '/' }, "/minimized")
-            val CCTC = CommonCompilerCrashTestChecker(backend)
             var rFile = file.copy() as KtFile
-            CCTC.pathToFile = rFile.name
+            checker.pathToFile = rFile.name
             log.debug("proj = ${projectDir}")
             if (isProject) {
                 println("PROJ = $projectDir isProj = $isProject File = ${file.name}")
-                CCTC.init(projectDir, ktFactory!!)
+                checker.init(projectDir, ktFactory!!)
             } else
-                CCTC.init(file.name, ktFactory!!)
-            CCTC.refreshAlreadyCheckedConfigurations()
-            log.debug("ERROR = ${CCTC.getErrorInfo()}")
+                checker.init(file.name, ktFactory!!)
+            checker.refreshAlreadyCheckedConfigurations()
+            log.debug("ERROR = ${checker.getErrorInfo()}")
 //            if (CommonCompilerCrashTestChecker.getErrorInfo().type == ErrorType.UNKNOWN)
 //                continue
-            CCTC.pathToFile = rFile.name
-            SimplifyFunAndProp(rFile, CCTC).transform()
-            val newText = PeepholePasses(rFile.text, CCTC, true).transform()
+            checker.pathToFile = rFile.name
+            SimplifyFunAndProp(rFile, checker).transform()
+            val newText = PeepholePasses(rFile.text, checker, true).transform()
             rFile = KtPsiFactory(rFile.project).createFile(rFile.name, newText)
-            ConstructionsDeleter(rFile, CCTC).transform()
+            ConstructionsDeleter(rFile, checker).transform()
             //X3
 //            RemoveParameterFromDeclaration(rFile, CCTC, files).transform()
             //RemoveWhitespaces(rFile, CCTC).transform()
-            RemoveUnusedImports(rFile, CCTC).transform()
-            log.debug("VERIFY = ${CCTC.checkTest(rFile.text, rFile.name)}")
+            RemoveUnusedImports(rFile, checker).transform()
+            log.debug("VERIFY = ${checker.checkTest(rFile.text, rFile.name)}")
             return rFile
         }
         return null

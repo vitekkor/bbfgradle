@@ -34,27 +34,28 @@ object ProjectCompilingChecker {
         for (compiler in compilers) {
             if (compiler.isCompilerBug(commonTmpName)) {
                 println("FOUND BUG!!!")
-                BugManager.saveBug(compiler.compilerInfo, "", text, BugType.BACKEND)
+                BugManager.saveBug(listOf(compiler), "", Project(listOf(text)), BugType.BACKEND)
                 foundCompilerBug = true
             }
         }
         if (foundCompilerBug) return false
         val compilersToStatus = compilers.map { it to it.checkCompiling(commonTmpName) }
         val grouped = compilersToStatus.groupBy { it.first.compilerInfo.split(" ").first() }
-        for (g in grouped) {
-            if (g.value.map { it.second }.toSet().size != 1) {
-                val diffCompilers =
-                    g.value.groupBy { it.second }.mapValues { it.value.first().first.compilerInfo }.values
-                BugManager.saveBug(
-                    diffCompilers.joinToString(separator = ","),
-                    "",
-                    text,
-                    BugType.DIFFCOMPILE
-                )
-                return false
-            }
-        }
-        return compilersToStatus.first().second
+//        for (g in grouped) {
+//            if (g.value.map { it.second }.toSet().size != 1) {
+//                val diffCompilers =
+//                    g.value.groupBy { it.second }.mapValues { it.value.first().first.compilerInfo }.values
+//                BugManager.saveBug(
+//                    diffCompilers.toList(),
+//                    "",
+//                    text,
+//                    BugType.DIFFCOMPILE
+//                )
+//                return false
+//            }
+//        }
+//        return compilersToStatus.first().second
+        return false
     }
 
     fun compareExecutionTraces(texts: List<String>): Boolean {
@@ -76,7 +77,7 @@ object ProjectCompilingChecker {
         println("LAL")
         val res = TracesChecker(compilers).checkTestForProject(commonTmpName)
         println("LiL")
-        if (res != null) BugManager.saveBug("JVM and JVM-new-inf", "", text, BugType.DIFFBEHAVIOR)
+        //if (res != null) BugManager.saveBug("JVM and JVM-new-inf", "", text, BugType.DIFFBEHAVIOR)
         textToTmpPath.forEach { File(it.second).delete() }
         return true
     }

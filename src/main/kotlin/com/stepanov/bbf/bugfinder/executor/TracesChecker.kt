@@ -1,12 +1,8 @@
 package com.stepanov.bbf.bugfinder.executor
 
 import com.intellij.psi.PsiErrorElement
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
-import com.stepanov.bbf.bugfinder.util.Stream
-import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
-import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
-import com.stepanov.bbf.bugfinder.util.replaceThis
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtFile
@@ -20,7 +16,7 @@ import java.io.FileWriter
 import java.lang.StringBuilder
 
 // Transformation is here only for PSIFactory
-class TracesChecker(private val compilers: List<CommonCompiler>) : ProjectCompilationChecker(compilers) {
+class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationChecker(compilers) {
 
     private companion object FalsePositivesTemplates {
         //Regex and replacing
@@ -89,7 +85,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : ProjectCompil
 
 
     fun compareTraces(project: Project): List<CommonCompiler>? {
-        val path = generateCommonName(project)
+        val path = project.generateCommonName()
         //Check if already checked
         val text = project.getCommonText(path)
         val hash = text.hashCode()
@@ -101,7 +97,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : ProjectCompil
         //Add main
         val projectWithMain = addMainForProject(project)
         if (!isCompilationSuccessful(projectWithMain)) return null
-        saveOrRemoveToTmp(projectWithMain, true)
+        projectWithMain.saveOrRemoveToTmp(true)
         val results = mutableListOf<Pair<CommonCompiler, String>>()
         for (comp in compilers) {
             val status = comp.compile(path)

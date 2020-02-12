@@ -1,6 +1,7 @@
 package com.stepanov.bbf.reduktor.util
 
 import com.stepanov.bbf.reduktor.executor.CommonCompilerCrashTestChecker
+import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.executor.backends.CommonBackend
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.manager.TransformationManager
@@ -24,7 +25,7 @@ fun createNewProjectCopy(id: Int, projPath: String): String {
     return newPath
 }
 
-fun createTask(reduceFile: KtFile, index: Int, projPath: String, type: TaskType, backend: CommonBackend): Callable<KtFile> {
+fun createTask(reduceFile: KtFile, index: Int, projPath: String, type: TaskType, checker: CompilerTestChecker): Callable<KtFile> {
     val newPath = createNewProjectCopy(index, projPath)
     val newCreator = PSICreator(newPath)
     val newFiles = newCreator.getPSI()
@@ -41,23 +42,23 @@ fun createTask(reduceFile: KtFile, index: Int, projPath: String, type: TaskType,
         TaskType.TRANSFORM -> ParallelTransform(
             newFileWithBug,
             newPath,
-            backend
+            checker
         )
         TaskType.SIMPLIFYING -> ParallelFuncSimplifier(
             newFileWithBug,
             newPath,
-            backend
+            checker
         )
     }
 
 }
 
-fun startTasksAndSaveNewFiles(ktFiles: List<KtFile>, projPath: String, type: TaskType, backend: CommonBackend) {
+fun startTasksAndSaveNewFiles(ktFiles: List<KtFile>, projPath: String, type: TaskType, checker: CompilerTestChecker) {
     val procs = Runtime.getRuntime().availableProcessors() - 1
     val executor = Executors.newFixedThreadPool(procs)
     val taskList = mutableListOf<Callable<KtFile>>()
     for ((i, reduceFile) in ktFiles.take(procs).withIndex()) {
-        taskList.add(createTask(reduceFile, i, projPath, type, backend))
+        taskList.add(createTask(reduceFile, i, projPath, type, checker))
     }
     val res = mutableListOf<Future<KtFile>>()
     for (task in taskList) {
@@ -78,7 +79,7 @@ fun startTasksAndSaveNewFiles(ktFiles: List<KtFile>, projPath: String, type: Tas
                     i,
                     projPath,
                     type,
-                    backend
+                    checker
                 )
             ))
             ++i
@@ -102,18 +103,17 @@ private fun saveFile(file: KtFile, projPath: String) {
 }
 
 
-private class ParallelTransform(private val fileToReduce: KtFile, private val path: String, private val backend: CommonBackend) : Callable<KtFile> {
+private class ParallelTransform(private val fileToReduce: KtFile, private val path: String, private val checker: CompilerTestChecker) : Callable<KtFile> {
     override fun call(): KtFile {
         val manager = TransformationManager(listOf(fileToReduce))
-        val newFile = manager.doForParallelSimpleTransformations(true, path, backend)
+        val newFile = manager.doForParallelSimpleTransformations(true, path, checker)
         return newFile!!
     }
 }
 
-private class ParallelFuncSimplifier(private val fileToReduce: KtFile, val path: String, private val backend: CommonBackend) : Callable<KtFile> {
+private class ParallelFuncSimplifier(private val fileToReduce: KtFile, val path: String, private val checker: CompilerTestChecker) : Callable<KtFile> {
     override fun call(): KtFile {
         log.debug("HANDLE FILE {${fileToReduce.name}")
-        val checker = CommonCompilerCrashTestChecker(backend)
         checker.pathToFile = fileToReduce.name
         checker.init(path, KtPsiFactory(fileToReduce))
         checker.refreshAlreadyCheckedConfigurations()

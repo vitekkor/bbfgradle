@@ -2,7 +2,10 @@ package com.stepanov.bbf.bugfinder.manager
 
 import com.stepanov.bbf.bugfinder.Reducer
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.Project
+import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
+import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
 
 enum class BugType {
     BACKEND,
@@ -27,6 +30,16 @@ data class Bug(val compilers: List<CommonCompiler>, val msg: String, val crashed
         if (compilerVersion == other.compilerVersion)
             type.compareTo(other.type)
         else compilerVersion.compareTo(other.compilerVersion)
+
+    fun getDirWithSameBugs(): String =
+        CompilerArgs.resultsDir +
+                when (type) {
+                    BugType.DIFFBEHAVIOR -> "diffBehavior"
+                    BugType.DIFFCOMPILE -> "diffCompile"
+                    BugType.FRONTEND, BugType.BACKEND -> compilers.first().compilerInfo.filter { it != ' ' }
+                    else -> ""
+                }
+
 
 }
 
@@ -53,16 +66,38 @@ object BugManager {
         saveBug(bug)
     }
 
+    fun haveDuplicates(bug: Bug): Boolean {
+        val dirWithSameBugs = bug.getDirWithSameBugs()
+        val path = bug.crashedProject.saveOrRemoveToTmp(true)
+        when (bug.type) {
+            BugType.DIFFCOMPILE -> return FilterDuplcatesCompilerErrors.haveSameDiffCompileErrors(
+                path,
+                dirWithSameBugs,
+                bug.compilers,
+                true
+            )
+            BugType.FRONTEND, BugType.BACKEND -> return FilterDuplcatesCompilerErrors.simpleHaveDuplicatesErrors(
+                path,
+                dirWithSameBugs,
+                bug.compilers.first()
+            )
+        }
+        bug.crashedProject.saveOrRemoveToTmp(false)
+        return false
+    }
 
-    private fun saveBug(bug: Bug) {
-        bugs.add(bug)
+    fun saveBug(bug: Bug) {
         val reduced = Reducer.reduce(bug, false)
+        val reducedBug = Bug(bug.compilers, bug.msg, reduced, bug.type)
+        //Try to find duplicates
+        if (haveDuplicates(reducedBug)) return
+        bugs.add(reducedBug)
         //Report bugs
         if (ReportProperties.getPropAsBoolean("TEXT_REPORTER") == true) {
             TextReporter.dump(bugs)
         }
         if (ReportProperties.getPropAsBoolean("FILE_REPORTER") == true) {
-            FileReporter.dump(listOf(bug))
+            FileReporter.dump(listOf(reducedBug))
         }
     }
 

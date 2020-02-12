@@ -7,7 +7,7 @@ abstract class Transformation: Factory() {
     abstract fun transform()
 
     companion object {
-        lateinit var file: KtFile
+        var file: KtFile = Factory.file
         lateinit var checker: MutationChecker
     }
 

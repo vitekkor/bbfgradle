@@ -1,24 +1,13 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.ProjectCompilingChecker
-import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.generator.subjectgenerator.*
-import com.stepanov.bbf.bugfinder.generator.subjectgenerator.Function
-import com.stepanov.bbf.bugfinder.generator.subjectgenerator.Klass
 import com.stepanov.bbf.bugfinder.util.*
-import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.passes.ImportsGetter
-import com.stepanov.bbf.reduktor.util.generateDefValuesAsString
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
-import org.jetbrains.kotlin.psi.KtClassOrObject
-import org.jetbrains.kotlin.psi.KtPsiFactory
-import ru.spbstu.kotlin.generate.util.nextInRange
 import java.io.File
 import kotlin.random.Random
 import kotlin.system.exitProcess
@@ -27,9 +16,6 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
-    val compilers = listOf(JVMCompiler(""), JVMCompiler("-Xnew-inference"))
-    ProjectBugFinder("tmp/arrays/classTests/").findBugsInProject(compilers)
-    System.exit(0)
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
         Logger.getLogger("bugFinderLogger").level = Level.OFF
@@ -79,7 +65,7 @@ fun main(args: Array<String>) {
     arguments.getString("fuzz")?.let {
         require(File(it).isDirectory) { "Specify directory to take files for mutation" }
         val file = File(it).listFiles()?.random() ?: throw IllegalArgumentException("Wrong directory")
-        BugFinder(file.absolutePath).findBugsInFile()
+        SingleFileBugFinder(file.absolutePath).findBugsInFile()
         exitProcess(0)
     }
     if (arguments.getString("database") == "true") {
@@ -92,6 +78,6 @@ fun main(args: Array<String>) {
     }
     val file = (if (Random.nextInt(0, 10) in 0..2) File("${CompilerArgs.baseDir}/newTests").listFiles()?.random()
     else File(CompilerArgs.baseDir).listFiles()?.random()) ?: throw IllegalArgumentException("Wrong directory")
-    BugFinder(file.absolutePath).findBugsInFile()
+    SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 }

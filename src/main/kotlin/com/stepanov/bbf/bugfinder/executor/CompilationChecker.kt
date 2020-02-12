@@ -6,7 +6,7 @@ import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
 import org.apache.log4j.Logger
 import java.io.File
 
-open class ProjectCompilationChecker(private val compilers: List<CommonCompiler>) : Checker() {
+open class CompilationChecker(private val compilers: List<CommonCompiler>) : Checker() {
 
     override fun isCompilationSuccessful(project: Project): Boolean {
         val path = project.saveOrRemoveToTmp(true)
@@ -17,11 +17,13 @@ open class ProjectCompilationChecker(private val compilers: List<CommonCompiler>
 
     override fun isCompilerBug(project: Project): List<Bug> {
         val path = project.saveOrRemoveToTmp(true)
-        val text = project.getCommonText(path)
         val res = mutableListOf<Bug>()
         compilers.forEach { compiler ->
             if (compiler.isCompilerBug(path)) {
-                res.add(Bug(compiler, compiler.getErrorMessage(path), project, BugType.UNKNOWN))
+                val msg = compiler.getErrorMessage(path)
+                val type =
+                    if (msg.contains("Exception while analyzing expression")) BugType.FRONTEND else BugType.BACKEND
+                res.add(Bug(compiler, msg, project, type))
             }
         }
         if (res.size != 0) return res

@@ -160,7 +160,6 @@ class JVMCompiler(private val arguments: String = "") : CommonCompiler() {
             hasTimeout = true
             futureExitCode.cancel(true)
         }
-
         val status = KotlincInvokeStatus(
             MsgCollector.crashMessages.joinToString("\n") +
                     MsgCollector.compileErrorMessages.joinToString("\n"),

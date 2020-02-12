@@ -4,16 +4,18 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.TreeElement
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
-import com.stepanov.bbf.bugfinder.executor.ProjectCompilationChecker
+import com.stepanov.bbf.bugfinder.executor.CompilationChecker
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
+import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 
-class MutationChecker(compilers: List<CommonCompiler>): ProjectCompilationChecker(compilers) {
+class MutationChecker(compilers: List<CommonCompiler>): CompilationChecker(compilers) {
 
     fun replacePSINodeIfPossible(file: KtFile, node: PsiElement, replacement: PsiElement) =
         replaceNodeIfPossible(file, node.node, replacement.node)
 
     fun replaceNodeIfPossible(file: KtFile, node: ASTNode, replacement: ASTNode): Boolean {
+        log.debug("Trying to replace $node on $replacement")
         if (node.text.isEmpty() || node == replacement) return checkCompiling(file)
         for (p in node.getAllParentsWithoutNode()) {
             try {
@@ -27,9 +29,11 @@ class MutationChecker(compilers: List<CommonCompiler>): ProjectCompilationChecke
                 if (oldText == file.text)
                     continue
                 if (!checkCompiling(file)) {
+                    log.debug("Result = false\nText:\n${file.text}")
                     p.replaceChild(replCopy, node)
                     return false
                 } else {
+                    log.debug("Result = true\nText:\n${file.text}")
                     return true
                 }
             } catch (e: Error) {
@@ -38,6 +42,7 @@ class MutationChecker(compilers: List<CommonCompiler>): ProjectCompilationChecke
         return false
     }
     fun addNodeIfPossible(file: KtFile, anchor: PsiElement, node: PsiElement, before: Boolean = false): Boolean {
+        log.debug("Trying to add $node to $anchor")
         if (node.text.isEmpty() || node == anchor) return checkCompiling(
             file
         )
@@ -45,7 +50,11 @@ class MutationChecker(compilers: List<CommonCompiler>): ProjectCompilationChecke
             val addedNode =
                 if (before) anchor.parent.addBefore(node, anchor)
                 else anchor.parent.addAfter(node, anchor)
-            if (checkCompiling(file)) return true
+            if (checkCompiling(file)) {
+                log.debug("Result = true\nText:\n${file.text}")
+                return true
+            }
+            log.debug("Result = false\nText:\n${file.text}")
             addedNode.parent.node.removeChild(addedNode.node)
             return false
         } catch (e: Throwable) {
@@ -58,4 +67,5 @@ class MutationChecker(compilers: List<CommonCompiler>): ProjectCompilationChecke
         addNodeIfPossible(file, anchor.psi, node.psi, before)
 
     private val DUMMY_HOLDER_INDEX: Short = 86
+    private val log = Logger.getLogger("mutatorLogger")
 }

@@ -97,7 +97,7 @@ fun main(args: Array<String>) {
         else -> throw IllegalArgumentException("Illegal backend")
     }
     if (isProject) {
-        manager.doProjectTransformations(targetFiles, creator, backend)
+        manager.doProjectTransformations(targetFiles, creator, CommonCompilerCrashTestChecker(backend))
     } else {
         manager.doTransformations(CommonCompilerCrashTestChecker(backend))
     }
