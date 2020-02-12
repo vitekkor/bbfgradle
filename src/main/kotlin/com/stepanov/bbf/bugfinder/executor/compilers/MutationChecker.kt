@@ -5,18 +5,20 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.TreeElement
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilationChecker
+import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 
-class MutationChecker(compilers: List<CommonCompiler>): CompilationChecker(compilers) {
+class MutationChecker(compilers: List<CommonCompiler>, private val otherFiles: Project? = null) :
+    CompilationChecker(compilers) {
 
     fun replacePSINodeIfPossible(file: KtFile, node: PsiElement, replacement: PsiElement) =
         replaceNodeIfPossible(file, node.node, replacement.node)
 
     fun replaceNodeIfPossible(file: KtFile, node: ASTNode, replacement: ASTNode): Boolean {
         log.debug("Trying to replace $node on $replacement")
-        if (node.text.isEmpty() || node == replacement) return checkCompiling(file)
+        if (node.text.isEmpty() || node == replacement) return checkCompiling(file, otherFiles)
         for (p in node.getAllParentsWithoutNode()) {
             try {
                 if (node.treeParent.elementType.index == DUMMY_HOLDER_INDEX) continue
@@ -28,7 +30,7 @@ class MutationChecker(compilers: List<CommonCompiler>): CompilationChecker(compi
                 p.replaceChild(node, replCopy)
                 if (oldText == file.text)
                     continue
-                if (!checkCompiling(file)) {
+                if (!checkCompiling(file, otherFiles)) {
                     log.debug("Result = false\nText:\n${file.text}")
                     p.replaceChild(replCopy, node)
                     return false
@@ -41,16 +43,18 @@ class MutationChecker(compilers: List<CommonCompiler>): CompilationChecker(compi
         }
         return false
     }
+
     fun addNodeIfPossible(file: KtFile, anchor: PsiElement, node: PsiElement, before: Boolean = false): Boolean {
         log.debug("Trying to add $node to $anchor")
         if (node.text.isEmpty() || node == anchor) return checkCompiling(
-            file
+            file,
+            otherFiles
         )
         try {
             val addedNode =
                 if (before) anchor.parent.addBefore(node, anchor)
                 else anchor.parent.addAfter(node, anchor)
-            if (checkCompiling(file)) {
+            if (checkCompiling(file, otherFiles)) {
                 log.debug("Result = true\nText:\n${file.text}")
                 return true
             }

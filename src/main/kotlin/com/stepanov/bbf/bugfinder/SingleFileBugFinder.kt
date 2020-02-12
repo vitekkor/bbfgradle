@@ -1,10 +1,7 @@
 package com.stepanov.bbf.bugfinder
 
-import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.TracesChecker
-import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
-import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
 import com.stepanov.bbf.bugfinder.mutator.Mutator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
@@ -18,39 +15,23 @@ import org.apache.log4j.Logger
 import java.io.File
 import java.util.*
 
-class SingleFileBugFinder(private val pathToFile: String) : Runnable {
-
-    override fun run() {
-        findBugsInFile()
-    }
+class SingleFileBugFinder(dir: String) : BugFinder(dir) {
 
     fun findBugsInFile() {
         try {
             println("Let's go")
             ++counter
-            log.debug("Name = $pathToFile")
+            log.debug("Name = $dir")
             val psiCreator = PSICreator("")
             val psiFile =
                     try {
-                        psiCreator.getPSIForFile(pathToFile)
+                        psiCreator.getPSIForFile(dir)
                     } catch (e: Throwable) {
                         println("e = $e")
                         return
                     }
-            //Init compilers
+
             val compilersConf = BBFProperties.getStringGroupWithoutQuotes("BACKENDS")
-            compilersConf.filter { it.key.contains("JVM") }.forEach { compilers.add(
-                JVMCompiler(
-                    it.value
-                )
-            ) }
-            compilersConf.filter { it.key.contains("JS") }.forEach { compilers.add(
-                JSCompiler(
-                    it.value
-                )
-            ) }
-
-
             val filterBackends = compilersConf.map { it.key }
             val ignoreBackendsFromFile =
                     psiFile.text.lineSequence()
@@ -68,12 +49,10 @@ class SingleFileBugFinder(private val pathToFile: String) : Runnable {
             //Init lateinit vars
             Factory.file = psiFile
             Transformation.checker = MutationChecker(compilers)
-            Transformation.checker.checkCompiling(psiFile)
-            System.exit(0)
 
             //Check for compiling
             if (!compilers.checkCompilingForAllBackends(psiFile)) {
-                log.debug("Could not compile $pathToFile")
+                log.debug("Could not compile $dir")
                 return
             }
             log.debug("Start to mutate")
@@ -81,7 +60,7 @@ class SingleFileBugFinder(private val pathToFile: String) : Runnable {
             val resultingMutant = PSICreator("").getPSIForText(Transformation.file.text)
 
             if (!compilers.checkCompilingForAllBackends(resultingMutant)) {
-                log.debug("Could not compile after mutation $pathToFile")
+                log.debug("Could not compile after mutation $dir")
                 log.debug(resultingMutant.text)
                 System.exit(1)
             }
@@ -101,7 +80,7 @@ class SingleFileBugFinder(private val pathToFile: String) : Runnable {
             val traced = tracer.trace()
             log.debug("Traced = ${traced.text}")
             if (!compilers.checkCompilingForAllBackends(traced)) {
-                log.debug("Could not compile after tracing $pathToFile")
+                log.debug("Could not compile after tracing $dir")
                 log.debug(traced.text)
             }
 
@@ -129,7 +108,5 @@ class SingleFileBugFinder(private val pathToFile: String) : Runnable {
         }
     }
 
-    private val compilers: MutableList<CommonCompiler> = mutableListOf()
     var counter = 0
-    private val log = Logger.getLogger("bugFinderLogger")
 }

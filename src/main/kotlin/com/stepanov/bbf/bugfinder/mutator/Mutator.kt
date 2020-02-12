@@ -27,7 +27,7 @@ class Mutator(val file: KtFile, val context: BindingContext?, private val compil
         //Set of transformations over PSI
         log.debug("Mutation started")
         log.debug("File = ${file.name}")
-        executeMutation(AddNullabilityTransformer())
+        executeMutation(AddNullabilityTransformer(), 100)
         //AddNullabilityTransformer().transform()
         log.debug("After AddNullabilityTransformer = ${Transformation.file.text}")
         log.debug("Verify = ${verify()}")
@@ -118,6 +118,7 @@ class Mutator(val file: KtFile, val context: BindingContext?, private val compil
     }
 
     private fun verify(): String = "${compilers.checkCompilingForAllBackends(Transformation.file)}"
+    //private fun verify(): String = Transformation.checker.isCompilationSuccessful()
 
     private val log = Logger.getLogger("mutatorLogger")
 }

@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.*
+import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
@@ -11,22 +12,17 @@ import java.io.File
 import java.lang.StringBuilder
 import kotlin.random.Random
 
-class ProjectBugFinder(private val pathToDir: String) {
+class ProjectBugFinder(dir: String): BugFinder(dir) {
 
-    fun findBugsInProject(compilers: List<CommonCompiler>) {
-        val dir = File(pathToDir).listFiles()!!
+    fun findBugsInProjects() {
+        val dir = File(dir).listFiles()!!
         val numOfFiles = Random.nextInt(2, 4)
-//        val files = (1..numOfFiles)
-//            .map { dir[Random.nextInt(0, dir.size)] }
-//            .map { PSICreator("").getPSIForText(it.readText()) }
-        val files = listOf("tmp/results/test0.kt", "tmp/results/test1.kt").map { File(it) }.map { PSICreator("").getPSIForFile(it.absolutePath) }
-//        val files = listOf(File("tmp/results/test0.kt").readText(), File("tmp/results/test1.kt").readText())
-//            .map { PSICreator("").getPSIForText(it) }
+        val files = (1..numOfFiles)
+            .map { dir[Random.nextInt(0, dir.size)] }
+            .map { PSICreator("").getPSIForText(it.readText()) }
         val factory = KtPsiFactory(files.first().project)
         Factory.file = files.first()
         val checker = CompilationChecker(compilers)
-        checker.checkCompiling(Project(null, files))
-        System.exit(0)
         //Rename of box() fun
         files.forEachIndexed { index, file ->
             file.getAllPSIChildrenOfType<KtNamedFunction>()
@@ -51,17 +47,17 @@ class ProjectBugFinder(private val pathToDir: String) {
         val res = checker.checkCompiling(project)
         println("result = $res\n")
         if (!res) return
-        TracesChecker(compilers).compareTraces(project)
+        //Execute mutations?
+        val mutants = mutableListOf<String>()
+        for ((i, file) in files.withIndex()) {
+            log.debug("File $i from ${files.size} mutations began")
+            val otherFiles = files.getAllWithout(i)
+            val creator = PSICreator("")
+            val m = makeMutant(creator.getPSIForText(file.text), creator.ctx!!, Project(null, otherFiles))
+            mutants.add(m.text)
+        }
+        TracesChecker(compilers).compareTraces(Project(mutants))
         return
-    }
-
-    private fun KtFile.addMain(files: List<KtFile>) {
-        val m = StringBuilder()
-        m.append("\n\n\nfun main(args: Array<String>) {\n")
-        for (i in files.indices) m.append("println(box$i())\n")
-        m.append("}")
-        val mainFun = KtPsiFactory(this.project).createFunction(m.toString())
-        this.add(mainFun)
     }
 
     private fun KtFile.addImport(import: KtImportDirective) {

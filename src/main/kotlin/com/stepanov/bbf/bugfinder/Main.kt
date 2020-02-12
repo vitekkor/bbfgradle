@@ -1,7 +1,6 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.util.*
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
@@ -9,7 +8,6 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
 import java.io.File
-import kotlin.random.Random
 import kotlin.system.exitProcess
 
 
@@ -76,8 +74,9 @@ fun main(args: Array<String>) {
         FalsePositivesDeleter().cleanDirs()
         exitProcess(0)
     }
-    val file = (if (Random.nextInt(0, 10) in 0..2) File("${CompilerArgs.baseDir}/newTests").listFiles()?.random()
-    else File(CompilerArgs.baseDir).listFiles()?.random()) ?: throw IllegalArgumentException("Wrong directory")
-    SingleFileBugFinder(file.absolutePath).findBugsInFile()
+    while (true) ProjectBugFinder("tmp/arrays/classTests/").findBugsInProjects()
+    //val file = (if (Random.nextInt(0, 10) in 0..2) File("${CompilerArgs.baseDir}/newTests").listFiles()?.random()
+    //else File(CompilerArgs.baseDir).listFiles()?.random()) ?: throw IllegalArgumentException("Wrong directory")
+    //SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 }

@@ -20,7 +20,14 @@ abstract class Checker() : Factory() {
 
     //Back compatibility
     fun checkTextCompiling(text: String): Boolean = checkCompiling(Project(listOf(text)))
+
     fun checkCompiling(file: KtFile): Boolean = checkTextCompiling(file.text)
+
+
+    fun checkCompiling(file: KtFile, otherFiles: Project?): Boolean =
+        otherFiles?.let { files ->
+            checkCompiling(Project(files.texts.toMutableList().also { it.add(Companion.file.text) }.toList()))
+        } ?: checkCompiling(file)
 
 
     fun checkCompiling(project: Project): Boolean {
