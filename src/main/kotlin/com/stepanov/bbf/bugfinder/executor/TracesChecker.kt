@@ -70,10 +70,11 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
 
     private fun KtFile.addMain(files: List<KtFile>) {
         val m = StringBuilder()
-        m.append("\n\n\nfun main(args: Array<String>) {\n")
+        m.append("fun main(args: Array<String>) {\n")
         for (i in files.indices) m.append("println(box$i())\n")
         m.append("}")
         val mainFun = KtPsiFactory(this.project).createFunction(m.toString())
+        this.add(KtPsiFactory(this.project).createWhiteSpace("\n\n"))
         this.add(mainFun)
     }
 
@@ -119,7 +120,6 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
             alreadyChecked[hash] = res
             res
         }
-
     }
 
     fun checkTestForProject(commonPath: String): List<CommonCompiler>? {

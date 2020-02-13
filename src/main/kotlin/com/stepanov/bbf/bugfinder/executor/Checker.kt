@@ -40,9 +40,9 @@ abstract class Checker() : Factory() {
                 checkedConfigurations[allTexts] = false
                 return false
             }
-        }
-        additionalConditions.forEach {
-            if (!it.invoke()) return false
+            additionalConditions.forEach {
+                if (!it.invoke(tree)) return false
+            }
         }
         isCompilerBug(project).forEach { BugManager.saveBug(it) }
         return isCompilationSuccessful(project)
@@ -106,7 +106,7 @@ abstract class Checker() : Factory() {
 //        }
 //    }
 
-    abstract val additionalConditions: List<() -> Boolean>
+    abstract val additionalConditions: List<(KtFile) -> Boolean>
     private val checkedConfigurations = hashMapOf<String, Boolean>()
     private val log = Logger.getLogger("mutatorLogger")
 }

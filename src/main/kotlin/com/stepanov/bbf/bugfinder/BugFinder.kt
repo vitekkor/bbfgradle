@@ -36,9 +36,17 @@ open class BugFinder(protected val dir: String) {
         }
     }
 
-    fun makeMutant(psiFile: KtFile, context: BindingContext, otherFiles: Project? = null): KtFile {
-        Transformation.checker = MutationChecker(compilers, otherFiles)
-        Mutator(psiFile, context, compilers).startMutate()
+    fun makeMutant(
+        psiFile: KtFile,
+        context: BindingContext,
+        otherFiles: Project? = null,
+        conditions: List<(KtFile) -> Boolean> = listOf()
+    ): KtFile {
+        Transformation.checker = MutationChecker(
+            compilers,
+            otherFiles
+        ).also { checker -> conditions.forEach { checker.additionalConditions.add(it) } }
+        Mutator(psiFile, context).startMutate()
         return PSICreator("").getPSIForText(Transformation.file.text)
     }
 

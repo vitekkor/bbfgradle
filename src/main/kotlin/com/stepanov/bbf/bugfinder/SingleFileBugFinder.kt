@@ -1,8 +1,11 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.executor.TracesChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
+import com.stepanov.bbf.bugfinder.manager.BugManager
+import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.Mutator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
@@ -11,7 +14,6 @@ import com.stepanov.bbf.bugfinder.util.BBFProperties
 import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import org.apache.log4j.Logger
 import java.io.File
 import java.util.*
 
@@ -56,7 +58,7 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
                 return
             }
             log.debug("Start to mutate")
-            Mutator(psiFile, psiCreator.ctx, compilers).startMutate()
+            Mutator(psiFile, psiCreator.ctx).startMutate()
             val resultingMutant = PSICreator("").getPSIForText(Transformation.file.text)
 
             if (!compilers.checkCompilingForAllBackends(resultingMutant)) {
@@ -87,8 +89,8 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
             val res = TracesChecker(compilers).checkTest(traced.text)
             log.debug("Result = $res")
             //Save into tmp file and reduce
-//            if (res != null) {
-//                File(CompilerArgs.pathToTmpFile).writeText(traced.text)
+            if (res != null) {
+                File(CompilerArgs.pathToTmpFile).writeText(traced.text)
 //                val reduced =
 //                        if (CompilerArgs.shouldReduceDiffBehavior)
 //                            Reducer.reduceDiffBehavior(
@@ -97,8 +99,8 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
 //                            )
 //                        else
 //                            traced.text
-//                BugManager.saveBug(res.joinToString(separator = ","), "", reduced, BugType.DIFFBEHAVIOR)
-//            }
+                BugManager.saveBug(res, "", Project(traced.text), BugType.DIFFBEHAVIOR)
+            }
             return
         } catch (e: Error) {
             println("ERROR: $e")

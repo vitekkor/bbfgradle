@@ -1,14 +1,13 @@
 package com.stepanov.bbf.bugfinder.mutator
 
-import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
-import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.random.Random
 
-class Mutator(val file: KtFile, val context: BindingContext?, private val compilers: List<CommonCompiler>) {
+class Mutator(val file: KtFile, val context: BindingContext?) {
 
     private fun executeMutation(t: Transformation, probPercentage: Int = 50) {
         if (Random.nextInt(0, 100) < probPercentage) {
@@ -23,11 +22,12 @@ class Mutator(val file: KtFile, val context: BindingContext?, private val compil
 
     fun startMutate() {
         //Init file
+        Factory.file = file
         Transformation.file = file
         //Set of transformations over PSI
         log.debug("Mutation started")
         log.debug("File = ${file.name}")
-        executeMutation(AddNullabilityTransformer(), 100)
+        executeMutation(AddNullabilityTransformer())
         //AddNullabilityTransformer().transform()
         log.debug("After AddNullabilityTransformer = ${Transformation.file.text}")
         log.debug("Verify = ${verify()}")
@@ -117,7 +117,8 @@ class Mutator(val file: KtFile, val context: BindingContext?, private val compil
         log.debug("End")
     }
 
-    private fun verify(): String = "${compilers.checkCompilingForAllBackends(Transformation.file)}"
+    private fun verify() = Transformation.checker.checkCompiling(file, Transformation.checker.otherFiles)
+    //private fun verify(): String = "${compilers.checkCompilingForAllBackends(Transformation.file)}"
     //private fun verify(): String = Transformation.checker.isCompilationSuccessful()
 
     private val log = Logger.getLogger("mutatorLogger")

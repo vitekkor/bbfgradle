@@ -12,7 +12,7 @@ import java.io.File
 import java.lang.StringBuilder
 import kotlin.random.Random
 
-class ProjectBugFinder(dir: String): BugFinder(dir) {
+class ProjectBugFinder(dir: String) : BugFinder(dir) {
 
     fun findBugsInProjects() {
         val dir = File(dir).listFiles()!!
@@ -48,15 +48,21 @@ class ProjectBugFinder(dir: String): BugFinder(dir) {
         println("result = $res\n")
         if (!res) return
         //Execute mutations?
-        val mutants = mutableListOf<String>()
+        val mutants = files.map { it.text }.toMutableList()
         for ((i, file) in files.withIndex()) {
-            log.debug("File $i from ${files.size} mutations began")
-            val otherFiles = files.getAllWithout(i)
+            log.debug("File $i from ${files.size - 1} mutations began")
             val creator = PSICreator("")
-            val m = makeMutant(creator.getPSIForText(file.text), creator.ctx!!, Project(null, otherFiles))
-            mutants.add(m.text)
+            val m = makeMutant(
+                creator.getPSIForText(file.text),
+                creator.ctx!!,
+                Project(mutants.getAllWithout(i)),
+                listOf(::noBoxFunModifying)
+            )
+            mutants[i] = m.text
         }
-        TracesChecker(compilers).compareTraces(Project(mutants))
+        val proj = Project(mutants)
+        log.debug("Res after mutation = ${proj.getCommonTextWithDefaultPath()}")
+        TracesChecker(compilers).compareTraces(proj)
         return
     }
 

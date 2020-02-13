@@ -4,6 +4,7 @@ import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
 import org.apache.log4j.Logger
+import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 
 open class CompilationChecker(private val compilers: List<CommonCompiler>) : Checker() {
@@ -43,8 +44,5 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) : Che
     }
 
 
-    override val additionalConditions: List<() -> Boolean>
-        get() = listOf()
-
-    private val log = Logger.getLogger("mutatorLogger")
+    override val additionalConditions: MutableList<(KtFile) -> Boolean> = mutableListOf()
 }
