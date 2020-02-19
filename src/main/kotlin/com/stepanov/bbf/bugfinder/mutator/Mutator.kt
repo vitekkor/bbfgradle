@@ -23,7 +23,7 @@ class Mutator(val file: KtFile, val context: BindingContext?) {
     fun startMutate() {
         //Init file
         Factory.file = file
-        Transformation.file = file
+        Transformation.file = file.copy() as KtFile
         //Set of transformations over PSI
         log.debug("Mutation started")
         log.debug("File = ${file.name}")
@@ -117,7 +117,7 @@ class Mutator(val file: KtFile, val context: BindingContext?) {
         log.debug("End")
     }
 
-    private fun verify() = Transformation.checker.checkCompiling(file, Transformation.checker.otherFiles)
+    private fun verify() = Transformation.checker.checkCompiling(Transformation.file, Transformation.checker.otherFiles)
     //private fun verify(): String = "${compilers.checkCompilingForAllBackends(Transformation.file)}"
     //private fun verify(): String = Transformation.checker.isCompilationSuccessful()
 

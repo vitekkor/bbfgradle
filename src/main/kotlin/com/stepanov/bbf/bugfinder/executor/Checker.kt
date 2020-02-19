@@ -26,7 +26,7 @@ abstract class Checker() : Factory() {
 
     fun checkCompiling(file: KtFile, otherFiles: Project?): Boolean =
         otherFiles?.let { files ->
-            checkCompiling(Project(files.texts.toMutableList().also { it.add(Companion.file.text) }.toList()))
+            checkCompiling(Project(files.texts.toMutableList() + file.text))
         } ?: checkCompiling(file)
 
 

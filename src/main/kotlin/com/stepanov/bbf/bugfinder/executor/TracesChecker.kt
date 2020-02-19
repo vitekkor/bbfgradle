@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtImportDirective
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtPsiFactory
+import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.ImportPath
 import java.io.BufferedWriter
 import java.io.File
@@ -52,26 +53,24 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
             val boxFuncs = files.map { file ->
                 file.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name?.contains("box") ?: false }!!
             }
-            val copyOfBox = boxFuncs.map { it.copy() as KtNamedFunction }.toMutableList()
-            val lastBox = copyOfBox.last().copy() as KtNamedFunction
-            copyOfBox.add(0, lastBox)
-            copyOfBox.removeAt(copyOfBox.size - 1)
-            boxFuncs.forEachIndexed { index, f -> f.replaceThis(copyOfBox[index]) }
             //Add import of box_I functions
             val firstFile = files.first()
-            for (i in 0 until files.size - 1) {
-                val newImport = psiFactory.createImportDirective(ImportPath(FqName("${'a' + i + 1}.box$i"), false))
+            boxFuncs.forEachIndexed { i, func ->
+                val `package` = (func.parents.find { it is KtFile } as KtFile).packageDirective?.fqName
+                    ?: throw IllegalArgumentException("No package")
+                val newImport =
+                    psiFactory.createImportDirective(ImportPath(FqName("${`package`}.${func.name}"), false))
                 firstFile.addImport(newImport)
             }
-            firstFile.addMain(files)
+            firstFile.addMain(boxFuncs)
             return Project(null, files)
         }
     }
 
-    private fun KtFile.addMain(files: List<KtFile>) {
+    private fun KtFile.addMain(boxFuncs: List<KtNamedFunction>) {
         val m = StringBuilder()
         m.append("fun main(args: Array<String>) {\n")
-        for (i in files.indices) m.append("println(box$i())\n")
+        for (func in boxFuncs) m.append("println(${func.name}())\n")
         m.append("}")
         val mainFun = KtPsiFactory(this.project).createFunction(m.toString())
         this.add(KtPsiFactory(this.project).createWhiteSpace("\n\n"))
@@ -97,7 +96,11 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
 
         //Add main
         val projectWithMain = addMainForProject(project)
-        if (!isCompilationSuccessful(projectWithMain)) return null
+        if (!isCompilationSuccessful(projectWithMain)) {
+            log.debug("Cant compile with main")
+            log.debug("Proj = ${projectWithMain.getCommonTextWithDefaultPath()}")
+            return null
+        }
         projectWithMain.saveOrRemoveToTmp(true)
         val results = mutableListOf<Pair<CommonCompiler, String>>()
         for (comp in compilers) {

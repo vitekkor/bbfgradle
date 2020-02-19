@@ -6,6 +6,7 @@ import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
 import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
+import org.apache.log4j.Logger
 
 enum class BugType {
     BACKEND,
@@ -40,6 +41,9 @@ data class Bug(val compilers: List<CommonCompiler>, val msg: String, val crashed
                     else -> ""
                 }
 
+    override fun toString(): String {
+        return "${type.name}\n${compilers.map { it.compilerInfo }}\nText:\n${crashedProject.getCommonTextWithDefaultPath()}"
+    }
 
 }
 
@@ -87,10 +91,12 @@ object BugManager {
     }
 
     fun saveBug(bug: Bug) {
+        log.debug("Found bug $bug")
         val reduced = Reducer.reduce(bug, false)
         val reducedBug = Bug(bug.compilers, bug.msg, reduced, bug.type)
         //Try to find duplicates
-        if (haveDuplicates(reducedBug)) return
+        //TODO Make for projects!!
+        if (bug.crashedProject.texts.size == 1 && haveDuplicates(reducedBug)) return
         bugs.add(reducedBug)
         //Report bugs
         if (ReportProperties.getPropAsBoolean("TEXT_REPORTER") == true) {
@@ -106,5 +112,7 @@ object BugManager {
             BugType.FRONTEND
         else
             BugType.BACKEND
+
+    private val log = Logger.getLogger("bugFinderLogger")
 }
 

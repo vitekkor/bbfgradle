@@ -43,6 +43,8 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
             imports[i - 1].forEach { files[i].addImport(it) }
         }
         imports.last().forEach { files.first().addImport(it) }
+        //Shuffle box funcs
+        files.boxShift(factory)
         val project = Project(null, files)
         val res = checker.checkCompiling(project)
         println("result = $res\n")
@@ -69,5 +71,16 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
     private fun KtFile.addImport(import: KtImportDirective) {
         this.importList?.add(import)
         this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
+    }
+
+    private fun List<KtFile>.boxShift(psiFactory: KtPsiFactory) {
+        val boxFuncs = this.map { file ->
+            file.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name?.contains("box") ?: false }!!
+        }
+        val copyOfBox = boxFuncs.map { it.copy() as KtNamedFunction }.toMutableList()
+        val lastBox = copyOfBox.last().copy() as KtNamedFunction
+        copyOfBox.add(0, lastBox)
+        copyOfBox.removeAt(copyOfBox.size - 1)
+        boxFuncs.forEachIndexed { index, f -> f.replaceThis(copyOfBox[index]) }
     }
 }
