@@ -32,11 +32,12 @@ object FileReporter : Reporter {
     override fun dump(bugs: List<Bug>) {
         for (bug in bugs) {
             val resDir = CompilerArgs.resultsDir
-            val name = Random().getRandomVariableName(7)
+            val name = Random().getRandomVariableName(7) +
+                    if (bug.crashedProject.texts.size == 1) "_FILE" else "_PROJECT"
             val newPath = when (bug.type) {
                 BugType.BACKEND, BugType.FRONTEND -> "$resDir${bug.compilerVersion.filter { it != ' ' }}/${bug.type.name}_$name.kt"
-                BugType.DIFFCOMPILE -> "$resDir/diffCompile/$name"
-                BugType.DIFFBEHAVIOR -> "$resDir/diffBehavior/$name"
+                BugType.DIFFCOMPILE -> "$resDir/diffCompile/$name.kt"
+                BugType.DIFFBEHAVIOR -> "$resDir/diffBehavior/$name.kt"
                 else -> return
             }
             File(newPath.substringBeforeLast('/')).mkdirs()

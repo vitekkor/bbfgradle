@@ -20,7 +20,6 @@ abstract class Checker() : Factory() {
 
     //Back compatibility
     fun checkTextCompiling(text: String): Boolean = checkCompiling(Project(listOf(text)))
-
     fun checkCompiling(file: KtFile): Boolean = checkTextCompiling(file.text)
 
 
@@ -75,7 +74,6 @@ abstract class Checker() : Factory() {
 //                return false
 //            }
 //        }
-        return false
     }
 
     abstract fun isCompilationSuccessful(project: Project): Boolean

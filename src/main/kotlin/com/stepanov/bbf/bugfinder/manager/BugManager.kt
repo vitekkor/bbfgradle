@@ -2,9 +2,11 @@ package com.stepanov.bbf.bugfinder.manager
 
 import com.stepanov.bbf.bugfinder.Reducer
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
+import com.stepanov.bbf.bugfinder.util.moveAllCodeInOneFile
 import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
 import org.apache.log4j.Logger
 
@@ -32,7 +34,7 @@ data class Bug(val compilers: List<CommonCompiler>, val msg: String, val crashed
             type.compareTo(other.type)
         else compilerVersion.compareTo(other.compilerVersion)
 
-    fun getDirWithSameBugs(): String =
+    fun getDirWithSameTypeBugs(): String =
         CompilerArgs.resultsDir +
                 when (type) {
                     BugType.DIFFBEHAVIOR -> "diffBehavior"
@@ -70,8 +72,42 @@ object BugManager {
         saveBug(bug)
     }
 
+    fun checkIfBugIsProject(bug: Bug): Bug =
+        if (bug.crashedProject.texts.size > 1) {
+            val checker = CompilationChecker(bug.compilers)
+            val oneFileBugs = checker.isCompilerBug(bug.crashedProject.moveAllCodeInOneFile())
+            if (oneFileBugs.isNotEmpty()) Bug(
+                bug.compilers,
+                bug.msg,
+                bug.crashedProject.moveAllCodeInOneFile(),
+                bug.type
+            )
+            else bug
+        } else bug
+
+
+    fun saveBug(bug: Bug) {
+        //Check if bug is real project bug
+        val newBug = checkIfBugIsProject(bug)
+        val reduced = Reducer.reduce(newBug, false)
+        val reducedBug = Bug(newBug.compilers, newBug.msg, reduced, newBug.type)
+        //Try to find duplicates
+        //TODO Make for projects!!
+        if (bug.crashedProject.texts.size == 1 &&
+            CompilerArgs.shouldFilterDuplicateCompilerBugs &&
+            haveDuplicates(reducedBug)) return
+        bugs.add(reducedBug)
+        //Report bugs
+        if (ReportProperties.getPropAsBoolean("TEXT_REPORTER") == true) {
+            TextReporter.dump(bugs)
+        }
+        if (ReportProperties.getPropAsBoolean("FILE_REPORTER") == true) {
+            FileReporter.dump(listOf(reducedBug))
+        }
+    }
+
     fun haveDuplicates(bug: Bug): Boolean {
-        val dirWithSameBugs = bug.getDirWithSameBugs()
+        val dirWithSameBugs = bug.getDirWithSameTypeBugs()
         val path = bug.crashedProject.saveOrRemoveToTmp(true)
         when (bug.type) {
             BugType.DIFFCOMPILE -> return FilterDuplcatesCompilerErrors.haveSameDiffCompileErrors(
@@ -88,23 +124,6 @@ object BugManager {
         }
         bug.crashedProject.saveOrRemoveToTmp(false)
         return false
-    }
-
-    fun saveBug(bug: Bug) {
-        log.debug("Found bug $bug")
-        val reduced = Reducer.reduce(bug, false)
-        val reducedBug = Bug(bug.compilers, bug.msg, reduced, bug.type)
-        //Try to find duplicates
-        //TODO Make for projects!!
-        if (bug.crashedProject.texts.size == 1 && haveDuplicates(reducedBug)) return
-        bugs.add(reducedBug)
-        //Report bugs
-        if (ReportProperties.getPropAsBoolean("TEXT_REPORTER") == true) {
-            TextReporter.dump(bugs)
-        }
-        if (ReportProperties.getPropAsBoolean("FILE_REPORTER") == true) {
-            FileReporter.dump(listOf(reducedBug))
-        }
     }
 
     private fun parseTypeOfBugByMsg(msg: String): BugType =

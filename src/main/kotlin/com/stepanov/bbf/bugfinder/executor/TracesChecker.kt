@@ -77,13 +77,6 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         this.add(mainFun)
     }
 
-    private fun KtFile.addImport(import: KtImportDirective) {
-        this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
-        this.importList?.add(import)
-        this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
-    }
-
-
     fun compareTraces(project: Project): List<CommonCompiler>? {
         val path = project.generateCommonName()
         //Check if already checked

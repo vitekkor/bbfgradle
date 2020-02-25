@@ -4,6 +4,7 @@ import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
+import com.stepanov.bbf.bugfinder.util.moveAllCodeInOneFile
 import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.manager.TransformationManager
@@ -14,6 +15,7 @@ import java.io.File
 object Reducer {
 
     fun reduce(bug: Bug, shouldSave: Boolean = false): Project {
+        //TODO MAKE FOR PROJECTS
         //First we need to find more project bugs!!
         if (bug.crashedProject.texts.size != 1) return bug.crashedProject
         //Saving to tmp
