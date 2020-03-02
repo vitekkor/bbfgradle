@@ -42,5 +42,4 @@ class ChangeRandomASTNodesFromAnotherTrees : Transformation() {
     }
 
     val numOfTries = 50 to 1000
-    private val log = Logger.getLogger("mutatorLogger")
 }

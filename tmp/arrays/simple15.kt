@@ -1,21 +1,28 @@
-fun box(): String {
-    var res = "";
-    var call = test(b = {res += "K"; "K"}(), a = {res+="O"; "O"}(), c = {res += "L"; "L"})
-    if (res != "KOL" || call != "OKL") return "fail 1: $res != KOL or $call != OKL"
+// IGNORE_BACKEND_FIR: JVM_IR
+// WITH_RUNTIME
+// WITH_COROUTINES
+// COMMON_COROUTINES_TEST
+import helpers.*
+import COROUTINES_PACKAGE.*
+import COROUTINES_PACKAGE.intrinsics.*
 
-    res = "";
-    call = test(b = {res += "K"; "K"}(), c = {res += "L"; "L"}, a = {res+="O"; "O"}())
-    if (res != "KOL" || call != "OKL") return "fail 2: $res != KOL or $call != OKL"
-
-
-    res = "";
-    call = test(c = {res += "L"; "L"}, b = {res += "K"; "K"}(), a = {res+="O"; "O"}())
-    if (res != "KOL" || call != "OKL") return "fail 3: $res != KOL or $call != OKL"
-
-    return "OK"
-
+suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
+    x.resume(v)
+    COROUTINE_SUSPENDED
 }
 
-fun test(a: String, b: String, c: () -> String): String {
-    return a + b + c();
+suspend fun suspendHere(): String = suspendThere("O") + suspendThere("K")
+
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
+}
+
+fun box(): String {
+    var result = ""
+
+    builder {
+        result = suspendHere()
+    }
+
+    return result
 }

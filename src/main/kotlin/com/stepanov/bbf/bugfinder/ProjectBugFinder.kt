@@ -1,9 +1,11 @@
 package com.stepanov.bbf.bugfinder
 
+import com.intellij.openapi.components.ServiceManager
 import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
+import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
+import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
@@ -11,7 +13,6 @@ import com.stepanov.bbf.reduktor.passes.ImportsGetter
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import java.io.File
-import java.lang.StringBuilder
 import kotlin.random.Random
 
 class ProjectBugFinder(dir: String) : BugFinder(dir) {
@@ -31,10 +32,12 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
                 .find { it.name == "box" }
                 ?.setName("box$index")
         }
-        files.forEachIndexed { index, file ->
-            val newPackageDirecrive = factory.createPackageDirective(FqName("${'a' + index}"))
-            file.packageDirective?.replaceThis(newPackageDirecrive)
-            file.packageDirective?.add(factory.createWhiteSpace("\n\n\n"))
+        if (Random.nextBoolean()) {
+            val newPackageDirectives = createRandomPackageDirectives(files.size, factory)
+            files.forEachIndexed { index, file ->
+                file.packageDirective?.replaceThis(newPackageDirectives[index])
+                file.packageDirective?.add(factory.createWhiteSpace("\n\n\n"))
+            }
         }
         val c = checker.checkCompiling(Project(null, files))
         if (!c) return
@@ -77,12 +80,28 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
 
     private fun List<KtFile>.boxShift(psiFactory: KtPsiFactory) {
         val boxFuncs = this.map { file ->
-            file.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name?.contains("box") ?: false }!!
+            file.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name?.contains("box") ?: false } ?: return
         }
         val copyOfBox = boxFuncs.map { it.copy() as KtNamedFunction }.toMutableList()
         val lastBox = copyOfBox.last().copy() as KtNamedFunction
         copyOfBox.add(0, lastBox)
         copyOfBox.removeAt(copyOfBox.size - 1)
         boxFuncs.forEachIndexed { index, f -> f.replaceThis(copyOfBox[index]) }
+    }
+
+    private fun createRandomPackageDirectives(num: Int, factory: KtPsiFactory): List<KtPackageDirective> {
+        val result = mutableListOf<KtPackageDirective>()
+        result.add(factory.createPackageDirective(FqName("a")))
+        for (i in 1 until num) {
+            if (Random.nextBoolean()) {
+                //Not nested
+                result.add(factory.createPackageDirective(FqName("${'a' + i}")))
+            } else {
+                //Nested
+                val randomDirective = result.random()
+                result.add(factory.createPackageDirective(FqName("${randomDirective.fqName}.${'a' + i}")))
+            }
+        }
+        return result
     }
 }

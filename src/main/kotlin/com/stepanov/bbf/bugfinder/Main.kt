@@ -86,9 +86,11 @@ fun main(args: Array<String>) {
         FalsePositivesDeleter().cleanDirs()
         exitProcess(0)
     }
-    ProjectBugFinder("tmp/arrays/classTests/").findBugsInProjects()
-    //val file = (if (Random.nextInt(0, 10) in 0..2) File("${CompilerArgs.baseDir}/newTests").listFiles()?.random()
-    //else File(CompilerArgs.baseDir).listFiles()?.random()) ?: throw IllegalArgumentException("Wrong directory")
-    //SingleFileBugFinder(file.absolutePath).findBugsInFile()
+//    if (Random.nextBoolean()) {
+        ProjectBugFinder("tmp/arrays/classTests/").findBugsInProjects()
+//    } else {
+//        val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
+//        SingleFileBugFinder(file.absolutePath).findBugsInFile()
+//    }
     exitProcess(0)
 }

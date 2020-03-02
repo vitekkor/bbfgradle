@@ -10,7 +10,7 @@ import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 
-class MutationChecker(compilers: List<CommonCompiler>, val otherFiles: Project? = null) :
+class MutationChecker(compilers: List<CommonCompiler>, var otherFiles: Project? = null) :
     CompilationChecker(compilers) {
 
     fun replacePSINodeIfPossible(file: KtFile, node: PsiElement, replacement: PsiElement) =

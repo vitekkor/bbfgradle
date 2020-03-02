@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator
 
 import com.stepanov.bbf.bugfinder.executor.Project
+import com.stepanov.bbf.bugfinder.mutator.projectTransformations.ShuffleNodes
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
@@ -108,7 +109,11 @@ class Mutator(val file: KtFile, val context: BindingContext?) {
         //ChangeOperatorsToFunInvocations().transform()
         log.debug("After ChangeOperatorsToFunInvocations = ${Transformation.file.text}")
         log.debug("Verify = ${verify()}")
-        executeMutation(ChangeRandomASTNodes(), 75)
+        if (Transformation.checker.otherFiles != null) {
+            executeMutation(ShuffleNodes(), 75)
+        } else {
+            executeMutation(ChangeRandomASTNodes(), 75)
+        }
         log.debug("After ChangeRandomASTNodes = ${Transformation.file.text}")
         log.debug("Verify = ${verify()}")
         executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 75)

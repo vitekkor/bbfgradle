@@ -93,7 +93,6 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
         val pathToSave = StringBuilder(file.name)
         pathToSave.insert(pathToSave.indexOfLast { it == '/' }, "/minimized")
         checker.pathToFile = file.name
-        require(checker.checkTest(file.text)) { "No bug" }
         var rFile = file.copy() as KtFile
         try {
             if (isProject)
@@ -103,6 +102,7 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
         } catch (e: IllegalArgumentException) {
             return rFile
         }
+        require(checker.checkTest(file.text)) { "No bug" }
         checker.refreshAlreadyCheckedConfigurations()
 //        if (checker.getErrorMessage().contains("Unresolved") || checker.getErrorMessage().contains("Expecting")
 //                || checker.getErrorMessage().isEmpty() || checker.getErrorInfo().type == ErrorType.UNKNOWN) {
@@ -265,6 +265,10 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
                 rFile = KtPsiFactory(rFile.project).createFile(rFile.name, rFile.text)
                 log.debug("CHANGES AFTER EqualityMapper ${rFile.text != oldRes}")
                 log.debug("VERIFY EqualityMapper = ${checker.checkTest(rFile.text)}")
+                TypeChanger(rFile, checker).transform()
+                rFile = KtPsiFactory(rFile.project).createFile(rFile.name, rFile.text)
+                log.debug("CHANGES AFTER TypeChanger ${rFile.text != oldRes}")
+                log.debug("VERIFY TypeChanger = ${checker.checkTest(rFile.text)}")
             }
             RemoveWhitespaces(rFile, checker).transform()
             rFile = KtPsiFactory(rFile.project).createFile(rFile.name, rFile.text)

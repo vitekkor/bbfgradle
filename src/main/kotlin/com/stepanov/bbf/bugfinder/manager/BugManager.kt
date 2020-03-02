@@ -93,7 +93,7 @@ object BugManager {
         val reducedBug = Bug(newBug.compilers, newBug.msg, reduced, newBug.type)
         //Try to find duplicates
         //TODO Make for projects!!
-        if (bug.crashedProject.texts.size == 1 &&
+        if (newBug.crashedProject.texts.size == 1 &&
             CompilerArgs.shouldFilterDuplicateCompilerBugs &&
             haveDuplicates(reducedBug)) return
         bugs.add(reducedBug)
