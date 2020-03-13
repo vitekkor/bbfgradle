@@ -4,6 +4,7 @@ import com.intellij.lang.java.JavaLanguage
 import com.intellij.mock.MockProject
 import com.intellij.openapi.extensions.ExtensionPoint
 import com.intellij.openapi.extensions.Extensions
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.pom.PomModel
 import com.intellij.pom.PomTransaction
@@ -106,6 +107,9 @@ class PSICreator(var projectDir: String) {
             }
         }
     }
+
+    fun getPsiForJava(text: String, proj: Project) =
+        PsiFileFactory.getInstance(proj).createFileFromText(JavaLanguage.INSTANCE, text)
 
     fun reinit(projectDir: String): List<KtFile> {
         this.projectDir = projectDir

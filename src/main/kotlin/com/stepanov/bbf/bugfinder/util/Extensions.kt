@@ -8,6 +8,7 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildrenOfCurLevel
@@ -328,7 +329,7 @@ fun Project.saveOrRemoveToTmp(save: Boolean): String {
     val texts = this.texts
     val textToTmpPath = texts.mapIndexed { index, s -> s to generateTmpPath(index) }
     val commonTmpName = textToTmpPath.joinToString(" ") { it.second }
-    if (save) textToTmpPath.forEach { File(it.second).writeText(it.first) }
+    if (save) textToTmpPath.forEach { File(it.second.substringBeforeLast('/')).mkdirs(); File(it.second).writeText(it.first) }
     else textToTmpPath.forEach { File(it.second).delete() }
     return commonTmpName
 }
@@ -371,10 +372,25 @@ fun Project.split(): Project {
     return Project(files)
 }
 
-private fun generateTmpPath(idx: Int): String = "${CompilerArgs.pathToTmpFile.substringBefore(".kt")}$idx.kt"
+private fun Project.generateTmpPath(idx: Int): String {
+    if (this.language == LANGUAGE.KOTLIN) {
+        return "${CompilerArgs.pathToTmpFile.substringBefore(".kt")}$idx.kt"
+    } else {
+        val text = this.texts[idx]
+        val name = text.split("\n").first().trim().takeLastWhile { it != ' ' }
+        return "${CompilerArgs.pathToTmpFile.substringBefore(".kt")}/$name"
+    }
+}
 
 fun KtFile.addImport(import: KtImportDirective) {
     this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
     this.importList?.add(import)
     this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
+}
+
+fun String.getFileLanguageIfExist(): LANGUAGE? {
+    val name = this.split("\n").first().trim().substringAfterLast(' ')
+    if (name.endsWith(".kt")) return LANGUAGE.KOTLIN
+    if (name.endsWith(".java")) return LANGUAGE.JAVA
+    return null
 }

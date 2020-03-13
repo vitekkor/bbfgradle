@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder
 import com.intellij.openapi.components.ServiceManager
 import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
@@ -17,12 +18,44 @@ import kotlin.random.Random
 
 class ProjectBugFinder(dir: String) : BugFinder(dir) {
 
+    fun findBugsInKJProjects() {
+        compilers.replaceAll { KJCompiler((it as JVMCompiler).arguments) }
+        val file = File(dir).listFiles().random()
+        println("name = ${file.name}")
+        val files =
+            file.readText()
+                .split(Regex("(//File)|(// FILE)"))
+                .filter { it.contains(".java") || it.contains(".kt") }
+                .map { "// FILE$it" }
+                .map {
+                    if (it.getFileLanguageIfExist() == LANGUAGE.KOTLIN) PSICreator("").getPSIForText(it)
+                    else PSICreator("").getPsiForJava(it, Factory.file.project)
+                }
+        val checker = CompilationChecker(compilers)
+        val res = checker.checkCompiling(Project(files.map { it.text }, null, LANGUAGE.KJAVA))
+        //Execute mutations?
+        val mutants = files.map { it.text }.toMutableList()
+        for ((i, file) in files.withIndex()) {
+            log.debug("File $i from ${files.size - 1} mutations began")
+            val creator = PSICreator("")
+            val m = makeMutant(
+                creator.getPSIForText(file.text),
+                creator.ctx!!,
+                Project(mutants.getAllWithout(i)),
+                listOf(::noBoxFunModifying)
+            )
+            mutants[i] = m.text
+        }
+        val proj = Project(mutants)
+    }
+
     fun findBugsInProjects() {
         val dir = File(dir).listFiles()!!
         val numOfFiles = Random.nextInt(2, 4)
         val files = (1..numOfFiles)
             .map { dir[Random.nextInt(0, dir.size)] }
             .map { PSICreator("").getPSIForText(it.readText()) }
+        if (files.any { !it.text.contains("fun box") }) return
         val factory = KtPsiFactory(files.first().project)
         Factory.file = files.first()
         val checker = CompilationChecker(compilers)

@@ -16,7 +16,7 @@ abstract class CommonCompiler {
 
     abstract fun checkCompiling(pathToFile: String): Boolean
     abstract fun getErrorMessageWithLocation(pathToFile: String): Pair<String, List<CompilerMessageLocation>>
-    abstract fun compile(path: String): CompilingResult
+    abstract fun compile(path: String, includeRuntime: Boolean = true): CompilingResult
     abstract fun tryToCompile(pathToFile: String): KotlincInvokeStatus
     abstract fun isCompilerBug(pathToFile: String): Boolean
     abstract fun exec(path: String, streamType: Stream = Stream.INPUT): String

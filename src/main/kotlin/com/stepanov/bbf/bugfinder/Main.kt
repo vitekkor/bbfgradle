@@ -1,9 +1,12 @@
 package com.stepanov.bbf.bugfinder
 
+import com.stepanov.bbf.bugfinder.decompiler.K2JConverter
 import com.stepanov.bbf.bugfinder.executor.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.Project
+import com.stepanov.bbf.bugfinder.executor.TracesChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
@@ -15,6 +18,7 @@ import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
+import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
 import kotlin.random.Random
 import kotlin.system.exitProcess
@@ -25,7 +29,6 @@ fun main(args: Array<String>) {
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
     //Init factory
     Factory.file = PSICreator("").getPSIForText("")
-
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
         Logger.getLogger("bugFinderLogger").level = Level.OFF
@@ -33,7 +36,6 @@ fun main(args: Array<String>) {
         Logger.getLogger("reducerLogger").level = Level.OFF
         Logger.getLogger("transformationManagerLog").level = Level.OFF
     }
-
     val parser = ArgumentParsers.newFor("bbf").build()
     parser.addArgument("-r", "--reduce")
         .required(false)
@@ -87,10 +89,10 @@ fun main(args: Array<String>) {
         exitProcess(0)
     }
 //    if (Random.nextBoolean()) {
-        ProjectBugFinder("tmp/arrays/classTests/").findBugsInProjects()
+//        ProjectBugFinder("tmp/arrays/classTests/").findBugsInProjects()
 //    } else {
-//        val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
-//        SingleFileBugFinder(file.absolutePath).findBugsInFile()
+    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
+    SingleFileBugFinder(file.absolutePath).findBugsInFile()
 //    }
     exitProcess(0)
 }

@@ -3,8 +3,14 @@ package com.stepanov.bbf.bugfinder.executor
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 
+enum class LANGUAGE {
+    KOTLIN,
+    KJAVA,
+    JAVA
+}
+
 //Just string representation of ktFiles
-class Project(texts: List<String>?, files: List<KtFile>? = null) {
+class Project(texts: List<String>?, files: List<KtFile>? = null, val language: LANGUAGE = LANGUAGE.KOTLIN) {
 
     val texts: List<String>
 
@@ -23,6 +29,5 @@ class Project(texts: List<String>?, files: List<KtFile>? = null) {
             .joinToString("\n")
 
     fun getKtFiles(psiFactory: KtPsiFactory): List<KtFile> = texts.map { psiFactory.createFile(it) }
-
 
 }

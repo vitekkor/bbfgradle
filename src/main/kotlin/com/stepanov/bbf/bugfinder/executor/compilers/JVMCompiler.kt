@@ -25,7 +25,7 @@ import java.util.concurrent.TimeoutException
 import java.util.jar.JarInputStream
 import java.util.jar.JarOutputStream
 
-class JVMCompiler(private val arguments: String = "") : CommonCompiler() {
+open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
     override val compilerInfo: String
         get() = "JVM $arguments"
 
@@ -66,7 +66,7 @@ class JVMCompiler(private val arguments: String = "") : CommonCompiler() {
 //    }
 
 
-    override fun compile(path: String): CompilingResult {
+    override fun compile(path: String, includeRuntime: Boolean): CompilingResult {
         val threadPool = Executors.newCachedThreadPool()
         val tmpJar = "$pathToCompiled.jar"
 
@@ -115,7 +115,8 @@ class JVMCompiler(private val arguments: String = "") : CommonCompiler() {
         val input = JarInputStream(File(tmpJar).inputStream())
         val output = JarOutputStream(res.outputStream(), input.manifest)
         copyFullJarImpl(output, File(tmpJar))
-        CompilerArgs.jvmStdLibPaths.forEach { writeRuntimeToJar(it, output) }
+        if (includeRuntime)
+            CompilerArgs.jvmStdLibPaths.forEach { writeRuntimeToJar(it, output) }
         output.finish()
         input.close()
         File(tmpJar).delete()

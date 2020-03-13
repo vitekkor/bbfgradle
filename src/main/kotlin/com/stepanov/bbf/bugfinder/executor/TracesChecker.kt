@@ -67,16 +67,6 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         }
     }
 
-    private fun KtFile.addMain(boxFuncs: List<KtNamedFunction>) {
-        val m = StringBuilder()
-        m.append("fun main(args: Array<String>) {\n")
-        for (func in boxFuncs) m.append("println(${func.name}())\n")
-        m.append("}")
-        val mainFun = KtPsiFactory(this.project).createFunction(m.toString())
-        this.add(KtPsiFactory(this.project).createWhiteSpace("\n\n"))
-        this.add(mainFun)
-    }
-
     fun compareTraces(project: Project): List<CommonCompiler>? {
         val path = project.generateCommonName()
         //Check if already checked

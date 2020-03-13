@@ -1,0 +1,47 @@
+//File Main.kt
+// !LANGUAGE: +VariableDeclarationInWhenSubject
+// IGNORE_BACKEND_FIR: JVM_IR
+// WITH_RUNTIME
+
+import kotlin.test.assertEquals
+
+fun bar1(x : Season) : String {
+    return when (val xx = x) {
+        Season.WINTER, Season.SPRING -> "winter_spring $xx"
+        Season.SUMMER -> "summer"
+        else -> "autumn"
+    }
+}
+
+fun bar2(x : Season) : String {
+    return when (val xx = x) {
+        Season.WINTER, Season.SPRING -> "winter_spring $xx"
+        Season.SUMMER -> "summer"
+        Season.AUTUMN -> "autumn"
+    }
+}
+
+fun box() : String {
+    assertEquals("winter_spring WINTER", bar1(Season.WINTER))
+    assertEquals("winter_spring SPRING", bar1(Season.SPRING))
+    assertEquals("summer", bar1(Season.SUMMER))
+    assertEquals("autumn", bar1(Season.AUTUMN))
+
+    assertEquals("winter_spring WINTER", bar2(Season.WINTER))
+    assertEquals("winter_spring SPRING", bar2(Season.SPRING))
+    assertEquals("summer", bar2(Season.SUMMER))
+    assertEquals("autumn", bar2(Season.AUTUMN))
+    return "OK"
+}
+
+
+
+//File Season.java
+import kotlin.Metadata;
+
+public enum Season {
+   WINTER,
+   SPRING,
+   SUMMER,
+   AUTUMN;
+}

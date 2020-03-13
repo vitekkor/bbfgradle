@@ -39,6 +39,15 @@ object CompilerArgs {
         return pathToLib
     }
 
+    fun getAnnoPath(ver: String): String {
+        val gradleDir = "${System.getProperty("user.home")}/.gradle/caches/modules-2/files-2.1/org.jetbrains/"
+        val dir =
+            File("$gradleDir/annotations").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path ?: ""
+        val pathToLib = File(dir).walkTopDown().find { it.name == "annotations-$ver.jar" }?.absolutePath ?: ""
+        require(pathToLib.isNotEmpty())
+        return pathToLib
+    }
+
     private fun findAndSaveLib(name: String, jarFile: JarFile) {
         val lib = jarFile.entries().asSequence().first { it.name == name }
         val input = jarFile.getInputStream(lib)
