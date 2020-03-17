@@ -1,4 +1,4 @@
-package com.stepanov.bbf.bugfinder.decompiler
+package com.stepanov.bbf.bugfinder.util.decompiler
 
 import java.io.BufferedOutputStream
 import java.io.File

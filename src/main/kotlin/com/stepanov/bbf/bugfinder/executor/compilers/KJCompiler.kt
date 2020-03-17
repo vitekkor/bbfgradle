@@ -1,6 +1,6 @@
 package com.stepanov.bbf.bugfinder.executor.compilers
 
-import com.stepanov.bbf.bugfinder.decompiler.copyContentTo
+import com.stepanov.bbf.bugfinder.util.decompiler.copyContentTo
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.CompilingResult
 import com.stepanov.bbf.bugfinder.executor.Project
@@ -8,9 +8,7 @@ import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.util.Stream
-import java.io.BufferedOutputStream
 import java.io.File
-import java.io.FileOutputStream
 import java.util.zip.ZipFile
 import javax.tools.DiagnosticCollector
 import javax.tools.JavaFileObject

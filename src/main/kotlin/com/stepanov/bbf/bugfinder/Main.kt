@@ -1,15 +1,6 @@
 package com.stepanov.bbf.bugfinder
 
-import com.stepanov.bbf.bugfinder.decompiler.K2JConverter
-import com.stepanov.bbf.bugfinder.executor.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.Project
-import com.stepanov.bbf.bugfinder.executor.TracesChecker
-import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
-import com.stepanov.bbf.bugfinder.manager.Bug
-import com.stepanov.bbf.bugfinder.manager.BugManager
-import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
@@ -18,9 +9,7 @@ import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
-import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
-import kotlin.random.Random
 import kotlin.system.exitProcess
 
 

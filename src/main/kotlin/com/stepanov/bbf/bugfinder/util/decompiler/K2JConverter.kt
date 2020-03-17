@@ -1,22 +1,16 @@
-package com.stepanov.bbf.bugfinder.decompiler
+package com.stepanov.bbf.bugfinder.util.decompiler
 
-import com.intellij.psi.JavaTokenType
 import com.intellij.psi.PsiAnnotation
 import com.intellij.psi.PsiExpressionStatement
-import com.intellij.psi.PsiModifierList
 import com.stepanov.bbf.bugfinder.executor.addMain
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.util.debugPrint
 import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler
-import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtNamedFunction
-import java.io.BufferedReader
 import java.io.File
-import java.io.InputStreamReader
 import java.util.zip.ZipFile
 
 class K2JConverter {
