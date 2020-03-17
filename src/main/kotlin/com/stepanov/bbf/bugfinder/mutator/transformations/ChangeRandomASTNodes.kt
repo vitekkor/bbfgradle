@@ -55,5 +55,5 @@ class ChangeRandomASTNodes : Transformation() {
         }
     }
 
-    val numOfSwaps = 5000 to 5002
+    val numOfSwaps = 100 to 1000
 }

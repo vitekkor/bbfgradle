@@ -38,8 +38,10 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
         for ((i, file) in files.withIndex()) {
             log.debug("File $i from ${files.size - 1} mutations began")
             val creator = PSICreator("")
+            val psi = if (file.text.getFileLanguageIfExist() == LANGUAGE.KOTLIN) creator.getPsiForJava(file.text, file.project)
+            else creator.getPSIForText(file.text, true)
             val m = makeMutant(
-                creator.getPSIForText(file.text),
+                psi as KtFile,
                 creator.ctx!!,
                 Project(mutants.getAllWithout(i)),
                 listOf(::noBoxFunModifying)
