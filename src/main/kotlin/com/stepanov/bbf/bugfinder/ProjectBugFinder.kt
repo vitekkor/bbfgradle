@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder
 
 import com.intellij.openapi.components.ServiceManager
+import com.intellij.psi.PsiErrorElement
 import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
@@ -21,7 +22,7 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
     fun findBugsInKJProjects() {
         compilers.replaceAll { KJCompiler((it as JVMCompiler).arguments) }
         val file = File(dir).listFiles().random()
-        println("name = ${file.name}")
+        //val file = File("tmp/results/test.kt")
         val files =
             file.readText()
                 .split(Regex("(//File)|(// FILE)"))
@@ -36,14 +37,19 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
         //Execute mutations?
         val mutants = files.map { it.text }.toMutableList()
         for ((i, file) in files.withIndex()) {
+            //if (file.text.getFileLanguageIfExist() == LANGUAGE.JAVA) continue
             log.debug("File $i from ${files.size - 1} mutations began")
             val creator = PSICreator("")
-            val psi = if (file.text.getFileLanguageIfExist() == LANGUAGE.KOTLIN) creator.getPsiForJava(file.text, file.project)
-            else creator.getPSIForText(file.text, true)
+            val psi =
+                if (file.text.getFileLanguageIfExist() == LANGUAGE.JAVA) creator.getPsiForJava(
+                    file.text,
+                    file.project
+                )
+                else creator.getPSIForText(file.text)
             val m = makeMutant(
-                psi as KtFile,
-                creator.ctx!!,
-                Project(mutants.getAllWithout(i)),
+                psi,
+                creator.ctx,
+                Project(mutants.getAllWithout(i), null, LANGUAGE.KJAVA),
                 listOf(::noBoxFunModifying)
             )
             mutants[i] = m.text

@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.Project
 
 import org.jetbrains.kotlin.psi.psiUtil.parents
@@ -23,7 +24,7 @@ class ChangeRandomASTNodes : Transformation() {
 
     companion object {
 
-        fun swapRandomNodes(children: List<ASTNode>, psiFactory: KtPsiFactory, files: List<KtFile>? = null) {
+        fun swapRandomNodes(children: List<ASTNode>, psiFactory: KtPsiFactory, files: List<PsiFile>? = null) {
             //Swap random nodes
             var randomNode1 = children[Random.nextInt(children.size)]
             var randomNode2 = children[Random.nextInt(children.size)]

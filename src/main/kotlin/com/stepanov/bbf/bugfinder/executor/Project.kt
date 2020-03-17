@@ -1,5 +1,6 @@
 package com.stepanov.bbf.bugfinder.executor
 
+import com.intellij.psi.PsiFile
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 
@@ -10,7 +11,7 @@ enum class LANGUAGE {
 }
 
 //Just string representation of ktFiles
-class Project(texts: List<String>?, files: List<KtFile>? = null, val language: LANGUAGE = LANGUAGE.KOTLIN) {
+class Project(texts: List<String>?, files: List<PsiFile>? = null, val language: LANGUAGE = LANGUAGE.KOTLIN) {
 
     val texts: List<String>
 

@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.executor
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
+import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
@@ -21,12 +22,12 @@ abstract class Checker() : Factory() {
 
     //Back compatibility
     fun checkTextCompiling(text: String): Boolean = checkCompiling(Project(listOf(text)))
-    fun checkCompiling(file: KtFile): Boolean = checkTextCompiling(file.text)
+    fun checkCompiling(file: PsiFile): Boolean = checkTextCompiling(file.text)
 
 
-    fun checkCompiling(file: KtFile, otherFiles: Project?): Boolean =
+    fun checkCompiling(file: PsiFile, otherFiles: Project?): Boolean =
         otherFiles?.let { files ->
-            checkCompiling(Project(files.texts.toMutableList() + file.text))
+            checkCompiling(Project(files.texts.toMutableList() + file.text, null, files.language))
         } ?: checkCompiling(file)
 
     fun saveAndCheckCompiling(project: Project): Boolean {

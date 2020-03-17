@@ -1,15 +1,18 @@
 package com.stepanov.bbf.bugfinder.mutator
 
+import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.mutator.projectTransformations.ShuffleNodes
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
 import com.stepanov.bbf.bugfinder.util.debugPrint
+import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.random.Random
 
-class Mutator(val file: KtFile, val context: BindingContext?) {
+class Mutator(val file: PsiFile, val context: BindingContext?) {
 
     private fun executeMutation(t: Transformation, probPercentage: Int = 50) {
         if (Random.nextInt(0, 100) < probPercentage) {
@@ -25,9 +28,22 @@ class Mutator(val file: KtFile, val context: BindingContext?) {
     fun startMutate() {
         //Init file
         Factory.file = file
-        Transformation.file = file.copy() as KtFile
-        //Set of transformations over PSI
+        Transformation.file = file.copy() as PsiFile
         log.debug("Mutation started")
+        when (file.text.getFileLanguageIfExist()) {
+            LANGUAGE.JAVA -> startJavaMutations()
+            else -> startKotlinMutations()
+        }
+        log.debug("End")
+    }
+
+    //Stub
+    private fun startJavaMutations() {
+        return
+    }
+
+    private fun startKotlinMutations() {
+        //Set of transformations over PSI
         log.debug("File = ${file.name}")
         executeMutation(AddNullabilityTransformer())
         //AddNullabilityTransformer().transform()
@@ -120,7 +136,6 @@ class Mutator(val file: KtFile, val context: BindingContext?) {
         executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 75)
         log.debug("After ChangeRandomASTNodesFromAnotherTrees = ${Transformation.file.text}")
         log.debug("Verify = ${verify()}")
-        log.debug("End")
     }
 
     private fun verify() = Transformation.checker.checkCompiling(Transformation.file, Transformation.checker.otherFiles)

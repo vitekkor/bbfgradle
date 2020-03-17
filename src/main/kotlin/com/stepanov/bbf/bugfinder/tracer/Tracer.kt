@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.tracer
 
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
 import org.jetbrains.kotlin.psi.*
 import java.io.BufferedWriter
@@ -21,7 +22,7 @@ import com.stepanov.bbf.bugfinder.util.replaceThis
 import java.lang.StringBuilder
 
 //TODO delete getType fun
-class Tracer(private var tree: KtFile, private val ctx: BindingContext, val checker: MutationChecker) : KtVisitorVoid() {
+class Tracer(private var tree: PsiFile, private val ctx: BindingContext, val checker: MutationChecker) : KtVisitorVoid() {
 
     fun trace(): KtFile {
         //Handle all functions
@@ -94,7 +95,7 @@ class Tracer(private var tree: KtFile, private val ctx: BindingContext, val chec
 //            klass.add(factory.createBlock(newFunc.text))
     }
 
-    private fun saveTracedFile(newFile: KtFile) {
+    private fun saveTracedFile(newFile: PsiFile) {
 //        val dir = newFile.name.substring(0, newFile.name.indexOfLast { it == '/' })
 //        File(dir).mkdir()
         BufferedWriter(FileWriter(File(newFile.name))).apply { write(newFile.text); close() }

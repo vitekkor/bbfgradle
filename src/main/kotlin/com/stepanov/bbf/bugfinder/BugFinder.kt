@@ -1,5 +1,6 @@
 package com.stepanov.bbf.bugfinder
 
+import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
@@ -37,11 +38,11 @@ open class BugFinder(protected val dir: String) {
     }
 
     fun makeMutant(
-        psiFile: KtFile,
-        context: BindingContext,
+        psiFile: PsiFile,
+        context: BindingContext?,
         otherFiles: Project? = null,
         conditions: List<(KtFile) -> Boolean> = listOf()
-    ): KtFile {
+    ): PsiFile {
         Transformation.checker = MutationChecker(
             compilers,
             otherFiles

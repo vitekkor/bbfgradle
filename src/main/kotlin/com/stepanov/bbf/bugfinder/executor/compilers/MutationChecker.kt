@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder.executor.compilers
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.TreeElement
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilationChecker
@@ -13,10 +14,10 @@ import org.jetbrains.kotlin.psi.KtFile
 class MutationChecker(compilers: List<CommonCompiler>, var otherFiles: Project? = null) :
     CompilationChecker(compilers) {
 
-    fun replacePSINodeIfPossible(file: KtFile, node: PsiElement, replacement: PsiElement) =
+    fun replacePSINodeIfPossible(file: PsiFile, node: PsiElement, replacement: PsiElement) =
         replaceNodeIfPossible(file, node.node, replacement.node)
 
-    fun replaceNodeIfPossible(file: KtFile, node: ASTNode, replacement: ASTNode): Boolean {
+    fun replaceNodeIfPossible(file: PsiFile, node: ASTNode, replacement: ASTNode): Boolean {
         log.debug("Trying to replace $node on $replacement")
         if (node.text.isEmpty() || node == replacement) return checkCompiling(file, otherFiles)
         for (p in node.getAllParentsWithoutNode()) {
@@ -44,7 +45,10 @@ class MutationChecker(compilers: List<CommonCompiler>, var otherFiles: Project? 
         return false
     }
 
-    fun addNodeIfPossible(file: KtFile, anchor: PsiElement, node: PsiElement, before: Boolean = false): Boolean {
+    fun addNodeIfPossible(file: KtFile, anchor: PsiElement, node: PsiElement, before: Boolean = false): Boolean =
+        addNodeIfPossible(file as PsiFile, anchor, node, before)
+
+    fun addNodeIfPossible(file: PsiFile, anchor: PsiElement, node: PsiElement, before: Boolean = false): Boolean {
         log.debug("Trying to add $node to $anchor")
         if (node.text.isEmpty() || node == anchor) return checkCompiling(
             file,
