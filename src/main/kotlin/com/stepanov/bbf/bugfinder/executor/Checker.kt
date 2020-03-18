@@ -36,24 +36,24 @@ abstract class Checker() : Factory() {
     }
 
     fun checkCompiling(project: Project): Boolean {
-//        //TODO!!!! Java
-//        val allTexts = project.texts.joinToString()
-//        checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
-//        //Checking syntax correction
-//        for (text in project.texts) {
-//            val tree = psiFactory.createFile(text)
-//            if (tree.node.getAllChildrenNodes().any { it.psi is PsiErrorElement }) {
-//                log.debug("Wrong syntax")
-//                checkedConfigurations[allTexts] = false
-//                return false
-//            }
-//            additionalConditions.forEach {
-//                if (!it.invoke(tree)) {
-//                    log.debug("Breaks condition")
-//                    return false
-//                }
-//            }
-//        }
+        //TODO!!!! Java
+        val allTexts = project.texts.joinToString()
+        checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
+        //Checking syntax correction
+        for (text in project.texts) {
+            val tree = psiFactory.createFile(text)
+            if (tree.node.getAllChildrenNodes().any { it.psi is PsiErrorElement }) {
+                log.debug("Wrong syntax")
+                checkedConfigurations[allTexts] = false
+                return false
+            }
+            additionalConditions.forEach {
+                if (!it.invoke(tree)) {
+                    log.debug("Breaks condition")
+                    return false
+                }
+            }
+        }
         isCompilerBug(project).forEach { BugManager.saveBug(it) }
         return isCompilationSuccessful(project)
     }
