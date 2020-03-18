@@ -15,8 +15,8 @@ import java.util.zip.ZipFile
 
 class K2JConverter {
 
-    fun convert(pathToFile: String): String {
-        val pathToDecompiled = "tmp/decompiled"
+    fun convert(pathToFile: String, isProject: Boolean): String {
+        val pathToDecompiled = "tmp/decompiled/"
         File(pathToDecompiled).deleteRecursively()
         File(pathToDecompiled).mkdirs()
         val file = File(pathToFile)
@@ -27,15 +27,17 @@ class K2JConverter {
         val zipFile = ZipFile("${pathToDecompiled}/tmp.jar")
         zipFile.copyContentTo(pathToDecompiled) { it.name.endsWith(".java") }
         try {
-            val resPath = handleDecompiledFiles(pathToDecompiled)
+            val resPath =
+                if (isProject) handleProjectDecompiledFiles(pathToDecompiled)
+                else handleSingleDecompiledFile(pathToDecompiled)
             return resPath
         } catch (e: Exception) {
-            System.exit(0)
+            println("Exception $e")
+            return ""
         }
-        return ""
     }
 
-    private fun handleDecompiledFiles(path: String): String {
+    private fun handleProjectDecompiledFiles(path: String): String {
         val files = File(path).listFiles()?.toList() ?: return ""
         val mainFile = files.find { it.absolutePath.endsWith("Main.kt") } ?: return ""
         val javaFiles = files.filter { it.absolutePath.endsWith(".java") && !it.absolutePath.contains("Main") }
@@ -59,4 +61,22 @@ class K2JConverter {
         javaFiles.forEachIndexed { index, file -> file.writeText(javaPsi[index].text) }
         return (listOf(mainFile.absolutePath) + javaFiles.map { it.absolutePath }).joinToString(" ")
     }
+
+    private fun handleSingleDecompiledFile(path: String): String {
+        val files = File(path).listFiles()?.toList() ?: return ""
+        val javaFiles = files.filter { it.absolutePath.endsWith(".java") }
+        val project = PSICreator("").getPSIForText("").project
+        val javaPsi = javaFiles.map { PSICreator("").getPsiForJava(it.readText(), project) }
+        for (psiFile in javaPsi) {
+            psiFile.node.getAllChildrenNodes()
+                .filter { it.psi is PsiAnnotation && it.text.contains("@Metadata") }
+                .forEach { it.psi.delete() }
+            psiFile.node.getAllChildrenNodes()
+                .filter { it.psi is PsiExpressionStatement && it.text.contains("Intrinsics.") }
+                .forEach { it.psi.delete() }
+        }
+        javaFiles.forEachIndexed { index, file -> file.writeText(javaPsi[index].text) }
+        return javaFiles.map { it.absolutePath }.joinToString(" ")
+    }
+
 }

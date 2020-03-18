@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.executor
 
 import com.intellij.psi.PsiErrorElement
+import com.stepanov.bbf.bugfinder.executor.compilers.JCompiler
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import org.apache.log4j.Logger
@@ -163,7 +164,14 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
                 return null
             results.add(comp to res.trim())
         }
-        val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first })
+        //Compare with java
+        val res = JCompiler().compile(pathToFile)
+        if (res.status == 0) {
+            val execRes = JCompiler().exec(res.pathToCompiled, Stream.BOTH)
+            log.debug("Result of JAVA: $execRes")
+            results.add(JCompiler() to execRes.trim())
+        } else log.debug("Cant compile with Java")
+        val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap()
         return if (groupedRes.size == 1) {
             null
         } else {

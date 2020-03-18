@@ -1,8 +1,15 @@
 package com.stepanov.bbf.bugfinder
 
+import com.stepanov.bbf.bugfinder.executor.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.Project
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.manager.Bug
+import com.stepanov.bbf.bugfinder.manager.BugManager
+import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.*
+import com.stepanov.bbf.bugfinder.util.decompiler.K2JConverter
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
@@ -18,8 +25,6 @@ fun main(args: Array<String>) {
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
     //Init factory
     Factory.file = PSICreator("").getPSIForText("")
-    ProjectBugFinder("tmp/arrays/kotlinAndJava/").findBugsInKJProjects()
-    System.exit(0)
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
         Logger.getLogger("bugFinderLogger").level = Level.OFF
@@ -82,8 +87,8 @@ fun main(args: Array<String>) {
 //    if (Random.nextBoolean()) {
 //        ProjectBugFinder("tmp/arrays/classTests/").findBugsInProjects()
 //    } else {
-//    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
-//    SingleFileBugFinder(file.absolutePath).findBugsInFile()
+    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
+    SingleFileBugFinder(file.absolutePath).findBugsInFile()
 //    }
     exitProcess(0)
 }

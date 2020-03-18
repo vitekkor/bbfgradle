@@ -86,9 +86,12 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
     }
 
 
-    fun doTransformationsForFile(file: KtFile, checker: CompilerTestChecker,
-                                 isProject: Boolean = false, projectDir: String = ""): KtFile {
+    fun doTransformationsForFile(
+        file: KtFile, checker: CompilerTestChecker,
+        isProject: Boolean = false, projectDir: String = ""
+    ): KtFile {
         log.debug("FILE NAME = ${file.name}")
+        log.debug("Content = ${file.text}")
         file.beforeAstChange()
         val pathToSave = StringBuilder(file.name)
         pathToSave.insert(pathToSave.indexOfLast { it == '/' }, "/minimized")
@@ -311,7 +314,11 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
     }
 
 
-    fun doForParallelSimpleTransformations(isProject: Boolean = false, projectDir: String = "", checker: CompilerTestChecker): KtFile? {
+    fun doForParallelSimpleTransformations(
+        isProject: Boolean = false,
+        projectDir: String = "",
+        checker: CompilerTestChecker
+    ): KtFile? {
         //Temporary
         for ((i, file) in ktFiles.withIndex()) {
             log.debug("FILE NAME = ${file.name}")
