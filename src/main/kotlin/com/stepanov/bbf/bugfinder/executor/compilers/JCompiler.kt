@@ -23,7 +23,7 @@ class JCompiler : CommonCompiler() {
     }
 
     private fun decompileToJava(path: String): String {
-        val javaFile = K2JConverter().convert(CompilerArgs.pathToTmpFile, false)
+        val javaFile = K2JConverter().convert(path, false)
         return javaFile
     }
 

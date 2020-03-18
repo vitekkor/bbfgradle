@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.executor.TracesChecker
+import com.stepanov.bbf.bugfinder.executor.compilers.JCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
 import com.stepanov.bbf.bugfinder.manager.Bug
@@ -12,11 +13,9 @@ import com.stepanov.bbf.bugfinder.mutator.Mutator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.tracer.Tracer
-import com.stepanov.bbf.bugfinder.util.BBFProperties
-import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
-import com.stepanov.bbf.bugfinder.util.getRandomVariableName
-import com.stepanov.bbf.bugfinder.util.noBoxFunModifying
+import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
 import java.util.*
 
@@ -50,6 +49,7 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
                 log.debug("Skipped because one of the backends is ignoring")
                 return
             }
+            if (psiFile.getAllPSIChildrenOfType<KtNamedFunction>().all { it.name?.contains("box") == false }) return
 
             //Init lateinit vars
             Factory.file = psiFile
