@@ -1,5 +1,6 @@
 package com.stepanov.bbf.reduktor.passes
 
+import com.intellij.psi.PsiElement
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.replaceThis
@@ -24,7 +25,7 @@ class SimplifyFor(private val file: KtFile, private val checker: CompilerTestChe
                 }
             } catch (e: Exception) {
                 continue
-            }
+            } as PsiElement
             val body = f.body?.copy()
             //Remove lbrace and rbrace from body
             if (body?.allChildren?.first?.node?.elementType == KtTokens.LBRACE)

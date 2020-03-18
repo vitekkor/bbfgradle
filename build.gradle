@@ -1,6 +1,12 @@
 buildscript {
-    ext.kotlin_version = '1.3.61'
-    repositories { jcenter() }
+    ext.kotlin_version = '1.4-M1-release-99'
+    repositories {
+        jcenter()
+        maven() {
+            url "https://dl.bintray.com/kotlin/kotlin-dev"
+        }
+    }
+
 
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
@@ -10,7 +16,7 @@ buildscript {
 
 plugins {
     id 'java'
-    id 'org.jetbrains.kotlin.jvm' version '1.3.61'
+    id 'org.jetbrains.kotlin.jvm' version '1.3.70'
     id 'application'
 }
 
@@ -45,8 +51,8 @@ apply plugin: 'kotlin' // or 'kotlin-multiplatform' for multiplatform projects
 apply plugin: 'kotlinx-serialization'
 
 ext {
-    kotlinVersion = '1.3.61'
-    //kotlinVersion = '1.4-M1-eap-61'
+    //kotlinVersion = '1.3.70'
+    kotlinVersion = '1.4-M1-release-99'
     aetherVersion = '1.1.0'
     javaMainClass = "com.stepanov.bbf.bugfinder.MainKt"
 }
