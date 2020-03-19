@@ -163,7 +163,7 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
         }
         val status = KotlincInvokeStatus(
             MsgCollector.crashMessages.joinToString("\n") +
-                    MsgCollector.compileErrorMessages.joinToString("\n"),
+            MsgCollector.compileErrorMessages.joinToString("\n"),
             !MsgCollector.hasCompileError,
             MsgCollector.hasException,
             hasTimeout,

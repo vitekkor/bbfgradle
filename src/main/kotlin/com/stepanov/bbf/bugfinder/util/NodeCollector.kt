@@ -154,4 +154,21 @@ class NodeCollector(val dir: String) {
             res.appendText("${it.key} ${it.value}\n")
         }
     }
+
+    fun collectJavaDB() {
+        val size = File(dir).listFiles().filter { it.name.endsWith(".java") }.size
+        val proj = PSICreator("").getPSIForText("").project
+        for ((ind, f) in File(dir).listFiles().filter { it.name.endsWith(".java") }.withIndex()) {
+            println("HANDLING $ind from $size file")
+            val psiFile = PSICreator("").getPsiForJava(f.readText(), proj)
+            for (node in psiFile.node.getAllChildrenNodes()) {
+                database.getOrPut(node.elementType) { mutableSetOf(f.name) }.add(f.name)
+            }
+        }
+        if (File("databaseJava.txt").exists()) File("databaseJava.txt").delete()
+        val res = File("databaseJava.txt")
+        database.forEach {
+            res.appendText("${it.key} ${it.value}\n")
+        }
+    }
 }

@@ -8,7 +8,9 @@ import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
 import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.apache.log4j.Logger
@@ -41,7 +43,9 @@ abstract class Checker() : Factory() {
         checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
         //Checking syntax correction
         for (text in project.texts) {
-            val tree = psiFactory.createFile(text)
+            val tree =
+                if (text.getFileLanguageIfExist() == LANGUAGE.JAVA) PSICreator("").getPsiForJava(text, file.project)
+                else psiFactory.createFile(text)
             if (tree.node.getAllChildrenNodes().any { it.psi is PsiErrorElement }) {
                 log.debug("Wrong syntax")
                 checkedConfigurations[allTexts] = false
@@ -62,7 +66,7 @@ abstract class Checker() : Factory() {
     abstract fun isCompilerBug(project: Project): List<Bug>
 
 
-    abstract val additionalConditions: List<(KtFile) -> Boolean>
+    abstract val additionalConditions: List<(PsiFile) -> Boolean>
     private val checkedConfigurations = hashMapOf<String, Boolean>()
     private val log = Logger.getLogger("mutatorLogger")
 }

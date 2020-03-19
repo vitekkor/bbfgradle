@@ -152,7 +152,8 @@ class PSICreator(var projectDir: String) {
         val newArgs = arrayOf("-t", path)
 
         val cmd = opt.parse(newArgs)
-        cfg = FooBarCompiler.setupMyCfg(cmd)
+
+        cfg = setupMyCfg(cmd)
         env = setupMyEnv(cfg)
 
         if (!Extensions.getRootArea().hasExtensionPoint(TreeCopyHandler.EP_NAME.name)) {

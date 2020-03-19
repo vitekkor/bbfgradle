@@ -41,7 +41,7 @@ open class BugFinder(protected val dir: String) {
         psiFile: PsiFile,
         context: BindingContext?,
         otherFiles: Project? = null,
-        conditions: List<(KtFile) -> Boolean> = listOf()
+        conditions: List<(PsiFile) -> Boolean> = listOf()
     ): PsiFile {
         Transformation.checker = MutationChecker(
             compilers,

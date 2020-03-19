@@ -1,5 +1,6 @@
 package com.stepanov.bbf.bugfinder.executor
 
+import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
@@ -44,5 +45,5 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) : Che
     }
 
 
-    override val additionalConditions: MutableList<(KtFile) -> Boolean> = mutableListOf()
+    override val additionalConditions: MutableList<(PsiFile) -> Boolean> = mutableListOf()
 }

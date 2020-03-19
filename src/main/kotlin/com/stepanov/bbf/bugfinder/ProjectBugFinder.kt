@@ -21,8 +21,8 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
 
     fun findBugsInKJProjects() {
         compilers.replaceAll { KJCompiler((it as JVMCompiler).arguments) }
-        val file = File(dir).listFiles().random()
-        //val file = File("tmp/results/test.kt")
+        //val file = File(dir).listFiles().random()
+        val file = File("tmp/results/test.kt")
         val files =
             file.readText()
                 .split(Regex("(//File)|(// FILE)"))
@@ -34,6 +34,8 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
                 }
         val checker = CompilationChecker(compilers)
         val res = checker.checkCompiling(Project(files.map { it.text }, null, LANGUAGE.KJAVA))
+        println("res = $res")
+        System.exit(0)
         //Execute mutations?
         val mutants = files.map { it.text }.toMutableList()
         for ((i, file) in files.withIndex()) {

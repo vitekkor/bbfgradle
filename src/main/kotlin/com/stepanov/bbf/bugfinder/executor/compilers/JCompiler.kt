@@ -41,7 +41,8 @@ class JCompiler : CommonCompiler() {
         val diagnostics = DiagnosticCollector<JavaFileObject>()
         val manager = compiler.getStandardFileManager(diagnostics, null, null)
         val sources = manager.getJavaFileObjectsFromFiles(javaFiles)
-        val classPath = (CompilerArgs.jvmStdLibPaths + CompilerArgs.getAnnoPath("13.0") + CompilerArgs.pathToTmpFile).joinToString(":")
+        val classPath =
+            (CompilerArgs.jvmStdLibPaths + CompilerArgs.getAnnoPath("13.0") + CompilerArgs.pathToTmpFile).joinToString(":")
         val options = mutableListOf("-classpath", classPath, "-d", pathToTmpDir)
         val task = compiler.getTask(null, manager, diagnostics, options, null, sources)
         task.call()
@@ -66,7 +67,11 @@ class JCompiler : CommonCompiler() {
 
     override fun exec(path: String, streamType: Stream): String {
         val pathToLib = (CompilerArgs.jvmStdLibPaths + path).joinToString(":")
-        return commonExec("java -cp $pathToLib TmpKt")
+        val tmpFiles = File(path).listFiles().filter { it.absolutePath.contains("Tmp") }
+        val tmp = tmpFiles.find { it.name.contains("TmpKt.class") }
+            ?: tmpFiles.find { it.name.contains("Tmp0Kt.class") }
+            ?: tmpFiles.first()
+        return commonExec("java -cp $pathToLib ${tmp.nameWithoutExtension}")
     }
 
     override val compilerInfo: String
