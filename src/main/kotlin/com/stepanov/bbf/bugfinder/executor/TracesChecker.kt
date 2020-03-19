@@ -42,12 +42,27 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         return res
     }
 
+    fun addMainForKJavaProject(project: Project) =
+        Project(project.texts
+            .map { it to it.getFileLanguageIfExist() }
+            .map { if (it.second == LANGUAGE.KOTLIN) it.first to psiFactory.createFile(it.first) else it.first to null }
+            .map {
+                if (it.second?.getAllPSIChildrenOfType<KtNamedFunction>()
+                        ?.any { it.name?.contains("box") == true } == true
+                ) addMain(it.first) else
+                    it.first
+            }, null, LANGUAGE.KJAVA)
+
+
+    private fun addMain(text: String): String =
+        text + "\nfun main(args: Array<String>) {\n" +
+                "    println(box())\n" +
+                "}"
+
     fun addMainForProject(project: Project): Project {
+        if (project.language == LANGUAGE.KJAVA) return addMainForKJavaProject(project)
         if (project.texts.size == 1) {
-            val newText = project.texts.first() +
-                    "\nfun main(args: Array<String>) {\n" +
-                    "    println(box())\n" +
-                    "}"
+            val newText = addMain(project.texts.first())
             return Project(listOf(newText))
         } else {
             val files = project.texts.map { psiFactory.createFile(it) }

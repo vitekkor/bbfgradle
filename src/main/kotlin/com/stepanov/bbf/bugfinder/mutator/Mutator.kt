@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.mutator
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.Project
+import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.projectTransformations.ShuffleNodes
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
 import com.stepanov.bbf.bugfinder.util.debugPrint
@@ -39,6 +40,10 @@ class Mutator(val file: PsiFile, val context: BindingContext?) {
 
     //Stub
     private fun startJavaMutations() {
+        println("STARTING JAVA MUTATIONS")
+        executeMutation(ChangeRandomJavaASTNodesFromAnotherTrees(), 100)
+        println("END JAVA MUTATIONS")
+        log.debug("Verify = ${verify()}")
         return
     }
 

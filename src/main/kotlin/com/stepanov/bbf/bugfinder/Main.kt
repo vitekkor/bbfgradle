@@ -25,6 +25,8 @@ fun main(args: Array<String>) {
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
     //Init factory
     Factory.file = PSICreator("").getPSIForText("")
+    ProjectBugFinder("tmp/arrays/kotlinAndJava/").findBugsInKJProjects()
+    System.exit(0)
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
         Logger.getLogger("bugFinderLogger").level = Level.OFF

@@ -65,6 +65,7 @@ object CompilerArgs {
     }
 
     val baseDir = getPropValueWithoutQuotes("MUTATING_DIR")
+    val javaBaseDir = getPropValueWithoutQuotes("JAVA_FILES_DIR")
     val dirForNewTests = "$baseDir/newTests"
 
     //PATHS TO COMPILERS

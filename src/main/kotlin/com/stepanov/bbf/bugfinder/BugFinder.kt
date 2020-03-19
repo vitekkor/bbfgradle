@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder
 
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler

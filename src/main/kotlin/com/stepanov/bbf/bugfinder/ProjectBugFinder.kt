@@ -34,29 +34,31 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
                 }
         val checker = CompilationChecker(compilers)
         val res = checker.checkCompiling(Project(files.map { it.text }, null, LANGUAGE.KJAVA))
-        println("res = $res")
-        System.exit(0)
+        log.debug("Try to compile $res")
+        if (!res) return
         //Execute mutations?
         val mutants = files.map { it.text }.toMutableList()
-        for ((i, file) in files.withIndex()) {
-            //if (file.text.getFileLanguageIfExist() == LANGUAGE.JAVA) continue
-            log.debug("File $i from ${files.size - 1} mutations began")
-            val creator = PSICreator("")
-            val psi =
-                if (file.text.getFileLanguageIfExist() == LANGUAGE.JAVA) creator.getPsiForJava(
-                    file.text,
-                    file.project
-                )
-                else creator.getPSIForText(file.text)
-            val m = makeMutant(
-                psi,
-                creator.ctx,
-                Project(mutants.getAllWithout(i), null, LANGUAGE.KJAVA),
-                listOf(::noBoxFunModifying)
-            )
-            mutants[i] = m.text
-        }
-        val proj = Project(mutants)
+//        for ((i, file) in files.withIndex()) {
+//            //if (file.text.getFileLanguageIfExist() == LANGUAGE.JAVA) continue
+//            log.debug("File $i from ${files.size - 1} mutations began")
+//            val creator = PSICreator("")
+//            val psi =
+//                if (file.text.getFileLanguageIfExist() == LANGUAGE.JAVA) creator.getPsiForJava(
+//                    file.text,
+//                    file.project
+//                )
+//                else creator.getPSIForText(file.text)
+//            val m = makeMutant(
+//                psi,
+//                creator.ctx,
+//                Project(mutants.getAllWithout(i), null, LANGUAGE.KJAVA),
+//                listOf(::noBoxFunModifying)
+//            )
+//            mutants[i] = m.text
+//        }
+        val proj = Project(mutants, null, LANGUAGE.KJAVA)
+        log.debug("Res after mutation = ${proj.getCommonTextWithDefaultPath()}")
+        TracesChecker(compilers).compareTraces(proj)
     }
 
     fun findBugsInProjects() {

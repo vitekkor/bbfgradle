@@ -52,6 +52,7 @@ abstract class Checker() : Factory() {
                 return false
             }
             additionalConditions.forEach {
+                if (tree.text.getFileLanguageIfExist() == LANGUAGE.JAVA) return@forEach
                 if (!it.invoke(tree)) {
                     log.debug("Breaks condition")
                     return false
