@@ -28,7 +28,7 @@ object CompilerArgs {
 
     fun getStdLibPath(libToSearch: String): String {
         val kotlinVersion =
-            File("build.gradle").readText().lines().firstOrNull { it.trim().startsWith("kotlinVersion") }
+            File("build.gradle").readText().lines().firstOrNull { it.trim().contains("kotlin_version") }
                 ?: throw Exception("Dont see kotlinVersion parameter in build.gradle file")
         val ver = kotlinVersion.split("=").last().trim().filter { it != '\'' }
         val gradleDir = "${System.getProperty("user.home")}/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/"
@@ -74,6 +74,9 @@ object CompilerArgs {
 
     //RESULT
     val resultsDir = getPropValueWithoutQuotes("RESULTS")
+
+    //ORACLE
+    val useJavaAsOracle = getPropAsBoolean("USE_JAVA_AS_ORACLE")
 
     //MUTATED BUGS
     val shouldSaveCompilerBugs =
