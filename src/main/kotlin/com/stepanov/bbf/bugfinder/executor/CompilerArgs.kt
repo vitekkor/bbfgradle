@@ -28,13 +28,22 @@ object CompilerArgs {
 
     fun getStdLibPath(libToSearch: String): String {
         val kotlinVersion =
-            File("build.gradle").readText().lines().firstOrNull { it.trim().startsWith("kotlinVersion") }
+            File("build.gradle").readText().lines().firstOrNull { it.trim().contains("kotlin_version") }
                 ?: throw Exception("Dont see kotlinVersion parameter in build.gradle file")
         val ver = kotlinVersion.split("=").last().trim().filter { it != '\'' }
         val gradleDir = "${System.getProperty("user.home")}/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/"
         val dir =
             File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path ?: ""
         val pathToLib = File(dir).walkTopDown().find { it.name == "$libToSearch-$ver.jar" }?.absolutePath ?: ""
+        require(pathToLib.isNotEmpty())
+        return pathToLib
+    }
+
+    fun getAnnoPath(ver: String): String {
+        val gradleDir = "${System.getProperty("user.home")}/.gradle/caches/modules-2/files-2.1/org.jetbrains/"
+        val dir =
+            File("$gradleDir/annotations").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path ?: ""
+        val pathToLib = File(dir).walkTopDown().find { it.name == "annotations-$ver.jar" }?.absolutePath ?: ""
         require(pathToLib.isNotEmpty())
         return pathToLib
     }
@@ -56,6 +65,7 @@ object CompilerArgs {
     }
 
     val baseDir = getPropValueWithoutQuotes("MUTATING_DIR")
+    val javaBaseDir = getPropValueWithoutQuotes("JAVA_FILES_DIR")
     val dirForNewTests = "$baseDir/newTests"
 
     //PATHS TO COMPILERS
@@ -64,6 +74,9 @@ object CompilerArgs {
 
     //RESULT
     val resultsDir = getPropValueWithoutQuotes("RESULTS")
+
+    //ORACLE
+    val useJavaAsOracle = getPropAsBoolean("USE_JAVA_AS_ORACLE")
 
     //MUTATED BUGS
     val shouldSaveCompilerBugs =

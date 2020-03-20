@@ -35,6 +35,7 @@ class FalsePositivesDeleter {
                     else "$resDir/$compilerBugsDir/"
             if (!File(dirWithPotentialDuplicates).exists()) continue
             for (file in File(dirWithPotentialDuplicates).listFiles()) {
+                if (file.absolutePath.contains("PROJECT")) continue
                 log.debug("Checking ${file.path} for ${compiler.compilerInfo}")
                 if (!compiler.isCompilerBug(file.absolutePath)) {
                     log.debug("Removing ${file.absolutePath} because it's not a bug anymore\nText: ${file.readText()}")

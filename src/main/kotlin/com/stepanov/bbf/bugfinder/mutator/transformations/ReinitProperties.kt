@@ -3,7 +3,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.resolve.BindingContext
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+
 import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 
@@ -22,7 +22,7 @@ class ReinitProperties(private val context: BindingContext?) : Transformation() 
             if (newValue.isEmpty()) return@forEach
             val newProp = it.copy() as KtProperty
             newProp.initializer = psiFactory.createExpression(newValue)
-            MutationChecker.replacePSINodeIfPossible(file, it, newProp)
+            checker.replacePSINodeIfPossible(file, it, newProp)
         }
     }
 

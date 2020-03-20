@@ -1,7 +1,6 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import org.jetbrains.kotlin.psi.KtTypeReference
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 
 class AddNullabilityTransformer: Transformation() {
@@ -16,7 +15,7 @@ class AddNullabilityTransformer: Transformation() {
 
     fun addNullability(ref: KtTypeReference) {
         val newRef = psiFactory.createTypeIfPossible("(${ref.typeElement?.text})?") ?: return
-        MutationChecker.replacePSINodeIfPossible(file, ref, newRef)
+        checker.replacePSINodeIfPossible(file, ref, newRef)
     }
 
 }

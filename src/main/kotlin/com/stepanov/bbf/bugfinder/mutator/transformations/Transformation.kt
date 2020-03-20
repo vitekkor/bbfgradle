@@ -1,15 +1,16 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtPsiFactory
+import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
+import org.apache.log4j.Logger
 
-abstract class Transformation {
+abstract class Transformation: Factory() {
     abstract fun transform()
 
-    val psiFactory = KtPsiFactory(file.project)
-
     companion object {
-        lateinit var file: KtFile
+        var file: PsiFile = Factory.file
+        lateinit var checker: MutationChecker
+        val log = Logger.getLogger("mutatorLogger")
     }
 
 }

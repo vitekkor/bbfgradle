@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtProperty
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+
 import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
 import com.stepanov.bbf.bugfinder.util.getRandomBoolean
 import java.util.*
@@ -37,7 +37,7 @@ class AddPossibleModifiers : Transformation() {
                 val keyword = KtTokens.MODIFIER_KEYWORDS_ARRAY.find { it.value == curWorkingList[num] } ?: return@forEach
                 if (el.hasModifier(keyword)) return@forEach
                 el.addModifier(keyword)
-                if (!MutationChecker.checkCompiling(file))
+                if (!checker.checkCompiling(file))
                     el.removeModifier(keyword)
             }
         }

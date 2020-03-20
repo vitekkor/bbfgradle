@@ -1,5 +1,20 @@
-data class A(val x: String, val y: String)
+// FILE: 1.kt
 
-fun foo(a: A, block: (A) -> String): String = block(a)
+package test
 
-fun box() = foo(A("O", "K")) { (x, y) -> x + y }
+inline fun foo(x: String) = x
+
+fun test(a: String, s: String) = s
+
+
+inline fun processRecords(block: (String, String) -> String): String {
+    return test("stub", block(foo("O"), foo("K")))
+}
+
+// FILE: 2.kt
+
+import test.*
+
+fun box(): String {
+    return processRecords { a, b -> a + b}
+}

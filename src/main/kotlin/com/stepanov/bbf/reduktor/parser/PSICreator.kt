@@ -4,6 +4,7 @@ import com.intellij.lang.java.JavaLanguage
 import com.intellij.mock.MockProject
 import com.intellij.openapi.extensions.ExtensionPoint
 import com.intellij.openapi.extensions.Extensions
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.pom.PomModel
 import com.intellij.pom.PomTransaction
@@ -17,7 +18,8 @@ import com.stepanov.bbf.kootstrap.FooBarCompiler
 import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyCfg
 import com.stepanov.bbf.kootstrap.util.opt
 import com.stepanov.bbf.kootstrap.util.targetRoots
-import org.jetbrains.kotlin.cli.jvm.compiler.*
+import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
+import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.js.analyze.TopDownAnalyzerFacadeForJS
@@ -40,9 +42,9 @@ class PSICreator(var projectDir: String) {
 
         if (!Extensions.getRootArea().hasExtensionPoint(TreeCopyHandler.EP_NAME.name)) {
             Extensions.getRootArea().registerExtensionPoint(
-                    TreeCopyHandler.EP_NAME.name,
-                    TreeCopyHandler::class.java.canonicalName,
-                    ExtensionPoint.Kind.INTERFACE
+                TreeCopyHandler.EP_NAME.name,
+                TreeCopyHandler::class.java.canonicalName,
+                ExtensionPoint.Kind.INTERFACE
             )
         }
 
@@ -67,9 +69,9 @@ class PSICreator(var projectDir: String) {
         //Use for windows
         //System.setProperty("idea.io.use.fallback", "true")
         val env = KotlinCoreEnvironment.createForProduction(
-                disposable,
-                cfg,
-                EnvironmentConfigFiles.JVM_CONFIG_FILES
+            disposable,
+            cfg,
+            EnvironmentConfigFiles.JVM_CONFIG_FILES
         )
 
         class MyPomModelImpl(env: KotlinCoreEnvironment) : PomModelImpl(env.project) {
@@ -81,8 +83,8 @@ class PSICreator(var projectDir: String) {
 
         val project = env.project as MockProject
         project.registerService(
-                PomModel::class.java,
-                pomModel
+            PomModel::class.java,
+            pomModel
         )
         return env
     }
@@ -99,11 +101,15 @@ class PSICreator(var projectDir: String) {
             if (entry.isDirectory) {
                 findAndCreateJavaFiles(entry.absolutePath)
             } else if (entry.name.endsWith(".java")) {
-                val javaFile = PsiFileFactory.getInstance(env.project).createFileFromText(JavaLanguage.INSTANCE, entry.readText())
+                val javaFile =
+                    PsiFileFactory.getInstance(env.project).createFileFromText(JavaLanguage.INSTANCE, entry.readText())
                 javaFiles.add(javaFile)
             }
         }
     }
+
+    fun getPsiForJava(text: String, proj: Project) =
+        PsiFileFactory.getInstance(proj).createFileFromText(JavaLanguage.INSTANCE, text)
 
     fun reinit(projectDir: String): List<KtFile> {
         this.projectDir = projectDir
@@ -113,9 +119,9 @@ class PSICreator(var projectDir: String) {
         env = setupMyEnv(cfg)
         if (!Extensions.getRootArea().hasExtensionPoint(TreeCopyHandler.EP_NAME.name)) {
             Extensions.getRootArea().registerExtensionPoint(
-                    TreeCopyHandler.EP_NAME.name,
-                    TreeCopyHandler::class.java.canonicalName,
-                    ExtensionPoint.Kind.INTERFACE
+                TreeCopyHandler.EP_NAME.name,
+                TreeCopyHandler::class.java.canonicalName,
+                ExtensionPoint.Kind.INTERFACE
             )
         }
 
@@ -146,14 +152,15 @@ class PSICreator(var projectDir: String) {
         val newArgs = arrayOf("-t", path)
 
         val cmd = opt.parse(newArgs)
-        cfg = FooBarCompiler.setupMyCfg(cmd)
+
+        cfg = setupMyCfg(cmd)
         env = setupMyEnv(cfg)
 
         if (!Extensions.getRootArea().hasExtensionPoint(TreeCopyHandler.EP_NAME.name)) {
             Extensions.getRootArea().registerExtensionPoint(
-                    TreeCopyHandler.EP_NAME.name,
-                    TreeCopyHandler::class.java.canonicalName,
-                    ExtensionPoint.Kind.INTERFACE
+                TreeCopyHandler.EP_NAME.name,
+                TreeCopyHandler::class.java.canonicalName,
+                ExtensionPoint.Kind.INTERFACE
             )
         }
 
@@ -176,15 +183,18 @@ class PSICreator(var projectDir: String) {
         configuration.put(JSConfigurationKeys.LIBRARIES, JsConfig.JS_STDLIB)
         configuration.put(CommonConfigurationKeys.MODULE_NAME, "sample")
 
-        configuration.put(JSConfigurationKeys.LIBRARIES, listOf(
-            CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
-            CompilerArgs.getStdLibPath("kotlin-test-js")
-        ))
+        configuration.put(
+            JSConfigurationKeys.LIBRARIES, listOf(
+                CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
+                CompilerArgs.getStdLibPath("kotlin-test-js")
+            )
+        )
 
         if (generateCtx) {
             try {
-                ctx = TopDownAnalyzerFacadeForJS.analyzeFiles(listOf(file), JsConfig(env.project, configuration)).bindingContext
-            }  catch (e: Throwable) {
+                ctx = TopDownAnalyzerFacadeForJS.analyzeFiles(listOf(file), JsConfig(env.project, configuration))
+                    .bindingContext
+            } catch (e: Throwable) {
                 return targetFiles.first()
             }
         }

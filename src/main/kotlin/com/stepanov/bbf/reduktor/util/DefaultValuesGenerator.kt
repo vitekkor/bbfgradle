@@ -14,8 +14,9 @@ fun generateDefValuesAsString(type: String): String {
         type == "Double" -> generateDefValuesForDefaultTypes<Double>(type).toString()
         type == "Boolean" -> generateDefValuesForDefaultTypes<Boolean>(type).toString()
         type == "Byte" -> generateDefValuesForDefaultTypes<Byte>(type).toString()
-        type == "Long" -> generateDefValuesForDefaultTypes<Long>(type).toString()
+        type == "Long" -> "${generateDefValuesForDefaultTypes<Long>(type)}L"
         type == "Short" -> generateDefValuesForDefaultTypes<Short>(type).toString()
+        type == "Float" -> "${generateDefValuesForDefaultTypes<Float>(type)}F"
         type.startsWith("List") -> {
             if (type.contains('<'))
                 createDefaultValueForContainer(
@@ -92,17 +93,20 @@ fun generateDefValuesAsString(type: String): String {
 
 @Suppress("UNCHECKED_CAST", "IMPLICIT_CAST_TO_ANY")
 private fun <T> generateDefValuesForDefaultTypes(type: String): T =
-        when (type) {
-            "Int" -> Random().nextInt()
-            "Double" -> Random().nextDouble()
-            "Boolean" -> Random().nextBoolean()
-            "Char" -> Random().nextChar()
-            "Byte" -> Random().nextByte()
-            "Long" -> Random().nextLong()
-            "Short" -> Random().nextShort()
-            else -> Random().nextString(('a'..'z').asCharSequence(),
-                LINE_SIZE, LINE_SIZE + 1)
-        } as T
+    when (type) {
+        "Int" -> Random().nextInt()
+        "Double" -> Random().nextDouble()
+        "Boolean" -> Random().nextBoolean()
+        "Char" -> Random().nextChar()
+        "Byte" -> Random().nextByte()
+        "Long" -> Random().nextLong()
+        "Short" -> Random().nextShort()
+        "Float" -> Random().nextFloat()
+        else -> Random().nextString(
+            ('a'..'z').asCharSequence(),
+            LINE_SIZE, LINE_SIZE + 1
+        )
+    } as T
 
 
 private fun getLeftAndRightTypes(type: String): Pair<String, String> {
@@ -111,9 +115,9 @@ private fun getLeftAndRightTypes(type: String): Pair<String, String> {
     for (t in type) {
         right = right.drop(1)
         if (t == ',') {
-            val sumL = left.count { it == '>' || it == '<' }
-            val sumR = right.count { it == '>' || it == '<' }
-            if (sumL == sumR) {
+            val sumL = left.count { it == '<' } - left.count { it == '>' }
+            val sumR = right.count { it == '>' } - right.count { it == '<' }
+            if (sumL == sumR && sumL == 1) {
                 return left.dropWhile { it != '<' }.drop(1).trim() to right.dropLast(1).trim()
                 //println("TYPE LEFT = ${left.dropWhile { it != '<' }.drop(1).trim()} RIGHT = ${right.dropLast(1).trim()}")
             }
@@ -145,9 +149,13 @@ private fun createDefaultValueForContainer(name: String, typeParam: String): Str
     if (typeParam.contains('{')) return ""
     val values = StringBuilder()
     values.append(name)
-    repeat(Random().nextInt(RANDOM_CONST) + 1) { values.append("${generateDefValuesAsString(
-        typeParam
-    )}, ") }
+    repeat(Random().nextInt(RANDOM_CONST) + 1) {
+        values.append(
+            "${generateDefValuesAsString(
+                typeParam
+            )}, "
+        )
+    }
     values.replace(values.length - 2, values.length, ")")
     return values.toString()
 }

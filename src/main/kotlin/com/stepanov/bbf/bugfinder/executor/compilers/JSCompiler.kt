@@ -37,7 +37,7 @@ class JSCompiler(private val arguments: String = "") : CommonCompiler() {
         tryToCompile(pathToFile).hasException
 
 
-    override fun compile(path: String): CompilingResult {
+    override fun compile(path: String, includeRuntime: Boolean): CompilingResult {
         File(pathToCompiled).delete()
         MsgCollector.clear()
         val args =

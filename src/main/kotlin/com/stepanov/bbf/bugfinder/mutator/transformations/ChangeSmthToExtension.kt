@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.psiUtil.parents
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+
 import com.stepanov.bbf.bugfinder.util.getAllChildrenOfTheLevel
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getRandomBoolean
@@ -28,7 +28,7 @@ class ChangeSmthToExtension : Transformation() {
                     //file.node.removeChild(it.node)
                     klass.parent.node.addChild(newProp.node, null)
                     klass.parent.node.addChild(psiFactory.createWhiteSpace("\n").node, null)
-                    if (!MutationChecker.checkCompiling(file)) {
+                    if (!checker.checkCompiling(file)) {
                         children.forEach { it1 -> it.node.addChild(it1, null) }
                         file.node.removeChild(newProp.node)
                     } else {
@@ -37,7 +37,7 @@ class ChangeSmthToExtension : Transformation() {
                     //file.node.removeChild(it.node)
                     //klass.parent.node.addChild(newProp.node)
                     //klass.parent.node.addChild(psiFactory.createWhiteSpace("\n").node)
-                    //if (!MutationChecker.checkCompiling(file))
+                    //if (!checker.checkCompiling(file))
                     //    file = oldFile
                 }
         // Make functions as extensions
@@ -55,7 +55,7 @@ class ChangeSmthToExtension : Transformation() {
                     //file.node.removeChild(it.node)
                     klass.parent.node.addChild(newFun.node, null)
                     klass.parent.node.addChild(psiFactory.createWhiteSpace("\n").node, null)
-                    if (!MutationChecker.checkCompiling(file)) {
+                    if (!checker.checkCompiling(file)) {
                         children.forEach { it1 -> it.node.addChild(it1, null) }
                         file.node.removeChild(newFun.node)
                     } else {
