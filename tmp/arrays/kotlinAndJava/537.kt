@@ -1,0 +1,25 @@
+//File Letters.java
+import kotlin.Metadata;
+
+public enum Letters {
+   A,
+   B,
+   C;
+}
+
+
+//File Main.kt
+// IGNORE_BACKEND_FIR: JVM_IR
+// TARGET_BACKEND: JVM
+
+// WITH_RUNTIME
+
+fun <E : Enum<E>> Byte.toEnum(clazz : Class<E>) : E =
+    (clazz.getMethod("values").invoke(null) as Array<E>)[this.toInt()]
+
+fun box(): String {
+    val clazz = Letters::class.java
+    val r = 1.toByte().toEnum(clazz)
+    return if (r == Letters.B) "OK" else "Fail: $r"
+}
+

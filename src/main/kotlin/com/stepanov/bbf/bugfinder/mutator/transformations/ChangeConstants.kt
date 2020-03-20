@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import org.jetbrains.kotlin.psi.*
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import java.util.*
@@ -38,13 +38,13 @@ class ChangeConstants : Transformation() {
             Type.INTEGER -> psiFactory.createExpression("${Random().nextInt()}")
         }
         if (isRandom && Random().nextBoolean() || !isRandom)
-            MutationChecker.replacePSINodeIfPossible(file, exp, replacement)
+            checker.replacePSINodeIfPossible(file, exp, replacement)
     }
 
 
     private fun changeStringConst(exp: KtStringTemplateEntry, isRandom: Boolean = true) =
             if (isRandom && Random().nextBoolean() || !isRandom)
-                MutationChecker.replacePSINodeIfPossible(
+                checker.replacePSINodeIfPossible(
                     file, exp,
                         psiFactory.createExpression(Random().getRandomVariableName(NAME_SIZE)))
             else false

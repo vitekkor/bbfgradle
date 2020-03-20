@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.stepanov.bbf.reduktor.util.replaceThis
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+
 import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtParameter
@@ -49,7 +49,7 @@ class AddSameFunctions(private val ctx: BindingContext) : Transformation() {
                 val newBlockFragment = psiFactory.createBlock(newFunc.text)
                 newBlockFragment.lBrace?.delete()
                 newBlockFragment.rBrace?.delete()
-                MutationChecker.addNodeIfPossible(file, func, newBlockFragment, true)
+                checker.addNodeIfPossible(file, func, newBlockFragment, true)
             }
         }
     }

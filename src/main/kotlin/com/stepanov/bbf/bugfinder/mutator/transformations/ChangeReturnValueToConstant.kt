@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtReturnExpression
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+
 import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getRandomBoolean
@@ -23,7 +23,7 @@ class ChangeReturnValueToConstant : Transformation() {
             for (r in returns) {
                 val replacement = KtPsiFactory(file.project).createExpression(typeConstants[key]!!)
                 if (r.returnedExpression != null) {
-                    MutationChecker.replacePSINodeIfPossible(file, r.returnedExpression!!, replacement)
+                    checker.replacePSINodeIfPossible(file, r.returnedExpression!!, replacement)
                 }
             }
         }

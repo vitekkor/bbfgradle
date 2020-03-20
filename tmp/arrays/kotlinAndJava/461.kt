@@ -1,0 +1,33 @@
+//File O.java
+import kotlin.Metadata;
+
+public final class O {
+}
+
+
+//File K.java
+import kotlin.Metadata;
+
+public final class K {
+}
+
+
+//File Main.kt
+// IGNORE_BACKEND_FIR: JVM_IR
+// IGNORE_BACKEND: JS_IR
+// TODO: muted automatically, investigate should it be ran for JS or not
+// IGNORE_BACKEND: JS, NATIVE
+
+// WITH_RUNTIME
+
+import kotlin.reflect.KClass
+
+val <T : KClass<*>> T.myjava1: Class<*>
+    get() = java
+
+val <E : Any, T : KClass<E>> T.myjava2: Class<E>
+    get() = java
+
+fun box(): String =
+        O::class.myjava1.getSimpleName() + K::class.myjava2.getSimpleName()
+

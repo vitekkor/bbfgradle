@@ -1,6 +1,6 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+
 import com.stepanov.bbf.bugfinder.util.getType
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.KtProperty
@@ -18,12 +18,12 @@ class ChangeTypes(private val context: BindingContext) : Transformation() {
             typeRef?.let { newTypeRef ->
                 if (prop.typeReference == null) {
                     prop.typeReference = newTypeRef
-                    if (!MutationChecker.checkTextCompiling(file.text)) {
+                    if (!checker.checkTextCompiling(file.text)) {
                         prop.typeReference = null
                         return@let
                     }
                 } else {
-                    MutationChecker.replacePSINodeIfPossible(file, prop.typeReference!!, newTypeRef)
+                    checker.replacePSINodeIfPossible(file, prop.typeReference!!, newTypeRef)
                 }
             }
         }

@@ -1,15 +1,17 @@
 package com.stepanov.bbf.bugfinder.mutator
 
-import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.LANGUAGE
+import com.stepanov.bbf.bugfinder.mutator.javaTransformations.ChangeRandomJavaASTNodesFromAnotherTrees
+import com.stepanov.bbf.bugfinder.mutator.projectTransformations.ShuffleNodes
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
-import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
+import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.apache.log4j.Logger
-import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.random.Random
 
-class Mutator(val file: KtFile, val context: BindingContext?, private val compilers: List<CommonCompiler>) {
+class Mutator(val file: PsiFile, val context: BindingContext?) {
 
     private fun executeMutation(t: Transformation, probPercentage: Int = 50) {
         if (Random.nextInt(0, 100) < probPercentage) {
@@ -25,9 +27,27 @@ class Mutator(val file: KtFile, val context: BindingContext?, private val compil
 
     fun startMutate() {
         //Init file
-        Transformation.file = file
-        //Set of transformations over PSI
+        Factory.file = file
+        Transformation.file = file.copy() as PsiFile
         log.debug("Mutation started")
+        when (file.text.getFileLanguageIfExist()) {
+            LANGUAGE.JAVA -> startJavaMutations()
+            else -> startKotlinMutations()
+        }
+        log.debug("End")
+    }
+
+    //Stub
+    private fun startJavaMutations() {
+        println("STARTING JAVA MUTATIONS")
+        executeMutation(ChangeRandomJavaASTNodesFromAnotherTrees(), 100)
+        println("END JAVA MUTATIONS")
+        log.debug("Verify = ${verify()}")
+        return
+    }
+
+    private fun startKotlinMutations() {
+        //Set of transformations over PSI
         log.debug("File = ${file.name}")
         executeMutation(AddNullabilityTransformer())
         //AddNullabilityTransformer().transform()
@@ -110,16 +130,21 @@ class Mutator(val file: KtFile, val context: BindingContext?, private val compil
         //ChangeOperatorsToFunInvocations().transform()
         log.debug("After ChangeOperatorsToFunInvocations = ${Transformation.file.text}")
         log.debug("Verify = ${verify()}")
-        executeMutation(ChangeRandomASTNodes(), 75)
+        if (Transformation.checker.otherFiles != null) {
+            executeMutation(ShuffleNodes(), 75)
+        } else {
+            executeMutation(ChangeRandomASTNodes(), 75)
+        }
         log.debug("After ChangeRandomASTNodes = ${Transformation.file.text}")
         log.debug("Verify = ${verify()}")
         executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 75)
         log.debug("After ChangeRandomASTNodesFromAnotherTrees = ${Transformation.file.text}")
         log.debug("Verify = ${verify()}")
-        log.debug("End")
     }
 
-    private fun verify(): String = "${compilers.checkCompilingForAllBackends(Transformation.file)}"
+    private fun verify() = Transformation.checker.checkCompiling(Transformation.file, Transformation.checker.otherFiles)
+    //private fun verify(): String = "${compilers.checkCompilingForAllBackends(Transformation.file)}"
+    //private fun verify(): String = Transformation.checker.isCompilationSuccessful()
 
     private val log = Logger.getLogger("mutatorLogger")
 }

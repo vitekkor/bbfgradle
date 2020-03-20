@@ -36,11 +36,11 @@ import java.io.File
 object FooBarCompiler {
 
     init {
-        Extensions.getRootArea().registerExtensionPoint(
-            TreeCopyHandler.EP_NAME.name,
-            TreeCopyHandler::class.java.canonicalName,
-            ExtensionPoint.Kind.INTERFACE
-        )
+//        Extensions.getRootArea().registerExtensionPoint(
+//            TreeCopyHandler.EP_NAME.name,
+//            TreeCopyHandler::class.java.canonicalName,
+//            ExtensionPoint.Kind.INTERFACE
+//        )
     }
 
     fun analyzeBunchOfSources(

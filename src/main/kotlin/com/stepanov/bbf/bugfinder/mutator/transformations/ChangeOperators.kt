@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.intellij.lang.ASTNode
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+
 import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.lexer.KtTokens
 import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
@@ -55,7 +55,7 @@ class ChangeOperators : Transformation() {
                     else
                         psiFactory.createExpression(replacement)
 
-            MutationChecker.replacePSINodeIfPossible(file, replace.psi, replacementNode)
+            checker.replacePSINodeIfPossible(file, replace.psi, replacementNode)
         }
     }
 

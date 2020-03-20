@@ -1,6 +1,5 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
 import java.util.*
 
 class RemoveRandomLines: Transformation()  {
@@ -11,7 +10,7 @@ class RemoveRandomLines: Transformation()  {
             val numLine = Random().nextInt(text.size)
             val old = text[numLine]
             text[numLine] = ""
-            if (!MutationChecker.checkTextCompiling(getText(text))) {
+            if (!checker.checkTextCompiling(getText(text))) {
                 text[numLine] = old
             }
         }

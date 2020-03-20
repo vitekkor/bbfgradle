@@ -1,18 +1,26 @@
-open class A<T> {
-    open fun foo(t: T) = "A"
+// IGNORE_BACKEND_FIR: JVM_IR
+// WITH_RUNTIME
+// WITH_COROUTINES
+// COMMON_COROUTINES_TEST
+import helpers.*
+import COROUTINES_PACKAGE.*
+import COROUTINES_PACKAGE.intrinsics.*
+
+suspend fun suspendHere(): String = suspendCoroutineUninterceptedOrReturn { x ->
+    x.resume("OK")
+    COROUTINE_SUSPENDED
 }
 
-class Z : A<String>() {
-    override fun foo(t: String) = "Z"
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
 }
-
 
 fun box(): String {
-    val z = Z()
-    val a: A<String> = z
-    return when {
-        z.foo("") != "Z" -> "Fail #1"
-        a.foo("") != "Z" -> "Fail #2"
-        else -> "OK"
+    var result = ""
+
+    builder {
+        result = suspendHere()
     }
+
+    return result
 }

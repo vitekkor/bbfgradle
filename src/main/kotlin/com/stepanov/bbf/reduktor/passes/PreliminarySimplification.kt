@@ -1,6 +1,7 @@
 package com.stepanov.bbf.reduktor.passes
 
 import com.intellij.psi.PsiFile
+import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.executor.backends.CommonBackend
 import com.stepanov.bbf.reduktor.util.TaskType
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
@@ -14,13 +15,13 @@ import org.jetbrains.kotlin.resolve.ImportPath
 import java.util.*
 
 
-class PreliminarySimplification(private val ktFile: KtFile, private val projPath: String, private val backend: CommonBackend) {
+class PreliminarySimplification(private val ktFile: KtFile, private val projPath: String, private val checker: CompilerTestChecker) {
     fun computeSlice(files: List<PsiFile> = listOf()) {
         //Get all imports of file
         //Map from node to import level
 
         val importsMap = linkedMapOf<PsiFile, Int>()
-        val fileImports = getAllImportsFromFile(ktFile).toHashSet()
+        val fileImports = ImportsGetter().getAllImportsFromFile(ktFile).toHashSet()
         var level = 1
         for (f in files.map { it as KtFile }) {
             f.beforeAstChange()
@@ -40,7 +41,7 @@ class PreliminarySimplification(private val ktFile: KtFile, private val projPath
             }
             for (i in importsMap) {
                 if (i.value == level)
-                    getAllImportsFromFile(i.key as KtFile).forEach { fileImports.add(it) }
+                    ImportsGetter().getAllImportsFromFile(i.key as KtFile).forEach { fileImports.add(it) }
             }
             if (oldImportsSize == importsMap.size)
                 break
@@ -59,7 +60,7 @@ class PreliminarySimplification(private val ktFile: KtFile, private val projPath
                     filesToTransform,
                     projPath,
                     TaskType.TRANSFORM,
-                    backend
+                    checker
                 )
                 filesToTransform.forEach { transformedFiles.add(it) }
                 --level
@@ -72,7 +73,7 @@ class PreliminarySimplification(private val ktFile: KtFile, private val projPath
             filesToTransform,
             projPath,
             TaskType.TRANSFORM,
-            backend
+            checker
         )
         filesToTransform.forEach { transformedFiles.add(it) }
         filesToTransform.clear()
@@ -91,14 +92,11 @@ class PreliminarySimplification(private val ktFile: KtFile, private val projPath
             filesToTransform,
             projPath,
             TaskType.TRANSFORM,
-            backend
+            checker
         )
     }
 
 
-
-    private fun getImport(fqName: FqName): KtImportDirective =
-            KtPsiFactory(ktFile.project).createImportDirective(ImportPath(fqName, false))
 
     //CAREFUL!! TERRIBLE SHIT CODE HERE!!
     fun starsExplosion(imports: List<KtImportDirective>, files: List<PsiFile>): List<KtImportDirective> {
@@ -111,14 +109,14 @@ class PreliminarySimplification(private val ktFile: KtFile, private val projPath
                         break
                     val packageDirective = f.allChildren.first as KtPackageDirective
                     if (packageDirective.text.contains(fqName.asString())) {
-                        getClasses(f as KtFile).mapTo(newImports) { getImport(it.fqName!!) }
-                        getObjects(f).mapTo(newImports) { getImport(it.fqName!!) }
+                        getClasses(f as KtFile).mapTo(newImports) { getImport(it.fqName!!, ktFile) }
+                        getObjects(f).mapTo(newImports) { getImport(it.fqName!!, ktFile) }
                         getFunctions(f)
                                 .filter {
                                     it.getParentOfType<KtClass>(false) == null
                                             && it.getParentOfType<KtObjectDeclaration>(false) == null
                                 }
-                                .mapTo(newImports) { getImport(it.fqName!!) }
+                                .mapTo(newImports) { getImport(it.fqName!!, ktFile) }
                     }
                 }
                 if (newImports.isNotEmpty()) {
@@ -134,29 +132,40 @@ class PreliminarySimplification(private val ktFile: KtFile, private val projPath
         return imports
     }
 
-    private fun getAllImportsFromFile(file: KtFile): List<KtImportDirective> {
+}
+
+class ImportsGetter {
+
+    fun getAllImportsFromFile(file: KtFile): List<KtImportDirective> {
         val newImports = HashSet<KtImportDirective>()
-        getClasses(file).mapTo(newImports) { getImport(it.fqName!!) }
-        getObjects(file).mapTo(newImports) { getImport(it.fqName!!) }
+        getClasses(file).mapTo(newImports) { getImport(it.fqName!!, file) }
+        getObjects(file).mapTo(newImports) { getImport(it.fqName!!, file) }
+        getTopLevelProps(file).mapTo(newImports) { getImport(it.fqName!!, file) }
         getFunctions(file)
-                .filter {
-                    it.getParentOfType<KtClass>(false) == null
-                            && it.getParentOfType<KtObjectDeclaration>(false) == null
-                }
-                .mapTo(newImports) { getImport(it.fqName!!) }
+            .filter {
+                it.getParentOfType<KtClass>(false) == null
+                        && it.getParentOfType<KtObjectDeclaration>(false) == null
+            }
+            .mapTo(newImports) { getImport(it.fqName!!, file) }
         return newImports.toList()
     }
 
-
-    private fun getClasses(file: KtFile): List<KtClass> =
-            file.getAllPSIChildrenOfType<KtClass>().filter { it.fqName != null }
-
-    private fun getObjects(file: KtFile): List<KtObjectDeclaration> =
-            file.getAllPSIChildrenOfType<KtObjectDeclaration>().filter { it.fqName != null }
-
-    private fun getFunctions(file: KtFile): List<KtNamedFunction> =
-            file.getAllPSIChildrenOfType<KtNamedFunction>().filter { it.fqName != null }
-
 }
+
+private fun getClasses(file: KtFile): List<KtClass> =
+    file.getAllPSIChildrenOfType<KtClass>().filter { it.fqName != null }
+
+private fun getObjects(file: KtFile): List<KtObjectDeclaration> =
+    file.getAllPSIChildrenOfType<KtObjectDeclaration>().filter { it.fqName != null }
+
+private fun getFunctions(file: KtFile): List<KtNamedFunction> =
+    file.getAllPSIChildrenOfType<KtNamedFunction>().filter { it.fqName != null }
+
+private fun getTopLevelProps(file: KtFile): List<KtProperty> =
+    file.getAllPSIChildrenOfType<KtProperty>().filter { it.parent is KtFile }
+
+private fun getImport(fqName: FqName, ktFile: KtFile): KtImportDirective =
+    KtPsiFactory(ktFile.project).createImportDirective(ImportPath(fqName, false))
+
 
 

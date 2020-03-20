@@ -16,24 +16,13 @@ abstract class CommonCompiler {
 
     abstract fun checkCompiling(pathToFile: String): Boolean
     abstract fun getErrorMessageWithLocation(pathToFile: String): Pair<String, List<CompilerMessageLocation>>
-    abstract fun compile(path: String): CompilingResult
+    abstract fun compile(path: String, includeRuntime: Boolean = true): CompilingResult
     abstract fun tryToCompile(pathToFile: String): KotlincInvokeStatus
     abstract fun isCompilerBug(pathToFile: String): Boolean
     abstract fun exec(path: String, streamType: Stream = Stream.INPUT): String
 
     abstract val compilerInfo: String
     abstract val pathToCompiled: String
-
-
-    fun compile(file: KtFile): CompilingResult = compile(file.name)
-    fun compileText(text: String): CompilingResult {
-        val writer = BufferedWriter(FileWriter(CompilerArgs.pathToTmpFile))
-        writer.write(text)
-        writer.close()
-        val res = compile(CompilerArgs.pathToTmpFile)
-        File(CompilerArgs.pathToTmpFile).delete()
-        return res
-    }
 
     fun getErrorMessage(pathToFile: String): String = getErrorMessageWithLocation(pathToFile).first
     fun getErrorMessageForText(text: String): String = getErrorMessageForTextWithLocation(text).first

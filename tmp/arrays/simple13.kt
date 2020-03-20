@@ -1,22 +1,26 @@
-open class A<T> {
-    open fun foo(t: T) = "A"
+// IGNORE_BACKEND_FIR: JVM_IR
+// IGNORE_BACKEND: JS_IR
+// IGNORE_BACKEND: JVM_IR
+// IGNORE_BACKEND: JVM, JS, NATIVE
+// WITH_RUNTIME
+// WITH_COROUTINES
+
+import helpers.*
+import kotlin.coroutines.experimental.*
+
+suspend fun callLocal(): String {
+    val local = suspend fun() = "OK"
+    return local()
 }
 
-open class B : A<String>()
-
-class Z : B() {
-    override fun foo(t: String) = "Z"
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
 }
-
 
 fun box(): String {
-    val z = Z()
-    val b: B = z
-    val a: A<String> = z
-    return when {
-        z.foo("") != "Z" -> "Fail #1"
-        b.foo("") != "Z" -> "Fail #2"
-        a.foo("") != "Z" -> "Fail #3"
-        else -> "OK"
+    var res = "FAIL"
+    builder {
+        res = callLocal()
     }
+    return res
 }

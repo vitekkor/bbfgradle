@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.MutationChecker
+
 import com.stepanov.bbf.bugfinder.util.NodeCollector
 import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
 import com.stepanov.bbf.reduktor.parser.PSICreator
@@ -37,10 +37,9 @@ class ChangeRandomASTNodesFromAnotherTrees : Transformation() {
                         sameTypeNodes[0]
                     else
                         sameTypeNodes[Random.nextInt(0, sameTypeNodes.size - 1)]
-            MutationChecker.replaceNodeIfPossible(file, randomNode, targetNode)
+            checker.replaceNodeIfPossible(file, randomNode, targetNode)
         }
     }
 
     val numOfTries = 50 to 1000
-    private val log = Logger.getLogger("mutatorLogger")
 }

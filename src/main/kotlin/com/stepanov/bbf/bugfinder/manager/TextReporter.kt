@@ -13,7 +13,7 @@ object TextReporter : Reporter {
             """*******************************************************************
                 |Compiler: ${it.compilerVersion}
             |Type: ${it.type}
-            |CrashingCode: ${it.crashingCode}
+            |CrashingCode: ${it.crashedProject.getCommonTextWithDefaultPath()}
             |Message: ${it.msg}
             |*******************************************************************""".trimMargin()
         }
