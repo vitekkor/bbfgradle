@@ -366,10 +366,15 @@ fun Project.moveAllCodeInOneFile(): Project {
 
 fun Project.split(): Project {
     if (this.texts.size != 1) return this
-    val files =
-        this.getCommonTextWithDefaultPath().split(Regex("""//File.*\s"""))
-            .filter { it.trim().contains("package") }
-    return Project(files)
+    val r = Regex("""//\s*((File)|(FILE)).*\s""")
+    val text = this.getCommonTextWithDefaultPath()
+    val res = mutableListOf<String>()
+    val ranges = r.findAll(this.getCommonTextWithDefaultPath()).toList().map { it.range }
+    for (i in 0 until ranges.size - 1) {
+        res.add(text.substring(ranges[i].first, ranges[i + 1].first - 1))
+    }
+    res.add(text.substring(ranges.last().first))
+    return Project(res, null, this.language)
 }
 
 private fun Project.generateTmpPath(idx: Int): String {

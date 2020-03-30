@@ -1,15 +1,19 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.Project
+import com.stepanov.bbf.bugfinder.executor.TracesChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.FalsePositivesDeleter
 import com.stepanov.bbf.bugfinder.util.NodeCollector
+import com.stepanov.bbf.bugfinder.util.split
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
@@ -17,6 +21,7 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
 import java.io.File
+import kotlin.random.Random
 import kotlin.system.exitProcess
 
 
@@ -25,6 +30,10 @@ fun main(args: Array<String>) {
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
     //Init factory
     Factory.file = PSICreator("").getPSIForText("")
+
+//    ProjectBugFinder("").findBugsInKJProjects()
+//    System.exit(0)
+
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
         Logger.getLogger("bugFinderLogger").level = Level.OFF
@@ -84,6 +93,11 @@ fun main(args: Array<String>) {
         FalsePositivesDeleter().cleanDirs()
         exitProcess(0)
     }
+//    if (Random.nextBoolean()) {
+//        ProjectBugFinder("tmp/arrays/kotlinAndJava").findBugsInKJProjects()
+//    } else {
+//        ProjectBugFinder("tmp/arrays/classTests").findBugsInProjects()
+//    }
     val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
     SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)

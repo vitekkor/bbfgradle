@@ -17,7 +17,7 @@ object Reducer {
     fun reduce(bug: Bug, shouldSave: Boolean = false): Project {
         //TODO MAKE FOR PROJECTS
         //First we need to find more project bugs!!
-        if (bug.crashedProject.texts.size != 1) return bug.crashedProject
+        if (bug.crashedProject.texts.size != 1 || bug.crashedProject.language == LANGUAGE.KJAVA) return bug.crashedProject
         //Saving to tmp
         val path = bug.crashedProject.saveOrRemoveToTmp(true)
         val compilers = bug.compilers

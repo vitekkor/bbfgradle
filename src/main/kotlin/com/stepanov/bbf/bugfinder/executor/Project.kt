@@ -13,11 +13,7 @@ enum class LANGUAGE {
 //Just string representation of ktFiles
 class Project(texts: List<String>?, files: List<PsiFile>? = null, val language: LANGUAGE = LANGUAGE.KOTLIN) {
 
-    val texts: List<String>
-
-    init {
-        this.texts = texts?.let { it } ?: files!!.map { it.text }
-    }
+    val texts: List<String> = texts?.let { it } ?: files!!.map { it.text }
 
     constructor(text: String) : this(listOf(text))
 
@@ -25,9 +21,13 @@ class Project(texts: List<String>?, files: List<PsiFile>? = null, val language: 
         texts.mapIndexed { index, s -> "//File: ${commonPath.split(" ")[index]}\n$s" }.joinToString("\n")
 
     fun getCommonTextWithDefaultPath() =
-        texts
-            .mapIndexed { index, s -> "//File: ${CompilerArgs.pathToTmpFile.substringBefore(".kt")}$index.kt\n$s" }
-            .joinToString("\n")
+        when (language) {
+            LANGUAGE.KJAVA -> texts.joinToString("\n")
+            else -> texts
+                .mapIndexed { index, s -> "//File: ${CompilerArgs.pathToTmpFile.substringBefore(".kt")}$index.kt\n$s" }
+                .joinToString("\n")
+        }
+
 
     fun getKtFiles(psiFactory: KtPsiFactory): List<KtFile> = texts.map { psiFactory.createFile(it) }
 

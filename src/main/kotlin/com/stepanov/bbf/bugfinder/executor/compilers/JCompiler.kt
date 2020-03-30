@@ -15,6 +15,7 @@ import javax.tools.ToolProvider
 
 class JCompiler : CommonCompiler() {
     override fun checkCompiling(pathToFile: String): Boolean {
+        return true
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
@@ -43,20 +44,18 @@ class JCompiler : CommonCompiler() {
             val manager = compiler.getStandardFileManager(diagnostics, null, null)
             val sources = manager.getJavaFileObjectsFromFiles(javaFiles)
             val classPath =
-                (CompilerArgs.jvmStdLibPaths + CompilerArgs.getAnnoPath("13.0") + CompilerArgs.pathToTmpFile).joinToString(
-                    ":"
-                )
+                (CompilerArgs.jvmStdLibPaths
+                        + CompilerArgs.getAnnoPath("13.0")
+                        + CompilerArgs.pathToTmpFile)
+                    .joinToString(":")
             val options = mutableListOf("-classpath", classPath, "-d", pathToTmpDir)
             val task = compiler.getTask(null, manager, diagnostics, options, null, sources)
             task.call()
             val errorDiagnostics = diagnostics.diagnostics.filter { it.kind == Diagnostic.Kind.ERROR }
-            if (errorDiagnostics.isEmpty()) {
-                return CompilingResult(0, pathToTmpDir)
+            return if (errorDiagnostics.isEmpty()) {
+                CompilingResult(0, pathToTmpDir)
             } else {
-                errorDiagnostics.forEach {
-                    println(it.getMessage(null))
-                }
-                return CompilingResult(-1, "")
+                CompilingResult(-1, "")
             }
         } catch (e: Exception) {
             return CompilingResult(-1, "")

@@ -51,7 +51,8 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
                         ?.any { it.name?.contains("box") == true } == true
                 ) addMain(it.first) else
                     it.first
-            }, null, LANGUAGE.KJAVA)
+            }, null, LANGUAGE.KJAVA
+        )
 
 
     private fun addMain(text: String): String =
@@ -104,16 +105,21 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         val results = mutableListOf<Pair<CommonCompiler, String>>()
         for (comp in compilers) {
             val status = comp.compile(path)
-            if (status.status == -1)
+            if (status.status == -1) {
+                clean(projectWithMain, status.pathToCompiled)
                 return null
+            }
             val res = comp.exec(status.pathToCompiled)
             val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
             log.debug("Result of ${comp.compilerInfo}: $res\n")
             log.debug("Errors: $errors")
-            if (exclErrorMessages.any { errors.contains(it) })
+            if (exclErrorMessages.any { errors.contains(it) }) {
+                clean(projectWithMain, status.pathToCompiled)
                 return null
+            }
             results.add(comp to res.trim())
         }
+        clean(projectWithMain, null)
         val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first })
         return if (groupedRes.size == 1) {
             null
@@ -122,6 +128,11 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
             alreadyChecked[hash] = res
             res
         }
+    }
+
+    private fun clean(project: Project, pathToCompiled: String?) {
+        project.saveOrRemoveToTmp(false)
+        pathToCompiled?.let { File(it).let { f -> if (f.exists()) f.deleteRecursively() } }
     }
 
     fun checkTestForProject(commonPath: String): List<CommonCompiler>? {

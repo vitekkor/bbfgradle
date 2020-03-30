@@ -61,25 +61,27 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
                 return
             }
             log.debug("Start to mutate")
-            val resultingMutant = makeMutant(psiFile, psiCreator.ctx!!, null, listOf(::noBoxFunModifying))
-            //Mutator(psiFile, psiCreator.ctx).startMutate()
-            //val resultingMutant = PSICreator("").getPSIForText(Transformation.file.text)
+//            val resultingMutant = makeMutant(psiFile, psiCreator.ctx!!, null, listOf(::noBoxFunModifying))
+//            //Mutator(psiFile, psiCreator.ctx).startMutate()
+//            //val resultingMutant = PSICreator("").getPSIForText(Transformation.file.text)
+//
+//            if (!compilers.checkCompilingForAllBackends(resultingMutant)) {
+//                log.debug("Could not compile after mutation $dir")
+//                log.debug(resultingMutant.text)
+//                System.exit(1)
+//            }
+//            log.debug("Mutated = ${resultingMutant.text}")
+//
+//            //Save mutated file
+//            if (CompilerArgs.shouldSaveMutatedFiles) {
+//                val pathToNewTests = CompilerArgs.dirForNewTests
+//                File(pathToNewTests).mkdirs()
+//                val pathToSave = "$pathToNewTests/${Random().getRandomVariableName(10)}.kt"
+//                File(pathToSave).writeText(resultingMutant.text)
+//            }
 
-            if (!compilers.checkCompilingForAllBackends(resultingMutant)) {
-                log.debug("Could not compile after mutation $dir")
-                log.debug(resultingMutant.text)
-                System.exit(1)
-            }
-            log.debug("Mutated = ${resultingMutant.text}")
 
-            //Save mutated file
-            if (CompilerArgs.shouldSaveMutatedFiles) {
-                val pathToNewTests = CompilerArgs.dirForNewTests
-                File(pathToNewTests).mkdirs()
-                val pathToSave = "$pathToNewTests/${Random().getRandomVariableName(10)}.kt"
-                File(pathToSave).writeText(resultingMutant.text)
-            }
-
+            val resultingMutant = psiFile
             val checker = MutationChecker(compilers)
             //Now begin to trace mutated file
             val tracer = Tracer(resultingMutant, psiCreator.ctx!!, checker)
