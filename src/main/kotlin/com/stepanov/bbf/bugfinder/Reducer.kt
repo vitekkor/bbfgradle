@@ -4,6 +4,7 @@ import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.moveAllCodeInOneFile
 import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
@@ -16,6 +17,14 @@ object Reducer {
 
     fun reduce(bug: Bug, shouldSave: Boolean = false): Project {
         //TODO MAKE FOR PROJECTS
+        if (bug.crashedProject.texts.size > 1) {
+            if (bug.type != BugType.BACKEND && bug.type != BugType.FRONTEND) return bug.crashedProject
+            val checker = ProjectMultiCompilerTestChecker(bug.compilers.first(), null)
+            val path = bug.crashedProject.saveOrRemoveToTmp(true)
+            val reduced = reduceProject(path, checker)
+            return Project(null, reduced, LANGUAGE.KJAVA)
+        }
+
         //First we need to find more project bugs!!
         if (bug.crashedProject.texts.size != 1 || bug.crashedProject.language == LANGUAGE.KJAVA) return bug.crashedProject
         //Saving to tmp
@@ -83,18 +92,22 @@ object Reducer {
 
     private fun reduceFile(path: String, checker: CompilerTestChecker): KtFile {
         val psiFile = PSICreator("").getPSIForFile(path)
-        return TransformationManager(listOf(psiFile))
+        return TransformationManager(listOf(psiFile to psiFile.name))
             .doTransformationsForFile(psiFile, checker)
     }
 
-    private fun reduceProject(path: String, checker: CompilerTestChecker): List<KtFile> {
-        val files = path.split(" ").map { PSICreator("").getPSIForFile(it) }
-        TransformationManager(files).doProjectTransformations(files, PSICreator(""), checker)
-        return listOf()
+    private fun reduceProject(path: String, checker: ProjectMultiCompilerTestChecker): List<PsiFile> {
+        val files =
+            path.split(" ").map {
+                if (it.endsWith(".java"))
+                    PSICreator("").getPsiForJava(File(it).readText(), Factory.file.project) to it
+                else PSICreator("").getPSIForFile(it) to it
+            }
+        return TransformationManager(files).doProjectTransformations(files, PSICreator(""), checker)
     }
 
     private fun reduceFile(file: KtFile, checker: CompilerTestChecker): KtFile {
-        return TransformationManager(listOf(file))
+        return TransformationManager(listOf(file to file.name))
             .doTransformationsForFile(file, checker)
     }
 

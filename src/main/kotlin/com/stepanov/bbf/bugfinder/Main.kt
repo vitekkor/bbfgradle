@@ -13,6 +13,7 @@ import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.FalsePositivesDeleter
 import com.stepanov.bbf.bugfinder.util.NodeCollector
+import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
 import com.stepanov.bbf.bugfinder.util.split
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import net.sourceforge.argparse4j.ArgumentParsers
@@ -31,8 +32,24 @@ fun main(args: Array<String>) {
     //Init factory
     Factory.file = PSICreator("").getPSIForText("")
 
-//    ProjectBugFinder("").findBugsInKJProjects()
+//    for (f in File("/home/stepanov/Kotlin/bbfgradle/tmp/results/KJVM-Xuse-ir/").listFiles()) {
+//    val f = File("tmp/results/test.kt")
+//        val project = Project(listOf(f.readText()), null, LANGUAGE.KJAVA).split()
+//        val path = project.saveOrRemoveToTmp(true)
+//        val isB = KJCompiler().isCompilerBug(path)
+//        project.saveOrRemoveToTmp(false)
+//        println("Res of ${f.absolutePath} = $isB")
+//    }
 //    System.exit(0)
+    BugManager.saveBug(Bug(
+        KJCompiler(),
+        "",
+        Project(listOf(File("tmp/results/test.kt").readText()), null, LANGUAGE.KJAVA).split(),
+        BugType.BACKEND
+    ))
+    System.exit(0)
+    //ProjectBugFinder("tmp/arrays/classTests/").findBugsInKJProjects()
+    //System.exit(0)
 
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF

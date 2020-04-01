@@ -10,18 +10,22 @@ class FunSimplifier(private val file: KtFile, private val checker: CompilerTestC
     fun transform() {
         val namedFuncs = file.getAllPSIChildrenOfType<KtNamedFunction>()
         for (f in namedFuncs) {
-            if (f.hasBlockBody()) {
-                val newNode = f.bodyBlockExpression?.copy() as KtBlockExpression? ?: continue
-                newNode.lBrace?.delete()
-                newNode.rBrace?.delete()
-                newNode.getAllPSIChildrenOfType<KtReturnExpression>().forEach {
-                    it.returnKeyword.delete()
+            try {
+                if (f.hasBlockBody()) {
+                    val newNode = f.bodyBlockExpression?.copy() as KtBlockExpression? ?: continue
+                    newNode.lBrace?.delete()
+                    newNode.rBrace?.delete()
+                    newNode.getAllPSIChildrenOfType<KtReturnExpression>().forEach {
+                        it.returnKeyword.delete()
+                    }
+                    val signature = f.getAllChildrenOfCurLevel()
+                        .takeWhile { it !is KtBlockExpression }
+                        .joinToString("") { it.text }
+                    val newFun = KtPsiFactory(file.project).createFunction("$signature = ${newNode.text}")
+                    checker.replaceNodeIfPossible(file, f, newFun)
                 }
-                val signature = f.getAllChildrenOfCurLevel()
-                    .takeWhile { it !is KtBlockExpression }
-                    .joinToString("") { it.text }
-                val newFun = KtPsiFactory(file.project).createFunction("$signature = ${newNode.text}")
-                checker.replaceNodeIfPossible(file, f, newFun)
+            } catch (e: Exception) {
+                continue
             }
         }
     }

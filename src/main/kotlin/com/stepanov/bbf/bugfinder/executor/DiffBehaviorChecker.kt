@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder.executor
 
 import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
 import com.stepanov.bbf.reduktor.executor.error.Error
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
@@ -83,5 +84,5 @@ class DiffBehaviorChecker(private val compilers: List<CommonCompiler>) : MultiCo
 
     val prevResults: MutableList<List<String>> = ArrayList()
 
-    private val log = Logger.getLogger("bugFinderLogger")
+    override val log = Logger.getLogger("bugFinderLogger")
 }

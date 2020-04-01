@@ -105,7 +105,7 @@ private fun saveFile(file: KtFile, projPath: String) {
 
 private class ParallelTransform(private val fileToReduce: KtFile, private val path: String, private val checker: CompilerTestChecker) : Callable<KtFile> {
     override fun call(): KtFile {
-        val manager = TransformationManager(listOf(fileToReduce))
+        val manager = TransformationManager(listOf(fileToReduce to fileToReduce.name))
         val newFile = manager.doForParallelSimpleTransformations(true, path, checker)
         return newFile!!
     }

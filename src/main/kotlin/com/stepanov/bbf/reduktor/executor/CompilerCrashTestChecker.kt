@@ -3,6 +3,7 @@ package com.stepanov.bbf.reduktor.executor
 import com.intellij.lang.ASTNode
 import com.intellij.lang.FileASTNode
 import com.intellij.psi.PsiErrorElement
+import com.intellij.psi.PsiFile
 import com.stepanov.bbf.reduktor.executor.backends.CommonBackend
 import com.stepanov.bbf.reduktor.executor.error.Error
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
@@ -30,7 +31,7 @@ class KotlincInvokeStatus(
 open class CommonCompilerCrashTestChecker(private val backend: CommonBackend?) :
     CompilerTestChecker {
 
-    override fun removeNodeIfPossible(file: KtFile, node: ASTNode): Boolean {
+    override fun removeNodeIfPossible(file: PsiFile, node: ASTNode): Boolean {
         val tmp = KtPsiFactory(file.project).createWhiteSpace("\n")
         return replaceNodeIfPossible(file, node, tmp.node)
     }
@@ -40,7 +41,7 @@ open class CommonCompilerCrashTestChecker(private val backend: CommonBackend?) :
         removeNodeIfPossible(ktFile, node)
     }
 
-    override fun removeNodesIfPossible(file: KtFile, nodes: List<ASTNode>): Boolean {
+    override fun removeNodesIfPossible(file: PsiFile, nodes: List<ASTNode>): Boolean {
         val copies = mutableListOf<ASTNode>()
         val whiteSpaces = mutableListOf<ASTNode>()
         nodes.forEach { copies.add(it.copyElement()); whiteSpaces.add(KtPsiFactory(file.project).createWhiteSpace("\n").node) }
@@ -68,7 +69,7 @@ open class CommonCompilerCrashTestChecker(private val backend: CommonBackend?) :
     }
 
 
-    override fun replaceNodeOnItChild(file: KtFile, node: ASTNode, replacement: ASTNode): ASTNode? {
+    override fun replaceNodeOnItChild(file: PsiFile, node: ASTNode, replacement: ASTNode): ASTNode? {
         //If we trying to replace parent node to it child
         if (node.getAllChildrenNodes().contains(replacement)) {
             val backup = node.copyElement()
@@ -87,7 +88,7 @@ open class CommonCompilerCrashTestChecker(private val backend: CommonBackend?) :
     }
 
     //TODO we can not change the child back to the parent. And if you use copies, the context is lost.
-    override fun replaceNodeIfPossible(file: KtFile, node: ASTNode, replacement: ASTNode): Boolean {
+    override fun replaceNodeIfPossible(file: PsiFile, node: ASTNode, replacement: ASTNode): Boolean {
         if (node.text.isEmpty() || node == replacement) return checkTest(file.text, file.name)
 
         //If we trying to replace parent node to it child

@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.executor
 import com.intellij.lang.ASTNode
 import com.intellij.lang.FileASTNode
 import com.intellij.psi.PsiErrorElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.TreeElement
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.executor.error.Error
@@ -18,17 +19,16 @@ import java.io.File
 
 open class MultiCompilerCrashChecker(private val compiler: CommonCompiler?) : CompilerTestChecker {
 
-    override fun removeNodeIfPossible(file: KtFile, node: ASTNode): Boolean {
+    override fun removeNodeIfPossible(file: PsiFile, node: ASTNode): Boolean {
         val tmp = KtPsiFactory(file.project).createWhiteSpace("\n")
         return replaceNodeIfPossible(file, node, tmp.node)
     }
 
     override fun removeNodeIfPossible(file: FileASTNode, node: ASTNode) {
-        val ktFile = file.psi as KtFile
-        removeNodeIfPossible(ktFile, node)
+        removeNodeIfPossible(file.psi as PsiFile, node)
     }
 
-    override fun removeNodesIfPossible(file: KtFile, nodes: List<ASTNode>): Boolean {
+    override fun removeNodesIfPossible(file: PsiFile, nodes: List<ASTNode>): Boolean {
         val copies = mutableListOf<ASTNode>()
         val whiteSpaces = mutableListOf<ASTNode>()
         nodes.forEach { copies.add(it.copyElement()); whiteSpaces.add(KtPsiFactory(file.project).createWhiteSpace("\n").node) }
@@ -56,7 +56,7 @@ open class MultiCompilerCrashChecker(private val compiler: CommonCompiler?) : Co
     }
 
 
-    override fun replaceNodeIfPossible(file: KtFile, node: ASTNode, replacement: ASTNode): Boolean {
+    override fun replaceNodeIfPossible(file: PsiFile, node: ASTNode, replacement: ASTNode): Boolean {
         if (node.text.isEmpty() || node == replacement) return checkTest(file.text, file.name)
 
         //If we trying to replace parent node to it child
@@ -184,7 +184,7 @@ open class MultiCompilerCrashChecker(private val compiler: CommonCompiler?) : Co
     private lateinit var errs: String
     internal lateinit var psiFactory: KtPsiFactory
 
-    private val log = Logger.getLogger("reducerLogger")
+    open val log = Logger.getLogger("reducerLogger")
     private val patch = DiffMatchPatch()
     private val threshold = 0.5
     override var alreadyChecked = HashMap<Int, Boolean>()

@@ -3,19 +3,20 @@ package com.stepanov.bbf.reduktor.executor
 import com.intellij.lang.ASTNode
 import com.intellij.lang.FileASTNode
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.stepanov.bbf.reduktor.executor.error.Error
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 
 interface CompilerTestChecker {
 
-    fun removeNodeIfPossible(file: KtFile, node: ASTNode): Boolean
+    fun removeNodeIfPossible(file: PsiFile, node: ASTNode): Boolean
     fun removeNodeIfPossible(file: FileASTNode, node: ASTNode)
-    fun removeNodesIfPossible(file: KtFile, nodes: List<ASTNode>): Boolean
-    fun replaceNodeIfPossible(file: KtFile, node: ASTNode, replacement: ASTNode): Boolean
-    fun replaceNodeIfPossible(file: KtFile, node: PsiElement, replacement: PsiElement) =
+    fun removeNodesIfPossible(file: PsiFile, nodes: List<ASTNode>): Boolean
+    fun replaceNodeIfPossible(file: PsiFile, node: ASTNode, replacement: ASTNode): Boolean
+    fun replaceNodeIfPossible(file: PsiFile, node: PsiElement, replacement: PsiElement) =
             replaceNodeIfPossible(file, node.node, replacement.node)
-    fun replaceNodeOnItChild(file: KtFile, node: ASTNode, replacement: ASTNode): ASTNode? = node
+    fun replaceNodeOnItChild(file: PsiFile, node: ASTNode, replacement: ASTNode): ASTNode? = node
 
     fun checkTest(text: String): Boolean
     fun checkTest(text: String, pathToFile: String): Boolean

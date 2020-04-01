@@ -1,10 +1,13 @@
 package com.stepanov.bbf.reduktor.manager
 
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
-import com.stepanov.bbf.reduktor.executor.CommonCompilerCrashTestChecker
+import com.stepanov.bbf.bugfinder.executor.LANGUAGE
+import com.stepanov.bbf.bugfinder.executor.Project
+import com.stepanov.bbf.bugfinder.executor.ProjectMultiCompilerTestChecker
+import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
 import com.stepanov.bbf.reduktor.executor.CompilerArgs
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
-import com.stepanov.bbf.reduktor.executor.backends.CommonBackend
 import com.stepanov.bbf.reduktor.executor.error.Error
 import com.stepanov.bbf.reduktor.executor.error.ErrorType
 import com.stepanov.bbf.reduktor.parser.PSICreator
@@ -18,59 +21,76 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import java.io.File
 import java.io.PrintWriter
 
-class TransformationManager(private val ktFiles: List<KtFile>) {
+class TransformationManager(private val psiFiles: List<Pair<PsiFile, String>>) {
 
     var ktFactory: KtPsiFactory? = null
     var context: BindingContext? = null
     private val log = Logger.getLogger("transformationManagerLog")
 
     init {
-        ktFactory = KtPsiFactory(ktFiles[0].project)
+        ktFactory = KtPsiFactory(psiFiles[0].first.project)
     }
 
-    fun doProjectTransformations(targetFiles: List<KtFile>, creator: PSICreator, checker: CompilerTestChecker) {
-        val projectDir = CompilerArgs.projectDir
-        //TODO Peephole passes for java files?
-        val errorInfo = checker.init(projectDir, KtPsiFactory(targetFiles[0]))
-        println("error = $errorInfo")
-        println("FILE = ${Error.pathToFile}")
-        if (errorInfo.type == ErrorType.UNKNOWN)
-            System.exit(0)
-        var file = targetFiles.find { it.name == Error.pathToFile }!!
-        if (file.name == Error.pathToFile) {
-            startTasksAndSaveNewFiles(
-                creator.targetFiles,
-                projectDir,
-                TaskType.SIMPLIFYING,
-                checker
-            )
-            creator.reinit(projectDir)
-            checker.reinit()
-            file = targetFiles.find { it.name == Error.pathToFile }!!
-            PreliminarySimplification(file, projectDir, checker).computeSlice(creator.targetFiles)
-            creator.reinit(projectDir)
+    fun doProjectTransformations(
+        targetFiles: List<Pair<PsiFile, String>>,
+        creator: PSICreator,
+        checker: ProjectMultiCompilerTestChecker
+    ): List<PsiFile> {
+        val path = targetFiles.joinToString(" ") { it.second }
+        val errorInfo = checker.init(path, KtPsiFactory(targetFiles[0].first))
+        val res = mutableListOf<PsiFile>()
+        for ((i, file) in targetFiles.map { it.first }.withIndex()) {
+            //checker.otherFiles = Project(targetFiles.map { it.first.text }.getAllWithout(i))
+            checker.otherFiles =
+                Project(res.map { it.text } + targetFiles.map { it.first.text }.let { it.subList(i + 1, it.size) })
+            if (file.text.getFileLanguageIfExist() == LANGUAGE.KOTLIN) {
+                log.debug("Reducing of ${file.name} began")
+                res.add(doTransformationsForFile(file as KtFile, checker))
+            } else {
+                log.debug("Reducing of ${file.name} began")
+                val HDD = HierarchicalDeltaDebugger(file.node, checker)
+                HDD.hdd()
+                res.add(file.copy() as PsiFile)
+            }
+        }
+        return res
+//        if (errorInfo.type == ErrorType.UNKNOWN)
+//            System.exit(0)
+//        var file = targetFiles.find { it.second == Error.pathToFile }!!
+//        if (file.second == Error.pathToFile) {
+//            startTasksAndSaveNewFiles(
+//                creator.targetFiles,
+//                projectDir,
+//                TaskType.SIMPLIFYING,
+//                checker
+//            )
+//            creator.reinit(projectDir)
+//            checker.reinit()
+//            file = targetFiles.find { it.name == Error.pathToFile }!!
+//            PreliminarySimplification(file, projectDir, checker).computeSlice(creator.targetFiles)
+//            creator.reinit(projectDir)
 //            checker.reinit()
 //            file = creator.targetFiles.find { it.name == Error.pathToFile }!!
 //            Slicer(file, checker).computeSlice(errorInfo.line, Slicer.Level.INTRAPROCEDURAL)
 //            Slicer(file, checker).computeSlice(errorInfo.line, Slicer.Level.FUNCTION)
 //            Slicer(file, checker).computeSlice(errorInfo.line, Slicer.Level.CLASS)
 //            Save new file with error and reinit
-            val newFile = File(file.name)
-            val writer = newFile.bufferedWriter()
-            writer.write(file.text)
-            writer.close()
-            checker.reinit()
+//            val newFile = File(file.name)
+//            val writer = newFile.bufferedWriter()
+//            writer.write(file.text)
+//            writer.close()
+//            checker.reinit()
 //            file = creator.targetFiles.find { it.name == Error.pathToFile }!!
 //            RemoveInheritance(file, checker).transform(creator.targetFiles)
 //            SimplifyInheritance(file, checker).transform(creator.targetFiles)
 //            creator.reinit(debugProjectDir)
 //            CCTC.reinit()
-            //Now transform file with bug
-            file = creator.targetFiles.find { it.name == Error.pathToFile }!!
-            val TM = TransformationManager(listOf(file))
-            val res = TM.doTransformationsForFile(file, checker, true, projectDir)
-            println("Res = ${res.text}")
-        }
+//            //Now transform file with bug
+//            file = creator.targetFiles.find { it.name == Error.pathToFile }!!
+//            val TM = TransformationManager(listOf(file))
+//            val res = TM.doTransformationsForFile(file, checker, true, projectDir)
+//            println("Res = ${res.text}")
+//        }
         //Saving
 //        for (f in newFiles) {
 //            println("SAVING ${f.name}")
@@ -304,9 +324,9 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
     var tokensSum: Long = 0
 
     fun doTransformations(checker: CompilerTestChecker, isProject: Boolean = false, projectDir: String = "") {
-        println("Size = ${ktFiles.size}")
-        for (file in ktFiles) {
-            doTransformationsForFile(file, checker, isProject, projectDir)
+        println("Size = ${psiFiles.size}")
+        for (file in psiFiles) {
+            doTransformationsForFile(file as KtFile, checker, isProject, projectDir)
 //            //Saving
 //            val pathToSave = StringBuilder(file.name)
 //            pathToSave.insert(pathToSave.indexOfLast { it == '/' }, "/minimized")
@@ -324,20 +344,20 @@ class TransformationManager(private val ktFiles: List<KtFile>) {
         checker: CompilerTestChecker
     ): KtFile? {
         //Temporary
-        for ((i, file) in ktFiles.withIndex()) {
-            log.debug("FILE NAME = ${file.name}")
+        for ((i, file) in psiFiles.withIndex()) {
+            log.debug("FILE NAME = ${file.second}")
             log.debug("FILE NUM = $i")
-            file.beforeAstChange()
-            val pathToSave = StringBuilder(file.name)
+            //file.beforeAstChange()
+            val pathToSave = StringBuilder(file.second)
             pathToSave.insert(pathToSave.indexOfLast { it == '/' }, "/minimized")
             var rFile = file.copy() as KtFile
             checker.pathToFile = rFile.name
             log.debug("proj = ${projectDir}")
             if (isProject) {
-                println("PROJ = $projectDir isProj = $isProject File = ${file.name}")
+                println("PROJ = $projectDir isProj = $isProject File = ${file.second}")
                 checker.init(projectDir, ktFactory!!)
             } else
-                checker.init(file.name, ktFactory!!)
+                checker.init(file.second, ktFactory!!)
             checker.refreshAlreadyCheckedConfigurations()
             log.debug("ERROR = ${checker.getErrorInfo()}")
 //            if (CommonCompilerCrashTestChecker.getErrorInfo().type == ErrorType.UNKNOWN)
