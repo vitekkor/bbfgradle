@@ -115,8 +115,7 @@ fun main(args: Array<String>) {
 //    } else {
 //        ProjectBugFinder("tmp/arrays/classTests").findBugsInProjects()
 //    }
-    //val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
-    val file = File("tmp/results/test.kt")
+    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
     SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 }
