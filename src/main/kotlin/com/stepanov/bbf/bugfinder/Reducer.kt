@@ -33,10 +33,12 @@ object Reducer {
         val checker = when (bug.type) {
             BugType.BACKEND, BugType.FRONTEND -> MultiCompilerCrashChecker(compilers.first())
             BugType.DIFFCOMPILE -> DiffCompileChecker(compilers)
-            //BugType.DIFFBEHAVIOR -> DiffBehaviorChecker(compilers)
+            BugType.DIFFBEHAVIOR -> DiffBehaviorChecker(compilers)
             else -> return bug.crashedProject
         }
         val reduced = reduceFile(path, checker)
+        println("recuced = ${reduced.text}")
+        System.exit(0)
         if (shouldSave) saveFile(reduced)
         return Project(reduced.text)
     }

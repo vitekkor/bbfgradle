@@ -49,7 +49,13 @@ class DiffBehaviorChecker(private val compilers: List<CommonCompiler>) : MultiCo
             }
             prevResults[ind] = curRes
         }
-        val set = results.map { it.second }.toSet()
+        val set = results.map {
+            it.second
+                .split("\n")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .joinToString("\n")
+        }.toSet()
         val res = results.size == set.size
         log.debug("Result = ${res}")
         if (!res) {
