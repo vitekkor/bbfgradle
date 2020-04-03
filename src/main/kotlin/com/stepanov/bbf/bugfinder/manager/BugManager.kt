@@ -1,10 +1,7 @@
 package com.stepanov.bbf.bugfinder.manager
 
 import com.stepanov.bbf.bugfinder.Reducer
-import com.stepanov.bbf.bugfinder.executor.CommonCompiler
-import com.stepanov.bbf.bugfinder.executor.CompilationChecker
-import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.Project
+import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
 import com.stepanov.bbf.bugfinder.util.moveAllCodeInOneFile
 import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
@@ -72,8 +69,8 @@ object BugManager {
         saveBug(bug)
     }
 
-    fun checkIfBugIsProject(bug: Bug): Bug =
-        if (bug.crashedProject.texts.size > 1) {
+    private fun checkIfBugIsProject(bug: Bug): Bug =
+        if (bug.crashedProject.texts.size > 1 && bug.crashedProject.language == LANGUAGE.KOTLIN) {
             val checker = CompilationChecker(bug.compilers)
             val oneFileBugs = checker.isCompilerBug(bug.crashedProject.moveAllCodeInOneFile())
             if (oneFileBugs.isNotEmpty()) Bug(
@@ -91,9 +88,11 @@ object BugManager {
         val newBug = checkIfBugIsProject(bug)
         val reduced = Reducer.reduce(newBug, false)
         val reducedBug = Bug(newBug.compilers, newBug.msg, reduced, newBug.type)
+        println("reduced = ${reduced.texts}")
+        println("IS_PROJECT = ${checkIfBugIsProject(reducedBug).crashedProject.texts.size != 1}")
+        System.exit(0)
         //Try to find duplicates
-        //TODO Make for projects!!
-        if (newBug.crashedProject.texts.size == 1 &&
+        if (/*newBug.crashedProject.texts.size == 1 &&*/
             CompilerArgs.shouldFilterDuplicateCompilerBugs &&
             haveDuplicates(reducedBug)) return
         bugs.add(reducedBug)
@@ -108,21 +107,19 @@ object BugManager {
 
     fun haveDuplicates(bug: Bug): Boolean {
         val dirWithSameBugs = bug.getDirWithSameTypeBugs()
-        val path = bug.crashedProject.saveOrRemoveToTmp(true)
         when (bug.type) {
             BugType.DIFFCOMPILE -> return FilterDuplcatesCompilerErrors.haveSameDiffCompileErrors(
-                path,
+                bug.crashedProject,
                 dirWithSameBugs,
                 bug.compilers,
                 true
             )
             BugType.FRONTEND, BugType.BACKEND -> return FilterDuplcatesCompilerErrors.simpleHaveDuplicatesErrors(
-                path,
+                bug.crashedProject,
                 dirWithSameBugs,
                 bug.compilers.first()
             )
         }
-        bug.crashedProject.saveOrRemoveToTmp(false)
         return false
     }
 

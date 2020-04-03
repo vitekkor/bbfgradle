@@ -5,30 +5,28 @@ import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.util.moveAllCodeInOneFile
 import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.manager.TransformationManager
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 
 object Reducer {
 
     fun reduce(bug: Bug, shouldSave: Boolean = false): Project {
-        //TODO MAKE FOR PROJECTS
         if (bug.crashedProject.texts.size > 1) {
             if (bug.type != BugType.BACKEND && bug.type != BugType.FRONTEND) return bug.crashedProject
-            val checker = ProjectMultiCompilerTestChecker(bug.compilers.first(), null)
+            val checker = ProjectMultiCompilerTestChecker(bug.compilers.first(), null, 0)
             val path = bug.crashedProject.saveOrRemoveToTmp(true)
             val reduced = reduceProject(path, checker)
-            return Project(null, reduced, LANGUAGE.KJAVA)
+            bug.crashedProject.saveOrRemoveToTmp(false)
+            return Project(null, reduced, bug.crashedProject.language)
         }
 
-        //First we need to find more project bugs!!
-        if (bug.crashedProject.texts.size != 1 || bug.crashedProject.language == LANGUAGE.KJAVA) return bug.crashedProject
+        //if (bug.crashedProject.texts.size != 1 || bug.crashedProject.language == LANGUAGE.KJAVA) return bug.crashedProject
         //Saving to tmp
-        val path = bug.crashedProject.saveOrRemoveToTmp(true)
         val compilers = bug.compilers
         val checker = when (bug.type) {
             BugType.BACKEND, BugType.FRONTEND -> MultiCompilerCrashChecker(compilers.first())
@@ -36,9 +34,9 @@ object Reducer {
             BugType.DIFFBEHAVIOR -> DiffBehaviorChecker(compilers)
             else -> return bug.crashedProject
         }
+        val path = bug.crashedProject.saveOrRemoveToTmp(true)
         val reduced = reduceFile(path, checker)
-        println("recuced = ${reduced.text}")
-        System.exit(0)
+        bug.crashedProject.saveOrRemoveToTmp(false)
         if (shouldSave) saveFile(reduced)
         return Project(reduced.text)
     }
@@ -105,7 +103,18 @@ object Reducer {
                     PSICreator("").getPsiForJava(File(it).readText(), Factory.file.project) to it
                 else PSICreator("").getPSIForFile(it) to it
             }
-        return TransformationManager(files).doProjectTransformations(files, PSICreator(""), checker)
+        log.debug("START TO REDUCE PROJECT")
+        var oldText = files.map { it.first.text }.joinToString("\n").trim().filter { !it.isWhitespace() }
+        var reducedFiles: List<Pair<PsiFile, String>> = files
+        while (true) {
+            val res = TransformationManager(reducedFiles).doProjectTransformations(reducedFiles, checker)
+            val newText = res.map { it.text }.joinToString("\n").trim().filter { !it.isWhitespace() }
+            reducedFiles = res.zip(files.map { it.second })
+            if (oldText == newText) break
+            else oldText = newText
+            log.debug("ONE MORE ITERATION $oldText\n\n$newText\n\n")
+        }
+        return reducedFiles.map { it.first }
     }
 
     private fun reduceFile(file: KtFile, checker: CompilerTestChecker): KtFile {
@@ -113,5 +122,6 @@ object Reducer {
             .doTransformationsForFile(file, checker)
     }
 
+    private val log = Logger.getLogger("transformationManagerLog")
 
 }

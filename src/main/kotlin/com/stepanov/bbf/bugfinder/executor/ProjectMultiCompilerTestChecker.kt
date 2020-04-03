@@ -7,9 +7,13 @@ import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
 import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
-import java.io.File
 
-class ProjectMultiCompilerTestChecker(private val compiler: CommonCompiler, var otherFiles: Project?) :
+class ProjectMultiCompilerTestChecker(
+    private val compiler: CommonCompiler,
+    var otherFiles: Project?,
+    //Often order of files affects bug
+    var filePos: Int
+) :
     MultiCompilerCrashChecker(compiler) {
 
     fun isAlreadyCheckedOrWrong(files: List<PsiFile>): Pair<Boolean, Boolean> {
@@ -28,23 +32,24 @@ class ProjectMultiCompilerTestChecker(private val compiler: CommonCompiler, var 
     }
 
     override fun checkTest(text: String, pathToFile: String): Boolean {
-        var hasJava = false
+        var haveJava = false
         if (otherFiles == null) return false
-        val psiFiles = (listOf(text) + otherFiles!!.texts).map {
-            if (it.getFileLanguageIfExist() == LANGUAGE.KOTLIN) {
-                PSICreator("").getPSIForText(it, false)
-            } else {
-                hasJava = true
-                PSICreator("").getPsiForJava(it, Factory.file.project)
+        val psiFiles =
+            otherFiles!!.texts.let { it.subList(0, filePos) + listOf(text) + it.subList(filePos, it.size) }!!.map {
+                if (it.getFileLanguageIfExist() == LANGUAGE.KOTLIN) {
+                    PSICreator("").getPSIForText(it, false)
+                } else {
+                    haveJava = true
+                    PSICreator("").getPsiForJava(it, Factory.file.project)
+                }
             }
-        }
         //WE SHOULD'NT REMOVE COMMENT WITH FILE NAME
-        if (!text.contains(Regex("""((//\s*FILE)|(//\s*File )).*(.java|.kt)\n"""))) return false
+        if (!text.contains(Regex("""((//\s*FILE)|(//\s*File\s*)).*(.java|.kt)\n"""))) return false
 
         val firstCheck = isAlreadyCheckedOrWrong(psiFiles)
         if (firstCheck.first) return firstCheck.second
         val proj =
-            if (hasJava) {
+            if (haveJava) {
                 Project(psiFiles.map { it.text }, null, LANGUAGE.KJAVA)
             } else {
                 Project(psiFiles.map { it.text })

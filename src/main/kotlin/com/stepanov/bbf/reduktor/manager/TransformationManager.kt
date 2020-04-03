@@ -6,10 +6,7 @@ import com.stepanov.bbf.bugfinder.executor.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.executor.ProjectMultiCompilerTestChecker
 import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
-import com.stepanov.bbf.reduktor.executor.CompilerArgs
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
-import com.stepanov.bbf.reduktor.executor.error.Error
-import com.stepanov.bbf.reduktor.executor.error.ErrorType
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.passes.*
 import com.stepanov.bbf.reduktor.passes.slicer.Slicer
@@ -33,7 +30,6 @@ class TransformationManager(private val psiFiles: List<Pair<PsiFile, String>>) {
 
     fun doProjectTransformations(
         targetFiles: List<Pair<PsiFile, String>>,
-        creator: PSICreator,
         checker: ProjectMultiCompilerTestChecker
     ): List<PsiFile> {
         val path = targetFiles.joinToString(" ") { it.second }
@@ -43,6 +39,7 @@ class TransformationManager(private val psiFiles: List<Pair<PsiFile, String>>) {
             //checker.otherFiles = Project(targetFiles.map { it.first.text }.getAllWithout(i))
             checker.otherFiles =
                 Project(res.map { it.text } + targetFiles.map { it.first.text }.let { it.subList(i + 1, it.size) })
+            checker.filePos = i
             if (file.text.getFileLanguageIfExist() == LANGUAGE.KOTLIN) {
                 log.debug("Reducing of ${file.name} began")
                 res.add(doTransformationsForFile(file as KtFile, checker))

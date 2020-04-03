@@ -21,12 +21,14 @@ class Project(texts: List<String>?, files: List<PsiFile>? = null, val language: 
         texts.mapIndexed { index, s -> "//File: ${commonPath.split(" ")[index]}\n$s" }.joinToString("\n")
 
     fun getCommonTextWithDefaultPath() =
-        when (language) {
-            LANGUAGE.KJAVA -> texts.joinToString("\n")
-            else -> texts
-                .mapIndexed { index, s -> "//File: ${CompilerArgs.pathToTmpFile.substringBefore(".kt")}$index.kt\n$s" }
-                .joinToString("\n")
-        }
+        if (texts.any { it.contains(Regex("""//\s*((FILE)|(File))""")) }) texts.joinToString("\n")
+        else
+            when (language) {
+                LANGUAGE.KJAVA -> texts.joinToString("\n")
+                else -> texts
+                    .mapIndexed { index, s -> "//File: ${CompilerArgs.pathToTmpFile.substringBefore(".kt")}$index.kt\n$s" }
+                    .joinToString("\n")
+            }
 
 
     fun getKtFiles(psiFactory: KtPsiFactory): List<KtFile> = texts.map { psiFactory.createFile(it) }

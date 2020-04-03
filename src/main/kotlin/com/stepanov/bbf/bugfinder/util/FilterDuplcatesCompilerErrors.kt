@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.util
 
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.apache.log4j.Logger
@@ -130,10 +131,17 @@ object FilterDuplcatesCompilerErrors {
         ) < 0.2
     }
 
-    fun simpleIsSameErrs(path1: String, path2: String, compiler: CommonCompiler): Boolean {
-        val text = File(path1).readText()
-        val errorMsg = compiler.getErrorMessageForText(text)
-        val errorMsgForFile = compiler.getErrorMessage(path2)
+    fun simpleIsSameErrs(proj: Project, path2: String, compiler: CommonCompiler): Boolean {
+        //val text = File(path1).readText()
+        //val errorMsg = compiler.getErrorMessageForText(text)
+        //val errorMsgForFile = compiler.getErrorMessage(path2)
+        val path1 = proj.saveOrRemoveToTmp(true)
+        val errorMsg = compiler.getErrorMessage(path1)
+        proj.saveOrRemoveToTmp(false)
+        val proj2 = Project(listOf(File(path2).readText()), null, proj.language).split()
+        val path2ForProj = proj2.saveOrRemoveToTmp(true)
+        val errorMsgForFile = compiler.getErrorMessage(path2ForProj)
+        proj2.saveOrRemoveToTmp(false)
         val k = newCheckErrsMatching(
             errorMsg,
             errorMsgForFile
@@ -189,38 +197,43 @@ object FilterDuplcatesCompilerErrors {
             )
         }
 
-    fun simpleHaveDuplicatesErrors(path: String, dir: String, compiler: CommonCompiler): Boolean =
-        File(dir).listFiles().filter { it.path.endsWith(".kt") }.any {
+    fun simpleHaveDuplicatesErrors(proj: Project, dir: String, compiler: CommonCompiler): Boolean =
+        File(dir).listFiles().filter { it.path.endsWith(".kt") || it.path.endsWith(".java") }.any {
             simpleIsSameErrs(
-                path,
+                proj,
                 it.absolutePath,
                 compiler
             )
         }
 
     fun haveSameDiffCompileErrors(
-        path: String,
+        proj: Project,
         dir: String,
         compilers: List<CommonCompiler>,
         strictMode: Boolean
     ): Boolean {
         val k1 = if (strictMode) 0.3 else 0.45
+        val path = proj.saveOrRemoveToTmp(true)
         val errorToLocation1 = compilers
-            .map { it.compilerInfo to it.getErrorMessageForTextWithLocation(File(path).readText()) }
+            .map { it.compilerInfo to it.getErrorMessageWithLocation(path) }
             .first { it.second.first.trim().isNotEmpty() }
             .let { "${it.first}\n${it.second.first}" to it.second.second.first().lineContent }
+        proj.saveOrRemoveToTmp(false)
 
         for (file in File(dir).listFiles().filter { it.absolutePath.endsWith(".kt") }) {
             if (file.absolutePath == path) continue
+            val proj2 = Project(listOf(file.readText()), null, proj.language).split()
+            val path2ForProj = proj2.saveOrRemoveToTmp(true)
             //Check if compiling or compiler bug
-            if (compilers.map { it.isCompilerBug(file.absolutePath) }.any { it }) {
+            if (compilers.map { it.isCompilerBug(path2ForProj) }.any { it }) {
                 file.delete()
                 continue
             }
             val errorToLocation2 = compilers
-                .map { it.compilerInfo to it.getErrorMessageForTextWithLocation(file.readText()) }
+                .map { it.compilerInfo to it.getErrorMessageWithLocation(path2ForProj) }
                 .firstOrNull { it.second.first.trim().isNotEmpty() }
                 ?.let { "${it.first}\n${it.second.first}" to it.second.second.first().lineContent } ?: continue
+            proj2.saveOrRemoveToTmp(false)
             if (errorToLocation1.first.split("\n").first() != errorToLocation2.first.split("\n").first()) continue
             val diff = newCheckErrsMatching(errorToLocation1.first, errorToLocation2.first)
             log.debug("${errorToLocation1.first} \n${errorToLocation2.first}\n$path ${file.absolutePath} $diff\n\n")

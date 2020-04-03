@@ -21,6 +21,7 @@ import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
+import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
 import kotlin.random.Random
 import kotlin.system.exitProcess
@@ -33,7 +34,7 @@ fun main(args: Array<String>) {
     Factory.file = PSICreator("").getPSIForText("")
 
 //    for (f in File("/home/stepanov/Kotlin/bbfgradle/tmp/results/KJVM-Xuse-ir/").listFiles()) {
-//    val f = File("tmp/results/test.kt")
+////    val f = File("tmp/results/test.kt")
 //        val project = Project(listOf(f.readText()), null, LANGUAGE.KJAVA).split()
 //        val path = project.saveOrRemoveToTmp(true)
 //        val isB = KJCompiler().isCompilerBug(path)
@@ -41,13 +42,13 @@ fun main(args: Array<String>) {
 //        println("Res of ${f.absolutePath} = $isB")
 //    }
 //    System.exit(0)
-//    BugManager.saveBug(Bug(
-//        listOf(JVMCompiler(), JVMCompiler("-Xuse-ir")),
-//        "",
-//        Project(listOf(File("tmp/results/test.kt").readText())),
-//        BugType.DIFFBEHAVIOR
-//    ))
-//    System.exit(0)
+    BugManager.saveBug(Bug(
+        JVMCompiler("-Xuse-ir"),
+        "",
+        Project(listOf(File("tmp/results/test.kt").readText()), null, LANGUAGE.KOTLIN).split(),
+        BugType.BACKEND
+    ))
+    System.exit(0)
     //ProjectBugFinder("tmp/arrays/classTests/").findBugsInKJProjects()
     //System.exit(0)
 

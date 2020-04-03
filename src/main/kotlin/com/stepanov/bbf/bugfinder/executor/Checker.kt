@@ -38,7 +38,6 @@ abstract class Checker() : Factory() {
     }
 
     fun checkCompiling(project: Project): Boolean {
-        //TODO!!!! Java
         val allTexts = project.texts.joinToString()
         checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
         //Checking syntax correction
