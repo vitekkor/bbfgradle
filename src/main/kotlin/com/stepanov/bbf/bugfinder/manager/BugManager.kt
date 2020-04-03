@@ -88,20 +88,18 @@ object BugManager {
         val newBug = checkIfBugIsProject(bug)
         val reduced = Reducer.reduce(newBug, false)
         val reducedBug = Bug(newBug.compilers, newBug.msg, reduced, newBug.type)
-        println("reduced = ${reduced.texts}")
-        println("IS_PROJECT = ${checkIfBugIsProject(reducedBug).crashedProject.texts.size != 1}")
-        System.exit(0)
+        val newestBug = checkIfBugIsProject(reducedBug)
         //Try to find duplicates
         if (/*newBug.crashedProject.texts.size == 1 &&*/
             CompilerArgs.shouldFilterDuplicateCompilerBugs &&
-            haveDuplicates(reducedBug)) return
-        bugs.add(reducedBug)
+            haveDuplicates(newestBug)) return
+        bugs.add(newestBug)
         //Report bugs
         if (ReportProperties.getPropAsBoolean("TEXT_REPORTER") == true) {
             TextReporter.dump(bugs)
         }
         if (ReportProperties.getPropAsBoolean("FILE_REPORTER") == true) {
-            FileReporter.dump(listOf(reducedBug))
+            FileReporter.dump(listOf(newestBug))
         }
     }
 

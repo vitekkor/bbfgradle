@@ -33,25 +33,6 @@ fun main(args: Array<String>) {
     //Init factory
     Factory.file = PSICreator("").getPSIForText("")
 
-//    for (f in File("/home/stepanov/Kotlin/bbfgradle/tmp/results/KJVM-Xuse-ir/").listFiles()) {
-////    val f = File("tmp/results/test.kt")
-//        val project = Project(listOf(f.readText()), null, LANGUAGE.KJAVA).split()
-//        val path = project.saveOrRemoveToTmp(true)
-//        val isB = KJCompiler().isCompilerBug(path)
-//        project.saveOrRemoveToTmp(false)
-//        println("Res of ${f.absolutePath} = $isB")
-//    }
-//    System.exit(0)
-    BugManager.saveBug(Bug(
-        JVMCompiler("-Xuse-ir"),
-        "",
-        Project(listOf(File("tmp/results/test.kt").readText()), null, LANGUAGE.KOTLIN).split(),
-        BugType.BACKEND
-    ))
-    System.exit(0)
-    //ProjectBugFinder("tmp/arrays/classTests/").findBugsInKJProjects()
-    //System.exit(0)
-
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
         Logger.getLogger("bugFinderLogger").level = Level.OFF
