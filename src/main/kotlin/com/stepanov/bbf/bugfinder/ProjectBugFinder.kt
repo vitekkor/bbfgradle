@@ -37,6 +37,7 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
         if (!res) return
         //Execute mutations?
         val mutants = files.map { it.text }.toMutableList()
+        log.debug("Project:\n$mutants")
         for ((i, file) in files.withIndex()) {
             //if (file.text.getFileLanguageIfExist() == LANGUAGE.JAVA) continue
             log.debug("File $i from ${files.size - 1} mutations began")
@@ -100,6 +101,7 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
         if (!res) return
         //Execute mutations?
         val mutants = files.map { it.text }.toMutableList()
+        log.debug("Project:\n$mutants")
         for ((i, file) in files.withIndex()) {
             log.debug("File $i from ${files.size - 1} mutations began")
             val creator = PSICreator("")

@@ -71,8 +71,20 @@ fun main(args: Array<String>) {
     while (true) {
         println("Elapsed: $timeElapsed")
         if (handler.hasResult()) {
+            if (timeElapsed > TIMEOUT_SEC * 1000) {
+                var i = 0
+                var newPath: String
+                while (true) {
+                    newPath = "$pathToErrorLogs/logs$i"
+                    if (File(newPath).exists()) i++
+                    else break
+                }
+                val dstDir = File(newPath)
+                dstDir.mkdirs()
+                File("$dstDir/timeout").writeText("timeout")
+            }
             //IF error then save logs
-            if (handler.exitValue != 0) {
+            else if (handler.exitValue != 0) {
                 var i = 0
                 var newPath: String
                 while (true) {

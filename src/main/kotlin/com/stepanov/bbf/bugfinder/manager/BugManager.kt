@@ -84,22 +84,29 @@ object BugManager {
 
 
     fun saveBug(bug: Bug) {
-        //Check if bug is real project bug
-        val newBug = checkIfBugIsProject(bug)
-        val reduced = Reducer.reduce(newBug, false)
-        val reducedBug = Bug(newBug.compilers, newBug.msg, reduced, newBug.type)
-        val newestBug = checkIfBugIsProject(reducedBug)
-        //Try to find duplicates
-        if (/*newBug.crashedProject.texts.size == 1 &&*/
-            CompilerArgs.shouldFilterDuplicateCompilerBugs &&
-            haveDuplicates(newestBug)) return
-        bugs.add(newestBug)
-        //Report bugs
-        if (ReportProperties.getPropAsBoolean("TEXT_REPORTER") == true) {
-            TextReporter.dump(bugs)
-        }
-        if (ReportProperties.getPropAsBoolean("FILE_REPORTER") == true) {
-            FileReporter.dump(listOf(newestBug))
+        try {
+            //Check if bug is real project bug
+            val newBug = checkIfBugIsProject(bug)
+            log.debug("Start to reducing ${bug.crashedProject.texts}")
+            val reduced = Reducer.reduce(newBug, false)
+            val reducedBug = Bug(newBug.compilers, newBug.msg, reduced, newBug.type)
+            log.debug("Reduced: ${reducedBug.crashedProject.texts}")
+            val newestBug = checkIfBugIsProject(reducedBug)
+            //Try to find duplicates
+            if (/*newBug.crashedProject.texts.size == 1 &&*/
+                CompilerArgs.shouldFilterDuplicateCompilerBugs &&
+                haveDuplicates(newestBug)
+            ) return
+            bugs.add(newestBug)
+            //Report bugs
+            if (ReportProperties.getPropAsBoolean("TEXT_REPORTER") == true) {
+                TextReporter.dump(bugs)
+            }
+            if (ReportProperties.getPropAsBoolean("FILE_REPORTER") == true) {
+                FileReporter.dump(listOf(newestBug))
+            }
+        } catch (e: Exception) {
+            log.debug("Exception ${e.localizedMessage}\n${e.stackTrace}")
         }
     }
 

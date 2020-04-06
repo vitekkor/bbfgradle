@@ -92,12 +92,12 @@ fun main(args: Array<String>) {
         FalsePositivesDeleter().cleanDirs()
         exitProcess(0)
     }
-//    if (Random.nextBoolean()) {
-//        ProjectBugFinder("tmp/arrays/kotlinAndJava").findBugsInKJProjects()
-//    } else {
-//        ProjectBugFinder("tmp/arrays/classTests").findBugsInProjects()
-//    }
-    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
-    SingleFileBugFinder(file.absolutePath).findBugsInFile()
+    if (Random.nextBoolean()) {
+        ProjectBugFinder("tmp/arrays/kotlinAndJava").findBugsInKJProjects()
+    } else {
+        ProjectBugFinder("tmp/arrays/classTests").findBugsInProjects()
+    }
+//    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
+//    SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 }

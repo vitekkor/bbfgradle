@@ -20,7 +20,7 @@ class Mutator(val file: PsiFile, val context: BindingContext?) {
             try {
                 t.transform()
             } catch (e: Exception) {
-                log.debug("Exception ${e.localizedMessage}")
+                log.debug("Exception ${e.localizedMessage}\n${e.stackTrace}")
             }
         }
     }
