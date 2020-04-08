@@ -32,7 +32,6 @@ fun main(args: Array<String>) {
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
     //Init factory
     Factory.file = PSICreator("").getPSIForText("")
-
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
         Logger.getLogger("bugFinderLogger").level = Level.OFF
@@ -92,11 +91,11 @@ fun main(args: Array<String>) {
         FalsePositivesDeleter().cleanDirs()
         exitProcess(0)
     }
-    if (Random.nextBoolean()) {
+//    if (Random.nextBoolean()) {
         ProjectBugFinder("tmp/arrays/kotlinAndJava").findBugsInKJProjects()
-    } else {
-        ProjectBugFinder("tmp/arrays/classTests").findBugsInProjects()
-    }
+//    } else {
+//        ProjectBugFinder("tmp/arrays/classTests").findBugsInProjects()
+//    }
 //    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
 //    SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)

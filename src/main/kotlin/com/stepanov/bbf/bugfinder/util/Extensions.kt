@@ -90,13 +90,10 @@ fun <T> Iterable<T>.getAllWithout(index: Int): List<T> {
     return list
 }
 
-fun <T> Iterable<T>.getAllWithoutLast(index: Int): List<T> {
-    val list: ArrayList<T> = arrayListOf<T>()
-    var count = 0
-    for (item in this) {
-        if (count++ != index) list.add(item)
-    }
-    return list
+fun <T> Iterable<T>.getAllWithoutLast(): List<T> {
+    var size = 0
+    for (e in this.iterator()) size++
+    return getAllWithout(size - 1)
 }
 
 fun <ASTNode> List<ASTNode>.filterRowPsiWhiteSpaces(): List<ASTNode> {
@@ -329,6 +326,8 @@ fun Project.saveOrRemoveToTmp(save: Boolean): String {
     val texts = this.texts
     val textToTmpPath = texts.mapIndexed { index, s -> s to generateTmpPath(index) }
     val commonTmpName = textToTmpPath.joinToString(" ") { it.second }
+    //Check for correct path
+    if (commonTmpName.split(" ").any { !it.endsWith(".kt") && !it.endsWith(".java") }) return ""
     if (save) textToTmpPath.forEach { File(it.second.substringBeforeLast('/')).mkdirs(); File(it.second).writeText(it.first) }
     else textToTmpPath.forEach { File(it.second).delete() }
     return commonTmpName

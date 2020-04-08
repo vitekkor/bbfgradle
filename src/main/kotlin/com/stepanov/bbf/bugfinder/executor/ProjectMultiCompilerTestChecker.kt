@@ -55,6 +55,7 @@ class ProjectMultiCompilerTestChecker(
                 Project(psiFiles.map { it.text })
             }
         val path = proj.saveOrRemoveToTmp(true)
+        if (path.isEmpty()) return false
         val res = compiler.isCompilerBug(path)
         proj.saveOrRemoveToTmp(false)
         alreadyChecked[text.hashCode()] = res
