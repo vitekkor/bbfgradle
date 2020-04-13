@@ -4,11 +4,9 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
-import com.stepanov.bbf.bugfinder.util.getAllDFSChildren
 import com.stepanov.bbf.bugfinder.util.getType
 import com.stepanov.bbf.reduktor.util.*
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.psi.psiUtil.getValueParameters
 import org.jetbrains.kotlin.psi.psiUtil.isPropertyParameter
 import org.jetbrains.kotlin.resolve.BindingContext
 
@@ -33,15 +31,51 @@ class VariableValuesTracer(private var tree: PsiFile, private val ctx: BindingCo
                 propToPrint
                     .filter {
                         it.first in sliced
-                            || it.second.text.contains("globalVar.")
-                            || (it.first is KtParameter && generatePrefix(node).contains(generatePrefix(it.first)))
+                                || it.second.text.contains("globalVar.")
+                                || (it.first is KtParameter && generatePrefix(node).contains(generatePrefix(it.first)))
                     }
                     .forEach {
-                        println("adding ${it.second.text}")
                         val copy = it.second.copy() as KtBlockExpression
                         val res = checker.addNodeIfPossibleWithNode(tree, bearingNode, copy)
-//                        println(res != null)
-//                        println("\n\n")
+                        if (res != null) bearingNode = res
+                    }
+            }
+        }
+    }
+
+    fun trace(line: Int) {
+        var curLine = 0
+        var prev: PsiWhiteSpace? = null
+        for (node in tree.getAllDFSChildren()) {
+            if (node is PsiWhiteSpace) {
+                curLine += node.text.count { it == '\n' }
+                if (curLine != line && node.text.contains("\n")) prev = node
+            }
+            if (node is PsiWhiteSpace && node.text.contains("\n") && node.parent !is PsiFile) {
+                if (curLine != line) continue
+                var bearingNode = node
+                //println("parent = ${node.parent.text}")
+                val sliced =
+                    if (line != -1) {
+                        prev?.let { getSlice(it, node) } ?: getSlice(null, node)
+                    } else {
+                        getSlice(node)
+                    }
+
+                val slicedWithName = sliced.map { el ->
+                    val name = when (el) {
+                        is KtNamedDeclaration -> el.name ?: ""
+                        else -> el.text
+                    }
+                    var prefix = generatePrefix(el)
+                    if (prefix.isEmpty()) prefix = "globalVar"
+                    "$prefix.${name}" to name
+                }
+                slicedWithName
+                    .forEach {
+                        val printExpr = createPrint(it.first, it.second)
+                        val copy = printExpr.copy() as KtBlockExpression
+                        val res = checker.addNodeIfPossibleWithNode(tree, bearingNode, copy)
                         if (res != null) bearingNode = res
                     }
             }
@@ -70,6 +104,22 @@ class VariableValuesTracer(private var tree: PsiFile, private val ctx: BindingCo
 
     private val PsiElement.isPropParam
         get() = this is KtParameter && this.isPropertyParameter()
+
+
+    private fun getSlice(nodeFrom: PsiElement?, nodeTo: PsiElement): Set<PsiElement> {
+        val slice =
+            tree.getAllDFSChildren()
+                .takeWhile { it != nodeTo }
+                .takeLastWhile { nodeFrom?.let { nodeFrom -> it != nodeFrom } ?: true }
+        val properties = slice.filterIsInstance<KtValVarKeywordOwner>()
+        if (properties.isNotEmpty()) return properties.toSet()
+        val binaryExpr =
+            slice.filter { it is KtBinaryExpression && it.parent !in slice }.map { it as KtBinaryExpression }
+        if (binaryExpr.isNotEmpty()) return binaryExpr.mapNotNull { it.left }
+            .filterIsInstance<KtNameReferenceExpression>().toSet()
+        return slice.filterIsInstance<KtNameReferenceExpression>().filterElementsWithSameTexts().toSet()
+    }
+
 
     private fun getSlice(node: PsiElement): Set<PsiElement> {
         val res = mutableSetOf<PsiElement>()
