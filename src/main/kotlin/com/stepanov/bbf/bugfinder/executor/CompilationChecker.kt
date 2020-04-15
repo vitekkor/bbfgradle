@@ -3,14 +3,15 @@ package com.stepanov.bbf.bugfinder.executor
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 
-open class CompilationChecker(private val compilers: List<CommonCompiler>) : Checker() {
+open class CompilationChecker(private val compilers: List<CommonCompiler>) : Factory() /*: Checker()*/ {
 
-    override fun isCompilationSuccessful(project: Project): Boolean {
+    fun isCompilationSuccessful(project: Project): Boolean {
         val path = project.saveOrRemoveToTmp(true)
         if (path.isEmpty()) return false
         val res = compilers.all { it.checkCompiling(path) }
@@ -18,7 +19,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) : Che
         return res
     }
 
-    override fun isCompilerBug(project: Project): List<Bug> {
+    fun isCompilerBug(project: Project): List<Bug> {
         val path = project.saveOrRemoveToTmp(true)
         if (path.isEmpty()) return listOf()
         val res = mutableListOf<Bug>()
@@ -47,5 +48,4 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) : Che
     }
 
 
-    override val additionalConditions: MutableList<(PsiFile) -> Boolean> = mutableListOf()
 }

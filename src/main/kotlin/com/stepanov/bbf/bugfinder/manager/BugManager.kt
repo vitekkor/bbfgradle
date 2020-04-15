@@ -44,6 +44,19 @@ data class Bug(val compilers: List<CommonCompiler>, val msg: String, val crashed
         return "${type.name}\n${compilers.map { it.compilerInfo }}\nText:\n${crashedProject.getCommonTextWithDefaultPath()}"
     }
 
+    override fun equals(other: Any?): Boolean =
+        other is Bug && other.crashedProject == this.crashedProject && other.type == this.type &&
+                other.compilers.map { it.compilerInfo } == this.compilers.map { it.compilerInfo }
+
+    override fun hashCode(): Int {
+        var result = compilers.hashCode()
+        result = 31 * result + msg.hashCode()
+        result = 31 * result + crashedProject.hashCode()
+        result = 31 * result + type.hashCode()
+        result = 31 * result + compilerVersion.hashCode()
+        return result
+    }
+
 }
 
 
@@ -70,16 +83,28 @@ object BugManager {
     }
 
     private fun checkIfBugIsProject(bug: Bug): Bug =
-        if (bug.crashedProject.texts.size > 1 && bug.crashedProject.language == LANGUAGE.KOTLIN) {
+        if (bug.crashedProject.texts.size > 1) {
             val checker = CompilationChecker(bug.compilers)
-            val oneFileBugs = checker.isCompilerBug(bug.crashedProject.moveAllCodeInOneFile())
-            if (oneFileBugs.isNotEmpty()) Bug(
-                bug.compilers,
-                bug.msg,
-                bug.crashedProject.moveAllCodeInOneFile(),
-                bug.type
-            )
-            else bug
+            if (bug.crashedProject.language == LANGUAGE.KOTLIN) {
+                val oneFileBugs = checker.isCompilerBug(bug.crashedProject.moveAllCodeInOneFile())
+                if (oneFileBugs.isNotEmpty()) Bug(
+                    bug.compilers,
+                    bug.msg,
+                    bug.crashedProject.moveAllCodeInOneFile(),
+                    bug.type
+                )
+                else bug
+            } else {
+                val text = bug.crashedProject.texts.joinToString("\n")
+                if (checker.isCompilerBug(Project(text)).isNotEmpty())
+                    Bug(
+                        bug.compilers,
+                        bug.msg,
+                        Project(text),
+                        bug.type
+                    )
+                 else bug
+            }
         } else bug
 
 
@@ -87,7 +112,7 @@ object BugManager {
         try {
             //Check if bug is real project bug
             val newBug = checkIfBugIsProject(bug)
-            log.debug("Start to reducing ${bug.crashedProject.texts}")
+            log.debug("Start to reduce ${newBug.crashedProject.texts}")
             val reduced = Reducer.reduce(newBug, false)
             val reducedBug = Bug(newBug.compilers, newBug.msg, reduced, newBug.type)
             log.debug("Reduced: ${reducedBug.crashedProject.texts}")
@@ -107,6 +132,7 @@ object BugManager {
             }
         } catch (e: Exception) {
             log.debug("Exception ${e.localizedMessage}\n${e.stackTrace}")
+            System.exit(1)
         }
     }
 

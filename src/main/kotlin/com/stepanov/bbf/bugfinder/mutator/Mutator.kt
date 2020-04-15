@@ -20,7 +20,9 @@ class Mutator(val file: PsiFile, val context: BindingContext?) {
             try {
                 t.transform()
             } catch (e: Exception) {
-                log.debug("Exception ${e.localizedMessage}\n${e.stackTrace}")
+                log.debug("Exception ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
+            } catch (e: Error) {
+                log.debug("Error ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
             }
         }
     }
@@ -131,7 +133,7 @@ class Mutator(val file: PsiFile, val context: BindingContext?) {
         //ChangeOperatorsToFunInvocations().transform()
         log.debug("After ChangeOperatorsToFunInvocations = ${Transformation.file.text}")
         log.debug("Verify = ${verify()}")
-        if (Transformation.checker.otherFiles != null) {
+        if (isProject()) {
             executeMutation(ShuffleNodes(), 75)
         } else {
             executeMutation(ChangeRandomASTNodes(), 75)
@@ -142,6 +144,9 @@ class Mutator(val file: PsiFile, val context: BindingContext?) {
         log.debug("After ChangeRandomASTNodesFromAnotherTrees = ${Transformation.file.text}")
         log.debug("Verify = ${verify()}")
     }
+
+
+    private fun isProject() = Transformation.checker.otherFiles != null
 
     private fun verify() = Transformation.checker.checkCompiling(Transformation.file, Transformation.checker.otherFiles)
     //private fun verify(): String = "${compilers.checkCompilingForAllBackends(Transformation.file)}"

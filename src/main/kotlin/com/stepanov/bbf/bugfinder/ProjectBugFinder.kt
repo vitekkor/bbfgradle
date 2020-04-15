@@ -32,7 +32,7 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
                     else PSICreator("").getPsiForJava(it, Factory.file.project)
                 }
         val checker = CompilationChecker(compilers)
-        val res = checker.checkCompiling(Project(files.map { it.text }, null, LANGUAGE.KJAVA))
+        val res = checker.isCompilationSuccessful(Project(files.map { it.text }, null, LANGUAGE.KJAVA))
         log.debug("Try to compile $res")
         if (!res) return
         //Execute mutations?
@@ -57,13 +57,13 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
             mutants[i] = m.text
         }
         val proj = Project(mutants, null, LANGUAGE.KJAVA)
-        log.debug("Res after mutation = ${proj.getCommonTextWithDefaultPath()}")
+        log.debug("Res after mutation = ${proj.texts}")
         TracesChecker(compilers).compareTraces(proj)
     }
 
     fun findBugsInProjects() {
         val dir = File(dir).listFiles()!!
-        val numOfFiles = Random.nextInt(2, 4)
+        val numOfFiles = 2/*Random.nextInt(2, 4)*/
         val files = (1..numOfFiles)
             .map { dir[Random.nextInt(0, dir.size)] }
             .map { PSICreator("").getPSIForText(it.readText()) }
@@ -84,20 +84,23 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
                 file.packageDirective?.add(factory.createWhiteSpace("\n\n\n"))
             }
         }
-        val c = checker.checkCompiling(Project(null, files))
-        if (!c) return
+        val c = checker.isCompilationSuccessful(Project(null, files))
+        if (!c) {
+            log.debug("Cant compile project ${files.map { it.text }}")
+            return
+        }
         val imports = files.map { ImportsGetter().getAllImportsFromFile(it).filter { !it.text.contains(".box") } }
 
         for (i in 1 until files.size) {
             files[i].importList?.add(factory.createWhiteSpace("\n"))
             imports[i - 1].forEach { files[i].addImport(it) }
         }
+        files.first().importList?.add(factory.createWhiteSpace("\n"))
         imports.last().forEach { files.first().addImport(it) }
         //Shuffle box funcs
         files.boxShift(factory)
         val project = Project(null, files)
-        val res = checker.checkCompiling(project)
-        println("result = $res\n")
+        val res = checker.isCompilationSuccessful(project)
         if (!res) return
         //Execute mutations?
         val mutants = files.map { it.text }.toMutableList()
@@ -113,6 +116,8 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
             )
             mutants[i] = m.text
         }
+        println("after = $mutants")
+        System.exit(0)
         val proj = Project(mutants)
         log.debug("Res after mutation = ${proj.getCommonTextWithDefaultPath()}")
         TracesChecker(compilers).compareTraces(proj)

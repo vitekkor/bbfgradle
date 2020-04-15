@@ -138,6 +138,8 @@ class ImportsGetter {
 
     fun getAllImportsFromFile(file: KtFile): List<KtImportDirective> {
         val newImports = HashSet<KtImportDirective>()
+        //Put old imports
+        file.importDirectives.forEach { newImports.add(it) }
         getClasses(file).mapTo(newImports) { getImport(it.fqName!!, file) }
         getObjects(file).mapTo(newImports) { getImport(it.fqName!!, file) }
         getTopLevelProps(file).mapTo(newImports) { getImport(it.fqName!!, file) }

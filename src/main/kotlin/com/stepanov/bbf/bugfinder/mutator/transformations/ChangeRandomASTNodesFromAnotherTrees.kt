@@ -4,6 +4,7 @@ import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 
 import com.stepanov.bbf.bugfinder.util.NodeCollector
 import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
+import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.apache.log4j.Logger
 import java.io.File
@@ -19,6 +20,7 @@ class ChangeRandomASTNodesFromAnotherTrees : Transformation() {
         for (i in 0..randConst) {
             log.debug("Try №$i of $randConst")
             val randomNode = nodes[Random.nextInt(0, nodes.size - 1)]
+            if (randomNode.getAllParentsWithoutNode().size > magicConst) continue
             //Searching nodes of same type in another files
             val line = File("database.txt").bufferedReader().lines()
                     .filter { it.takeWhile { it != ' ' } == randomNode.elementType.toString() }.findFirst()
@@ -41,5 +43,6 @@ class ChangeRandomASTNodesFromAnotherTrees : Transformation() {
         }
     }
 
+    val magicConst = 3
     val numOfTries = 50 to 1000
 }

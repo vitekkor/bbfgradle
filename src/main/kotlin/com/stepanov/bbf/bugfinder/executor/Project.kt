@@ -33,4 +33,13 @@ class Project(texts: List<String>?, files: List<PsiFile>? = null, val language: 
 
     fun getKtFiles(psiFactory: KtPsiFactory): List<KtFile> = texts.map { psiFactory.createFile(it) }
 
+    override fun equals(other: Any?): Boolean =
+        other is Project && other.texts == this.texts
+
+    override fun hashCode(): Int {
+        var result = language.hashCode()
+        result = 31 * result + texts.hashCode()
+        return result
+    }
+
 }

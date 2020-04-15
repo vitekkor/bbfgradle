@@ -4,15 +4,15 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.TreeElement
+import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
-import com.stepanov.bbf.bugfinder.executor.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 
 class MutationChecker(compilers: List<CommonCompiler>, var otherFiles: Project? = null) :
-    CompilationChecker(compilers) {
+    Checker(compilers) {
 
     fun replacePSINodeIfPossible(file: PsiFile, node: PsiElement, replacement: PsiElement) =
         replaceNodeIfPossible(file, node.node, replacement.node)

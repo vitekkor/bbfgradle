@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
 
 //Project adaptation
-abstract class Checker() : Factory() {
+open class Checker(compilers: List<CommonCompiler>) : CompilationChecker(compilers) {
 
     //Back compatibility
     fun checkTextCompiling(text: String): Boolean = checkCompiling(Project(listOf(text)))
@@ -31,11 +31,6 @@ abstract class Checker() : Factory() {
         otherFiles?.let { files ->
             checkCompiling(Project(files.texts.toMutableList() + file.text, null, files.language))
         } ?: checkCompiling(file)
-
-    fun saveAndCheckCompiling(project: Project): Boolean {
-        project.saveOrRemoveToTmp(true)
-        return checkCompiling(project)
-    }
 
     fun checkCompiling(project: Project): Boolean {
         val allTexts = project.texts.joinToString()
@@ -62,11 +57,8 @@ abstract class Checker() : Factory() {
         return isCompilationSuccessful(project)
     }
 
-    abstract fun isCompilationSuccessful(project: Project): Boolean
-    abstract fun isCompilerBug(project: Project): List<Bug>
+    val additionalConditions: MutableList<(PsiFile) -> Boolean> = mutableListOf()
 
-
-    abstract val additionalConditions: List<(PsiFile) -> Boolean>
     private val checkedConfigurations = hashMapOf<String, Boolean>()
     private val log = Logger.getLogger("mutatorLogger")
 }

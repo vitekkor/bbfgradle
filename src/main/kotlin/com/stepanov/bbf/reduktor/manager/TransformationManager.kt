@@ -44,10 +44,14 @@ class TransformationManager(private val psiFiles: List<Pair<PsiFile, String>>) {
                 log.debug("Reducing of ${file.name} began")
                 res.add(doTransformationsForFile(file as KtFile, checker))
             } else {
+                var rFile = file.copy() as PsiFile
                 log.debug("Reducing of ${file.name} began")
-                val HDD = HierarchicalDeltaDebugger(file.node, checker)
+                val HDD = HierarchicalDeltaDebugger(rFile.node, checker)
                 HDD.hdd()
-                res.add(file.copy() as PsiFile)
+                rFile = KtPsiFactory(rFile.project).createFile(rFile.name, rFile.text)
+                RemoveWhitespaces(rFile, checker).transform()
+                res.add(rFile.copy() as PsiFile)
+                log.debug("Reduced ${file.name} = ${rFile.text}")
             }
         }
         return res
