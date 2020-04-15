@@ -116,8 +116,6 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
             )
             mutants[i] = m.text
         }
-        println("after = $mutants")
-        System.exit(0)
         val proj = Project(mutants)
         log.debug("Res after mutation = ${proj.getCommonTextWithDefaultPath()}")
         TracesChecker(compilers).compareTraces(proj)
