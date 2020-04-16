@@ -36,22 +36,27 @@ open class Checker(compilers: List<CommonCompiler>) : CompilationChecker(compile
         val allTexts = project.texts.joinToString()
         checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
         //Checking syntax correction
-        for (text in project.texts) {
-            val tree =
-                if (text.getFileLanguageIfExist() == LANGUAGE.JAVA) PSICreator("").getPsiForJava(text, file.project)
-                else psiFactory.createFile(text)
-            if (tree.node.getAllChildrenNodes().any { it.psi is PsiErrorElement }) {
-                log.debug("Wrong syntax")
-                checkedConfigurations[allTexts] = false
-                return false
-            }
-            additionalConditions.forEach {
-                if (tree.text.getFileLanguageIfExist() == LANGUAGE.JAVA) return@forEach
-                if (!it.invoke(tree)) {
-                    log.debug("Breaks condition")
+        try {
+            for (text in project.texts) {
+                val tree =
+                    if (text.getFileLanguageIfExist() == LANGUAGE.JAVA) PSICreator("").getPsiForJava(text, file.project)
+                    else psiFactory.createFile(text)
+                if (tree.node.getAllChildrenNodes().any { it.psi is PsiErrorElement }) {
+                    log.debug("Wrong syntax")
+                    checkedConfigurations[allTexts] = false
                     return false
                 }
+                additionalConditions.forEach {
+                    if (tree.text.getFileLanguageIfExist() == LANGUAGE.JAVA) return@forEach
+                    if (!it.invoke(tree)) {
+                        log.debug("Breaks condition")
+                        return false
+                    }
+                }
             }
+        } catch (e: Error) {
+            //When PSI cannot be built
+            return false
         }
         isCompilerBug(project).forEach { BugManager.saveBug(it) }
         return isCompilationSuccessful(project)
