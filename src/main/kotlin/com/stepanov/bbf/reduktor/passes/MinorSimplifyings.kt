@@ -1,7 +1,9 @@
 package com.stepanov.bbf.reduktor.passes
 
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
+import com.stepanov.bbf.reduktor.util.debugPrint
 import com.stepanov.bbf.reduktor.util.generateDefValuesAsString
+import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getValueParameters
@@ -20,8 +22,10 @@ class MinorSimplifyings(
             file.getAllPSIChildrenOfType<KtExpression>()
                     //TODO DO SMTH WITH THAT
                 .filter { it !is KtConstantExpression &&
-                        (it is KtReferenceExpression || it is KtOperationExpression || it is KtCallExpression) }
+                        (it is KtReferenceExpression || it is KtOperationExpression || it is KtCallExpression ||
+                                it is KtDotQualifiedExpression) }
                 .forEach {
+                    if (!file.getAllChildren().contains(it)) return@forEach
                     it.getType(ctx)?.let { type ->
                         val defValue =
                             customStructures.find { it.second == "$type" }?.let { getDefValueForCustomClass(it.first) }

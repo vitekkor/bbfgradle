@@ -38,10 +38,14 @@ class SimplifyFunAndProp(private val file: KtFile, private val checker: Compiler
         }
         props.removeIf { propsToRemove.contains(it) || it.initializer == null }
         for (p in props) {
-            val copy = p.copy()
+            val copy = p.copy() as KtProperty
             if (!checker.removeNodeIfPossible(file, p.node)) {
                 p.initByTODO(psiFactory)
-                p.checkAndReplaceBackIfError(checker, file, copy)
+                if (p.checkAndReplaceBackIfError(checker, file, copy) == copy) {
+                    val initializerCopy = copy.initializer!!.copy()
+                    copy.replaceThis(initializerCopy)
+                    initializerCopy.checkAndReplaceBackIfError(checker, file, copy)
+                }
             }
         }
     }
