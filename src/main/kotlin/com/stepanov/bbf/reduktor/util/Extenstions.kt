@@ -313,12 +313,12 @@ fun PsiElement.debugPrint(indentation: Int) {
 }
 
 
-fun PsiElement.checkAndReplaceBackIfError(checker: CompilerTestChecker, file: KtFile, oldCopy: PsiElement): Boolean {
+fun PsiElement.checkAndReplaceBackIfError(checker: CompilerTestChecker, file: KtFile, oldCopy: PsiElement): PsiElement {
     if (!checker.checkTest(file.text, file.name)) {
         this.replaceThis(oldCopy)
-        return false
+        return oldCopy
     }
-    return true
+    return this
 }
 
 fun <T, K> Map<T, Pair<K, K>>.getPairFirstOrDefault(a: T, default: K): K = this[a]?.first ?: default
