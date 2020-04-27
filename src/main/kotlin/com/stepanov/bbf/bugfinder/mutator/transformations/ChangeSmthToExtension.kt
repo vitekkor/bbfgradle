@@ -14,7 +14,7 @@ class ChangeSmthToExtension : Transformation() {
 
     override fun transform() {
         file.getAllPSIChildrenOfType<KtProperty>()
-                .filter { it.parents.any { p -> p is KtClass } /*&& getRandomBoolean(2)*/ }
+                .filter { it.parents.any { p -> p is KtClass } && getRandomBoolean(2) }
                 .forEach {
                     val kl = it.parents.find { p -> p is KtClass } ?: return@forEach
                     val klass = kl as KtClass

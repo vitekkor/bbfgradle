@@ -4,8 +4,8 @@ import com.stepanov.bbf.bugfinder.Reducer
 import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
 import com.stepanov.bbf.bugfinder.util.moveAllCodeInOneFile
-import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
 import org.apache.log4j.Logger
+import java.io.File
 
 enum class BugType {
     BACKEND,
@@ -86,7 +86,7 @@ object BugManager {
         if (bug.crashedProject.texts.size > 1) {
             val checker = CompilationChecker(bug.compilers)
             if (bug.crashedProject.language == LANGUAGE.KOTLIN) {
-                val oneFileBugs = checker.isCompilerBug(bug.crashedProject.moveAllCodeInOneFile())
+                val oneFileBugs = checker.checkAndGetCompilerBugs(bug.crashedProject.moveAllCodeInOneFile())
                 if (oneFileBugs.isNotEmpty()) Bug(
                     bug.compilers,
                     bug.msg,
@@ -96,20 +96,21 @@ object BugManager {
                 else bug
             } else {
                 val text = bug.crashedProject.texts.joinToString("\n")
-                if (checker.isCompilerBug(Project(text)).isNotEmpty())
+                if (checker.checkAndGetCompilerBugs(Project(text)).isNotEmpty())
                     Bug(
                         bug.compilers,
                         bug.msg,
                         Project(text),
                         bug.type
                     )
-                 else bug
+                else bug
             }
         } else bug
 
 
     fun saveBug(bug: Bug) {
         try {
+            if (ReportProperties.getPropAsBoolean("SAVE_STATS") == true) saveStats()
             //Check if bug is real project bug
             val newBug = checkIfBugIsProject(bug)
             log.debug("Start to reduce ${newBug.crashedProject.texts}")
@@ -159,6 +160,14 @@ object BugManager {
             BugType.FRONTEND
         else
             BugType.BACKEND
+
+    private fun saveStats() {
+        val f = File("bugsPerMinute.txt")
+        val curText = StringBuilder(f.readText())
+        val bugs = curText.split("\n").first().split(": ").last().toInt()
+        val newText = curText.replaceFirst(Regex("\\d+\n"), "${bugs + 1}\n")
+        f.writeText(newText)
+    }
 
     private val log = Logger.getLogger("bugFinderLogger")
 }

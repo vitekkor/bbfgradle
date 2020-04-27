@@ -16,6 +16,11 @@ class Project(texts: List<String>?, files: List<PsiFile>? = null, val language: 
     val texts: List<String> = texts?.let { it } ?: files!!.map { it.text }
 
     constructor(text: String) : this(listOf(text))
+    constructor(text: String, files: List<PsiFile>? = null, language: LANGUAGE = LANGUAGE.KOTLIN) : this(
+        listOf(text),
+        files,
+        language
+    )
 
     fun getCommonText(commonPath: String) =
         texts.mapIndexed { index, s -> "//File: ${commonPath.split(" ")[index]}\n$s" }.joinToString("\n")

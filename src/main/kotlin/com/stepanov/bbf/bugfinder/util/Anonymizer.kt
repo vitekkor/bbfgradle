@@ -1,5 +1,6 @@
 package com.stepanov.bbf.bugfinder.util
 
+import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
 import com.stepanov.bbf.reduktor.parser.PSICreator
@@ -7,11 +8,10 @@ import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.jetbrains.kotlin.psi.*
 import java.io.File
 
-class Anonymizer {
+object Anonymizer {
 
     fun anon(dir: String) {
         for ((i, f) in File(dir).listFiles().sortedBy { it.length() }.withIndex()) {
-            println("i = $i")
             val checker = MutationChecker(listOf(JVMCompiler()))
             if (!checker.checkTextCompiling(f.readText())) {
                 if (f.readText().contains("// FILE")) {
@@ -62,6 +62,46 @@ class Anonymizer {
                 }
             }
             f.writeText(psi.text)
+        }
+    }
+
+    //Shit code here =(
+    fun anonymizeAnonimized(psi: PsiFile, counters: MutableList<Int>, fl: Boolean) {
+        val named = mutableListOf<KtNamedDeclaration>()
+        for (child in psi.getAllChildren()) {
+            if (child is KtNamedDeclaration && child.name != null && !child.name!!.startsWith("<") &&
+                child.name!!.contains(Regex("""(Kl|f|prop|par|smth)\d+"""))
+            ) {
+                if (named.all { it.name != child.name })
+                    named.add(child)
+            }
+        }
+
+        for (n in named) {
+            val newName =
+                if (fl)
+                    when (n) {
+                        is KtClassOrObject -> "myKl${counters[0]++}"
+                        is KtFunction -> "myfu${counters[1]++}"
+                        is KtProperty -> "myprop${counters[2]++}"
+                        is KtParameter -> "mypar${counters[3]++}"
+                        else -> "mysmth${counters[4]++}"
+                    }
+                else when (n) {
+                    is KtClassOrObject -> "Kl${counters[0]++}"
+                    is KtFunction -> "fu${counters[1]++}"
+                    is KtProperty -> "prop${counters[2]++}"
+                    is KtParameter -> "par${counters[3]++}"
+                    else -> "smth${counters[4]++}"
+                }
+            val usages = psi.getAllPSIChildrenOfType<KtNameReferenceExpression>().filter { it.text == n.name }
+            val newNameRef = KtPsiFactory(psi.project).createSimpleName(newName)
+            usages.map {
+                val copy = newNameRef.copy()
+                it.replaceThis(copy)
+                it.copy() to copy
+            }
+            n.setName(newName)
         }
     }
 }

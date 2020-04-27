@@ -11,6 +11,8 @@ import java.io.File
 
 open class CompilationChecker(private val compilers: List<CommonCompiler>) : Factory() /*: Checker()*/ {
 
+    constructor(compiler: CommonCompiler) : this(listOf(compiler))
+
     fun isCompilationSuccessful(project: Project): Boolean {
         val path = project.saveOrRemoveToTmp(true)
         if (path.isEmpty()) return false
@@ -19,7 +21,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) : Fac
         return res
     }
 
-    fun isCompilerBug(project: Project): List<Bug> {
+    fun checkAndGetCompilerBugs(project: Project): List<Bug> {
         val path = project.saveOrRemoveToTmp(true)
         if (path.isEmpty()) return listOf()
         val res = mutableListOf<Bug>()

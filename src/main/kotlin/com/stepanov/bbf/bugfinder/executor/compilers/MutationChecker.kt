@@ -14,6 +14,8 @@ import org.jetbrains.kotlin.psi.KtFile
 class MutationChecker(compilers: List<CommonCompiler>, var otherFiles: Project? = null) :
     Checker(compilers) {
 
+    constructor(compiler: CommonCompiler, otherFiles: Project? = null) : this(listOf(compiler), otherFiles)
+
     fun replacePSINodeIfPossible(file: PsiFile, node: PsiElement, replacement: PsiElement) =
         replaceNodeIfPossible(file, node.node, replacement.node)
 

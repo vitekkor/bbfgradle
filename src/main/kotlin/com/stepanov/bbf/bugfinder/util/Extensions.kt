@@ -31,14 +31,16 @@ import java.util.function.BiPredicate
 
 
 fun KtProperty.getLeft(): List<PsiElement> =
-    if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList().takeWhile { it.node.elementType.index.toInt() != 179 }
+    if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList()
+        .takeWhile { it.node.elementType.index.toInt() != 179 }
     else listOf()
 
 fun KtProperty.getLeftIdentifier(): PsiElement? =
     this.allChildren.toList().first { it.node.elementType.index.toInt() == 141 }
 
 fun KtProperty.getRight(): List<PsiElement> =
-    if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList().takeLastWhile { it.node.elementType.index.toInt() != 179 }
+    if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList()
+        .takeLastWhile { it.node.elementType.index.toInt() != 179 }
     else listOf()
 
 fun PsiElement.getAllChildrenOfCurLevel(): List<PsiElement> = this.node.getAllChildrenOfCurLevel().map { it.psi }
@@ -328,8 +330,13 @@ fun Project.saveOrRemoveToTmp(save: Boolean): String {
     val commonTmpName = textToTmpPath.joinToString(" ") { it.second }
     //Check for correct path
     if (commonTmpName.split(" ").any { !it.endsWith(".kt") && !it.endsWith(".java") }) return ""
-    if (save) textToTmpPath.forEach { File(it.second.substringBeforeLast('/')).mkdirs(); File(it.second).writeText(it.first) }
-    else textToTmpPath.forEach { File(it.second).delete() }
+    if (save) textToTmpPath.forEach {
+        val text = if (it.first.contains(Regex("""//\s*(FILE|File)"""))) it.first else "// FILE: ${it.second}\n" + it.first
+        File(it.second.substringBeforeLast('/')).mkdirs();
+        File(it.second).writeText(text)
+    } else textToTmpPath.forEach {
+        File(it.second).delete()
+    }
     return commonTmpName
 }
 

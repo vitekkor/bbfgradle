@@ -1,10 +1,7 @@
 package com.stepanov.bbf.bugfinder
 
 import com.intellij.psi.PsiModifierList
-import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.LANGUAGE
-import com.stepanov.bbf.bugfinder.executor.Project
-import com.stepanov.bbf.bugfinder.executor.TracesChecker
+import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.executor.compilers.JCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
@@ -17,6 +14,7 @@ import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.bugfinder.util.decompiler.copyContentTo
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.passes.ImportsGetter
+import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllWithout
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
@@ -24,8 +22,7 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
 import org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler
-import org.jetbrains.kotlin.psi.KtNamedFunction
-import org.jetbrains.kotlin.psi.KtPsiFactory
+import org.jetbrains.kotlin.psi.*
 import java.io.*
 import java.nio.charset.Charset
 import java.util.zip.ZipFile
@@ -100,7 +97,7 @@ fun main(args: Array<String>) {
 //    if (Random.nextBoolean()) {
 //        ProjectBugFinder("tmp/arrays/kotlinAndJava").findBugsInKJProjects()
 //    } else {
-        ProjectBugFinder("tmp/arrays/classTests").findBugsInProjects()
+    ProjectBugFinder("tmp/arraysCopy/classTests").findBugsInProjects()
 //    }
 //    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
 //    SingleFileBugFinder(file.absolutePath).findBugsInFile()

@@ -20,7 +20,7 @@ class ChangeRandomASTNodesFromAnotherTrees : Transformation() {
         for (i in 0..randConst) {
             log.debug("Try №$i of $randConst")
             val randomNode = nodes[Random.nextInt(0, nodes.size - 1)]
-            if (randomNode.getAllParentsWithoutNode().size > magicConst) continue
+            /*if (randomNode.getAllParentsWithoutNode().size < magicConst) continue*/
             //Searching nodes of same type in another files
             val line = File("database.txt").bufferedReader().lines()
                     .filter { it.takeWhile { it != ' ' } == randomNode.elementType.toString() }.findFirst()
@@ -43,6 +43,6 @@ class ChangeRandomASTNodesFromAnotherTrees : Transformation() {
         }
     }
 
-    val magicConst = 3
-    val numOfTries = 50 to 1000
+    /*val magicConst = 4*/
+    private val numOfTries = if (checker.otherFiles == null) 50 to 1000 else 2000 to 4000
 }

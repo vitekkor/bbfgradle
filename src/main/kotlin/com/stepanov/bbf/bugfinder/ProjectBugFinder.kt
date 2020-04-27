@@ -1,14 +1,11 @@
 package com.stepanov.bbf.bugfinder
 
-import com.intellij.openapi.components.ServiceManager
-import com.intellij.psi.PsiErrorElement
 import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
-import com.stepanov.bbf.bugfinder.manager.Bug
-import com.stepanov.bbf.bugfinder.manager.BugManager
-import com.stepanov.bbf.bugfinder.manager.BugType
+import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.projectfuzzer.ClassSplitter
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.passes.ImportsGetter
@@ -77,6 +74,11 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
                 .find { it.name == "box" }
                 ?.setName("box$index")
         }
+        //You didn't see it...
+        var counters = mutableListOf(0, 0, 0, 0, 0)
+        files.forEach { Anonymizer.anonymizeAnonimized(it, counters, true) }
+        counters = mutableListOf(0, 0, 0, 0, 0)
+        files.forEach { Anonymizer.anonymizeAnonimized(it, counters, false) }
         if (Random.nextBoolean()) {
             val newPackageDirectives = createRandomPackageDirectives(files.size, factory)
             files.forEachIndexed { index, file ->
@@ -89,7 +91,8 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
             log.debug("Cant compile project ${files.map { it.text }}")
             return
         }
-        val imports = files.map { ImportsGetter().getAllImportsFromFile(it).filter { !it.text.contains(".box") } }
+        val imports =
+            files.map { ImportsGetter().getAllImportsFromFile(it).filter { !it.text.contains(".box") } }
 
         for (i in 1 until files.size) {
             files[i].importList?.add(factory.createWhiteSpace("\n"))
@@ -101,12 +104,20 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
         files.boxShift(factory)
         val project = Project(null, files)
         val res = checker.isCompilationSuccessful(project)
-        if (!res) return
+        if (!res) {
+            log.debug("Cant compile after import transferring")
+            return
+        }
+        val splitFiles = ClassSplitter(files, checker).split()
+        if (!checker.isCompilationSuccessful(Project(null, splitFiles))) {
+            log.debug("Cant compile after splitting")
+            return
+        }
         //Execute mutations?
-        val mutants = files.map { it.text }.toMutableList()
+        val mutants = splitFiles.map { it.text }.toMutableList()
         log.debug("Project:\n$mutants")
-        for ((i, file) in files.withIndex()) {
-            log.debug("File $i from ${files.size - 1} mutations began")
+        for ((i, file) in splitFiles.withIndex()) {
+            log.debug("File $i from ${splitFiles.size - 1} mutations began")
             val creator = PSICreator("")
             val m = makeMutant(
                 creator.getPSIForText(file.text),
@@ -138,7 +149,10 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
         boxFuncs.forEachIndexed { index, f -> f.replaceThis(copyOfBox[index]) }
     }
 
-    private fun createRandomPackageDirectives(num: Int, factory: KtPsiFactory): List<KtPackageDirective> {
+    private fun createRandomPackageDirectives(
+        num: Int,
+        factory: KtPsiFactory
+    ): List<KtPackageDirective> {
         val result = mutableListOf<KtPackageDirective>()
         result.add(factory.createPackageDirective(FqName("a")))
         for (i in 1 until num) {
