@@ -21,6 +21,7 @@ class SimplifyParameterList(private val file: KtFile, private val checker: Compi
             .filter { it.arguments.isNotEmpty() }
 
         for (argList in argLists) {
+            if (argList.arguments.isEmpty()) continue
             var i = 0
             while (i < argList.arguments.size - 1) {
                 val curParam = argList.arguments[i]
@@ -49,6 +50,7 @@ class SimplifyParameterList(private val file: KtFile, private val checker: Compi
             .filter { it.parameters.isNotEmpty() }
 
         for (parList in parLists) {
+            if (parList.parameters.isEmpty()) continue
             var i = 0
             while (i < parList.parameters.size - 1) {
                 val curParam = parList.parameters[i]
