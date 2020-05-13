@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.4-M1'
+    ext.kotlin_version = '1.4-M2-eap-72'
     repositories {
         maven() {
             url "https://dl.bintray.com/kotlin/kotlin-eap/"
@@ -73,6 +73,11 @@ dependencies {
 
     //Decompiler
     compile 'com.github.fesh0r:fernflower:e35da00aec'
+
+    //Antlr4
+    compile group: 'org.antlr', name: 'antlr4-runtime', version: '4.8-1'
+    compile group: 'org.antlr', name: 'antlr4', version: '4.8-1'
+
 
     //Serialization
     compile "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.14.0"
