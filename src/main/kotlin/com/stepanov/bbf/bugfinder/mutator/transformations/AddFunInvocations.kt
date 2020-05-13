@@ -26,26 +26,25 @@ import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 import kotlin.random.Random
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType as ktGetType
 
-//TODO no recursion?
+//TODO lib calls
 class AddFunInvocations : Transformation() {
 
     override fun transform() {
-        println("ORIGINAL = ${file.text}")
         for (i in 0 until randomConst) {
             val res = tryToAddCalls()
             if (file.text.trim() != res.text) {
                 file = res.copy() as KtFile
             }
         }
-        println("Res = ${file.text}")
     }
 
     private fun tryToAddCalls(): KtFile {
         val creator = PSICreator("")
         val psi = creator.getPSIForText(file.text)
         val ctx = creator.ctx!!
-        val randomPlace =
-            psi.getAllPSIDFSChildrenOfType<PsiWhiteSpace>().filter { it.text.contains("\n") }.random()
+        val whitespaces = psi.getAllPSIDFSChildrenOfType<PsiWhiteSpace>().filter { it.text.contains("\n") }
+        if (whitespaces.isEmpty()) return psi
+        val randomPlace = whitespaces.random()
         val funcs =
             (psi.getAllPSIChildrenOfType<KtNamedFunction>() + convertCallExpressonsIntoFuncs(psi, ctx))
                 .map { it to it.myReceiverTypeReference?.text }
@@ -94,7 +93,6 @@ class AddFunInvocations : Transformation() {
                         else null
                     }
                 } else type.toString()
-            println("type of ${par.text} is $realType")
             val avPropsOfRealType = getInsertableExpressions(allAvailableVars, realType)
             val generatedValue = generateDefValuesAsString(realType ?: "")
             val realTypeValue =
@@ -111,8 +109,12 @@ class AddFunInvocations : Transformation() {
         val invocation = objInv + "${randomFunc.first.name}(${resParameterList.joinToString(", ")})"
         //AvoidSameInvocations
         if (randomPlace.getParentOfType<KtBlockExpression>(true)?.text?.contains(invocation) == true) return psi
-        val callExpr = psiFactory.createExpressionIfPossible(invocation) ?: return psi
-        randomPlace.addAfterThis(psi, callExpr)
+        val callExpr = try {
+            psiFactory.createExpressionIfPossible(invocation)
+        } catch (e: Exception) {
+            null
+        }
+        callExpr?.let { randomPlace.addAfterThis(psi, it) }
         return psi
     }
 
@@ -182,7 +184,11 @@ class AddFunInvocations : Transformation() {
                     .reversed()
                     .joinToString(".") { it.name ?: "" }
                 if (type.isEmpty()) null
-                else psiFactory.createTypeIfPossible(type)
+                else try {
+                    psiFactory.createTypeIfPossible(type)
+                } catch (e: Exception) {
+                    null
+                }
             }
 
     private val randomConst = Random.nextInt(50, 100)
