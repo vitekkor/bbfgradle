@@ -2,18 +2,17 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiWhiteSpace
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
-import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
-import com.stepanov.bbf.bugfinder.util.getAllPSIDFSChildrenOfType
-import com.stepanov.bbf.bugfinder.util.replaceThis
+import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.diagnostics.MutableDiagnosticsWithSuppression
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isNullable
 import org.jetbrains.kotlin.types.typeUtil.makeNotNullable
@@ -21,7 +20,7 @@ import java.io.File
 import kotlin.random.Random
 import kotlin.streams.toList
 
-class AddNodeFromAnotherFile : Transformation() {
+class AddNodesFromAnotherFiles : Transformation() {
 
     override fun transform() {
         val creator = PSICreator("")
@@ -31,33 +30,48 @@ class AddNodeFromAnotherFile : Transformation() {
             val line = File("database.txt").bufferedReader().lines().toList().random()
             val randomType = line.takeWhile { it != ' ' }
             val files = line.dropLast(1).takeLastWhile { it != '[' }.split(", ")
-            val randomFile =
-                if (files.size == 1)
-                    files[0]
-                else
-                    files[Random.nextInt(0, files.size - 1)]
+            val randomFile = files.random()
             val placeToInsert =
                 psi.getAllPSIDFSChildrenOfType<PsiWhiteSpace>().filter { it.text.contains("\n") }.random()
             val creator2 = PSICreator("")
             val (psi2, ctx2) = creator2.getPSIForText(File("${CompilerArgs.baseDir}/$randomFile").readText()) to creator2.ctx!!
             val sameTypeNodes = psi2.node.getAllChildrenNodes().filter { it.elementType.toString() == randomType }
-            val targetNode =
-                if (sameTypeNodes.size == 1)
-                    sameTypeNodes[0]
-                else
-                    sameTypeNodes[Random.nextInt(0, sameTypeNodes.size - 1)]
+            val targetNode = sameTypeNodes.random()
+            val psiBackup = psi.text
             val backup = targetNode.text
+            if (targetNode.psi.getAllPSIChildrenOfType<KtExpression>().isEmpty()) continue
             log.debug("Trying to insert ${targetNode.text}")
+            //If node is fun or property then rename
+            if (targetNode.psi is KtProperty || targetNode.psi is KtNamedFunction) {
+                (targetNode.psi as PsiNamedElement).setName(generateRandomName())
+                if (tryToAdd(targetNode.psi, psi, placeToInsert) != null) continue
+            }
             val isRenamingCorrect = renameNameReferences(ctx, placeToInsert, targetNode.psi, ctx2)
             log.debug("renamed = ${targetNode.text}")
             if (targetNode.psi.text == backup || !isRenamingCorrect) continue
-            val block = psiFactory.createBlock(targetNode.text)
-            block.lBrace?.delete()
-            block.rBrace?.delete()
-            checker.addNodeIfPossible(psi, placeToInsert, block)
-            psi = creator.getPSIForText(psi.text)
+            val res = tryToAdd(targetNode.psi, psi, placeToInsert)
+            creator.updateCtx()
             ctx = creator.ctx!!
+            if (res != null) {
+                val diagnostics = (ctx.diagnostics as MutableDiagnosticsWithSuppression).getOwnDiagnostics()
+                if (diagnostics.any { it.toString().contains("UNREACHABLE_CODE") }) {
+                    res.replaceThis(psiFactory.createWhiteSpace("\n"))
+                }
+                if (!checker.checkCompiling(psi)) {
+                    log.debug("CANT COMPILE AFTER REMOVING $res")
+                    psi = creator.getPSIForText(psiBackup)
+                    ctx = creator.ctx!!
+                }
+            }
         }
+        file = creator.getPSIForText(psi.text)
+    }
+
+    private fun tryToAdd(targetNode: PsiElement, psi: KtFile, placeToInsert: PsiElement): PsiElement? {
+        val block = psiFactory.createBlock(targetNode.text)
+        block.lBrace?.delete()
+        block.rBrace?.delete()
+        return checker.addNodeIfPossibleWithNode(psi, placeToInsert, block)
     }
 
     private fun renameNameReferences(
@@ -72,7 +86,7 @@ class AddNodeFromAnotherFile : Transformation() {
         if (table1.isEmpty()) return false
         var nodesForChange = updateReplacement(replacementNode, replacementCtx)
         while (nodesForChange.isNotEmpty()) {
-            val node = nodesForChange.first()
+            val node = nodesForChange.random()
             val expressionsWhichWeCanPaste = getInsertableExpressions(table1, node)
             val replacement =
                 if (expressionsWhichWeCanPaste.isEmpty()) {
@@ -115,37 +129,12 @@ class AddNodeFromAnotherFile : Transformation() {
         return res
     }
 
-    private fun getSlice(node: PsiElement): Set<KtExpression> {
-        val res = mutableSetOf<KtExpression>()
-        getPropsUntil(node.parent, node).forEach { res.addAll(it.getAllPSIDFSChildrenOfType()) }
-        node.getAllParentsWithoutThis().zipWithNext().forEach {
-            getPropsUntil(it.second, it.first).forEach { res.add(it) }
-        }
-        return res
-    }
-
-    private fun PsiElement.getAllParentsWithoutThis(): List<PsiElement> {
-        val result = arrayListOf<ASTNode>()
-        var node = this.node.treeParent ?: return arrayListOf<PsiElement>()
-        while (true) {
-            result.add(node)
-            if (node.treeParent == null)
-                break
-            node = node.treeParent
-        }
-        return result.map { it.psi }
-    }
-
-    private fun getPropsUntil(node: PsiElement, until: PsiElement) =
-        node.getAllChildren()
-            .takeWhile { it != until }
-            .filter { it !is KtNamedFunction && it !is KtClassOrObject && it is KtExpression }
-            .flatMap { it.getAllPSIDFSChildrenOfType<KtExpression>() }
-
     private fun updateReplacement(replacementNode: PsiElement, replacementCtx: BindingContext) =
         replacementNode.getAllPSIChildrenOfType<KtExpression>()
             .map { it to it.getType(replacementCtx) }
             .filter { it.second != null }
+
+    private fun generateRandomName() = java.util.Random().getRandomVariableName(4)
 
     private val commonTypesMap = mapOf(
         "Byte" to listOf("Number"),
@@ -165,5 +154,5 @@ class AddNodeFromAnotherFile : Transformation() {
         "MutableSet" to listOf("Set", "MutableCollection"),
         "MutableMap" to listOf("Map")
     )
-    private val randomConst = Random.nextInt(1000, 1001)
+    private val randomConst = Random.nextInt(700, 1000)
 }
