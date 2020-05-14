@@ -10,6 +10,7 @@ import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.resolve.diagnostics.MutableDiagnosticsWithSuppression
@@ -55,6 +56,11 @@ class AddNodesFromAnotherFiles : Transformation() {
             if (res != null) {
                 val diagnostics = (ctx.diagnostics as MutableDiagnosticsWithSuppression).getOwnDiagnostics()
                 if (diagnostics.any { it.toString().contains("UNREACHABLE_CODE") }) {
+                    log.debug("Expression makes some code unreachable")
+                    res.replaceThis(psiFactory.createWhiteSpace("\n"))
+                }
+                if (res.getAllPSIChildrenOfType<KtNameReferenceExpression>().isEmpty()) {
+                    log.debug("Expression using only constants and useless")
                     res.replaceThis(psiFactory.createWhiteSpace("\n"))
                 }
                 if (!checker.checkCompiling(psi)) {
@@ -97,7 +103,7 @@ class AddNodesFromAnotherFiles : Transformation() {
                             else generateDefValuesAsString(node.second?.makeNotNullable().toString())
                         } ?: ""
                     psiFactory.createExpressionIfPossible(expr)
-                } else expressionsWhichWeCanPaste.random().first.copy() as KtExpression
+                } else changeValuesInExpression(expressionsWhichWeCanPaste.random().first, psiCtx, table1)
             if (replacement == null) {
                 log.debug("Cant find and generate replacement for ${node.first.text} type ${node.second}")
                 return false
@@ -109,8 +115,30 @@ class AddNodesFromAnotherFiles : Transformation() {
         return true
     }
 
-    private fun Random.getTrue(prob: Int): Boolean =
-        Random.nextInt(0, 100) < prob
+    private fun changeValuesInExpression(
+        node: PsiElement,
+        ctx: BindingContext,
+        fileTable: List<Triple<KtExpression, String, KotlinType?>>
+    ): PsiElement {
+        val nodeCopy = node.copy() as PsiElement
+        while (true) {
+            val table = node.getAllPSIChildrenOfType<KtExpression>()
+                .map { it to it.getType(ctx) }
+                .filter { it.second != null && !it.second!!.toString().contains("Nothing") }
+            if (table.isEmpty() || Random.getTrue(20)) break
+            val randomEl = table.randomOrNull() ?: continue
+            val newEl = generateDefValuesAsString(randomEl.second!!.toString())
+            //Get value of same type
+            val newElFromProg = fileTable.filter { it.third == randomEl.second }.randomOrNull()
+            when {
+                newEl.isNotEmpty() && Random.nextBoolean() -> randomEl.first.replaceThis(psiFactory.createExpression(newEl))
+                newElFromProg != null && Random.nextBoolean() -> randomEl.first.replaceThis(newElFromProg.first.copy())
+            }
+        }
+        //Return old node
+        node.replaceThis(nodeCopy)
+        return node.copy() as PsiElement
+    }
 
     private fun getInsertableExpressions(
         table: List<Triple<KtExpression, String, KotlinType?>>,
@@ -154,5 +182,11 @@ class AddNodesFromAnotherFiles : Transformation() {
         "MutableSet" to listOf("Set", "MutableCollection"),
         "MutableMap" to listOf("Map")
     )
+
+    private fun <T> Collection<T>.randomOrNull(): T? = if (this.isEmpty()) null else this.random()
+
+    private fun Random.getTrue(prob: Int): Boolean =
+        Random.nextInt(0, 100) < prob
+
     private val randomConst = Random.nextInt(700, 1000)
 }
