@@ -83,6 +83,9 @@ fun generateDefValuesAsString(type: String): String {
             val returnType = type.takeLastWhile { it != '>' }.trim().dropLast(1)
             "{${generateDefValuesAsString(returnType)}}"
         }
+        type.startsWith("Function1") -> {
+            "{${generateDefValuesAsString(getLeftAndRightTypes(type).second)}}"
+        }
         type.startsWith("Unit") -> ""
         else -> {
             "$type()"

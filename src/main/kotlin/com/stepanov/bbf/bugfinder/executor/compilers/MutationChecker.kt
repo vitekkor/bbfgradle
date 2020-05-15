@@ -73,6 +73,26 @@ class MutationChecker(compilers: List<CommonCompiler>, var otherFiles: Project? 
         }
     }
 
+    fun addNodeIfPossibleWithNode(file: PsiFile, anchor: PsiElement, node: PsiElement, before: Boolean = false): PsiElement? {
+        log.debug("Trying to add $node to $anchor")
+        if (node.text.isEmpty() || node == anchor) return null
+        try {
+            val addedNode =
+                if (before) anchor.parent.addBefore(node, anchor)
+                else anchor.parent.addAfter(node, anchor)
+            if (checkCompiling(file, otherFiles)) {
+                log.debug("Result = true\nText:\n${file.text}")
+                return addedNode
+            }
+            log.debug("Result = false\nText:\n${file.text}")
+            addedNode.parent.node.removeChild(addedNode.node)
+            return null
+        } catch (e: Throwable) {
+            println("e = $e")
+            return null
+        }
+    }
+
     fun addNodeIfPossible(file: KtFile, anchor: ASTNode, node: ASTNode, before: Boolean = false): Boolean =
         addNodeIfPossible(file, anchor.psi, node.psi, before)
 

@@ -32,13 +32,10 @@ repositories {
     mavenCentral()
     jcenter()
     maven() {
-        url "http://dl.bintray.com/vorpal-research/kotlin-maven"
-    }
-    maven() {
         url "https://dl.google.com/dl/android/maven2"
     }
     maven() {
-        url "http://jcenter.bintray.com"
+        url "https://jcenter.bintray.com"
     }
     maven() {
         url "https://dl.bintray.com/kotlin/kotlin-dev"
@@ -48,6 +45,9 @@ repositories {
     }
     maven() {
         url 'https://jitpack.io'
+    }
+    maven() {
+        url "http://dl.bintray.com/vorpal-research/kotlin-maven"
     }
 }
 

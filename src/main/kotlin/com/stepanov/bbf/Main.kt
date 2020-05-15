@@ -1,5 +1,6 @@
 package com.stepanov.bbf
 
+import com.stepanov.bbf.bugfinder.manager.ReportProperties
 import org.apache.commons.exec.*
 import org.apache.commons.io.FileUtils
 import java.io.File
@@ -30,6 +31,11 @@ val TIMEOUT_SEC = Properties()
 
 const val pathToErrorLogs = "tmp/results/errorLogs"
 fun main(args: Array<String>) {
+    File("/home/stepanov/Kotlin/bbfgradle/bugsPerMinute.txt").writeText("""
+Bugs: 0
+Time: 0
+Bugs per minute: 0.0  
+    """.trimIndent())
     val file = File(pathToErrorLogs)
     if (!file.exists()) file.mkdirs()
     //val dir = File(args[0]).listFiles()
@@ -68,6 +74,7 @@ fun main(args: Array<String>) {
 
 
     //if (joinedArgs.contains("-f") || joinedArgs.contains("--fuzzing")) {
+    var globalCounter = 0L
     while (true) {
         println("Elapsed: $timeElapsed")
         if (handler.hasResult()) {
@@ -110,12 +117,28 @@ fun main(args: Array<String>) {
             executor.execute(cmdLine, handler)
             timeElapsed = 0
         }
+        globalCounter += 1000
+        if ((globalCounter / 1000) % 60 == 0L) {
+            if (ReportProperties.getPropAsBoolean("SAVE_STATS") == true) saveStats((globalCounter / 1000) / 60)
+        }
         timeElapsed += 1000
         Thread.sleep(1000)
     }
     /*} else {
         while (true) {
-            if (handler.hasResult()) System.exit(0)
+            if (handler.hasRe sult()) System.exit(0)
         }
     } */
+}
+
+private fun saveStats(timeElapsedInMinutes: Long) {
+    val f = File("bugsPerMinute.txt")
+    val curText = StringBuilder(f.readText())
+    val bugs = curText.split("\n").first().split(": ").last().toInt()
+    val newText = """
+        Bugs: $bugs
+        Time: $timeElapsedInMinutes
+        Bugs per minute: ${bugs.toDouble() / timeElapsedInMinutes.toDouble()} 
+    """.trimIndent()
+    f.writeText(newText)
 }

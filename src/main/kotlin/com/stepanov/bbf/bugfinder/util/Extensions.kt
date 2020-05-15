@@ -244,6 +244,22 @@ fun ASTNode.getAllDFSChildren(): List<ASTNode> {
     return res
 }
 
+fun ASTNode.getAllDFSChildrenWithoutItSelf(): List<ASTNode> {
+    val res = mutableListOf<ASTNode>()
+    for (child in this.getChildren(TokenSet.ANY)) {
+        child.getAllDFSChildrenWithoutItSelf1().forEach { res.add(it) }
+    }
+    return res
+}
+
+private fun ASTNode.getAllDFSChildrenWithoutItSelf1(): List<ASTNode> {
+    val res = mutableListOf(this)
+    for (child in this.getChildren(TokenSet.ANY)) {
+        child.getAllDFSChildrenWithoutItSelf1().forEach { res.add(it) }
+    }
+    return res
+}
+
 inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfType(): List<T> =
     this.node.getAllChildrenNodes().asSequence().filter { it.psi is T }.map { it.psi as T }.toList()
 
@@ -252,6 +268,9 @@ inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfTypeOfFirstLev
 
 inline fun <reified T : PsiElement> PsiElement.getAllPSIDFSChildrenOfType(): List<T> =
     this.node.getAllDFSChildren().asSequence().filter { it.psi is T }.map { it.psi as T }.toList()
+
+inline fun <reified T : PsiElement> PsiElement.getAllPSIDFSChildrenOfTypeWithoutItself(): List<T> =
+    this.node.getAllDFSChildrenWithoutItSelf().asSequence().filter { it.psi is T }.map { it.psi as T }.toList()
 
 inline fun <reified T : PsiElement> PsiElement.getFirstParentOfType(): T? =
     this.node.getAllParentsWithoutNode().map { it.psi }.filter { it is T }.firstOrNull() as T?

@@ -2,14 +2,11 @@ package com.stepanov.bbf.bugfinder.mutator
 
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.LANGUAGE
-import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.projectTransformations.ShuffleNodes
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
-import com.stepanov.bbf.bugfinder.util.debugPrint
 import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
 import org.apache.log4j.Logger
-import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.random.Random
 
@@ -21,6 +18,7 @@ class Mutator(val file: PsiFile, val context: BindingContext?) {
                 t.transform()
             } catch (e: Exception) {
                 log.debug("Exception ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
+                System.exit(1)
             } catch (e: Error) {
                 log.debug("Error ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
             }
@@ -50,6 +48,12 @@ class Mutator(val file: PsiFile, val context: BindingContext?) {
     }
 
     private fun startKotlinMutations() {
+//        executeMutation(AddNodesFromAnotherFiles(), 100)
+//        log.debug("After AddNodesFromAnotherFiles = ${Transformation.file.text}")
+//        log.debug("Verify = ${verify()}")
+//        file
+//        println(Transformation.file.text)
+//        System.exit(0)
         //Set of transformations over PSI
         log.debug("File = ${file.name}")
         executeMutation(AddNullabilityTransformer())
@@ -108,10 +112,6 @@ class Mutator(val file: PsiFile, val context: BindingContext?) {
         log.debug("Verify = ${verify()}")
         //has the meaning?
         //ChangeVarToNull().transform()
-        executeMutation(ChangeRandomLines())
-        //ChangeRandomLines().transform()
-        log.debug("After ChangeRandomLines = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
         executeMutation(RemoveRandomLines())
         //RemoveRandomLines().transform()
         log.debug("After RemoveRandomLines = ${Transformation.file.text}")
@@ -140,6 +140,15 @@ class Mutator(val file: PsiFile, val context: BindingContext?) {
         }
         log.debug("After ChangeRandomASTNodes = ${Transformation.file.text}")
         log.debug("Verify = ${verify()}")
+        executeMutation(AddNodesFromAnotherFiles(), 75)
+        log.debug("After AddNodesFromAnotherFiles = ${Transformation.file.text}")
+        log.debug("Verify = ${verify()}")
+        executeMutation(AddFunInvocations(), 75)
+        log.debug("After AddFunInvocations = ${Transformation.file.text}")
+        log.debug("Verify = ${verify()}")
+        executeMutation(ChangeRandomLines())
+        log.debug("After ChangeRandomLines = ${Transformation.file.text}")
+        log.debug("Verify = ${verify()}")
         executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 75)
         log.debug("After ChangeRandomASTNodesFromAnotherTrees = ${Transformation.file.text}")
         log.debug("Verify = ${verify()}")
@@ -148,9 +157,14 @@ class Mutator(val file: PsiFile, val context: BindingContext?) {
 
     private fun isProject() = Transformation.checker.otherFiles != null
 
-    private fun verify() = Transformation.checker.checkCompiling(Transformation.file, Transformation.checker.otherFiles)
+    private fun verify(): Boolean {
+        val res = Transformation.checker.checkCompiling(Transformation.file, Transformation.checker.otherFiles)
+        if (!res) System.exit(1)
+        return res
+    }
     //private fun verify(): String = "${compilers.checkCompilingForAllBackends(Transformation.file)}"
     //private fun verify(): String = Transformation.checker.isCompilationSuccessful()
 
     private val log = Logger.getLogger("mutatorLogger")
+
 }

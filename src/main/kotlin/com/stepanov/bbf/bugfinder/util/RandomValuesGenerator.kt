@@ -3,8 +3,7 @@
 package com.stepanov.bbf.bugfinder.util
 
 import ru.spbstu.kotlin.generate.combinators.KCheck
-import ru.spbstu.kotlin.generate.util.asCharSequence
-import ru.spbstu.kotlin.generate.util.nextString
+import ru.spbstu.kotlin.generate.util.*
 import java.util.*
 
 const val LINE_SIZE = 5
@@ -12,10 +11,16 @@ const val RANDOM_CONST = 5
 
 fun generateDefValuesAsString(type: String): String {
     return when {
+        type == "Any" -> "42"
         type == "String" -> "\"${generateDefValuesForDefaultTypes<String>(type)}\""
         type == "Int" -> generateDefValuesForDefaultTypes<Int>(type).toString()
         type == "Double" -> generateDefValuesForDefaultTypes<Double>(type).toString()
         type == "Boolean" -> generateDefValuesForDefaultTypes<Boolean>(type).toString()
+        type == "Long" -> generateDefValuesForDefaultTypes<Long>(type).toString()
+        type == "Short" -> generateDefValuesForDefaultTypes<Short>(type).toString()
+        type == "Char" -> generateDefValuesForDefaultTypes<Char>(type).toString()
+        type == "Byte" -> generateDefValuesForDefaultTypes<Byte>(type).toString()
+        type == "Float" -> generateDefValuesForDefaultTypes<Float>(type).toString()
         type.startsWith("List") -> {
             if (type.contains('<'))
                 createDefaultValueForContainer(
@@ -76,6 +81,11 @@ private fun <T> generateDefValuesForDefaultTypes(type: String): T =
             "Int" -> Random().nextInt()
             "Double" -> Random().nextDouble()
             "Boolean" -> Random().nextBoolean()
+            "Long" -> Random().nextLong()
+            "Short" -> Random().nextShort()
+            "Char" -> Random().nextChar()
+            "Byte" -> Random().nextByte()
+            "Float" -> Random().nextFloat()
             else -> Random().nextString(('a'..'z').asCharSequence(),
                 LINE_SIZE, LINE_SIZE + 1)
         } as T

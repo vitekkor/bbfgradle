@@ -1,16 +1,13 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiWhiteSpace
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.resolve.diagnostics.MutableDiagnosticsWithSuppression
@@ -131,7 +128,13 @@ class AddNodesFromAnotherFiles : Transformation() {
             //Get value of same type
             val newElFromProg = fileTable.filter { it.third == randomEl.second }.randomOrNull()
             when {
-                newEl.isNotEmpty() && Random.nextBoolean() -> randomEl.first.replaceThis(psiFactory.createExpression(newEl))
+                newEl.isNotEmpty() && Random.nextBoolean() -> {
+                    try {
+                        psiFactory.createExpressionIfPossible(newEl)?.let { randomEl.first.replaceThis(it) }
+                    } catch (e: Exception) {
+                        log.debug("Cant create expression from $newEl")
+                    }
+                }
                 newElFromProg != null && Random.nextBoolean() -> randomEl.first.replaceThis(newElFromProg.first.copy())
             }
         }

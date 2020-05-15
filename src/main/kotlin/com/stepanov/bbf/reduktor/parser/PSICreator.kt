@@ -20,6 +20,7 @@ import com.stepanov.bbf.kootstrap.util.opt
 import com.stepanov.bbf.kootstrap.util.targetRoots
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
+import org.jetbrains.kotlin.cli.jvm.compiler.TopDownAnalyzerFacadeForJVM
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.js.analyze.TopDownAnalyzerFacadeForJS
@@ -199,6 +200,22 @@ class PSICreator(var projectDir: String) {
             }
         }
         return targetFiles.first()
+    }
+
+    fun updateCtx() {
+        val configuration = env.configuration.copy()
+
+        configuration.put(JSConfigurationKeys.LIBRARIES, JsConfig.JS_STDLIB)
+        configuration.put(CommonConfigurationKeys.MODULE_NAME, "sample")
+
+        configuration.put(
+            JSConfigurationKeys.LIBRARIES, listOf(
+                CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
+                CompilerArgs.getStdLibPath("kotlin-test-js")
+            )
+        )
+        ctx = TopDownAnalyzerFacadeForJS.analyzeFiles(listOf(targetFiles.first()), JsConfig(env.project, configuration))
+            .bindingContext
     }
 
     var targetFiles: List<KtFile> = listOf()
