@@ -35,6 +35,10 @@ fun main(args: Array<String>) {
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
     //Init factory
     Factory.file = PSICreator("").getPSIForText("")
+    val compilers = listOf(JVMCompiler(), JVMCompiler("-Xuse-ir"))
+    val res = TracesChecker(compilers).checkTest(File("tmp/test.kt").readText())
+    println(res)
+    System.exit(0)
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
         Logger.getLogger("bugFinderLogger").level = Level.OFF

@@ -192,12 +192,16 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         }
         //Compare with java
         if (CompilerArgs.useJavaAsOracle) {
-            val res = JCompiler().compile(pathToFile)
-            if (res.status == 0) {
-                val execRes = JCompiler().exec(res.pathToCompiled, Stream.BOTH)
-                log.debug("Result of JAVA: $execRes")
-                results.add(JCompiler() to execRes.trim())
-            } else log.debug("Cant compile with Java")
+            try {
+                val res = JCompiler().compile(pathToFile)
+                if (res.status == 0) {
+                    val execRes = JCompiler().exec(res.pathToCompiled, Stream.BOTH)
+                    log.debug("Result of JAVA: $execRes")
+                    results.add(JCompiler() to execRes.trim())
+                } else log.debug("Cant compile with Java")
+            } catch (e: Exception) {
+                log.debug("Exception with Java compilation")
+            }
         }
         val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap()
         return if (groupedRes.size == 1) {
