@@ -97,10 +97,10 @@ fun main(args: Array<String>) {
 //    if (Random.nextBoolean()) {
 //        ProjectBugFinder("tmp/arrays/kotlinAndJava").findBugsInKJProjects()
 //    } else {
-//    ProjectBugFinder("tmp/arraysCopy/classTests").findBugsInProjects()
+    while (true) ProjectBugFinder("tmp/arrays/classTests").findBugsInProjects()
 //    }
-    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
+    //val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
     //val file = File("tmp/test.kt")
-    SingleFileBugFinder(file.absolutePath).findBugsInFile()
+    //SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 }

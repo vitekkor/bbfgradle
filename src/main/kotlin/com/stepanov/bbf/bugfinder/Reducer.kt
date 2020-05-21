@@ -22,7 +22,7 @@ object Reducer {
             val path = bug.crashedProject.saveOrRemoveToTmp(true)
             val reduced = reduceProject(path, checker)
             bug.crashedProject.saveOrRemoveToTmp(false)
-            return Project(null, reduced, bug.crashedProject.language)
+            return Project(reduced, bug.crashedProject.language)
         }
 
         //if (bug.crashedProject.texts.size != 1 || bug.crashedProject.language == LANGUAGE.KJAVA) return bug.crashedProject

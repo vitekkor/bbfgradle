@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.projectfuzzer
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
+import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.manager.BugManager
@@ -15,7 +16,7 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
 
-class ClassSplitter(private val files: List<KtFile>, private val checker: CompilationChecker) {
+class ClassSplitter(private val files: List<KtFile>, private val checker: Checker) {
 
     fun split(): List<KtFile> {
         val res = files.toMutableList()
@@ -36,8 +37,8 @@ class ClassSplitter(private val files: List<KtFile>, private val checker: Compil
                 val newFile =
                     factory.createFile(file.packageDirective?.text + file.importList?.text + "\n\n" + copy.text)
                 res.add(newFile)
-                checker.checkAndGetCompilerBugs(Project(null, res)).forEach { BugManager.saveBug(it) }
-                if (res.first().text.trim().isEmpty() || !checker.isCompilationSuccessful(Project(null, res))) {
+//                checker.checkAndGetCompilerBugs(Project(res)).forEach { BugManager.saveBug(it) }
+                if (res.first().text.trim().isEmpty() || !checker.checkCompiling(Project(res))) {
                     whitespace.replaceThis(copy)
                     res.removeLast()
                     log.debug("Not OK")

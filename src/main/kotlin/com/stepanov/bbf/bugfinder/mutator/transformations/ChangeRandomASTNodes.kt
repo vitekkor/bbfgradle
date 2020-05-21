@@ -43,7 +43,7 @@ class ChangeRandomASTNodes : Transformation() {
             log.debug("SWAPING ${randomNode1} and ${randomNode2}")
             val new = swap(randomNode1, randomNode2, psiFactory)
             val res = files?.let {
-                checker.checkCompiling(Project(null, it))
+                checker.checkCompiling(Project(it))
             } ?: checker.checkTextCompiling(file.text)
             if (!res) swap(new.first, new.second, psiFactory)
         }

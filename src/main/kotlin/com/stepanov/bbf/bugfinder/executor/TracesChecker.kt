@@ -80,7 +80,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
                 firstFile.addImport(newImport)
             }
             firstFile.addMain(boxFuncs)
-            return Project(null, files)
+            return Project(files)
         }
     }
 

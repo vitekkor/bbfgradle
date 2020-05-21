@@ -21,6 +21,14 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) : Fac
         return res
     }
 
+    fun compileAndGetMessage(project: Project): String {
+        val path = project.saveOrRemoveToTmp(true)
+        if (path.isEmpty()) return ""
+        val res = compilers.first().getErrorMessage(path)
+        project.saveOrRemoveToTmp(false)
+        return res
+    }
+
     fun checkAndGetCompilerBugs(project: Project): List<Bug> {
         val path = project.saveOrRemoveToTmp(true)
         if (path.isEmpty()) return listOf()

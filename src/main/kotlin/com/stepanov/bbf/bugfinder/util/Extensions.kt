@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.resolve.ImportPath
 import ru.spbstu.kotlin.generate.util.asCharSequence
+import ru.spbstu.kotlin.generate.util.nextInRange
 import ru.spbstu.kotlin.generate.util.nextString
 import java.io.BufferedReader
 import java.io.File
@@ -263,6 +264,20 @@ private fun ASTNode.getAllDFSChildrenWithoutItSelf1(): List<ASTNode> {
 inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfType(): List<T> =
     this.node.getAllChildrenNodes().asSequence().filter { it.psi is T }.map { it.psi as T }.toList()
 
+inline fun <reified T : PsiElement, reified U : PsiElement> PsiElement.getAllPSIChildrenOfTwoTypes(): List<PsiElement> =
+    this.node.getAllChildrenNodes().asSequence().filter { it.psi is T || it.psi is U }.map { it.psi }.toList()
+
+inline fun <reified T : PsiElement, reified U : PsiElement, reified S : PsiElement>
+        PsiElement.getAllPSIChildrenOfThreeTypes(): List<PsiElement> =
+    this.node.getAllChildrenNodes().asSequence().filter { it.psi is T || it.psi is U || it.psi is S }.map { it.psi }.toList()
+
+inline fun <reified T : PsiElement, reified U : PsiElement>
+        PsiElement.getAllPSIChildrenOfTwoTypes(crossinline filterFun: (PsiElement) -> Boolean): List<PsiElement> =
+    this.node.getAllChildrenNodes().asSequence().filter { it.psi is T || it.psi is U }.map { it.psi }.filter { filterFun(it) }.toList()
+
+inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfType(crossinline filterFun: (T) -> Boolean): List<T> =
+    this.node.getAllChildrenNodes().asSequence().filter { it.psi is T }.map { it.psi as T }.filter { filterFun(it) }.toList()
+
 inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfTypeOfFirstLevel(): List<T> =
     this.node.getAllChildrenOfCurLevel().asSequence().filter { it.psi is T }.map { it.psi as T }.toList()
 
@@ -350,7 +365,8 @@ fun Project.saveOrRemoveToTmp(save: Boolean): String {
     //Check for correct path
     if (commonTmpName.split(" ").any { !it.endsWith(".kt") && !it.endsWith(".java") }) return ""
     if (save) textToTmpPath.forEach {
-        val text = if (it.first.contains(Regex("""//\s*(FILE|File)"""))) it.first else "// FILE: ${it.second}\n" + it.first
+        val text =
+            if (it.first.contains(Regex("""//\s*(FILE|File)"""))) it.first else "// FILE: ${it.second}\n" + it.first
         File(it.second.substringBeforeLast('/')).mkdirs();
         File(it.second).writeText(text)
     } else textToTmpPath.forEach {
@@ -424,3 +440,5 @@ fun String.getFileLanguageIfExist(): LANGUAGE? {
     if (name.endsWith(".java")) return LANGUAGE.JAVA
     return null
 }
+
+fun kotlin.random.Random.getTrue(prop: Int) = Random().nextInRange(0, 100) < prop

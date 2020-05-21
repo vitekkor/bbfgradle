@@ -21,6 +21,9 @@ class Project(texts: List<String>?, files: List<PsiFile>? = null, val language: 
         files,
         language
     )
+    constructor(files: List<PsiFile>, language: LANGUAGE = LANGUAGE.KOTLIN) : this(null, files, language)
+
+    operator fun plus(other: Project): Project = Project(texts + other.texts, null, this.language)
 
     fun getCommonText(commonPath: String) =
         texts.mapIndexed { index, s -> "//File: ${commonPath.split(" ")[index]}\n$s" }.joinToString("\n")

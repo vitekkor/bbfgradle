@@ -1,11 +1,13 @@
 package com.stepanov.bbf.reduktor.passes
 
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.executor.backends.CommonBackend
 import com.stepanov.bbf.reduktor.util.TaskType
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.startTasksAndSaveNewFiles
+import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.isSubpackageOf
 import org.jetbrains.kotlin.psi.*
@@ -136,14 +138,22 @@ class PreliminarySimplification(private val ktFile: KtFile, private val projPath
 
 class ImportsGetter {
 
+    fun createImportFromPackageDirective(file: KtFile): KtImportDirective? =
+        file.packageDirective?.let {
+            if (it.fqName.isRoot) null
+            else getImport(it.fqName, file, true)
+        }
+
+
     fun getAllImportsFromFile(file: KtFile): List<KtImportDirective> {
         val newImports = HashSet<KtImportDirective>()
         //Put old imports
         file.importDirectives.forEach { newImports.add(it) }
-        getClasses(file).mapTo(newImports) { getImport(it.fqName!!, file) }
-        getObjects(file).mapTo(newImports) { getImport(it.fqName!!, file) }
-        getTopLevelProps(file).mapTo(newImports) { getImport(it.fqName!!, file) }
-        getFunctions(file)
+        val filterFun = {it: KtNamedDeclaration -> it.fqName != null}
+        getImportableObj<KtClass>(file, filterFun).mapTo(newImports) { getImport(it.fqName!!, file) }
+        getImportableObj<KtObjectDeclaration>(file, filterFun).mapTo(newImports) { getImport(it.fqName!!, file) }
+        getImportableObj<KtProperty>(file) { it.parent is KtFile }.mapTo(newImports) { getImport(it.fqName!!, file) }
+        getImportableObj<KtNamedFunction>(file, filterFun)
             .filter {
                 it.getParentOfType<KtClass>(false) == null
                         && it.getParentOfType<KtObjectDeclaration>(false) == null
@@ -152,6 +162,14 @@ class ImportsGetter {
         return newImports.toList()
     }
 
+}
+
+private inline fun <reified T : PsiElement> getImportableObj(file: KtFile, filterFunc: (T) -> Boolean): List<T> {
+    val privateModifier = KtTokens.MODIFIER_KEYWORDS_ARRAY.find { it.value == "private" }!!
+    //Filter private constructions
+    return file.getAllPSIChildrenOfType<T>()
+        .filterNot { (it as? KtModifierListOwner)?.hasModifier(privateModifier) ?: false }
+        .filter { filterFunc(it) }
 }
 
 private fun getClasses(file: KtFile): List<KtClass> =
@@ -166,8 +184,8 @@ private fun getFunctions(file: KtFile): List<KtNamedFunction> =
 private fun getTopLevelProps(file: KtFile): List<KtProperty> =
     file.getAllPSIChildrenOfType<KtProperty>().filter { it.parent is KtFile }
 
-private fun getImport(fqName: FqName, ktFile: KtFile): KtImportDirective =
-    KtPsiFactory(ktFile.project).createImportDirective(ImportPath(fqName, false))
+private fun getImport(fqName: FqName, ktFile: KtFile, isAllUnder: Boolean = false): KtImportDirective =
+    KtPsiFactory(ktFile.project).createImportDirective(ImportPath(fqName, isAllUnder))
 
 
 
