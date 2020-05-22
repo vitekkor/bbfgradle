@@ -72,7 +72,7 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
                 creator.getPSIForText(file.text),
                 creator.ctx!!,
                 Project(mutants.getAllWithout(i)),
-                listOf(::noBoxFunModifying)
+                listOf()//listOf(::noBoxFunModifying)
             )
             mutants[i] = m.text
         }

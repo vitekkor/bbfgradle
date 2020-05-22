@@ -27,8 +27,6 @@ class Mutator(val file: PsiFile, val context: BindingContext?) {
 
 
     fun startMutate() {
-        //Init file
-        Factory.file = file
         Transformation.file = file.copy() as PsiFile
         log.debug("Mutation started")
         when (file.text.getFileLanguageIfExist()) {

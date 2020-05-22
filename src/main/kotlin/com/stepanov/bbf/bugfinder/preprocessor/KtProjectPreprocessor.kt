@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.preprocessor
 
 import com.intellij.psi.PsiComment
+import com.intellij.psi.PsiWhiteSpace
 import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.Project
@@ -13,6 +14,7 @@ import org.apache.log4j.Logger
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.psi.psiUtil.isTopLevelKtOrJavaMember
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import kotlin.random.Random
@@ -74,8 +76,8 @@ object KtProjectPreprocessor {
         val splitFiles = ClassSplitter(shuffledPsiFiles, checker)
             .split()
             .filterNot {
-                it.text.trim().isEmpty() || it.getAllChildren()
-                    .all { it is PsiComment || it is KtImportDirective || it is KtPackageDirective }
+                it.text.trim().isEmpty() || it.allChildren.toList()
+                    .all { it is PsiComment || it is KtImportList || it is KtPackageDirective || it is PsiWhiteSpace }
             }
         if (!checker.isCompilationSuccessful(Project(splitFiles))) {
             log.debug("Cant compile after splitting")
