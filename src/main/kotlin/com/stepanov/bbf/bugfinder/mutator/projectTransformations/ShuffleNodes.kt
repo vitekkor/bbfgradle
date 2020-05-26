@@ -19,6 +19,7 @@ class ShuffleNodes : Transformation() {
             val children = files.flatMap { it.node.getAllChildrenNodes() }
             ChangeRandomASTNodes.swapRandomNodes(children, psiFactory, files)
         }
+        checker.otherFiles = Project(othFiles)
     }
 
     val numOfSwaps = 500 to 1000
