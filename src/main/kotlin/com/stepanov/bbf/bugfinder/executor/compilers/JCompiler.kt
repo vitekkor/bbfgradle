@@ -23,10 +23,7 @@ class JCompiler : CommonCompiler() {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    private fun decompileToJava(path: String): String {
-        val javaFile = K2JConverter().convert(path, false)
-        return javaFile
-    }
+    private fun decompileToJava(path: String): String = K2JConverter().convert(path, false)
 
     override fun compile(path: String, includeRuntime: Boolean): CompilingResult {
         //Path - path to .kt file

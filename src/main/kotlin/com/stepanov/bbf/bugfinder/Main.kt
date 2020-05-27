@@ -1,40 +1,31 @@
 package com.stepanov.bbf.bugfinder
 
-import com.intellij.psi.PsiModifierList
-import com.stepanov.bbf.bugfinder.executor.*
-import com.stepanov.bbf.bugfinder.executor.compilers.JCompiler
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
-import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
-import com.stepanov.bbf.bugfinder.manager.Bug
-import com.stepanov.bbf.bugfinder.manager.BugManager
-import com.stepanov.bbf.bugfinder.manager.BugType
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.util.*
-import com.stepanov.bbf.bugfinder.util.decompiler.copyContentTo
-import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.passes.ImportsGetter
-import com.stepanov.bbf.reduktor.util.getAllChildren
-import com.stepanov.bbf.reduktor.util.getAllWithout
+import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.util.FalsePositivesDeleter
+import com.stepanov.bbf.bugfinder.util.NodeCollector
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
-import org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler
-import org.jetbrains.kotlin.psi.*
-import java.io.*
-import java.nio.charset.Charset
-import java.util.zip.ZipFile
-import kotlin.random.Random
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
+import kotlin.streams.toList
 import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
-    //Init factory
-    Factory.file = PSICreator("").getPSIForText("")
+    val file1 = File("tmp/arrays/inlineVarargAndDefault.kt").readText()
+    val proj = Project.createFromCode(file1)
+    println(proj)
+    val args1 = proj.getProjectSettingsAsCompilerArgs("JVM")
+    println("args1 = $args1")
+    System.exit(0)
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
         Logger.getLogger("bugFinderLogger").level = Level.OFF
@@ -97,10 +88,22 @@ fun main(args: Array<String>) {
 //    if (Random.nextBoolean()) {
 //        ProjectBugFinder("tmp/arrays/kotlinAndJava").findBugsInKJProjects()
 //    } else {
-    while (true) ProjectBugFinder("tmp/arrays/classTests").findBugsInProjects()
+    //ProjectBugFinder("tmp/arrays/classTests").findBugsInProjects()
 //    }
-    //val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
+//    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
     //val file = File("tmp/test.kt")
-    //SingleFileBugFinder(file.absolutePath).findBugsInFile()
+    val regex = Regex("""import kotlin.reflect.typeOf""")
+    val files = Files.walk(Paths.get("/home/stepanov/Kotlin/kotlin/compiler/testData/codegen/box/callableReference/adaptedReferences/"))
+        .map { it.toFile() }.filter { it.isFile }.toList()
+    //val condition = {f: File -> okFiles.any { f.name.contains(it.name) }}
+    val condition2 = {f: File -> f.readText().contains(regex)}
+    val condition3 = {f: File -> f.readText().contains(Regex(""""FunctionalInterfaceConversion""""))}
+    val condition4 = {f: File -> f.readText().contains(Regex(""""inline class""""))}
+    val cond = listOf(condition2, condition3, condition4)
+    val files2 = File(CompilerArgs.baseDir).listFiles().filter { f -> f.isFile && (cond.any { it.invoke(f) }) }
+//    println(files.map { it.name })
+//    System.exit(0)
+    val file = (files + files2).random()
+    SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 }

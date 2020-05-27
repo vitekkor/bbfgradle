@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.executor.compilers
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.CompilingResult
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.bugfinder.util.copyFullJarImpl
 import com.stepanov.bbf.bugfinder.util.copyJarImpl
@@ -15,6 +16,7 @@ import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.config.IncrementalCompilation
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.Services
 import org.jetbrains.kotlin.utils.PathUtil
 import java.io.File
@@ -33,8 +35,8 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
         get() = "tmp/tmp.jar"
 
 
-    override fun checkCompiling(pathToFile: String): Boolean {
-        val status = tryToCompile(pathToFile)
+    override fun checkCompiling(project: String): Boolean {
+        val status = tryToCompile(project)
         return !MsgCollector.hasCompileError && !status.hasTimeout && !MsgCollector.hasException
     }
 
@@ -88,6 +90,7 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
 
         compilerArgs.jdkHome = CompilerArgs.jdkHome
         compilerArgs.jvmTarget = CompilerArgs.jvmTarget
+        compilerArgs.optIn = arrayOf("kotlin.ExperimentalStdlibApi")
         IncrementalCompilation.setIsEnabledForJvm(true)
 
         val services = Services.EMPTY
@@ -123,6 +126,15 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
         return CompilingResult(0, pathToCompiled)
     }
 
+//    override fun tryToCompile(string: String): KotlincInvokeStatus {
+//        val threadPool = Executors.newCachedThreadPool()
+//        val trashDir = "tmp/trash/"
+//        //Clean dir
+//        if (File(trashDir).exists())
+//            FileUtils.cleanDirectory(File(trashDir))
+//        return KotlincInvokeStatus("", true, true, true)
+//    }
+
     override fun tryToCompile(pathToFile: String): KotlincInvokeStatus {
         val threadPool = Executors.newCachedThreadPool()
         val trashDir = "tmp/trash/"
@@ -147,6 +159,8 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
 
         compilerArgs.jdkHome = CompilerArgs.jdkHome
         compilerArgs.jvmTarget = CompilerArgs.jvmTarget
+        compilerArgs.optIn = arrayOf("kotlin.ExperimentalStdlibApi")
+
         IncrementalCompilation.setIsEnabledForJvm(true)
 
         val services = Services.EMPTY

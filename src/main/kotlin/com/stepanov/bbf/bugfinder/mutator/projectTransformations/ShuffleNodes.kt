@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.projectTransformations
 
 import com.intellij.lang.ASTNode
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.ChangeRandomASTNodes
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation

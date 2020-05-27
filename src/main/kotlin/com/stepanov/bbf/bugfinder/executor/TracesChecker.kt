@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder.executor
 
 import com.intellij.psi.PsiErrorElement
 import com.stepanov.bbf.bugfinder.executor.compilers.JCompiler
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import org.apache.log4j.Logger

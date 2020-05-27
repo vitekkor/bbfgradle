@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.types.typeUtil.makeNotNullable
 import java.io.File
 import kotlin.random.Random
 import kotlin.streams.toList
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 class AddNodesFromAnotherFiles : Transformation() {
 

@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.executor
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.manager.BugManager
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
@@ -14,7 +15,6 @@ open class Checker(compilers: List<CommonCompiler>) : CompilationChecker(compile
     //Back compatibility
     fun checkTextCompiling(text: String): Boolean = checkCompiling(Project(listOf(text)))
     fun checkCompiling(file: PsiFile): Boolean = checkTextCompiling(file.text)
-
 
     fun checkCompiling(file: PsiFile, otherFiles: Project?): Boolean =
         otherFiles?.let { files ->
@@ -28,8 +28,8 @@ open class Checker(compilers: List<CommonCompiler>) : CompilationChecker(compile
         try {
             for (text in project.texts) {
                 val tree =
-                    if (text.getFileLanguageIfExist() == LANGUAGE.JAVA) PSICreator("").getPsiForJava(text, file.project)
-                    else psiFactory.createFile(text)
+                    if (text.getFileLanguageIfExist() == LANGUAGE.JAVA) PSICreator("").getPsiForJava(text, Factory.file.project)
+                    else Factory.psiFactory.createFile(text)
                 if (tree.node.getAllChildrenNodes().any { it.psi is PsiErrorElement }) {
                     log.debug("Wrong syntax")
                     checkedConfigurations[allTexts] = false

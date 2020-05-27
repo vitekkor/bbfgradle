@@ -8,6 +8,7 @@ import org.jetbrains.kotlin.psi.psiUtil.parents
 import com.stepanov.bbf.bugfinder.util.getAllChildrenOfTheLevel
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getRandomBoolean
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 //Change extension to smth?
 class ChangeSmthToExtension : Transformation() {

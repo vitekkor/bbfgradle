@@ -55,8 +55,6 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
             }
             if (psiFile.getAllPSIChildrenOfType<KtNamedFunction>().all { it.name?.contains("box") == false }) return
 
-            //Init lateinit vars
-            Factory.file = psiFile
             Transformation.checker = MutationChecker(compilers)
 
             //Check for compiling

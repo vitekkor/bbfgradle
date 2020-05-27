@@ -4,7 +4,7 @@ import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
 import org.apache.log4j.Logger
 
-abstract class Transformation: Factory() {
+abstract class Transformation {
     abstract fun transform()
 
     companion object {

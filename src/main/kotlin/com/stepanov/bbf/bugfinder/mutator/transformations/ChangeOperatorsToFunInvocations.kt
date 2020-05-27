@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtUnaryExpression
 import com.stepanov.bbf.bugfinder.util.getAllPSIDFSChildrenOfType
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 import java.util.*
 
 class ChangeOperatorsToFunInvocations : Transformation() {

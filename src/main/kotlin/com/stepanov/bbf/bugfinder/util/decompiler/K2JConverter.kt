@@ -26,14 +26,14 @@ class K2JConverter {
         ConsoleDecompiler.main(arrayOf(file.absolutePath, pathToJar, pathToDecompiled))
         val zipFile = ZipFile("${pathToDecompiled}/tmp.jar")
         zipFile.copyContentTo(pathToDecompiled) { it.name.endsWith(".java") }
-        try {
+        return try {
             val resPath =
                 if (isProject) handleProjectDecompiledFiles(pathToDecompiled)
                 else handleSingleDecompiledFile(pathToDecompiled)
-            return resPath
+            resPath
         } catch (e: Exception) {
             println("Exception $e")
-            return ""
+            ""
         }
     }
 

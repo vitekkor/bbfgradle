@@ -6,6 +6,7 @@ import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.resolve.BindingContext
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 import java.util.*
 
 class AddSameFunctions(private val ctx: BindingContext) : Transformation() {

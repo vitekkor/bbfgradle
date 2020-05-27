@@ -1,5 +1,6 @@
 package com.stepanov.bbf.bugfinder.executor
 
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.reduktor.executor.KotlincInvokeStatus
 import org.apache.commons.exec.*
@@ -14,10 +15,12 @@ data class CompilingResult(val status: Int, val pathToCompiled: String)
 
 abstract class CommonCompiler {
 
+    //abstract fun checkCompiling(project: Project)
     abstract fun checkCompiling(pathToFile: String): Boolean
     abstract fun getErrorMessageWithLocation(pathToFile: String): Pair<String, List<CompilerMessageLocation>>
     abstract fun compile(path: String, includeRuntime: Boolean = true): CompilingResult
     abstract fun tryToCompile(pathToFile: String): KotlincInvokeStatus
+    //abstract fun tryToCompile(project: Project): KotlincInvokeStatus
     abstract fun isCompilerBug(pathToFile: String): Boolean
     abstract fun exec(path: String, streamType: Stream = Stream.INPUT): String
 

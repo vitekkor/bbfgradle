@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import java.util.*
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 class RemoveRandomLines: Transformation()  {
 

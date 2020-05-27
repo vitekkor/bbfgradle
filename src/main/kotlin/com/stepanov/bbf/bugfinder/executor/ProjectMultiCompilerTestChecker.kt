@@ -16,14 +16,14 @@ class ProjectMultiCompilerTestChecker(
 ) :
     MultiCompilerCrashChecker(compiler) {
 
-    fun isAlreadyCheckedOrWrong(files: List<PsiFile>): Pair<Boolean, Boolean> {
-        val text = files.joinToString("\n") { it.text }
+    fun isAlreadyCheckedOrWrong(psiFiles: List<PsiFile>): Pair<Boolean, Boolean> {
+        val text = psiFiles.joinToString("\n") { it.text }
         val hash = text.hashCode()
         if (alreadyChecked.containsKey(hash)) {
             log.debug("ALREADY CHECKED!!!")
             return true to alreadyChecked[hash]!!
         }
-        if (files.any { it.node.getAllChildrenNodes().any { it.psi is PsiErrorElement } }) {
+        if (psiFiles.any { it.node.getAllChildrenNodes().any { it.psi is PsiErrorElement } }) {
             log.debug("Not correct syntax")
             alreadyChecked[hash] = false
             return true to false
@@ -35,7 +35,7 @@ class ProjectMultiCompilerTestChecker(
         var haveJava = false
         if (otherFiles == null) return false
         val psiFiles =
-            otherFiles!!.texts.let { it.subList(0, filePos) + listOf(text) + it.subList(filePos, it.size) }!!.map {
+            otherFiles!!.texts.let { it.subList(0, filePos) + listOf(text) + it.subList(filePos, it.size) }.map {
                 if (it.getFileLanguageIfExist() == LANGUAGE.KOTLIN) {
                     PSICreator("").getPSIForText(it, false)
                 } else {

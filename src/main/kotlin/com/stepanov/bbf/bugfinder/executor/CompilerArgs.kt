@@ -71,6 +71,7 @@ object CompilerArgs {
     //PATHS TO COMPILERS
     val pathToJsKotlinLib = createJSLib()
     val pathToTmpFile = getPropValueWithoutQuotes("TMPFILE")
+    val pathToTmpDir = pathToTmpFile.substringBeforeLast("/")
 
     //RESULT
     val resultsDir = getPropValueWithoutQuotes("RESULTS")

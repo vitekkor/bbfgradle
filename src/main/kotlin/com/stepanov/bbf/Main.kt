@@ -89,6 +89,7 @@ Bugs per minute: 0.0
                 val dstDir = File(newPath)
                 dstDir.mkdirs()
                 File("$dstDir/timeout").writeText("timeout")
+                FileUtils.copyDirectory(File("logs"), dstDir)
             }
             //IF error then save logs
             else if (handler.exitValue != 0) {

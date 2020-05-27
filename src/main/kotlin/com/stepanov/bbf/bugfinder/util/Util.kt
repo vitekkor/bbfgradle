@@ -88,7 +88,6 @@ fun List<CommonCompiler>.checkCompilingForAllBackends(psiFile: PsiFile): Boolean
     this.map { it.checkCompilingText(psiFile.text) }.all { it }
 
 
-@Throws(IOException::class)
 fun writeRuntimeToJar(lib: String, stream: JarOutputStream) {
     val stdlibPath = File(lib)
     if (!stdlibPath.exists()) {
@@ -97,7 +96,6 @@ fun writeRuntimeToJar(lib: String, stream: JarOutputStream) {
     copyJarImpl(stream, stdlibPath)
 }
 
-@Throws(IOException::class)
 fun copyJarImpl(stream: JarOutputStream, jarPath: File) {
     JarInputStream(FileInputStream(jarPath)).use { jis ->
         while (true) {

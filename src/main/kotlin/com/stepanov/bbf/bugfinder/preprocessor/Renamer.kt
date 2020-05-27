@@ -10,8 +10,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtProperty
 
-class Renamer : Factory() {
-
+class Renamer {
     fun rename(files: List<KtFile>, forRenaming: Set<String>) {
         for (name in forRenaming) {
             //Searching for files for renaming
@@ -28,7 +27,7 @@ class Renamer : Factory() {
                 val (file, el) = objectsForRenaming[i]
                 val usages = file.getAllPSIChildrenOfType<KtNameReferenceExpression> { it.text == el.name }
                 el.setName("Renamed$i${el.name}")
-                val newNameReferenceExpr = psiFactory.createSimpleName(el.name!!)
+                val newNameReferenceExpr = Factory.psiFactory.createSimpleName(el.name!!)
                 usages.forEach { it.replaceThis(newNameReferenceExpr.copy()) }
             }
         }

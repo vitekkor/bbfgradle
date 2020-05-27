@@ -22,29 +22,24 @@ class MockCodeStyleManager(private val myProject: Project) : CodeStyleManager() 
     override fun reformatTextWithContext(p0: PsiFile, p1: ChangedRangesInfo) = Unit
     override fun getProject(): Project = myProject
 
-    @Throws(IncorrectOperationException::class)
     override fun reformat(
             element: PsiElement): PsiElement = reformat(element, false)
 
-    @Throws(IncorrectOperationException::class)
     override fun reformat(
             element: PsiElement,
             canChangeWhiteSpacesOnly: Boolean): PsiElement = element
 
-    @Throws(IncorrectOperationException::class)
     override fun reformatRange(
             element: PsiElement,
             startOffset: Int,
             endOffset: Int,
             canChangeWhiteSpacesOnly: Boolean): PsiElement = element
 
-    @Throws(IncorrectOperationException::class)
     override fun reformatRange(
             element: PsiElement,
             startOffset: Int,
             endOffset: Int): PsiElement = element
 
-    @Throws(IncorrectOperationException::class)
     override fun reformatText(
             file: PsiFile,
             startOffset: Int,
@@ -52,22 +47,18 @@ class MockCodeStyleManager(private val myProject: Project) : CodeStyleManager() 
         reformatText(file, setOf(TextRange(startOffset, endOffset)))
     }
 
-    @Throws(IncorrectOperationException::class)
     override fun reformatText(
             file: PsiFile,
             ranges: Collection<TextRange>) = Unit
 
-    @Throws(IncorrectOperationException::class)
     override fun reformatTextWithContext(
             file: PsiFile,
             ranges: Collection<TextRange>) = Unit
 
-    @Throws(IncorrectOperationException::class)
     override fun reformatNewlyAddedElement(
             parent: ASTNode,
             addedElement: ASTNode) = Unit
 
-    @Throws(IncorrectOperationException::class)
     override fun adjustLineIndent(
             file: PsiFile,
             offset: Int): Int = offset
@@ -76,7 +67,6 @@ class MockCodeStyleManager(private val myProject: Project) : CodeStyleManager() 
             document: Document,
             offset: Int): Int = offset
 
-    @Throws(IncorrectOperationException::class)
     override fun adjustLineIndent(
             file: PsiFile,
             rangeToAdjust: TextRange) = Unit

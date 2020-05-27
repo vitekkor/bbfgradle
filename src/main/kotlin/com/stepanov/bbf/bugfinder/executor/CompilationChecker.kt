@@ -8,8 +8,9 @@ import com.stepanov.bbf.bugfinder.util.saveOrRemoveToTmp
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
+//import com.stepanov.bbf.bugfinder.executor.project.Project
 
-open class CompilationChecker(private val compilers: List<CommonCompiler>) : Factory() /*: Checker()*/ {
+open class CompilationChecker(private val compilers: List<CommonCompiler>) /*: Checker()*/ {
 
     constructor(compiler: CommonCompiler) : this(listOf(compiler))
 
