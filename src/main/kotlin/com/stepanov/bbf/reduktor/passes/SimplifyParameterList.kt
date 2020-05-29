@@ -7,9 +7,9 @@ import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.jetbrains.kotlin.psi.*
 
-class SimplifyParameterList(private val file: KtFile, private val checker: CompilerTestChecker) {
+class SimplifyParameterList : SimplificationPass() {
 
-    fun transform() {
+    override fun simplify() {
         simplifyParameterList()
         simplifyArgumentList()
     }
@@ -28,7 +28,7 @@ class SimplifyParameterList(private val file: KtFile, private val checker: Compi
                 val curParamCopy = curParam.copy() as KtValueArgument
                 val nextParam = argList.arguments[i + 1]
                 argList.removeArgument(curParam)
-                if (!checker.checkTest(file.text)) {
+                if (!checker.checkTest()) {
                     argList.addArgumentBefore(curParamCopy, nextParam)
                     i++
                 }
@@ -37,7 +37,7 @@ class SimplifyParameterList(private val file: KtFile, private val checker: Compi
             val lastParam = argList.arguments.last()
             val lastParamCopy = lastParam.copy() as KtValueArgument
             argList.removeArgument(lastParam)
-            if (!checker.checkTest(file.text)) {
+            if (!checker.checkTest()) {
                 argList.addArgument(lastParamCopy)
             }
         }
@@ -57,7 +57,7 @@ class SimplifyParameterList(private val file: KtFile, private val checker: Compi
                 val curParamCopy = curParam.copy() as KtParameter
                 val nextParam = parList.parameters[i + 1]
                 parList.removeParameter(curParam)
-                if (!checker.checkTest(file.text)) {
+                if (!checker.checkTest()) {
                     parList.addParameterBefore(curParamCopy, nextParam)
                     i++
                 }
@@ -66,7 +66,7 @@ class SimplifyParameterList(private val file: KtFile, private val checker: Compi
             val lastParam = parList.parameters.last()
             val lastParamCopy = lastParam.copy() as KtParameter
             parList.removeParameter(lastParam)
-            if (!checker.checkTest(file.text)) {
+            if (!checker.checkTest()) {
                 parList.addParameter(lastParamCopy)
             }
         }

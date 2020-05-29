@@ -10,9 +10,9 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 
 
-class SimplifyFor(private val file: KtFile, private val checker: CompilerTestChecker) {
+class SimplifyFor : SimplificationPass() {
 
-    fun transform() {
+    override fun simplify() {
         var forExpressions = file.getAllPSIChildrenOfType<KtForExpression>()
         for (f in forExpressions) {
             if (f.loopParameter == null || f.loopRange == null || f.body == null) continue
@@ -36,7 +36,7 @@ class SimplifyFor(private val file: KtFile, private val checker: CompilerTestChe
             newBlock.lBrace?.delete()
             newBlock.rBrace?.delete()
             f.replaceThis(newBlock)
-            if (!checker.checkTest(file.text))
+            if (!checker.checkTest())
                 newBlock.replaceThis(oldFor)
             else
                 log.debug("SUCCESSFUL FOR SIMPLIFYING")
@@ -47,7 +47,7 @@ class SimplifyFor(private val file: KtFile, private val checker: CompilerTestChe
             f.loopRange?.let { loopRange ->
                 for (replacement in loopParamReplacement) {
                     val replacementExp = KtPsiFactory(file.project).createExpression(replacement)
-                    if (checker.replaceNodeIfPossible(file, loopRange, replacementExp)) break
+                    if (checker.replaceNodeIfPossible(loopRange, replacementExp)) break
                 }
             }
         }

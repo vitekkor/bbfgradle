@@ -16,10 +16,11 @@ data class Header(
             val commentSectionLines = commentSection.lines()
 //            val fileName: String by HeaderDelegate(commentSectionLines, Directives.fileName)
             val language: String by HeaderDelegate(commentSectionLines, Directives.language)
+            val languageFeatures = if (language.trim().isEmpty()) listOf() else language.substringAfter(Directives.language).split(" ")
             val targetBackend: String by HeaderDelegate(commentSectionLines, Directives.targetBackend)
             val withDirectives = commentSectionLines.filter { it.startsWith(Directives.withDirectives) }
             val ignoreBackends = commentSectionLines.filter { it.startsWith(Directives.ignoreBackends) }
-            return Header(language.substringAfter(Directives.language).split(" "), withDirectives, ignoreBackends, targetBackend)
+            return Header(languageFeatures, withDirectives, ignoreBackends, targetBackend)
         }
     }
 

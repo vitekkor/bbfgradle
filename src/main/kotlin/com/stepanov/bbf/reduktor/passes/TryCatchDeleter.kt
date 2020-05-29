@@ -11,10 +11,9 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtTryExpression
 
-class TryCatchDeleter(private val file: KtFile, private val checker: CompilerTestChecker) {
+class TryCatchDeleter : SimplificationPass() {
 
-    fun transform() {
-        file.beforeAstChange()
+    override fun simplify() {
         val tryExpressions = file.getAllPSIChildrenOfType<KtTryExpression>()
         for (t in tryExpressions) {
             if (t.node.getAllChildrenNodes().all { it.elementType != KtTokens.TRY_KEYWORD }) continue
@@ -26,7 +25,7 @@ class TryCatchDeleter(private val file: KtFile, private val checker: CompilerTes
                 block.deleteChildInternal(block.rBrace!!.node)
             }
             t.replaceThis(block)
-            if (!checker.checkTest(file.text, file.name)) {
+            if (!checker.checkTest()) {
                 block.replaceThis(tryBackup)
             }
 //            //Try to replace

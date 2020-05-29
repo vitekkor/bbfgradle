@@ -7,15 +7,16 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtFile
 
-class ElvisOperatorSimplifier(private val file: KtFile, private val checker: CompilerTestChecker) {
-    fun transform() {
+class ElvisOperatorSimplifier: SimplificationPass() {
+
+    override fun simplify() {
         var elvExpr = getAllElvisExpressions()
         for (b in elvExpr) {
-            checker.replaceNodeIfPossible(file, b.node, b.right!!.node)
+            checker.replaceNodeIfPossible(b.node, b.right!!.node)
         }
         elvExpr = getAllElvisExpressions()
         for (b in elvExpr) {
-            checker.replaceNodeIfPossible(file, b.node, b.left!!.node)
+            checker.replaceNodeIfPossible(b.node, b.left!!.node)
         }
     }
 

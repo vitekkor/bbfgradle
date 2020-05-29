@@ -4,7 +4,7 @@ import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiWhiteSpace
 import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.CompilationChecker
-import com.stepanov.bbf.bugfinder.executor.Project
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.projectfuzzer.ClassSplitter
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
@@ -22,74 +22,76 @@ import kotlin.random.Random
 object KtProjectPreprocessor {
 
     //Returns null if we cant compile
-    fun preprocess(project: List<String>, checker: Checker): List<KtFile>? {
-        var psiFiles = buildPsiForProject(project)
-        renameBoxFun(psiFiles)
-        //Rename redeclarations
-        val errorMsg = checker.compileAndGetMessage(Project(psiFiles))
-        if (errorMsg.contains("Redeclaration:")) {
-            log.debug("RENAMING")
-            val renameNameReferences =
-                errorMsg
-                    .split("\n")
-                    .filter { it.startsWith("Redeclaration: ") }
-                    .map { it.split("Redeclaration: ").last() }
-                    .toSet()
-            //If we have one file, which should be split to compile, we need
-            //gather it back to one file before renaming
-            val notSplittedProj = project.map { PSICreator("").getPSIForText(it, false) }
-            Renamer().rename(notSplittedProj, renameNameReferences)
-            psiFiles = buildPsiForProject(notSplittedProj.map { it.text })
-            renameBoxFun(psiFiles)
-        } else if (errorMsg.trim().isNotEmpty()) {
-            log.debug(errorMsg)
-            return null
-        }
-        val shuffledPsiFiles = psiFiles.shuffle()
-        val factory = KtPsiFactory(shuffledPsiFiles.first().project)
-//        //You didn't see it...
-//        var counters = mutableListOf(0, 0, 0, 0, 0)
-//        files.forEach { Anonymizer.anonymizeAnonimized(it, counters, true) }
-//        counters = mutableListOf(0, 0, 0, 0, 0)
-//        files.forEach { Anonymizer.anonymizeAnonimized(it, counters, false) }
+    fun preprocess(project: List<String>, checker: Checker): List<KtFile>? = TODO()
+//    {
+//        var psiFiles = buildPsiForProject(project)
+//        renameBoxFun(psiFiles)
+//        //Rename redeclarations
+//        val errorMsg = checker.compileAndGetMessage(Project(psiFiles))
+//        if (errorMsg.contains("Redeclaration:")) {
+//            log.debug("RENAMING")
+//            val renameNameReferences =
+//                errorMsg
+//                    .split("\n")
+//                    .filter { it.startsWith("Redeclaration: ") }
+//                    .map { it.split("Redeclaration: ").last() }
+//                    .toSet()
+//            //If we have one file, which should be split to compile, we need
+//            //gather it back to one file before renaming
+//            val notSplittedProj = project.map { PSICreator("").getPSIForText(it, false) }
+//            Renamer().rename(notSplittedProj, renameNameReferences)
+//            psiFiles = buildPsiForProject(notSplittedProj.map { it.text })
+//            renameBoxFun(psiFiles)
+//        } else if (errorMsg.trim().isNotEmpty()) {
+//            log.debug(errorMsg)
+//            return null
+//        }
+//        val shuffledPsiFiles = psiFiles.shuffle()
+//        val factory = KtPsiFactory(shuffledPsiFiles.first().project)
+////        //You didn't see it...
+////        var counters = mutableListOf(0, 0, 0, 0, 0)
+////        files.forEach { Anonymizer.anonymizeAnonimized(it, counters, true) }
+////        counters = mutableListOf(0, 0, 0, 0, 0)
+////        files.forEach { Anonymizer.anonymizeAnonimized(it, counters, false) }
+//
+//        if (Random.nextBoolean()) {
+//            val newPackageDirectives = createRandomPackageDirectives(shuffledPsiFiles.size, factory)
+//            shuffledPsiFiles.forEachIndexed { index, file ->
+//                file.packageDirective?.replaceThis(newPackageDirectives[index])
+//                file.packageDirective?.add(factory.createWhiteSpace("\n\n\n"))
+//            }
+//        }
+//        //Shuffle box funcs
+//        shuffledPsiFiles.boxShift(factory)
+//        val imports = shuffledPsiFiles.map { ImportsGetter().createImportFromPackageDirective(it) }
+//
+//        for (i in shuffledPsiFiles.indices) {
+//            shuffledPsiFiles[i].importList?.add(factory.createWhiteSpace("\n"))
+//            imports.getAllWithout(i).filterNotNull().forEach { shuffledPsiFiles[i].addImport(it) }
+//        }
+//        if (!checker.isCompilationSuccessful(Project(shuffledPsiFiles))) {
+//            log.debug("Could not compile after import transferring")
+//            log.debug(shuffledPsiFiles.map { it.text })
+//            return null
+//        }
+//        val splitFiles = ClassSplitter(shuffledPsiFiles, checker)
+//            .split()
+//            .filterNot {
+//                it.text.trim().isEmpty() || it.allChildren.toList()
+//                    .all { it is PsiComment || it is KtImportList || it is KtPackageDirective || it is PsiWhiteSpace }
+//            }
+//        if (!checker.isCompilationSuccessful(Project(splitFiles))) {
+//            log.debug("Cant compile after splitting")
+//            return null
+//        }
+//        return splitFiles
+//    }
 
-        if (Random.nextBoolean()) {
-            val newPackageDirectives = createRandomPackageDirectives(shuffledPsiFiles.size, factory)
-            shuffledPsiFiles.forEachIndexed { index, file ->
-                file.packageDirective?.replaceThis(newPackageDirectives[index])
-                file.packageDirective?.add(factory.createWhiteSpace("\n\n\n"))
-            }
-        }
-        //Shuffle box funcs
-        shuffledPsiFiles.boxShift(factory)
-        val imports = shuffledPsiFiles.map { ImportsGetter().createImportFromPackageDirective(it) }
-
-        for (i in shuffledPsiFiles.indices) {
-            shuffledPsiFiles[i].importList?.add(factory.createWhiteSpace("\n"))
-            imports.getAllWithout(i).filterNotNull().forEach { shuffledPsiFiles[i].addImport(it) }
-        }
-        if (!checker.isCompilationSuccessful(Project(shuffledPsiFiles))) {
-            log.debug("Could not compile after import transferring")
-            log.debug(shuffledPsiFiles.map { it.text })
-            return null
-        }
-        val splitFiles = ClassSplitter(shuffledPsiFiles, checker)
-            .split()
-            .filterNot {
-                it.text.trim().isEmpty() || it.allChildren.toList()
-                    .all { it is PsiComment || it is KtImportList || it is KtPackageDirective || it is PsiWhiteSpace }
-            }
-        if (!checker.isCompilationSuccessful(Project(splitFiles))) {
-            log.debug("Cant compile after splitting")
-            return null
-        }
-        return splitFiles
-    }
-
-    private fun buildPsiForProject(project: List<String>): List<KtFile> {
-        val splitProject = Project(project.map { Project(it).split() }.flatMap { it.texts })
-        return splitProject.texts.map { PSICreator("").getPSIForText(it, false) }
-    }
+    private fun buildPsiForProject(project: List<String>): List<KtFile> = TODO()
+//    {
+//        val splitProject = Project(project.map { Project(it).split() }.flatMap { it.texts })
+//        return splitProject.texts.map { PSICreator("").getPSIForText(it, false) }
+//    }
 
     private fun renameBoxFun(psiFiles: List<KtFile>) {
         //Rename of box() fun

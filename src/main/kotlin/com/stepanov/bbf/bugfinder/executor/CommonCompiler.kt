@@ -13,48 +13,39 @@ import java.io.FileWriter
 
 data class CompilingResult(val status: Int, val pathToCompiled: String)
 
+enum class COMPILE_STATUS {
+    OK, ERROR, BUG
+}
+
 abstract class CommonCompiler {
 
-    //abstract fun checkCompiling(project: Project)
-    abstract fun checkCompiling(pathToFile: String): Boolean
-    abstract fun getErrorMessageWithLocation(pathToFile: String): Pair<String, List<CompilerMessageLocation>>
-    abstract fun compile(path: String, includeRuntime: Boolean = true): CompilingResult
-    abstract fun tryToCompile(pathToFile: String): KotlincInvokeStatus
-    //abstract fun tryToCompile(project: Project): KotlincInvokeStatus
-    abstract fun isCompilerBug(pathToFile: String): Boolean
+    abstract fun checkCompiling(project: Project): Boolean
+    abstract fun getErrorMessageWithLocation(project: Project): Pair<String, List<CompilerMessageLocation>>
+    abstract fun tryToCompile(project: Project): KotlincInvokeStatus
+    abstract fun isCompilerBug(project: Project): Boolean
     abstract fun exec(path: String, streamType: Stream = Stream.INPUT): String
 
     abstract val compilerInfo: String
     abstract val pathToCompiled: String
 
-    fun getErrorMessage(pathToFile: String): String = getErrorMessageWithLocation(pathToFile).first
+    fun getErrorMessage(project: Project): String = getErrorMessageWithLocation(project).first
     fun getErrorMessageForText(text: String): String = getErrorMessageForTextWithLocation(text).first
-    fun getErrorMessageForTextWithLocation(text: String) : Pair<String, List<CompilerMessageLocation>> {
-        val writer = BufferedWriter(FileWriter(CompilerArgs.pathToTmpFile))
-        writer.write(text)
-        writer.close()
-        return getErrorMessageWithLocation(CompilerArgs.pathToTmpFile)
+    fun getErrorMessageForTextWithLocation(text: String) : Pair<String, List<CompilerMessageLocation>> =
+        getErrorMessageWithLocation(Project.createFromCode(text))
+
+    fun tryToCompileWithStatus(project: Project): COMPILE_STATUS {
+        val status = tryToCompile(project)
+        return when {
+            status.hasException -> COMPILE_STATUS.BUG
+            status.hasCompilationError() || status.hasTimeout -> COMPILE_STATUS.ERROR
+            status.isCompileSuccess -> COMPILE_STATUS.OK
+            else -> COMPILE_STATUS.ERROR
+        }
     }
 
     fun checkCompilingText(text: String): Boolean {
         if (text.trim().isEmpty()) return false
-        return if (!text.contains("fun main(")) {
-            val writer = BufferedWriter(FileWriter(CompilerArgs.pathToTmpFile))
-            writer.write(text)
-            writer.write("\nfun main(args: Array<String>) {}")
-            writer.close()
-            val res = checkCompiling(CompilerArgs.pathToTmpFile)
-            //Save old text back
-            val oldTextWriter = BufferedWriter(FileWriter(CompilerArgs.pathToTmpFile))
-            oldTextWriter.write(text)
-            oldTextWriter.close()
-            res
-        } else {
-            val writer = BufferedWriter(FileWriter(CompilerArgs.pathToTmpFile))
-            writer.write(text)
-            writer.close()
-            checkCompiling(CompilerArgs.pathToTmpFile)
-        }
+        return checkCompiling(Project.createFromCode(text))
     }
 
     fun commonExec(command: String, streamType: Stream = Stream.INPUT, timeoutSec: Long = 5L): String {

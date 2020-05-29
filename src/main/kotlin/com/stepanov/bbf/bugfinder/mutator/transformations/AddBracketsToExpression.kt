@@ -16,7 +16,7 @@ class AddBracketsToExpression : Transformation() {
                 if (it is KtWhenExpression) return@forEach
                 try {
                     val newExpr = psiFactory.createExpression("(${it.text})")
-                    checker.replacePSINodeIfPossible(file, it, newExpr)
+                    checker.replacePSINodeIfPossible(it, newExpr)
                 } catch (e: Exception) {
                     return@forEach
                 }

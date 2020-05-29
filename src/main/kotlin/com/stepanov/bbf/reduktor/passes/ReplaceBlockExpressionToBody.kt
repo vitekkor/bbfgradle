@@ -5,9 +5,9 @@ import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
 
-class ReplaceBlockExpressionToBody(private val file: KtFile, private val checker: CompilerTestChecker) {
+class ReplaceBlockExpressionToBody : SimplificationPass() {
 
-    fun transform() {
+    override fun simplify() {
         val blocks = file.getAllPSIChildrenOfType<KtBlockExpression>()
         val parents = blocks.map { it.parents.filter { it::class in avExpressions }.toList() }
         val bodies = blocks.map { it.copy() as KtBlockExpression }
@@ -19,7 +19,7 @@ class ReplaceBlockExpressionToBody(private val file: KtFile, private val checker
         }
         for (i in 0 until blocks.size) {
             for (par in parents[i]) {
-                if (checker.replaceNodeIfPossible(file, par, bodies[i]))
+                if (checker.replaceNodeIfPossible(par, bodies[i]))
                     break
             }
         }

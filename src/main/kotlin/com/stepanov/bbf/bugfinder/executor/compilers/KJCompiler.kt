@@ -3,7 +3,6 @@ package com.stepanov.bbf.bugfinder.executor.compilers
 import com.stepanov.bbf.bugfinder.util.decompiler.copyContentTo
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.CompilingResult
-import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
@@ -23,23 +22,23 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
     override val pathToCompiled: String
         get() = "tmp/tmp.jar"
 
-    override fun compile(path: String, includeRuntime: Boolean): CompilingResult {
-        val kotlinCompiled = super.compile(path, includeRuntime)
-        if (kotlinCompiled.status == -1) return CompilingResult(-1, "")
-        File(pathToTmpDir).deleteRecursively()
-//        File(pathToTmpDir).listFiles()
-//            .filter { !it.absolutePath.endsWith(".java") && !it.absolutePath.endsWith(".kt") }
-//            .forEach { it.deleteRecursively() }
-        val kotlinJar = ZipFile(kotlinCompiled.pathToCompiled, Charset.forName("CP866"))
-        kotlinJar.copyContentTo(pathToTmpDir)
-        val javaRes = compileJava(path, kotlinCompiled.pathToCompiled, pathToTmpDir)
-        File(kotlinCompiled.pathToCompiled).let { if (it.exists()) it.delete() }
-        return if (javaRes) {
-            CompilingResult(0, pathToTmpDir)
-        } else {
-            CompilingResult(-1, "")
-        }
-    }
+//    fun compile(path: String, includeRuntime: Boolean): CompilingResult {
+//        val kotlinCompiled = super.compile(path, includeRuntime)
+//        if (kotlinCompiled.status == -1) return CompilingResult(-1, "")
+//        File(pathToTmpDir).deleteRecursively()
+////        File(pathToTmpDir).listFiles()
+////            .filter { !it.absolutePath.endsWith(".java") && !it.absolutePath.endsWith(".kt") }
+////            .forEach { it.deleteRecursively() }
+//        val kotlinJar = ZipFile(kotlinCompiled.pathToCompiled, Charset.forName("CP866"))
+//        kotlinJar.copyContentTo(pathToTmpDir)
+//        val javaRes = compileJava(path, kotlinCompiled.pathToCompiled, pathToTmpDir)
+//        File(kotlinCompiled.pathToCompiled).let { if (it.exists()) it.delete() }
+//        return if (javaRes) {
+//            CompilingResult(0, pathToTmpDir)
+//        } else {
+//            CompilingResult(-1, "")
+//        }
+//    }
 
     fun compileJava(path: String, pathToLib: String, pathToDir: String): Boolean {
         val javaFiles = path.split(" ").filter { it.endsWith(".java") }.map { File(it) }
@@ -55,11 +54,11 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
         return diagnostics.diagnostics.isEmpty()
     }
 
-    override fun checkCompiling(pathToFile: String): Boolean {
-        val status = compile(pathToFile, false).status
-        File(pathToTmpDir).deleteRecursively()
-        return status == 0
-    }
+//    override fun checkCompiling(pathToFile: String): Boolean {
+//        val status = compile(pathToFile, false).status
+//        File(pathToTmpDir).deleteRecursively()
+//        return status == 0
+//    }
 
     override fun exec(path: String, streamType: Stream): String {
         return commonExec("java -cp $path MainKt", streamType)

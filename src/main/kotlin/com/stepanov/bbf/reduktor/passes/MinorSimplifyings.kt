@@ -11,19 +11,17 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 
 //
-class MinorSimplifyings(
-    private val file: KtFile, private val checker: CompilerTestChecker,
-    private val ctx: BindingContext
-) {
-
-    fun transform() {
+class MinorSimplifyings : SimplificationPass() {
+    override fun simplify() {
         //Replace variable on constant if we can get type
         try {
             file.getAllPSIChildrenOfType<KtExpression>()
-                    //TODO DO SMTH WITH THAT
-                .filter { it !is KtConstantExpression &&
-                        (it is KtReferenceExpression || it is KtOperationExpression || it is KtCallExpression ||
-                                it is KtDotQualifiedExpression) }
+                //TODO DO SMTH WITH THAT
+                .filter {
+                    it !is KtConstantExpression &&
+                            (it is KtReferenceExpression || it is KtOperationExpression || it is KtCallExpression ||
+                                    it is KtDotQualifiedExpression)
+                }
                 .forEach {
                     if (!file.getAllChildren().contains(it)) return@forEach
                     it.getType(ctx)?.let { type ->
@@ -32,7 +30,7 @@ class MinorSimplifyings(
                                 ?: generateDefValuesAsString("$type")
                         val exp = KtPsiFactory(file.project).createExpression(defValue)
                         if (it.text.length < exp.text.length) return@forEach
-                        checker.replaceNodeIfPossible(file, it, exp)
+                        checker.replaceNodeIfPossible(it, exp)
                     }
                 }
         } catch (e: Exception) {
@@ -60,6 +58,8 @@ class MinorSimplifyings(
         return null
     }
 
+    val ctx = checker.curFile.ctx!!
     val customStructures = file.getAllPSIChildrenOfType<KtClassOrObject>().map { it to it.name }
-
 }
+
+

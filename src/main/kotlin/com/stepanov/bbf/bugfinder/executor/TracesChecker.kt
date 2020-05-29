@@ -1,7 +1,8 @@
 package com.stepanov.bbf.bugfinder.executor
 
 import com.intellij.psi.PsiErrorElement
-import com.stepanov.bbf.bugfinder.executor.compilers.JCompiler
+import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
@@ -43,17 +44,17 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         return res
     }
 
-    fun addMainForKJavaProject(project: Project) =
-        Project(project.texts
-            .map { it to it.getFileLanguageIfExist() }
-            .map { if (it.second == LANGUAGE.KOTLIN) it.first to psiFactory.createFile(it.first) else it.first to null }
-            .map {
-                if (it.second?.getAllPSIChildrenOfType<KtNamedFunction>()
-                        ?.any { it.name?.contains("box") == true } == true
-                ) addMain(it.first) else
-                    it.first
-            }, null, LANGUAGE.KJAVA
-        )
+    fun addMainForKJavaProject(project: Project): Nothing = TODO()
+//        Project(project.texts
+//            .map { it to it.getFileLanguageIfExist() }
+//            .map { if (it.second == LANGUAGE.KOTLIN) it.first to psiFactory.createFile(it.first) else it.first to null }
+//            .map {
+//                if (it.second?.getAllPSIChildrenOfType<KtNamedFunction>()
+//                        ?.any { it.name?.contains("box") == true } == true
+//                ) addMain(it.first) else
+//                    it.first
+//            }, null, LANGUAGE.KJAVA
+//        )
 
 
     private fun addMain(text: String): String =
@@ -61,158 +62,162 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
                 "    println(box())\n" +
                 "}"
 
-    fun addMainForProject(project: Project): Project {
-        if (project.language == LANGUAGE.KJAVA) return addMainForKJavaProject(project)
-        if (project.texts.size == 1) {
-            val newText = addMain(project.texts.first())
-            return Project(listOf(newText))
-        } else {
-            val files = project.texts.map { psiFactory.createFile(it) }
-            val boxFuncs = files.map { file ->
-                file.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name?.contains("box") ?: false }!!
-            }
-            //Add import of box_I functions
-            val firstFile = files.first()
-            boxFuncs.forEachIndexed { i, func ->
-                val `package` = (func.parents.find { it is KtFile } as KtFile).packageDirective?.fqName
-                    ?: throw IllegalArgumentException("No package")
-                val newImport =
-                    psiFactory.createImportDirective(ImportPath(FqName("${`package`}.${func.name}"), false))
-                firstFile.addImport(newImport)
-            }
-            firstFile.addMain(boxFuncs)
-            return Project(files)
-        }
-    }
+    fun addMainForProject(project: Project): Project = TODO()
+//    {
+//        if (project.language == LANGUAGE.KJAVA) return addMainForKJavaProject(project)
+//        if (project.texts.size == 1) {
+//            val newText = addMain(project.texts.first())
+//            return Project(listOf(newText))
+//        } else {
+//            val files = project.texts.map { psiFactory.createFile(it) }
+//            val boxFuncs = files.map { file ->
+//                file.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name?.contains("box") ?: false }!!
+//            }
+//            //Add import of box_I functions
+//            val firstFile = files.first()
+//            boxFuncs.forEachIndexed { i, func ->
+//                val `package` = (func.parents.find { it is KtFile } as KtFile).packageDirective?.fqName
+//                    ?: throw IllegalArgumentException("No package")
+//                val newImport =
+//                    psiFactory.createImportDirective(ImportPath(FqName("${`package`}.${func.name}"), false))
+//                firstFile.addImport(newImport)
+//            }
+//            firstFile.addMain(boxFuncs)
+//            return Project(files)
+//        }
+//    }
 
-    fun compareTraces(project: Project): List<CommonCompiler>? {
-        val path = project.generateCommonName()
-        //Check if already checked
-        val text = project.getCommonText(path)
-        val hash = text.hashCode()
-        if (alreadyChecked.containsKey(hash)) {
-            log.debug("ALREADY CHECKED!!!")
-            return alreadyChecked[hash]!!
-        }
-
-        //Add main
-        val projectWithMain = addMainForProject(project)
-        if (!isCompilationSuccessful(projectWithMain)) {
-            log.debug("Cant compile with main")
-            log.debug("Proj = ${projectWithMain.getCommonTextWithDefaultPath()}")
-            return null
-        }
-        projectWithMain.saveOrRemoveToTmp(true)
-        val results = mutableListOf<Pair<CommonCompiler, String>>()
-        for (comp in compilers) {
-            val status = comp.compile(path)
-            if (status.status == -1) {
-                clean(projectWithMain, status.pathToCompiled)
-                return null
-            }
-            val res = comp.exec(status.pathToCompiled)
-            val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
-            log.debug("Result of ${comp.compilerInfo}: $res\n")
-            log.debug("Errors: $errors")
-            if (exclErrorMessages.any { errors.contains(it) }) {
-                clean(projectWithMain, status.pathToCompiled)
-                return null
-            }
-            results.add(comp to res.trim())
-        }
-        clean(projectWithMain, null)
-        val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first })
-        return if (groupedRes.size == 1) {
-            null
-        } else {
-            val res = groupedRes.map { it.value.first() }
-            alreadyChecked[hash] = res
-            res
-        }
-    }
+    fun compareTraces(project: Project): List<CommonCompiler>? = TODO()
+//    {
+//        val path = project.generateCommonName()
+//        //Check if already checked
+//        val text = project.getCommonText(path)
+//        val hash = text.hashCode()
+//        if (alreadyChecked.containsKey(hash)) {
+//            log.debug("ALREADY CHECKED!!!")
+//            return alreadyChecked[hash]!!
+//        }
+//
+//        //Add main
+//        val projectWithMain = addMainForProject(project)
+//        if (!isCompilationSuccessful(projectWithMain)) {
+//            log.debug("Cant compile with main")
+//            log.debug("Proj = ${projectWithMain.getCommonTextWithDefaultPath()}")
+//            return null
+//        }
+//        projectWithMain.saveOrRemoveToTmp(true)
+//        val results = mutableListOf<Pair<CommonCompiler, String>>()
+//        for (comp in compilers) {
+//            val status = comp.compile(path)
+//            if (status.status == -1) {
+//                clean(projectWithMain, status.pathToCompiled)
+//                return null
+//            }
+//            val res = comp.exec(status.pathToCompiled)
+//            val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
+//            log.debug("Result of ${comp.compilerInfo}: $res\n")
+//            log.debug("Errors: $errors")
+//            if (exclErrorMessages.any { errors.contains(it) }) {
+//                clean(projectWithMain, status.pathToCompiled)
+//                return null
+//            }
+//            results.add(comp to res.trim())
+//        }
+//        clean(projectWithMain, null)
+//        val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first })
+//        return if (groupedRes.size == 1) {
+//            null
+//        } else {
+//            val res = groupedRes.map { it.value.first() }
+//            alreadyChecked[hash] = res
+//            res
+//        }
+//    }
 
     private fun clean(project: Project, pathToCompiled: String?) {
         project.saveOrRemoveToTmp(false)
         pathToCompiled?.let { File(it).let { f -> if (f.exists()) f.deleteRecursively() } }
     }
 
-    fun checkTestForProject(commonPath: String): List<CommonCompiler>? {
-        val results = mutableListOf<Pair<CommonCompiler, String>>()
-        for (comp in compilers) {
-            val status = comp.compile(commonPath)
-            if (status.status == -1)
-                return null
-            val res = comp.exec(status.pathToCompiled)
-            val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
-            log.debug("Result of ${comp.compilerInfo}: $res\n")
-            log.debug("Errors: $errors")
-            results.add(comp to res.trim())
-        }
-        val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first })
-        return if (groupedRes.size == 1) {
-            null
-        } else {
-            groupedRes.map { it.value.first() }
-        }
-    }
+    fun checkTestForProject(commonPath: String): List<CommonCompiler>? = TODO()
+//    {
+//        val results = mutableListOf<Pair<CommonCompiler, String>>()
+//        for (comp in compilers) {
+//            val status = comp.compile(commonPath)
+//            if (status.status == -1)
+//                return null
+//            val res = comp.exec(status.pathToCompiled)
+//            val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
+//            log.debug("Result of ${comp.compilerInfo}: $res\n")
+//            log.debug("Errors: $errors")
+//            results.add(comp to res.trim())
+//        }
+//        val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first })
+//        return if (groupedRes.size == 1) {
+//            null
+//        } else {
+//            groupedRes.map { it.value.first() }
+//        }
+//    }
 
-    fun checkTest(text: String, pathToFile: String): List<CommonCompiler>? {
-        val hash = text.hashCode()
-        if (alreadyChecked.containsKey(hash)) {
-            log.debug("ALREADY CHECKED!!!")
-            return alreadyChecked[hash]!!
-        }
-
-        val psiFile = psiFactory.createFile(text)
-        //Check for syntax correctness
-        if (psiFile.node.getAllChildrenNodes().any { it.psi is PsiErrorElement }) {
-            log.debug("Not correct syntax")
-            alreadyChecked[hash] = null
-            return null
-        }
-
-        log.debug("Trying to compile with main function:")
-        if (!compilers.checkCompilingForAllBackends(psiFile)) {
-            log.debug("Cannot compile with main")
-            return null
-        }
-
-        log.debug("Executing traced code:\n$text")
-        val results = mutableListOf<Pair<CommonCompiler, String>>()
-        for (comp in compilers) {
-            val status = comp.compile(pathToFile)
-            if (status.status == -1)
-                return null
-            val res = comp.exec(status.pathToCompiled)
-            val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
-            log.debug("Result of ${comp.compilerInfo}: $res\n")
-            log.debug("Errors: $errors")
-            if (FalsePositivesTemplates.exclErrorMessages.any { errors.contains(it) })
-                return null
-            results.add(comp to res.trim())
-        }
-        //Compare with java
-        if (CompilerArgs.useJavaAsOracle) {
-            try {
-                val res = JCompiler().compile(pathToFile)
-                if (res.status == 0) {
-                    val execRes = JCompiler().exec(res.pathToCompiled, Stream.BOTH)
-                    log.debug("Result of JAVA: $execRes")
-                    results.add(JCompiler() to execRes.trim())
-                } else log.debug("Cant compile with Java")
-            } catch (e: Exception) {
-                log.debug("Exception with Java compilation")
-            }
-        }
-        val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap()
-        return if (groupedRes.size == 1) {
-            null
-        } else {
-            val res = groupedRes.map { it.value.first() }
-            alreadyChecked[hash] = res
-            res
-        }
-    }
+    fun checkTest(text: String, pathToFile: String): List<CommonCompiler>? = TODO()
+//    {
+//        val hash = text.hashCode()
+//        if (alreadyChecked.containsKey(hash)) {
+//            log.debug("ALREADY CHECKED!!!")
+//            return alreadyChecked[hash]!!
+//        }
+//
+//        val psiFile = psiFactory.createFile(text)
+//        //Check for syntax correctness
+//        if (psiFile.node.getAllChildrenNodes().any { it.psi is PsiErrorElement }) {
+//            log.debug("Not correct syntax")
+//            alreadyChecked[hash] = null
+//            return null
+//        }
+//
+//        log.debug("Trying to compile with main function:")
+//        if (!compilers.checkCompilingForAllBackends(psiFile)) {
+//            log.debug("Cannot compile with main")
+//            return null
+//        }
+//
+//        log.debug("Executing traced code:\n$text")
+//        val results = mutableListOf<Pair<CommonCompiler, String>>()
+//        for (comp in compilers) {
+//            val status = comp.compile(pathToFile)
+//            if (status.status == -1)
+//                return null
+//            val res = comp.exec(status.pathToCompiled)
+//            val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
+//            log.debug("Result of ${comp.compilerInfo}: $res\n")
+//            log.debug("Errors: $errors")
+//            if (FalsePositivesTemplates.exclErrorMessages.any { errors.contains(it) })
+//                return null
+//            results.add(comp to res.trim())
+//        }
+//        //Compare with java
+//        if (CompilerArgs.useJavaAsOracle) {
+//            try {
+//                val res = JCompiler().compile(pathToFile)
+//                if (res.status == 0) {
+//                    val execRes = JCompiler().exec(res.pathToCompiled, Stream.BOTH)
+//                    log.debug("Result of JAVA: $execRes")
+//                    results.add(JCompiler() to execRes.trim())
+//                } else log.debug("Cant compile with Java")
+//            } catch (e: Exception) {
+//                log.debug("Exception with Java compilation")
+//            }
+//        }
+//        val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap()
+//        return if (groupedRes.size == 1) {
+//            null
+//        } else {
+//            val res = groupedRes.map { it.value.first() }
+//            alreadyChecked[hash] = res
+//            res
+//        }
+//    }
 
     var alreadyChecked: HashMap<Int, List<CommonCompiler>?> = HashMap()
     private val log = Logger.getLogger("bugFinderLogger")

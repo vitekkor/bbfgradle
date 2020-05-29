@@ -6,8 +6,8 @@ import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.getSignature
 import org.jetbrains.kotlin.psi.*
 
-class FunSimplifier(private val file: KtFile, private val checker: CompilerTestChecker) {
-    fun transform() {
+class FunSimplifier : SimplificationPass() {
+    override fun simplify() {
         val namedFuncs = file.getAllPSIChildrenOfType<KtNamedFunction>()
         for (f in namedFuncs) {
             try {
@@ -22,7 +22,7 @@ class FunSimplifier(private val file: KtFile, private val checker: CompilerTestC
                         .takeWhile { it !is KtBlockExpression }
                         .joinToString("") { it.text }
                     val newFun = KtPsiFactory(file.project).createFunction("$signature = ${newNode.text}")
-                    checker.replaceNodeIfPossible(file, f, newFun)
+                    checker.replaceNodeIfPossible(f, newFun)
                 }
             } catch (e: Exception) {
                 continue

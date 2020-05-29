@@ -13,7 +13,7 @@ import org.jetbrains.kotlin.psi.psiUtil.children
 import java.util.*
 import kotlin.Comparator
 
-class PSIReducer(private val file: KtFile, private val checker: CompilerTestChecker) {
+class PSIReducer: SimplificationPass() {
 
     val fileNode = file.node
     val children = fileNode.getAllChildrenNodes()
@@ -37,7 +37,7 @@ class PSIReducer(private val file: KtFile, private val checker: CompilerTestChec
     }
 
 
-    fun transform() {
+    override fun simplify() {
         fillMap()
         for (token in tokens) {
             //println("tok = ${token.key} val = ${token.value} parent = ${token.key.treeParent} contains = ${tokens.containsKey(token.key.treeParent)}")
@@ -78,7 +78,7 @@ class PSIReducer(private val file: KtFile, private val checker: CompilerTestChec
 //            }
 //        }
         //ELSE TRYING TO REMOVE
-        val res = checker.removeNodeIfPossible(file, node)
+        val res = checker.removeNodeIfPossible(node)
         if (!res) {
             queue.addChildrenFromMapToQueue(node)
         }

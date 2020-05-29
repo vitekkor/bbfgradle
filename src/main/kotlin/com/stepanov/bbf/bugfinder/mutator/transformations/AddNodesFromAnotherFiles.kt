@@ -68,14 +68,15 @@ class AddNodesFromAnotherFiles : Transformation() {
                 }
             }
         }
-        file = creator.getPSIForText(psi.text)
+        checker.curFile.changePsiFile(creator.getPSIForText(psi.text))
+        //file = creator.getPSIForText(psi.text)
     }
 
     private fun tryToAdd(targetNode: PsiElement, psi: KtFile, placeToInsert: PsiElement): PsiElement? {
         val block = psiFactory.createBlock(targetNode.text)
         block.lBrace?.delete()
         block.rBrace?.delete()
-        return checker.addNodeIfPossibleWithNode(psi, placeToInsert, block)
+        return checker.addNodeIfPossibleWithNode(placeToInsert, block)
     }
 
     private fun renameNameReferences(

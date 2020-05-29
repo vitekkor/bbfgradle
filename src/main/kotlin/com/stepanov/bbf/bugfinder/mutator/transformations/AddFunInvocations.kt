@@ -34,7 +34,8 @@ class AddFunInvocations : Transformation() {
         for (i in 0 until randomConst) {
             val res = tryToAddCalls()
             if (file.text.trim() != res.text) {
-                file = res.copy() as KtFile
+                checker.curFile.changePsiFile(res.copy() as KtFile)
+                //file = res.copy() as KtFile
             }
         }
     }
@@ -123,7 +124,7 @@ class AddFunInvocations : Transformation() {
         val block = psiFactory.createBlock(node.text)
         block.lBrace?.delete()
         block.rBrace?.delete()
-        checker.addNodeIfPossible(tree, this, block)
+        checker.addNodeIfPossible(this, block)
     }
 
     private fun getInsertableExpressions(

@@ -1,6 +1,7 @@
 package com.stepanov.bbf.reduktor.passes.slicer
 
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
+import com.stepanov.bbf.reduktor.passes.SimplificationPass
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import com.stepanov.bbf.reduktor.util.getLine
 
@@ -37,6 +38,5 @@ class Slicer(private val file: KtFile, private val checker: CompilerTestChecker)
         }
 
     }
-
 
 }

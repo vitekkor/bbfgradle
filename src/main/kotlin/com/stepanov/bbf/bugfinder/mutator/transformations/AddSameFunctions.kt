@@ -9,12 +9,13 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 import java.util.*
 
-class AddSameFunctions(private val ctx: BindingContext) : Transformation() {
+class AddSameFunctions() : Transformation() {
 
     override fun transform() {
+        if (context == null) return
         val functions = file.getAllPSIChildrenOfType<KtNamedFunction>()//.filter { Random().nextBoolean() }
         for (func in functions) {
-            val retType = func.typeReference?.text ?: func.getType(ctx).toString()
+            val retType = func.typeReference?.text ?: func.getType(context).toString()
             val newRtv = generateDefValuesAsString(retType)
             if (newRtv.isEmpty()) continue
             val allParams = mutableListOf<List<Pair<KtParameter, Int>>>()
@@ -50,7 +51,7 @@ class AddSameFunctions(private val ctx: BindingContext) : Transformation() {
                 val newBlockFragment = psiFactory.createBlock(newFunc.text)
                 newBlockFragment.lBrace?.delete()
                 newBlockFragment.rBrace?.delete()
-                checker.addNodeIfPossible(file, func, newBlockFragment, true)
+                checker.addNodeIfPossible(func, newBlockFragment, true)
             }
         }
     }
@@ -93,4 +94,5 @@ class AddSameFunctions(private val ctx: BindingContext) : Transformation() {
     private val containers = listOf("List" to 1, "ArrayList" to 1, "Array" to 1, "Set" to 1, "Map" to 2,
             "Pair" to 2, "HashMap" to 2, "HashSet" to 1)
 
+    private val context = checker.curFile.ctx
 }

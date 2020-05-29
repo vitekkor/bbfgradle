@@ -14,6 +14,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.source.tree.TreeCopyHandler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.kootstrap.FooBarCompiler
 import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyCfg
 import com.stepanov.bbf.kootstrap.util.opt
@@ -109,7 +110,7 @@ class PSICreator(var projectDir: String) {
         }
     }
 
-    fun getPsiForJava(text: String, proj: Project) =
+    fun getPsiForJava(text: String, proj: Project = Factory.file.project) =
         PsiFileFactory.getInstance(proj).createFileFromText(JavaLanguage.INSTANCE, text)
 
     fun reinit(projectDir: String): List<KtFile> {

@@ -1,5 +1,8 @@
 package com.stepanov.bbf.bugfinder.executor
 
+import com.stepanov.bbf.bugfinder.executor.project.BBFFile
+import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
 import com.stepanov.bbf.reduktor.executor.error.Error
 import com.stepanov.bbf.reduktor.parser.PSICreator
@@ -7,28 +10,33 @@ import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
 
-class DiffBehaviorChecker(private val compilers: List<CommonCompiler>) : MultiCompilerCrashChecker(null) {
+class DiffBehaviorChecker(
+    override val project: Project,
+    override val curFile: BBFFile,
+    private val compilers: List<CommonCompiler>
+) : MultiCompilerCrashChecker(project, curFile, null) {
 
-    private fun compileAndGetExecResult(): List<Pair<CommonCompiler, String>> {
-        //Add main fun if need
-        val text = File(pathToFile).readText()
-        if (!text.contains("fun main(")) {
-            File(pathToFile).writeText("$text\nfun main(args: Array<String>) { println(box()) }")
-        }
-        val results = mutableListOf<Pair<CommonCompiler, String>>()
-        for (comp in compilers) {
-            val status = comp.compile(pathToFile)
-            if (status.status == -1)
-                return listOf()
-            val res = comp.exec(status.pathToCompiled)
-            log.debug("Result of ${comp.compilerInfo}: $res\n")
-            results.add(comp to res.trim())
-        }
-        return results
-    }
+    private fun compileAndGetExecResult(): List<Pair<CommonCompiler, String>> = TODO()
+//    {
+//        //Add main fun if need
+//        val text = File(pathToFile).readText()
+//        if (!text.contains("fun main(")) {
+//            File(pathToFile).writeText("$text\nfun main(args: Array<String>) { println(box()) }")
+//        }
+//        val results = mutableListOf<Pair<CommonCompiler, String>>()
+//        for (comp in compilers) {
+//            val status = comp.compile(pathToFile)
+//            if (status.status == -1)
+//                return listOf()
+//            val res = comp.exec(status.pathToCompiled)
+//            log.debug("Result of ${comp.compilerInfo}: $res\n")
+//            results.add(comp to res.trim())
+//        }
+//        return results
+//    }
 
     private fun isSameDiffBehavior(text: String): Boolean {
-        val psiFile = psiFactory.createFile(text)
+        val psiFile = Factory.psiFactory.createFile(text)
         if (!compilers.checkCompilingForAllBackends(psiFile)) {
             log.debug("Cannot compile with main")
             return false
@@ -66,26 +74,26 @@ class DiffBehaviorChecker(private val compilers: List<CommonCompiler>) : MultiCo
         return res
     }
 
-    override fun checkTest(text: String, pathToFile: String): Boolean {
-        val preCheck = isAlreadyCheckedOrWrong(text)
-        if (preCheck.first) return preCheck.second
-        val oldText = File(pathToFile).bufferedReader().readText()
-        var writer = File(pathToFile).bufferedWriter()
-        writer.write(text)
-        writer.close()
-        val res = isSameDiffBehavior(text)
-        writer = File(pathToFile).bufferedWriter()
-        writer.write(oldText)
-        writer.close()
-        alreadyChecked[text.hashCode()] = res
-        return res
-    }
+//    override fun checkTest(): Boolean {
+//        val preCheck = isAlreadyCheckedOrWrong(text)
+//        if (preCheck.first) return preCheck.second
+//        val oldText = File(pathToFile).bufferedReader().readText()
+//        var writer = File(pathToFile).bufferedWriter()
+//        writer.write(text)
+//        writer.close()
+//        val res = isSameDiffBehavior(text)
+//        writer = File(pathToFile).bufferedWriter()
+//        writer.write(oldText)
+//        writer.close()
+//        alreadyChecked[text.hashCode()] = res
+//        return res
+//    }
 
-    override fun init(compilingPath: String, psiFactory: KtPsiFactory?): Error {
-        val results = compileAndGetExecResult()
-        results.forEachIndexed { _, pair -> prevResults.add(pair.second.split("\n").filter { it.isNotEmpty() }) }
-        return Error("")
-    }
+//    override fun init(compilingPath: String, psiFactory: KtPsiFactory?): Error {
+//        val results = compileAndGetExecResult()
+//        results.forEachIndexed { _, pair -> prevResults.add(pair.second.split("\n").filter { it.isNotEmpty() }) }
+//        return Error("")
+//    }
 
 
     val prevResults: MutableList<List<String>> = ArrayList()

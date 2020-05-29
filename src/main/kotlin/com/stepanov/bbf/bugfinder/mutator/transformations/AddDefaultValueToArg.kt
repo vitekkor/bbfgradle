@@ -27,7 +27,7 @@ class AddDefaultValueToArg : Transformation() {
                         generateDefValuesAsString(typeText)
                     }
                     val newParam = psiFactory.createParameter("${par.name}: $typeText = $defaultValue")
-                    checker.replacePSINodeIfPossible(file, par, newParam)
+                    checker.replacePSINodeIfPossible(par, newParam)
                 }
     }
 

@@ -8,9 +8,10 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.random.Random
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
-class ChangeTypes(private val context: BindingContext) : Transformation() {
+class ChangeTypes : Transformation() {
 
     override fun transform() {
+        if (context == null) return
         val properties = file.getAllPSIChildrenOfType<KtProperty>().filter { Random.nextBoolean() }
         for (prop in properties) {
             val type = if (prop.typeReference != null) prop.typeReference?.text else prop.getType(context)?.toString()
@@ -24,7 +25,7 @@ class ChangeTypes(private val context: BindingContext) : Transformation() {
                         return@let
                     }
                 } else {
-                    checker.replacePSINodeIfPossible(file, prop.typeReference!!, newTypeRef)
+                    checker.replacePSINodeIfPossible(prop.typeReference!!, newTypeRef)
                 }
             }
         }
@@ -80,4 +81,6 @@ class ChangeTypes(private val context: BindingContext) : Transformation() {
         "MutableSet" to listOf("Set", "MutableCollection"),
         "MutableMap" to listOf("Map")
     )
+
+    private val context = checker.curFile.ctx
 }

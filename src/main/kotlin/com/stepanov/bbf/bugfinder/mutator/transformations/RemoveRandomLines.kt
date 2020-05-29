@@ -15,7 +15,7 @@ class RemoveRandomLines: Transformation()  {
                 text[numLine] = old
             }
         }
-        file = psiFactory.createFile(getText(text))
+        checker.curFile.changePsiFile(psiFactory.createFile(getText(text)))
     }
 
     private fun getText(text: MutableList<String>) = text.joinToString(separator = "\n")

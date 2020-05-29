@@ -39,10 +39,10 @@ class ChangeRandomASTNodesFromAnotherTrees : Transformation() {
                         sameTypeNodes[0]
                     else
                         sameTypeNodes[Random.nextInt(0, sameTypeNodes.size - 1)]
-            checker.replaceNodeIfPossible(file, randomNode, targetNode)
+            checker.replaceNodeIfPossible(randomNode, targetNode)
         }
     }
 
     /*val magicConst = 4*/
-    private val numOfTries = if (checker.otherFiles == null) 50 to 1000 else 2000 to 4000
+    private val numOfTries = if (checker.project.files.size == 1) 50 to 1000 else 2000 to 4000
 }

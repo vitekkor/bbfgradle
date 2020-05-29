@@ -10,10 +10,10 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.psi.psiUtil.getCallNameExpression
 
-class SimplifyConstructor(private val file: KtFile, private val checker: CompilerTestChecker) {
+class SimplifyConstructor : SimplificationPass() {
 
     //TODO handle labmdas
-    fun transform() {
+    override fun simplify() {
         file.getAllPSIChildrenOfType<KtClass>()
                 .filter { it.name != null && it.primaryConstructor != null }
                 //Filter constructors with lambdas
@@ -66,7 +66,7 @@ class SimplifyConstructor(private val file: KtFile, private val checker: Compile
                             oldArgsCopies.add(it.valueArgumentList!!.arguments[i])
                             it.valueArgumentList?.removeArgument(i)
                         }
-                        if (!checker.checkTest(file.text)) {
+                        if (!checker.checkTest()) {
                             it.primaryConstructor!!.replaceThis(oldCopy)
                             for (j in 0 until invocations.size) {
                                 val newArg = KtPsiFactory(file.project).createArgument(oldArgsCopies[j].text)
@@ -95,7 +95,7 @@ class SimplifyConstructor(private val file: KtFile, private val checker: Compile
                     invocations.forEach {
                         it.valueArgumentList?.removeArgument(it.valueArguments.size - 1)
                     }
-                    if (!checker.checkTest(file.text)) {
+                    if (!checker.checkTest()) {
                         it.primaryConstructor?.replaceThis(constructorCopy)
                         for (j in 0 until invocations.size) {
                             val newArg = KtPsiFactory(file.project).createArgument(lastArgs[j].text)

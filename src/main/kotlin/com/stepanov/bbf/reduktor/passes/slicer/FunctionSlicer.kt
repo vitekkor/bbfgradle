@@ -45,7 +45,7 @@ class FunctionSlicer(private val checker: CompilerTestChecker) : KtVisitorVoid()
         }
         for (n in nodes) {
             if (!funcToSave.map { it.node }.contains(n.node)) {
-                val res = checker.removeNodeIfPossible(file, n.node)
+                val res = checker.removeNodeIfPossible(n.node)
                 log.debug("TRY TO REMOVE ${n.name} $res")
             }
         }

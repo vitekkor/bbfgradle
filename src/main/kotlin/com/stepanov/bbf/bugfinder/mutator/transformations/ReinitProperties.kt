@@ -9,7 +9,7 @@ import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 
 //TODO Add for map!!
-class ReinitProperties(private val context: BindingContext?) : Transformation() {
+class ReinitProperties : Transformation() {
     override fun transform() {
         file.getAllPSIChildrenOfType<KtProperty>().forEach {
             val type =
@@ -23,7 +23,7 @@ class ReinitProperties(private val context: BindingContext?) : Transformation() 
             if (newValue.isEmpty()) return@forEach
             val newProp = it.copy() as KtProperty
             newProp.initializer = psiFactory.createExpression(newValue)
-            checker.replacePSINodeIfPossible(file, it, newProp)
+            checker.replacePSINodeIfPossible(it, newProp)
         }
     }
 
@@ -51,4 +51,5 @@ class ReinitProperties(private val context: BindingContext?) : Transformation() 
     private val constructorsToTypes = mapOf("arrayListOf" to "ArrayList", "listOf" to "List",
             "setOf" to "Set", "arrayOf" to "Array")
 
+    private val context = checker.curFile.ctx
 }

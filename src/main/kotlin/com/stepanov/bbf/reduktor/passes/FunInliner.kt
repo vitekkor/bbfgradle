@@ -11,9 +11,9 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtPsiFactory
 
-class FunInliner(private val file: KtFile, private val checker: CompilerTestChecker) {
+class FunInliner: SimplificationPass() {
 
-    fun transform() {
+    override fun simplify() {
         val funcs = file.getAllPSIChildrenOfType<KtNamedFunction>()
         for (f in funcs) {
             for (c in f.getAllPSIChildrenOfType<KtCallExpression>()) {
@@ -47,7 +47,7 @@ class FunInliner(private val file: KtFile, private val checker: CompilerTestChec
             } else {
                 KtPsiFactory(file.project).createExpression("run {${body.text}}")
             }
-            checker.replaceNodeIfPossible(file, call.node, runExpression.node)
+            checker.replaceNodeIfPossible(call.node, runExpression.node)
         }
     }
 

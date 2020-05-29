@@ -6,9 +6,9 @@ import com.stepanov.bbf.bugfinder.util.replaceThis
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import org.jetbrains.kotlin.psi.*
 
-class SimplifyContainerType(private val file: KtFile, private val checker: CompilerTestChecker) {
+class SimplifyContainerType : SimplificationPass() {
 
-    fun transform() {
+    override fun simplify() {
         file.getAllPSIChildrenOfType<KtProperty>().forEach { prop ->
             prop.initializer?.let { init ->
                 val call = init.getAllPSIChildrenOfType<KtCallExpression>().firstOrNull() ?: return@forEach
@@ -20,7 +20,7 @@ class SimplifyContainerType(private val file: KtFile, private val checker: Compi
                     }
                 }
                 init.replaceThis(call)
-                if (!checker.checkTest(file.text)) {
+                if (!checker.checkTest()) {
                     call.replaceThis(initCopy)
                     prop.typeReference?.replaceThis(typeRefCopy!!)
                 }
@@ -32,7 +32,7 @@ class SimplifyContainerType(private val file: KtFile, private val checker: Compi
                 .filter { it.getAllPSIChildrenOfType<KtTypeReference>().isNotEmpty() }
                 .forEach { typeRef ->
                     val child = typeRef.getAllPSIChildrenOfType<KtTypeReference>().first()
-                    checker.replaceNodeIfPossible(file, typeRef, child)
+                    checker.replaceNodeIfPossible(typeRef, child)
                 }
 
         } catch (e: Exception) {

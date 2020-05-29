@@ -5,7 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.CompilationChecker
-import com.stepanov.bbf.bugfinder.executor.Project
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.reduktor.util.debugPrint
 import com.stepanov.bbf.reduktor.util.getAllChildren
@@ -18,35 +18,36 @@ import org.jetbrains.kotlin.psi.psiUtil.parents
 
 class ClassSplitter(private val files: List<KtFile>, private val checker: Checker) {
 
-    fun split(): List<KtFile> {
-        val res = files.toMutableList()
-        for (file in files) {
-            for (i in 0..randomConst) {
-                log.debug("i = $i")
-                val randomNode = file.getAllChildren().random()
-                if (randomNode.text.trim().isEmpty() || isInExcludes(randomNode)) continue
-                log.debug("Trying to move ${randomNode.text} to another file")
-                val newNode = when (randomNode) {
-                    is KtProperty -> randomNode.createExtensionFromProp()
-                    is KtNamedFunction -> randomNode.createExtensionFromFun()
-                    else -> randomNode
-                } ?: randomNode
-                val copy = newNode.copy()
-                val whitespace = replaceOnWhitespace(newNode)
-                //With imports
-                val newFile =
-                    factory.createFile(file.packageDirective?.text + file.importList?.text + "\n\n" + copy.text)
-                res.add(newFile)
-//                checker.checkAndGetCompilerBugs(Project(res)).forEach { BugManager.saveBug(it) }
-                if (res.first().text.trim().isEmpty() || !checker.checkCompiling(Project(res))) {
-                    whitespace.replaceThis(copy)
-                    res.removeLast()
-                    log.debug("Not OK")
-                } else log.debug("OK")
-            }
-        }
-        return res
-    }
+    fun split(): List<KtFile> = TODO()
+//    {
+//        val res = files.toMutableList()
+//        for (file in files) {
+//            for (i in 0..randomConst) {
+//                log.debug("i = $i")
+//                val randomNode = file.getAllChildren().random()
+//                if (randomNode.text.trim().isEmpty() || isInExcludes(randomNode)) continue
+//                log.debug("Trying to move ${randomNode.text} to another file")
+//                val newNode = when (randomNode) {
+//                    is KtProperty -> randomNode.createExtensionFromProp()
+//                    is KtNamedFunction -> randomNode.createExtensionFromFun()
+//                    else -> randomNode
+//                } ?: randomNode
+//                val copy = newNode.copy()
+//                val whitespace = replaceOnWhitespace(newNode)
+//                //With imports
+//                val newFile =
+//                    factory.createFile(file.packageDirective?.text + file.importList?.text + "\n\n" + copy.text)
+//                res.add(newFile)
+////                checker.checkAndGetCompilerBugs(Project(res)).forEach { BugManager.saveBug(it) }
+//                if (res.first().text.trim().isEmpty() || !checker.checkCompiling(Project(res))) {
+//                    whitespace.replaceThis(copy)
+//                    res.removeLast()
+//                    log.debug("Not OK")
+//                } else log.debug("OK")
+//            }
+//        }
+//        return res
+//    }
 
     private fun KtProperty.createExtensionFromProp(): PsiElement? {
         log.debug("Creating extension property")

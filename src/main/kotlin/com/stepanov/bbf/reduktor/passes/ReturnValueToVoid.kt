@@ -11,10 +11,10 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtReturnExpression
 
-class ReturnValueToVoid(private val file: KtFile, private val checker: CompilerTestChecker) {
-    fun transform() {
-        transformFile(file, false)
-        transformFile(file, true)
+class ReturnValueToVoid : SimplificationPass() {
+    override fun simplify() {
+        transformFile(file as KtFile, false)
+        transformFile(file as KtFile, true)
     }
 
     fun transformFile(file: KtFile, justKeyword: Boolean) {
@@ -35,7 +35,7 @@ class ReturnValueToVoid(private val file: KtFile, private val checker: CompilerT
                         .forEach { f.node.removeChild(it.returnKeyword.node) }
             }
 
-            if (!checker.checkTest(file.text)) {
+            if (!checker.checkTest()) {
                 f.replaceThis(oldFun)
                 log.debug("REPLACED BACK")
             } else {

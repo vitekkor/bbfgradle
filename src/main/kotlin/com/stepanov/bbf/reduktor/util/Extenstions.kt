@@ -312,14 +312,5 @@ fun PsiElement.debugPrint(indentation: Int) {
         println("|".repeat(indentation + 1) + "'$text'")
 }
 
-
-fun PsiElement.checkAndReplaceBackIfError(checker: CompilerTestChecker, file: KtFile, oldCopy: PsiElement): PsiElement {
-    if (!checker.checkTest(file.text, file.name)) {
-        this.replaceThis(oldCopy)
-        return oldCopy
-    }
-    return this
-}
-
 fun <T, K> Map<T, Pair<K, K>>.getPairFirstOrDefault(a: T, default: K): K = this[a]?.first ?: default
 fun <T, K> Map<T, Pair<K, K>>.getPairSecondOrDefault(a: T, default: K): K = this[a]?.second ?: default

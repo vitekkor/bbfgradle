@@ -8,8 +8,7 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.LANGUAGE
-import com.stepanov.bbf.bugfinder.executor.Project
+import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildrenOfCurLevel
 import org.jetbrains.kotlin.KtNodeTypes
@@ -360,78 +359,78 @@ fun removeMainFromFiles(dir: String) {
         fooStream.close()
     }
 }
-
-fun Project.saveOrRemoveToTmp(save: Boolean): String {
-    val texts = this.texts
-    val textToTmpPath = texts.mapIndexed { index, s -> s to generateTmpPath(index) }
-    val commonTmpName = textToTmpPath.joinToString(" ") { it.second }
-    //Check for correct path
-    if (commonTmpName.split(" ").any { !it.endsWith(".kt") && !it.endsWith(".java") }) return ""
-    if (save) textToTmpPath.forEach {
-        val text =
-            if (it.first.lines().map { it.trim() }.filter { it.isNotEmpty() }.first().contains(Regex("""//\s*(FILE|File)""")))
-                it.first
-            else "// FILE: ${it.second}\n" + it.first
-        File(it.second.substringBeforeLast('/')).mkdirs();
-        File(it.second).writeText(text)
-    } else textToTmpPath.forEach {
-        File(it.second).delete()
-    }
-    return commonTmpName
-}
-
-fun Project.generateCommonName(): String {
-    val texts = this.texts
-    val textToTmpPath = texts.mapIndexed { index, s -> s to generateTmpPath(index) }
-    val commonTmpName = textToTmpPath.joinToString(" ") { it.second }
-    return commonTmpName
-}
-
-fun Project.moveAllCodeInOneFile(): Project {
-    //Create factory
-    val factory = KtPsiFactory(PSICreator("").getPSIForText(""))
-    val code = factory.createFile(this.getCommonTextWithDefaultPath())
-    //fun box renaming
-    val boxFuncs = code.getAllPSIChildrenOfType<KtNamedFunction>().filter { it.name?.startsWith("box") ?: false }
-    boxFuncs.forEachIndexed { i, f -> f.setName("box$i") }
-
-    val allNeededImports =
-        code.importDirectives.map { it.importPath.toString() }.toSet().filter { it.contains("kotlin") || it.contains("java") }
-    code.getAllPSIChildrenOfType<KtPackageDirective>().forEach { it.delete() }
-    code.getAllPSIChildrenOfType<PsiErrorElement>().forEach { it.delete() }
-    code.getAllPSIChildrenOfType<KtImportDirective>().forEach { it.delete() }
-    allNeededImports
-        .map {
-            if (it.contains('*'))
-                factory.createImportDirective(ImportPath(FqName(it.takeWhile { it != '*' }), true))
-            else
-                factory.createImportDirective(ImportPath(FqName(it), false))
-        }.forEach { code.addImport(it) }
-    return Project(code.text)
-}
-
-fun Project.split(): Project {
-    if (this.texts.size != 1) return this
-    val r = Regex("""//\s*((File)|(FILE)).*\s""")
-    val text = this.getCommonTextWithDefaultPath()
-    val res = mutableListOf<String>()
-    val ranges = r.findAll(this.getCommonTextWithDefaultPath()).toList().map { it.range }
-    for (i in 0 until ranges.size - 1) {
-        res.add(text.substring(ranges[i].first, ranges[i + 1].first - 1))
-    }
-    res.add(text.substring(ranges.last().first))
-    return Project(res, null, this.language)
-}
-
-private fun Project.generateTmpPath(idx: Int): String {
-    if (this.language == LANGUAGE.KOTLIN) {
-        return "${CompilerArgs.pathToTmpFile.substringBefore(".kt")}$idx.kt"
-    } else {
-        val text = this.texts[idx]
-        val name = text.split("\n").first().trim().takeLastWhile { it != ' ' }
-        return "${CompilerArgs.pathToTmpFile.substringBefore(".kt")}/$name"
-    }
-}
+//
+//fun Project.saveOrRemoveToTmp(save: Boolean): String {
+//    val texts = this.texts
+//    val textToTmpPath = texts.mapIndexed { index, s -> s to generateTmpPath(index) }
+//    val commonTmpName = textToTmpPath.joinToString(" ") { it.second }
+//    //Check for correct path
+//    if (commonTmpName.split(" ").any { !it.endsWith(".kt") && !it.endsWith(".java") }) return ""
+//    if (save) textToTmpPath.forEach {
+//        val text =
+//            if (it.first.lines().map { it.trim() }.filter { it.isNotEmpty() }.first().contains(Regex("""//\s*(FILE|File)""")))
+//                it.first
+//            else "// FILE: ${it.second}\n" + it.first
+//        File(it.second.substringBeforeLast('/')).mkdirs();
+//        File(it.second).writeText(text)
+//    } else textToTmpPath.forEach {
+//        File(it.second).delete()
+//    }
+//    return commonTmpName
+//}
+//
+//fun Project.generateCommonName(): String {
+//    val texts = this.texts
+//    val textToTmpPath = texts.mapIndexed { index, s -> s to generateTmpPath(index) }
+//    val commonTmpName = textToTmpPath.joinToString(" ") { it.second }
+//    return commonTmpName
+//}
+//
+//fun Project.moveAllCodeInOneFile(): Project {
+//    //Create factory
+//    val factory = KtPsiFactory(PSICreator("").getPSIForText(""))
+//    val code = factory.createFile(this.getCommonTextWithDefaultPath())
+//    //fun box renaming
+//    val boxFuncs = code.getAllPSIChildrenOfType<KtNamedFunction>().filter { it.name?.startsWith("box") ?: false }
+//    boxFuncs.forEachIndexed { i, f -> f.setName("box$i") }
+//
+//    val allNeededImports =
+//        code.importDirectives.map { it.importPath.toString() }.toSet().filter { it.contains("kotlin") || it.contains("java") }
+//    code.getAllPSIChildrenOfType<KtPackageDirective>().forEach { it.delete() }
+//    code.getAllPSIChildrenOfType<PsiErrorElement>().forEach { it.delete() }
+//    code.getAllPSIChildrenOfType<KtImportDirective>().forEach { it.delete() }
+//    allNeededImports
+//        .map {
+//            if (it.contains('*'))
+//                factory.createImportDirective(ImportPath(FqName(it.takeWhile { it != '*' }), true))
+//            else
+//                factory.createImportDirective(ImportPath(FqName(it), false))
+//        }.forEach { code.addImport(it) }
+//    return Project(code.text)
+//}
+//
+//fun Project.split(): Project {
+//    if (this.texts.size != 1) return this
+//    val r = Regex("""//\s*((File)|(FILE)).*\s""")
+//    val text = this.getCommonTextWithDefaultPath()
+//    val res = mutableListOf<String>()
+//    val ranges = r.findAll(this.getCommonTextWithDefaultPath()).toList().map { it.range }
+//    for (i in 0 until ranges.size - 1) {
+//        res.add(text.substring(ranges[i].first, ranges[i + 1].first - 1))
+//    }
+//    res.add(text.substring(ranges.last().first))
+//    return Project(res, null, this.language)
+//}
+//
+//private fun Project.generateTmpPath(idx: Int): String {
+//    if (this.language == LANGUAGE.KOTLIN) {
+//        return "${CompilerArgs.pathToTmpFile.substringBefore(".kt")}$idx.kt"
+//    } else {
+//        val text = this.texts[idx]
+//        val name = text.split("\n").first().trim().takeLastWhile { it != ' ' }
+//        return "${CompilerArgs.pathToTmpFile.substringBefore(".kt")}/$name"
+//    }
+//}
 
 fun KtFile.addImport(import: KtImportDirective) {
     this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
@@ -445,5 +444,11 @@ fun String.getFileLanguageIfExist(): LANGUAGE? {
     if (name.endsWith(".java")) return LANGUAGE.JAVA
     return null
 }
+
+fun String.filterLines(cond: (String) -> Boolean): String =
+    this.lines().filter { cond(it) }.joinToString("\n")
+
+fun String.filterNotLines(cond: (String) -> Boolean): String =
+    this.lines().filterNot { cond(it) }.joinToString("\n")
 
 fun kotlin.random.Random.getTrue(prop: Int) = Random().nextInRange(0, 100) < prop

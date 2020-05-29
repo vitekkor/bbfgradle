@@ -13,8 +13,8 @@ import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import java.util.*
 
-class SimplifyWhen(private val file: KtFile, private val checker: CompilerTestChecker) {
-    fun transform() {
+class SimplifyWhen : SimplificationPass() {
+    override fun simplify() {
         val whenExpressions = file.getAllPSIChildrenOfType<KtWhenExpression>()
         for (whenExp in whenExpressions) {
             val depth = whenExp.node.getAllParentsWithoutNode().count { it.elementType == KtNodeTypes.WHEN }
@@ -41,14 +41,14 @@ class SimplifyWhen(private val file: KtFile, private val checker: CompilerTestCh
         if (exp.node.elementType == KtNodeTypes.BLOCK && whenExp.parents.any { it is KtProperty }) {
             val runExpression = KtPsiFactory(file.project).createExpression("run { ${exp.text}\n}")
             whenExp.replaceThis(runExpression)
-            if (!checker.checkTest(file.text)) {
+            if (!checker.checkTest()) {
                 runExpression.replaceThis(oldWhen)
             } else {
                 log.debug("Successful when simplifying")
             }
         } else {
             whenExp.replaceThis(exp)
-            if (!checker.checkTest(file.text)) {
+            if (!checker.checkTest()) {
                 exp.replaceThis(oldWhen)
             } else {
                 log.debug("Successful when simplifying")

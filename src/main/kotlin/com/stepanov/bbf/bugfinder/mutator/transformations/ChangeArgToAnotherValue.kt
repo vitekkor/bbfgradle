@@ -19,7 +19,7 @@ class ChangeArgToAnotherValue : Transformation() {
                         val newRandomValue = generateDefValuesAsString(type)
                         if (newRandomValue.isEmpty()) return@forEachIndexed
                         val newArg = psiFactory.createArgument(newRandomValue)
-                        checker.replacePSINodeIfPossible(file, arg, newArg)
+                        checker.replacePSINodeIfPossible(arg, newArg)
                     }
                 }
             }

@@ -47,7 +47,7 @@ class ClassSlicer(private val checker: CompilerTestChecker) : KtVisitorVoid() {
     override fun visitClass(klass: KtClass) {
         if (identifiers.any { it.text == klass.name })
             return
-        checker.removeNodeIfPossible(newFile, klass.node)
+        checker.removeNodeIfPossible(klass.node)
     }
 
     private val classNames = mutableListOf<String>()

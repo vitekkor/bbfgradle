@@ -1,33 +1,73 @@
 package com.stepanov.bbf.bugfinder.executor.project
 
+import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.LANGUAGE
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.util.filterLines
+import com.stepanov.bbf.bugfinder.util.filterNotLines
+import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import org.jetbrains.kotlin.resolve.BindingContext
 import java.io.File
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
-data class BBFFile(val name: String, val psiFile: PsiFile)
+data class BBFFile(val name: String, val psiFile: PsiFile, val ctx: BindingContext?= null) {
 
-class BBFFileFactory(
+    fun getLanguage(): LANGUAGE {
+        return if (name.endsWith(".java")) LANGUAGE.JAVA else LANGUAGE.KOTLIN
+    }
+
+    fun changePsiFile(newPsiFile: PsiFile): BBFFile {
+        val (newPSI, ctx) = createPSI(newPsiFile.text)
+        return BBFFile(name, newPSI, ctx)
+    }
+
+    fun isPsiWrong(): Boolean =
+        createPSI(psiFile.text, false).first.getAllPSIChildrenOfType<PsiErrorElement>().isNotEmpty()
+
+
+    private fun createPSI(text: String, withCtx: Boolean = true): Pair<PsiFile, BindingContext?> {
+        val creator = PSICreator("")
+        val newPsi = when (getLanguage()) {
+            LANGUAGE.JAVA -> creator.getPsiForJava(text)
+            else -> creator.getPSIForText(text)
+        }
+        return newPsi to creator.ctx
+    }
+
+    val text: String = psiFile.text
+}
+
+internal class BBFFileFactory(
     private val text: String,
     private val configuration: Header
 ) {
 
-    fun createBBFFiles(name: String = "tmp"): List<BBFFile> {
-        val splitCode = splitCodeByFiles(text)
-        val names = splitCode.map { it.lines().find { it.startsWith(Directives.file) } ?: "" }
-        val pathToTmp = CompilerArgs.pathToTmpDir
-        return if (names.any { it.isEmpty() }) splitCode.mapIndexed { i, code ->
-            val fileName = "$pathToTmp/$name$i.kt"
-            BBFFile(fileName, Factory.psiFactory.createFile("${Directives.file}$fileName\n$code"))
-        }
-        else names.zip(splitCode).map {
-            val fileName = "$pathToTmp/${it.first.substringAfter(Directives.file)}"
-            if (fileName.contains(".java"))
-                BBFFile(fileName, PSICreator("").getPsiForJava(it.second, Factory.file.project))
-            else
-                BBFFile(fileName, Factory.psiFactory.createFile(it.second))
+    fun createBBFFiles(name: String = "tmp"): List<BBFFile>? {
+        try {
+            val splitCode = splitCodeByFiles(text)
+            val names = splitCode.map { it.lines().find { it.startsWith(Directives.file) } ?: "" }
+            val codeWithoutComments = splitCode.map { it.filterNotLines { it.startsWith("// ") }.trim() }
+            val pathToTmp = CompilerArgs.pathToTmpDir
+            return if (names.any { it.isEmpty() }) codeWithoutComments.mapIndexed { i, code ->
+                val fileName = "$pathToTmp/$name$i.kt"
+                val fileToCtx = createKtFileWithCtx(code)
+                //val fileToCtx = createKtFileWithCtx("${Directives.file}$fileName\n$code")
+                BBFFile(fileName, fileToCtx.first, fileToCtx.second)
+            }
+            else names.zip(codeWithoutComments).map {
+                val fileName = "$pathToTmp/${it.first.substringAfter(Directives.file)}"
+                if (fileName.contains(".java"))
+                    BBFFile(fileName, PSICreator("").getPsiForJava(it.second, Factory.file.project), null)
+                else {
+                    val fileToCtx = createKtFileWithCtx(it.second)
+                    BBFFile(fileName, fileToCtx.first, fileToCtx.second)
+                }
+            }
+        } catch (e: Throwable) {
+            return null
         }
     }
 
@@ -48,7 +88,7 @@ class BBFFileFactory(
                 }
             }
             fragments.add(curFragment.joinToString("\n"))
-        } else return listOf(text)
+        } else fragments.add(text.lines().filterNot { it.startsWith("// ") }.joinToString("\n"))
         if (configuration.withDirectives.contains(Directives.coroutinesDirective)) handleCoroutines(fragments)
         val firstFragment = firstCommentsSection.joinToString("\n") + "\n" + fragments[0]
         return listOf(firstFragment) + fragments.subList(1, fragments.size)
@@ -70,6 +110,12 @@ class BBFFileFactory(
         val modules = splitByFragments(text, Directives.module)
         return if (modules.size > 1) modules
         else splitByFragments(text, Directives.file)
+    }
+
+    private fun createKtFileWithCtx(text: String): Pair<PsiFile, BindingContext?> {
+        val creator = PSICreator("")
+        val file = creator.getPSIForText(text)
+        return file to creator.ctx
     }
 
 }

@@ -1,7 +1,8 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import org.jetbrains.kotlin.psi.KtTypeReference
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
+import org.jetbrains.kotlin.psi.KtTypeReference
+import kotlin.random.Random
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 class AddNullabilityTransformer: Transformation() {
@@ -9,14 +10,14 @@ class AddNullabilityTransformer: Transformation() {
     override fun transform() {
         file.getAllPSIChildrenOfType<KtTypeReference>()
                 .asSequence()
-                .filterNot { it.textContains('?') }
+                .filterNot { it.textContains('?') && Random.nextBoolean() }
                 .map { addNullability(it) }
                 .toList()
     }
 
     fun addNullability(ref: KtTypeReference) {
         val newRef = psiFactory.createTypeIfPossible("(${ref.typeElement?.text})?") ?: return
-        checker.replacePSINodeIfPossible(file, ref, newRef)
+        checker.replacePSINodeIfPossible(ref, newRef)
     }
 
 }

@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.executor.compilers
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.CompilingResult
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.Stream
 import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
 import org.jetbrains.kotlin.cli.js.K2JSCompiler
@@ -23,21 +24,21 @@ class JSCompiler(private val arguments: String = "") : CommonCompiler() {
     override val pathToCompiled: String
         get() = "tmp/tmp.js"
 
-    override fun getErrorMessageWithLocation(pathToFile: String): Pair<String, List<CompilerMessageLocation>> {
+    fun getErrorMessageWithLocation(pathToFile: String): Pair<String, List<CompilerMessageLocation>> {
         val status = tryToCompile(pathToFile)
         return status.combinedOutput to status.locations
     }
 
-    override fun checkCompiling(pathToFile: String): Boolean {
+    fun checkCompiling(pathToFile: String): Boolean {
         val status = tryToCompile(pathToFile)
         return !MsgCollector.hasCompileError && !status.hasTimeout && !MsgCollector.hasException
     }
 
-    override fun isCompilerBug(pathToFile: String) =
+    fun isCompilerBug(pathToFile: String) =
         tryToCompile(pathToFile).hasException
 
 
-    override fun compile(path: String, includeRuntime: Boolean): CompilingResult {
+    fun compile(path: String, includeRuntime: Boolean): CompilingResult {
         File(pathToCompiled).delete()
         MsgCollector.clear()
         val args =
@@ -79,7 +80,7 @@ class JSCompiler(private val arguments: String = "") : CommonCompiler() {
     }
 
 
-    override fun tryToCompile(pathToFile: String): KotlincInvokeStatus {
+    fun tryToCompile(pathToFile: String): KotlincInvokeStatus {
         File(pathToCompiled).delete()
         MsgCollector.clear()
         val args =
@@ -112,6 +113,22 @@ class JSCompiler(private val arguments: String = "") : CommonCompiler() {
         )
         File(pathToCompiled).delete()
         return status
+    }
+
+    override fun checkCompiling(project: Project): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun getErrorMessageWithLocation(project: Project): Pair<String, List<CompilerMessageLocation>> {
+        TODO("Not yet implemented")
+    }
+
+    override fun tryToCompile(project: Project): KotlincInvokeStatus {
+        TODO("Not yet implemented")
+    }
+
+    override fun isCompilerBug(project: Project): Boolean {
+        TODO("Not yet implemented")
     }
 
     override fun exec(path: String, streamType: Stream): String = commonExec("node $path", streamType)

@@ -9,7 +9,7 @@ import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 
-class SimplifyIf(private val file: KtFile, private val checker: CompilerTestChecker) {
+class SimplifyIf : SimplificationPass() {
 
     private fun replaceIfOnCondition(ifExpressions: List<KtIfExpression>, isIfExp: Boolean) {
         for (ifExp in ifExpressions) {
@@ -18,13 +18,13 @@ class SimplifyIf(private val file: KtFile, private val checker: CompilerTestChec
                 if (cond.children.size >= 3) {
                     var res: PsiElement? = null
                     if (cond.operationReference.prevSibling != null) {
-                        res = if (isIfExp) checker.replaceNodeOnItChild(file, ifExp.node, cond.left!!.node)?.psi
-                        else checker.replaceNodeOnItChild(file, cond.node, cond.left!!.node)?.psi
+                        res = if (isIfExp) checker.replaceNodeOnItChild(ifExp.node, cond.left!!.node)?.psi
+                        else checker.replaceNodeOnItChild(cond.node, cond.left!!.node)?.psi
                         if (res == null) continue
                     }
                     val binRes = res as? KtBinaryExpression
                     if (binRes != null && binRes.operationReference.nextSibling != null) {
-                        if (checker.replaceNodeOnItChild(file, binRes.node, binRes.right!!.node) == null) continue
+                        if (checker.replaceNodeOnItChild(binRes.node, binRes.right!!.node) == null) continue
                     }
                 }
             }
@@ -35,7 +35,7 @@ class SimplifyIf(private val file: KtFile, private val checker: CompilerTestChec
         for (ifExp in ifExpressions) {
             if (ifExp.condition != null) {
                 val trueExp = psiFactory.createExpression("true")
-                checker.replaceNodeIfPossible(file, ifExp.condition!!, trueExp)
+                checker.replaceNodeIfPossible(ifExp.condition!!, trueExp)
             }
         }
     }
@@ -51,7 +51,7 @@ class SimplifyIf(private val file: KtFile, private val checker: CompilerTestChec
                 }
                 //Replace node if possible
                 ifExp.replaceThis(then)
-                if (!checker.checkTest(file.text)) {
+                if (!checker.checkTest()) {
                     if (ifExp.condition is KtIsExpression) {
                         val isExp = ifExp.condition as KtIsExpression
                         if (isExp.isNegated) {
@@ -61,7 +61,7 @@ class SimplifyIf(private val file: KtFile, private val checker: CompilerTestChec
                         val asExp =
                             psiFactory.createExpression("${isExp.leftHandSide.text} as ${isExp.typeReference?.text}")
                         then.addBefore(asExp, then.firstChild)
-                        if (!checker.checkTest(file.text)) {
+                        if (!checker.checkTest()) {
                             then.replaceThis(oldIf)
                         }
                     } else {
@@ -71,7 +71,7 @@ class SimplifyIf(private val file: KtFile, private val checker: CompilerTestChec
                             val copy = oldIf.copy()
                             val el = oldIf.`else`!!
                             then.replaceThis(el)
-                            if (!checker.checkTest(file.text)) {
+                            if (!checker.checkTest()) {
                                 el.replaceThis(copy)
                             }
                         }
@@ -81,7 +81,7 @@ class SimplifyIf(private val file: KtFile, private val checker: CompilerTestChec
         }
     }
 
-    fun transform() {
+    override fun simplify() {
         //Try to replace if on it condition if condition is BinaryExpression
         replaceIfOnCondition(file.getAllPSIChildrenOfType<KtIfExpression>(), true)
         //Try to replace if condition is BinaryExpression on left or right side

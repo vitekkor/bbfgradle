@@ -16,7 +16,8 @@ class ChangeRandomLines : Transformation() {
                 Collections.swap(text, numLine, insLine)
             }
         }
-        file = psiFactory.createFile(getText(text))
+        checker.curFile.changePsiFile(psiFactory.createFile(getText(text)))
+        //file = psiFactory.createFile(getText(text))
     }
 
     private fun getText(text: MutableList<String>) = text.joinToString(separator = "\n")

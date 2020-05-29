@@ -87,9 +87,9 @@ class Tracer(private var tree: PsiFile, private val ctx: BindingContext, val che
         newFunc.node.addChild(block.node, null)
         //TODO addIfPossible
         if (klass.body != null)
-            checker.addNodeIfPossible(tree, klass.body!!.rBrace!!, newFunc, true)
+            checker.addNodeIfPossible(klass.body!!.rBrace!!, newFunc, true)
         else
-            checker.addNodeIfPossible(tree, klass, factory.createBlock(newFunc.text))
+            checker.addNodeIfPossible(klass, factory.createBlock(newFunc.text))
 //            klass.body!!.addBefore(newFunc, klass.body!!.rBrace)
 //        else
 //            klass.add(factory.createBlock(newFunc.text))

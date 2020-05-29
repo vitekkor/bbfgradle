@@ -39,7 +39,7 @@ class IntraproceduralSlicer(private val checker: CompilerTestChecker) : KtVisito
                 monElements.clear()
                 val oldCopy = copy.copy() as KtFile
                 computeSlice(copy, line + i)
-                if (copy.text != oldCopy.text && !checker.checkTest(copy.text))
+                if (copy.text != oldCopy.text && !checker.checkTest())
                     copy = oldCopy
             }
             newFile = copy
@@ -68,7 +68,7 @@ class IntraproceduralSlicer(private val checker: CompilerTestChecker) : KtVisito
         if (monElements.any { it.text == identifier.text })
             checkAvInBlocks(expression.node)
         else
-            checker.removeNodeIfPossible(newFile, expression.node)
+            checker.removeNodeIfPossible(expression.node)
     }
 
     override fun visitBinaryExpression(expression: KtBinaryExpression) {
@@ -85,7 +85,7 @@ class IntraproceduralSlicer(private val checker: CompilerTestChecker) : KtVisito
                 checkAvInBlocks(expression.node)
                 right?.forEach { monElements.add(it) }
             } else {
-                checker.removeNodeIfPossible(newFile, expression.node)
+                checker.removeNodeIfPossible(expression.node)
             }
         }
     }
@@ -105,7 +105,7 @@ class IntraproceduralSlicer(private val checker: CompilerTestChecker) : KtVisito
         if (monElements.any { it.text == left.text }) {
             checkAvInBlocks(property.node)
             right?.forEach { monElements.add(it) }
-        } else checker.removeNodeIfPossible(newFile, property.node)
+        } else checker.removeNodeIfPossible(property.node)
     }
 
     override fun visitCallExpression(expression: KtCallExpression) {
@@ -113,7 +113,7 @@ class IntraproceduralSlicer(private val checker: CompilerTestChecker) : KtVisito
         for (i in identifiers)
             if (monElements.any { it.text == i.text })
                 return
-        checker.removeNodeIfPossible(newFile, expression.node)
+        checker.removeNodeIfPossible(expression.node)
     }
 
     override fun visitDotQualifiedExpression(expression: KtDotQualifiedExpression) {
@@ -121,7 +121,7 @@ class IntraproceduralSlicer(private val checker: CompilerTestChecker) : KtVisito
         for (i in identifiers)
             if (monElements.any { it.text == i.text })
                 return
-        checker.removeNodeIfPossible(newFile, expression.node)
+        checker.removeNodeIfPossible(expression.node)
     }
 
     override fun visitKtFile(file: KtFile) {

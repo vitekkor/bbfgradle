@@ -2,11 +2,11 @@ package com.stepanov.bbf.bugfinder
 
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
-import com.stepanov.bbf.bugfinder.executor.LANGUAGE
-import com.stepanov.bbf.bugfinder.executor.Project
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
+import com.stepanov.bbf.bugfinder.executor.project.BBFFile
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.Mutator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.util.BBFProperties
@@ -39,16 +39,13 @@ open class BugFinder(protected val dir: String) {
     }
 
     fun makeMutant(
-        psiFile: PsiFile,
-        context: BindingContext?,
-        otherFiles: Project? = null,
+        project: Project,
+        curFile: BBFFile,
         conditions: List<(PsiFile) -> Boolean> = listOf()
     ): PsiFile {
-        Transformation.checker = MutationChecker(
-            compilers,
-            otherFiles
-        ).also { checker -> conditions.forEach { checker.additionalConditions.add(it) } }
-        Mutator(psiFile, context).startMutate()
+        Transformation.checker = MutationChecker(compilers, project, curFile)
+            .also { checker -> conditions.forEach { checker.additionalConditions.add(it) } }
+        Mutator(project).startMutate()
         return PSICreator("").getPSIForText(Transformation.file.text)
     }
 

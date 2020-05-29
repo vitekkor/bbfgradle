@@ -1,9 +1,10 @@
 package com.stepanov.bbf.bugfinder.manager
 
 import com.stepanov.bbf.bugfinder.Reducer
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.executor.*
-import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
-import com.stepanov.bbf.bugfinder.util.moveAllCodeInOneFile
+import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
+import com.stepanov.bbf.bugfinder.executor.project.moveAllCodeInOneFile
 import org.apache.log4j.Logger
 import java.io.File
 
@@ -41,7 +42,7 @@ data class Bug(val compilers: List<CommonCompiler>, val msg: String, val crashed
                 }
 
     override fun toString(): String {
-        return "${type.name}\n${compilers.map { it.compilerInfo }}\nText:\n${crashedProject.getCommonTextWithDefaultPath()}"
+        return "${type.name}\n${compilers.map { it.compilerInfo }}\nText:\n${crashedProject}"
     }
 
     override fun equals(other: Any?): Boolean =
@@ -83,7 +84,7 @@ object BugManager {
     }
 
     private fun checkIfBugIsProject(bug: Bug): Bug =
-        if (bug.crashedProject.texts.size > 1) {
+        if (bug.crashedProject.files.size > 1) {
             val checker = CompilationChecker(bug.compilers)
             if (bug.crashedProject.language == LANGUAGE.KOTLIN) {
                 val oneFileBugs = checker.checkAndGetCompilerBugs(bug.crashedProject.moveAllCodeInOneFile())
@@ -95,12 +96,12 @@ object BugManager {
                 )
                 else bug
             } else {
-                val text = bug.crashedProject.texts.joinToString("\n")
-                if (checker.checkAndGetCompilerBugs(Project(text)).isNotEmpty())
+                val text = bug.crashedProject.files.map { it.psiFile.text }.joinToString("\n")
+                if (checker.checkAndGetCompilerBugs(Project.createFromCode(text)).isNotEmpty())
                     Bug(
                         bug.compilers,
                         bug.msg,
-                        Project(text),
+                        Project.createFromCode(text),
                         bug.type
                     )
                 else bug
@@ -113,10 +114,10 @@ object BugManager {
             if (ReportProperties.getPropAsBoolean("SAVE_STATS") == true) saveStats()
             //Check if bug is real project bug
             val newBug = checkIfBugIsProject(bug)
-            log.debug("Start to reduce ${newBug.crashedProject.texts}")
+            log.debug("Start to reduce ${newBug.crashedProject}")
             val reduced = Reducer.reduce(newBug, false)
             val reducedBug = Bug(newBug.compilers, newBug.msg, reduced, newBug.type)
-            log.debug("Reduced: ${reducedBug.crashedProject.texts}")
+            log.debug("Reduced: ${reducedBug.crashedProject}")
             val newestBug = checkIfBugIsProject(reducedBug)
             //Try to find duplicates
             if (/*newBug.crashedProject.texts.size == 1 &&*/
@@ -137,23 +138,24 @@ object BugManager {
         }
     }
 
-    fun haveDuplicates(bug: Bug): Boolean {
-        val dirWithSameBugs = bug.getDirWithSameTypeBugs()
-        when (bug.type) {
-            BugType.DIFFCOMPILE -> return FilterDuplcatesCompilerErrors.haveSameDiffCompileErrors(
-                bug.crashedProject,
-                dirWithSameBugs,
-                bug.compilers,
-                true
-            )
-            BugType.FRONTEND, BugType.BACKEND -> return FilterDuplcatesCompilerErrors.simpleHaveDuplicatesErrors(
-                bug.crashedProject,
-                dirWithSameBugs,
-                bug.compilers.first()
-            )
-        }
-        return false
-    }
+    fun haveDuplicates(bug: Bug): Boolean = TODO()
+//    {
+//        val dirWithSameBugs = bug.getDirWithSameTypeBugs()
+//        when (bug.type) {
+//            BugType.DIFFCOMPILE -> return FilterDuplcatesCompilerErrors.haveSameDiffCompileErrors(
+//                bug.crashedProject,
+//                dirWithSameBugs,
+//                bug.compilers,
+//                true
+//            )
+//            BugType.FRONTEND, BugType.BACKEND -> return FilterDuplcatesCompilerErrors.simpleHaveDuplicatesErrors(
+//                bug.crashedProject,
+//                dirWithSameBugs,
+//                bug.compilers.first()
+//            )
+//        }
+//        return false
+//    }
 
     private fun parseTypeOfBugByMsg(msg: String): BugType =
         if (msg.contains("Exception while analyzing expression"))

@@ -5,12 +5,12 @@ import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.psi.KtFile
 
-class ConstructionsDeleter(private val file: KtFile, private val checker: CompilerTestChecker) {
+class ConstructionsDeleter: SimplificationPass() {
 
-    fun transform() {
+    override fun simplify() {
         file.node.getAllChildrenNodes()
                 .filter { deletingConstructions.contains(it.elementType) }
-                .forEach { checker.removeNodeIfPossible(file, it) }
+                .forEach { checker.removeNodeIfPossible(it) }
     }
 
     val deletingConstructions = listOf(KtNodeTypes.IF, KtNodeTypes.FOR, KtNodeTypes.TRY,
