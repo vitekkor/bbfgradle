@@ -13,15 +13,18 @@ import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
-data class BBFFile(val name: String, val psiFile: PsiFile, val ctx: BindingContext?= null) {
+data class BBFFile(val name: String, var psiFile: PsiFile, var ctx: BindingContext? = null) {
 
     fun getLanguage(): LANGUAGE {
         return if (name.endsWith(".java")) LANGUAGE.JAVA else LANGUAGE.KOTLIN
     }
 
-    fun changePsiFile(newPsiFile: PsiFile): BBFFile {
-        val (newPSI, ctx) = createPSI(newPsiFile.text)
-        return BBFFile(name, newPSI, ctx)
+    fun changePsiFile(newPsiFile: PsiFile) = changePsiFile(newPsiFile.text)
+
+    fun changePsiFile(newPsiFileText: String) {
+        val (psiFile, ctx) = createPSI(newPsiFileText)
+        this.psiFile = psiFile
+        this.ctx = ctx
     }
 
     fun isPsiWrong(): Boolean =
@@ -37,7 +40,8 @@ data class BBFFile(val name: String, val psiFile: PsiFile, val ctx: BindingConte
         return newPsi to creator.ctx
     }
 
-    val text: String = psiFile.text
+    val text: String
+        get() = psiFile.text
 }
 
 internal class BBFFileFactory(

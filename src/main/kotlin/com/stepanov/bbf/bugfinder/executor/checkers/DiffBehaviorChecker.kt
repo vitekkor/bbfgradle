@@ -1,5 +1,6 @@
-package com.stepanov.bbf.bugfinder.executor
+package com.stepanov.bbf.bugfinder.executor.checkers
 
+import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory

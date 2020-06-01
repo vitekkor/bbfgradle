@@ -1,15 +1,12 @@
-package com.stepanov.bbf.bugfinder.executor
+package com.stepanov.bbf.bugfinder.executor.checkers
 
-import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.COMPILE_STATUS
+import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import org.apache.log4j.Logger
-import org.jetbrains.kotlin.psi.KtFile
-import java.io.File
 import com.stepanov.bbf.bugfinder.executor.project.Project
 
-open class CompilationChecker(private val compilers: List<CommonCompiler>) /*: Checker()*/ {
+open class CompilationChecker(val compilers: List<CommonCompiler>) /*: Checker()*/ {
 
     constructor(compiler: CommonCompiler) : this(listOf(compiler))
 

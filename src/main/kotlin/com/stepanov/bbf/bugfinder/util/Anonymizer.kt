@@ -1,13 +1,5 @@
 package com.stepanov.bbf.bugfinder.util
 
-import com.intellij.psi.PsiFile
-import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
-import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.util.getAllChildren
-import org.jetbrains.kotlin.psi.*
-import java.io.File
-
 object Anonymizer {
 //
 //    fun anon(dir: String) {

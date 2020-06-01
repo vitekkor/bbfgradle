@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder.executor
 
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project

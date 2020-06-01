@@ -1,20 +1,12 @@
 package com.stepanov.bbf.bugfinder.preprocessor
 
-import com.intellij.psi.PsiComment
-import com.intellij.psi.PsiWhiteSpace
 import com.stepanov.bbf.bugfinder.executor.Checker
-import com.stepanov.bbf.bugfinder.executor.CompilationChecker
-import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.projectfuzzer.ClassSplitter
 import com.stepanov.bbf.bugfinder.util.*
-import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.passes.ImportsGetter
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.psi.psiUtil.isTopLevelKtOrJavaMember
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import kotlin.random.Random

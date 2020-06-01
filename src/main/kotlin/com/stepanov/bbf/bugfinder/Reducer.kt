@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.executor.*
+import com.stepanov.bbf.bugfinder.executor.checkers.MultiCompilerCrashChecker
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory

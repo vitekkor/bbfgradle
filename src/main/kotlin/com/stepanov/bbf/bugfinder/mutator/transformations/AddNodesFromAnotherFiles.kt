@@ -4,6 +4,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiWhiteSpace
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.checkers.TreeChanger
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
@@ -26,6 +27,7 @@ class AddNodesFromAnotherFiles : Transformation() {
         var psi = creator.getPSIForText(file.text)
         var ctx = creator.ctx!!
         for (i in 0 until randomConst) {
+            log.debug("Try №$i")
             val line = File("database.txt").bufferedReader().lines().toList().random()
             val randomType = line.takeWhile { it != ' ' }
             val files = line.dropLast(1).takeLastWhile { it != '[' }.split(", ")
@@ -38,6 +40,7 @@ class AddNodesFromAnotherFiles : Transformation() {
             val targetNode = sameTypeNodes.random()
             val psiBackup = psi.text
             val backup = targetNode.text
+            //Filter useless nodes
             if (targetNode.psi.getAllPSIChildrenOfType<KtExpression>().isEmpty()) continue
             log.debug("Trying to insert ${targetNode.text}")
             //If node is fun or property then rename
@@ -52,23 +55,26 @@ class AddNodesFromAnotherFiles : Transformation() {
             creator.updateCtx()
             ctx = creator.ctx!!
             if (res != null) {
+                var fl = false
                 val diagnostics = (ctx.diagnostics as MutableDiagnosticsWithSuppression).getOwnDiagnostics()
                 if (diagnostics.any { it.toString().contains("UNREACHABLE_CODE") }) {
                     log.debug("Expression makes some code unreachable")
+                    fl = true
                     res.replaceThis(psiFactory.createWhiteSpace("\n"))
                 }
-                if (res.getAllPSIChildrenOfType<KtNameReferenceExpression>().isEmpty()) {
+                if (!fl && res.getAllPSIChildrenOfType<KtNameReferenceExpression>().isEmpty()) {
                     log.debug("Expression using only constants and useless")
+                    fl = true
                     res.replaceThis(psiFactory.createWhiteSpace("\n"))
                 }
-                if (!checker.checkCompiling(psi)) {
+                if (fl && !checker.checkCompiling(psi)) {
                     log.debug("CANT COMPILE AFTER REMOVING $res")
                     psi = creator.getPSIForText(psiBackup)
                     ctx = creator.ctx!!
                 }
             }
         }
-        checker.curFile.changePsiFile(creator.getPSIForText(psi.text))
+        checker.curFile.changePsiFile(psi.text)
         //file = creator.getPSIForText(psi.text)
     }
 
@@ -76,7 +82,7 @@ class AddNodesFromAnotherFiles : Transformation() {
         val block = psiFactory.createBlock(targetNode.text)
         block.lBrace?.delete()
         block.rBrace?.delete()
-        return checker.addNodeIfPossibleWithNode(placeToInsert, block)
+        return TreeChanger(checker.compilers).addNodeIfPossibleWithNode(psi, placeToInsert, block)
     }
 
     private fun renameNameReferences(

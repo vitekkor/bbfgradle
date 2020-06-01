@@ -1,4 +1,4 @@
-//package com.stepanov.bbf.bugfinder.executor
+package com.stepanov.bbf.bugfinder.executor.checkers//package com.stepanov.bbf.bugfinder.executor
 //
 //import com.stepanov.bbf.reduktor.executor.error.Error
 //import org.jetbrains.kotlin.psi.KtPsiFactory

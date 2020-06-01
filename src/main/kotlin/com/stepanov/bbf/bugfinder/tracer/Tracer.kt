@@ -2,7 +2,7 @@ package com.stepanov.bbf.bugfinder.tracer
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
+import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import org.jetbrains.kotlin.psi.*
 import java.io.BufferedWriter
 import java.io.File

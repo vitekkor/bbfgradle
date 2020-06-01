@@ -1,9 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.intellij.psi.PsiFile
-import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
-import com.stepanov.bbf.bugfinder.executor.project.BBFFile
-import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import org.apache.log4j.Logger
 
 abstract class Transformation {

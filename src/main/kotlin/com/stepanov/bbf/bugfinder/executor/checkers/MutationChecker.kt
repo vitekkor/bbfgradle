@@ -1,8 +1,7 @@
-package com.stepanov.bbf.bugfinder.executor.compilers
+package com.stepanov.bbf.bugfinder.executor.checkers
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.TreeElement
 import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
@@ -10,9 +9,8 @@ import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
 import org.apache.log4j.Logger
-import org.jetbrains.kotlin.psi.KtFile
 
-class MutationChecker(compilers: List<CommonCompiler>, val project: Project, var curFile: BBFFile) : Checker(compilers) {
+open class MutationChecker(compilers: List<CommonCompiler>, val project: Project, var curFile: BBFFile) : Checker(compilers) {
 
     constructor(compiler: CommonCompiler, project: Project, curFile: BBFFile) : this(listOf(compiler), project, curFile)
 
@@ -46,6 +44,7 @@ class MutationChecker(compilers: List<CommonCompiler>, val project: Project, var
         }
         return false
     }
+
 
     fun addNodeIfPossible(anchor: PsiElement, node: PsiElement, before: Boolean = false): Boolean {
         log.debug("Trying to add $node to $anchor")

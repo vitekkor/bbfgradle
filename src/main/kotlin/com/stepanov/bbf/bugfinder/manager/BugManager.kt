@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.manager
 import com.stepanov.bbf.bugfinder.Reducer
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.executor.*
+import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.moveAllCodeInOneFile
 import org.apache.log4j.Logger
@@ -85,7 +86,8 @@ object BugManager {
 
     private fun checkIfBugIsProject(bug: Bug): Bug =
         if (bug.crashedProject.files.size > 1) {
-            val checker = CompilationChecker(bug.compilers)
+            val checker =
+                CompilationChecker(bug.compilers)
             if (bug.crashedProject.language == LANGUAGE.KOTLIN) {
                 val oneFileBugs = checker.checkAndGetCompilerBugs(bug.crashedProject.moveAllCodeInOneFile())
                 if (oneFileBugs.isNotEmpty()) Bug(

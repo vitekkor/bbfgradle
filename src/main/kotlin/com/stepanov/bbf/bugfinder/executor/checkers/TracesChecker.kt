@@ -1,26 +1,16 @@
-package com.stepanov.bbf.bugfinder.executor
+package com.stepanov.bbf.bugfinder.executor.checkers
 
-import com.intellij.psi.PsiErrorElement
-import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
+import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
-import com.stepanov.bbf.bugfinder.util.*
-import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import org.apache.log4j.Logger
-import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtImportDirective
-import org.jetbrains.kotlin.psi.KtNamedFunction
-import org.jetbrains.kotlin.psi.KtPsiFactory
-import org.jetbrains.kotlin.psi.psiUtil.parents
-import org.jetbrains.kotlin.resolve.ImportPath
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
-import java.lang.StringBuilder
 
 // Transformation is here only for PSIFactory
-class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationChecker(compilers) {
+class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compilers) {
 
     private companion object FalsePositivesTemplates {
         //Regex and replacing

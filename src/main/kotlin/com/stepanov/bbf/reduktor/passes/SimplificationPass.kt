@@ -1,7 +1,6 @@
 package com.stepanov.bbf.reduktor.passes
 
 import com.intellij.psi.PsiFile
-import com.stepanov.bbf.bugfinder.executor.compilers.MutationChecker
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtVisitorVoid

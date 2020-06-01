@@ -7,6 +7,7 @@ import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.projectTransformations.ShuffleNodes
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
+import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.resolve.BindingContext
@@ -21,8 +22,9 @@ class Mutator(val project: Project) {
                 log.debug("After ${t::class.simpleName} = ${Transformation.checker.curFile.text}")
                 log.debug("Verify = ${verify()}")
                 //Update ctx and file
-                val newFile = Project.createFromCode(Transformation.checker.curFile.text).files.first()
-                Transformation.checker.curFile = newFile
+                checker.curFile.changePsiFile(checker.curFile.text)
+                //val newFile = Project.createFromCode(Transformation.checker.curFile.text).files.first()
+                //Transformation.checker.curFile = newFile
             } catch (e: Exception) {
                 log.debug("Exception ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
                 System.exit(1)
@@ -56,6 +58,10 @@ class Mutator(val project: Project) {
 
     private fun startKotlinMutations() {
         //Set of transformations over PSI
+        println("before = ${checker.curFile.text}")
+        executeMutation(AddNodesFromAnotherFiles(), 100)
+        println("after = ${checker.curFile.text}")
+        System.exit(0)
         executeMutation(AddNullabilityTransformer())
         executeMutation(AddPossibleModifiers())
         executeMutation(AddReifiedToType())
@@ -198,5 +204,7 @@ class Mutator(val project: Project) {
     //private fun verify(): String = Transformation.checker.isCompilationSuccessful()
 
     private val log = Logger.getLogger("mutatorLogger")
+    private val checker
+        get() = Transformation.checker
 
 }

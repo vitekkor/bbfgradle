@@ -1,4 +1,4 @@
-//package com.stepanov.bbf.bugfinder.executor
+package com.stepanov.bbf.bugfinder.executor.checkers//package com.stepanov.bbf.bugfinder.executor
 //
 //import com.intellij.lang.ASTNode
 //import com.intellij.lang.FileASTNode

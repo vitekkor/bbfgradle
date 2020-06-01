@@ -23,8 +23,6 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
 //                log.debug("Auto-generated")
 //            }
             val project = Project.createFromCode(File(dir).readText())
-            println(project)
-            System.exit(0)
             if (project.files.isEmpty()) {
                 log.debug("Cant create project")
                 return
