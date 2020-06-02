@@ -44,11 +44,12 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
     override fun isCompilerBug(project: Project): Boolean =
         tryToCompile(project).hasException
 
-    fun compile(project: Project, includeRuntime: Boolean = true): CompilingResult {
+    override fun compile(project: Project, includeRuntime: Boolean): CompilingResult {
         val path = project.saveOrRemoveToTmp(true)
+        val projectWithMainFun = project.addMain()
         val tmpJar = "$pathToCompiled.jar"
-        val args = prepareArgs(project, path, tmpJar)
-        val status = executeCompiler(project, args)
+        val args = prepareArgs(projectWithMainFun, path, tmpJar)
+        val status = executeCompiler(projectWithMainFun, args)
         if (status.hasException || status.hasTimeout || !status.isCompileSuccess) return CompilingResult(-1, "")
         val res = File(pathToCompiled)
         val input = JarInputStream(File(tmpJar).inputStream())

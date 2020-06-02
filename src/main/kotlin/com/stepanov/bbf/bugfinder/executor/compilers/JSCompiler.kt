@@ -34,8 +34,8 @@ class JSCompiler(private val arguments: String = "") : CommonCompiler() {
         return !MsgCollector.hasCompileError && !status.hasTimeout && !MsgCollector.hasException
     }
 
-    fun isCompilerBug(pathToFile: String) =
-        tryToCompile(pathToFile).hasException
+//    fun isCompilerBug(pathToFile: String) =
+//        tryToCompile(pathToFile).hasException
 
 
     fun compile(path: String, includeRuntime: Boolean): CompilingResult {

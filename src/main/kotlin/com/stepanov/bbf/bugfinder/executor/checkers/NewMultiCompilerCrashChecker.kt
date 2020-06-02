@@ -3,26 +3,21 @@ package com.stepanov.bbf.bugfinder.executor.checkers
 import com.intellij.lang.ASTNode
 import com.intellij.lang.FileASTNode
 import com.intellij.psi.PsiErrorElement
-import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.TreeElement
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
-import com.stepanov.bbf.reduktor.executor.error.Error
-import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
-import com.stepanov.bbf.reduktor.util.getAllParentsWithoutNode
-import com.stepanov.bbf.reduktor.util.replaceThis
+import com.stepanov.bbf.reduktor.util.*
 import org.apache.log4j.Logger
-import org.jetbrains.kotlin.psi.KtPsiFactory
 
 open class MultiCompilerCrashChecker(
     override val project: Project,
     override val curFile: BBFFile,
-    private val compiler: CommonCompiler?
+    val compiler: CommonCompiler?
 ) : CompilerTestChecker {
+
     override fun removeNodeIfPossible(node: ASTNode): Boolean {
         val tmp = Factory.psiFactory.createWhiteSpace("\n")
         return replaceNodeIfPossible(node, tmp.node)
@@ -94,25 +89,94 @@ open class MultiCompilerCrashChecker(
         return false
     }
 
-    private fun isAlreadyCheckedOrWrong(): Pair<Boolean, Boolean> {
-        val hash = project.toString().trim().hashCode()
-        if (alreadyChecked.containsKey(hash)) {
+    fun isAlreadyCheckedOrWrong(): Pair<Boolean, Boolean> {
+        if (alreadyChecked.containsKey(projectHash)) {
             log.debug("ALREADY CHECKED!!!")
-            return true to alreadyChecked[hash]!!
+            return true to alreadyChecked[projectHash]!!
         }
-        if (curFile.isPsiWrong()) return true to false
+        if (curFile.isPsiWrong()) {
+            alreadyChecked[projectHash] = false
+            return true to false
+        }
         return false to false
     }
 
     override fun checkTest(): Boolean {
         val firstCheck = isAlreadyCheckedOrWrong()
         if (firstCheck.first) return firstCheck.second
-        return compiler!!.isCompilerBug(project)
+        val isBug = compiler!!.isCompilerBug(project)
+        alreadyChecked[project.toString().trim().hashCode()] = isBug
+        return isBug
+    }
+
+    @Deprecated("")
+    override fun checkTest(text: String): Boolean {
+        val hash = text.trim().hashCode()
+        if (alreadyChecked.containsKey(hash)) {
+            log.debug("ALREADY CHECKED!!!")
+            return alreadyChecked[hash]!!
+        }
+        val psi = Factory.psiFactory.createFile(text)
+        if (psi.containsChildOfType<PsiErrorElement>()) {
+            alreadyChecked[hash] = false
+            return false
+        }
+        val isBug = compiler!!.isCompilerBug(text)
+        alreadyChecked[hash] = isBug
+        return isBug
+    }
+
+    @Deprecated("")
+    override fun replaceNodeIfPossible(tree: FileASTNode, node: ASTNode, replacement: ASTNode): Boolean {
+        if (node.text.isEmpty() || node == replacement) return checkTest(tree.text)
+
+        //If we trying to replace parent node to it child
+        if (node.getAllChildrenNodes().contains(replacement)) {
+            val backup = node.copyElement()
+            node.replaceThis(replacement)
+            if (!checkTest()) {
+                log.debug("REPLACING BACK")
+                replacement.replaceThis(backup)
+            } else {
+                log.debug("SUCCESSFUL DELETING")
+                return true
+            }
+        }
+
+        //Else
+        for (p in node.getAllParentsWithoutNode()) {
+            try {
+                val oldText = tree.text
+                if ((node as TreeElement).treeParent !== p) continue
+                p.replaceChild(node, replacement)
+                if (oldText == tree.text)
+                    continue
+                if (!checkTest(tree.text)) {
+                    log.debug("REPLACING BACK")
+                    p.replaceChild(replacement, node)
+                    return false
+                } else {
+                    log.debug("SUCCESSFUL DELETING")
+                    return true
+                }
+            } catch (e: AssertionError) {
+                log.debug("Exception while deleting ${node.text} from $p")
+            }
+        }
+        return false
+    }
+
+    @Deprecated("")
+    override fun removeNodeIfPossible(tree: FileASTNode, node: ASTNode): Boolean {
+        val tmp = Factory.psiFactory.createWhiteSpace("\n")
+        return replaceNodeIfPossible(tree, node, tmp.node)
     }
 
     override fun getErrorMessage(): String = compiler!!.getErrorMessage(project)
-
+    override fun getErrorMessageWithLocation() = compiler!!.getErrorMessageWithLocation(project)
 
     override val alreadyChecked: HashMap<Int, Boolean> = HashMap()
     open val log = Logger.getLogger("reducerLogger")
+    val projectHash: Int
+        get() = project.toString().trim().hashCode()
 }

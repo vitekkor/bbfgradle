@@ -12,7 +12,7 @@ abstract class SimplificationPass: KtVisitorVoid() {
         lateinit var checker: CompilerTestChecker
         val file: PsiFile
             get() = checker.curFile.psiFile
-        val log = Logger.getLogger("reducerLogger")
+        val log = Logger.getLogger("transformationManagerLog")
     }
 
 }

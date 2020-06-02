@@ -23,6 +23,7 @@ abstract class CommonCompiler {
     abstract fun getErrorMessageWithLocation(project: Project): Pair<String, List<CompilerMessageLocation>>
     abstract fun tryToCompile(project: Project): KotlincInvokeStatus
     abstract fun isCompilerBug(project: Project): Boolean
+    abstract fun compile(project: Project, includeRuntime: Boolean = true): CompilingResult
     abstract fun exec(path: String, streamType: Stream = Stream.INPUT): String
 
     abstract val compilerInfo: String
@@ -41,6 +42,11 @@ abstract class CommonCompiler {
             status.isCompileSuccess -> COMPILE_STATUS.OK
             else -> COMPILE_STATUS.ERROR
         }
+    }
+
+    fun isCompilerBug(text: String): Boolean {
+        if (text.trim().isEmpty()) return false
+        return isCompilerBug(Project.createFromCode(text))
     }
 
     fun checkCompilingText(text: String): Boolean {

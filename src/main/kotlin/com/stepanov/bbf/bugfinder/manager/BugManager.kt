@@ -6,6 +6,7 @@ import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.moveAllCodeInOneFile
+import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
 import org.apache.log4j.Logger
 import java.io.File
 
@@ -140,24 +141,23 @@ object BugManager {
         }
     }
 
-    fun haveDuplicates(bug: Bug): Boolean = TODO()
-//    {
-//        val dirWithSameBugs = bug.getDirWithSameTypeBugs()
-//        when (bug.type) {
-//            BugType.DIFFCOMPILE -> return FilterDuplcatesCompilerErrors.haveSameDiffCompileErrors(
-//                bug.crashedProject,
-//                dirWithSameBugs,
-//                bug.compilers,
-//                true
-//            )
-//            BugType.FRONTEND, BugType.BACKEND -> return FilterDuplcatesCompilerErrors.simpleHaveDuplicatesErrors(
-//                bug.crashedProject,
-//                dirWithSameBugs,
-//                bug.compilers.first()
-//            )
-//        }
-//        return false
-//    }
+    fun haveDuplicates(bug: Bug): Boolean {
+        val dirWithSameBugs = bug.getDirWithSameTypeBugs()
+        when (bug.type) {
+            BugType.DIFFCOMPILE -> return FilterDuplcatesCompilerErrors.haveSameDiffCompileErrors(
+                bug.crashedProject,
+                dirWithSameBugs,
+                bug.compilers,
+                true
+            )
+            BugType.FRONTEND, BugType.BACKEND -> return FilterDuplcatesCompilerErrors.simpleHaveDuplicatesErrors(
+                bug.crashedProject,
+                dirWithSameBugs,
+                bug.compilers.first()
+            )
+        }
+        return false
+    }
 
     private fun parseTypeOfBugByMsg(msg: String): BugType =
         if (msg.contains("Exception while analyzing expression"))

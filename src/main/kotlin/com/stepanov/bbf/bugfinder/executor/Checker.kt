@@ -59,25 +59,33 @@ open class Checker(compilers: List<CommonCompiler>) : CompilationChecker(compile
 //        }
 
 
-fun checkCompiling(project: Project, curFile: BBFFile? = null): Boolean {
-    val allTexts = project.files.map { it.psiFile.text }.joinToString()
-    checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
-    //Checking syntax correction
-    if (!checkSyntaxCorrectnessAndAddCond(project, curFile)) {
-        log.debug("Wrong syntax or breaks conditions")
+    fun checkCompiling(project: Project, curFile: BBFFile? = null): Boolean {
+        val allTexts = project.files.map { it.psiFile.text }.joinToString()
+        checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
+        //Checking syntax correction
+        if (!checkSyntaxCorrectnessAndAddCond(project, curFile)) {
+            log.debug("Wrong syntax or breaks conditions")
+            checkedConfigurations[allTexts] = false
+            return false
+        }
+        val statuses = compileAndGetStatuses(project)
+        when {
+            statuses.all { it == COMPILE_STATUS.OK } -> {
+                checkedConfigurations[allTexts] = true
+                return true
+            }
+            statuses.all { it == COMPILE_STATUS.ERROR } -> {
+                checkedConfigurations[allTexts] = false
+                return false
+            }
+        }
+        checkAndGetCompilerBugs(project).forEach { BugManager.saveBug(it) }
+        checkedConfigurations[allTexts] = false
         return false
     }
-    val statuses = compileAndGetStatuses(project)
-    when {
-        statuses.all { it == COMPILE_STATUS.OK } -> return true
-        statuses.all { it == COMPILE_STATUS.ERROR } -> return false
-    }
-    checkAndGetCompilerBugs(project).forEach { BugManager.saveBug(it) }
-    return false
-}
 
-val additionalConditions: MutableList<(PsiFile) -> Boolean> = mutableListOf()
+    val additionalConditions: MutableList<(PsiFile) -> Boolean> = mutableListOf()
 
-private val checkedConfigurations = hashMapOf<String, Boolean>()
-private val log = Logger.getLogger("mutatorLogger")
+    private val checkedConfigurations = hashMapOf<String, Boolean>()
+    private val log = Logger.getLogger("mutatorLogger")
 }

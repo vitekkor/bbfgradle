@@ -39,7 +39,7 @@ class IntraproceduralSlicer(private val checker: CompilerTestChecker) : KtVisito
                 monElements.clear()
                 val oldCopy = copy.copy() as KtFile
                 computeSlice(copy, line + i)
-                if (copy.text != oldCopy.text && !checker.checkTest())
+                if (copy.text != oldCopy.text && !checker.checkTest(copy.text))
                     copy = oldCopy
             }
             newFile = copy

@@ -58,10 +58,6 @@ class Mutator(val project: Project) {
 
     private fun startKotlinMutations() {
         //Set of transformations over PSI
-        println("before = ${checker.curFile.text}")
-        executeMutation(AddNodesFromAnotherFiles(), 100)
-        println("after = ${checker.curFile.text}")
-        System.exit(0)
         executeMutation(AddNullabilityTransformer())
         executeMutation(AddPossibleModifiers())
         executeMutation(AddReifiedToType())

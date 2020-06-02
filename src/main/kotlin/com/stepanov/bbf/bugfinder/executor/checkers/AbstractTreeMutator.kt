@@ -9,7 +9,7 @@ import com.stepanov.bbf.bugfinder.executor.project.Header
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 
-class TreeChanger(private val compilers: List<CommonCompiler>) {
+class AbstractTreeMutator(private val compilers: List<CommonCompiler>) {
     constructor(compiler: CommonCompiler) : this(listOf(compiler))
 
     private fun prepareChecker(file: PsiFile): MutationChecker {

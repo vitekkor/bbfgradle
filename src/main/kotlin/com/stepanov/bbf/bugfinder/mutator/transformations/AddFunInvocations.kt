@@ -1,27 +1,19 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
-import com.stepanov.bbf.bugfinder.util.debugPrint
+import com.stepanov.bbf.bugfinder.executor.checkers.AbstractTreeMutator
 import com.stepanov.bbf.bugfinder.util.getAllPSIDFSChildrenOfType
-import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import com.stepanov.bbf.bugfinder.util.getType
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.generateDefValuesAsString
-import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
-import org.jetbrains.kotlin.fir.builder.toBinaryName
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.psi.psiUtil.getChildOfType
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 import org.jetbrains.kotlin.psi.psiUtil.parents
-import org.jetbrains.kotlin.psi.psiUtil.referenceExpression
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.bindingContextUtil.getDataFlowInfoAfter
 import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.asSimpleType
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 import kotlin.random.Random
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType as ktGetType
@@ -124,7 +116,8 @@ class AddFunInvocations : Transformation() {
         val block = psiFactory.createBlock(node.text)
         block.lBrace?.delete()
         block.rBrace?.delete()
-        checker.addNodeIfPossible(this, block)
+        AbstractTreeMutator(checker.compilers).addNodeIfPossibleWithNode(tree, this, block)
+        //checker.addNodeIfPossible(this, block)
     }
 
     private fun getInsertableExpressions(

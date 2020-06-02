@@ -4,7 +4,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiWhiteSpace
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.checkers.TreeChanger
+import com.stepanov.bbf.bugfinder.executor.checkers.AbstractTreeMutator
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
@@ -82,7 +82,7 @@ class AddNodesFromAnotherFiles : Transformation() {
         val block = psiFactory.createBlock(targetNode.text)
         block.lBrace?.delete()
         block.rBrace?.delete()
-        return TreeChanger(checker.compilers).addNodeIfPossibleWithNode(psi, placeToInsert, block)
+        return AbstractTreeMutator(checker.compilers).addNodeIfPossibleWithNode(psi, placeToInsert, block)
     }
 
     private fun renameNameReferences(

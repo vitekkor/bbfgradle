@@ -1,11 +1,12 @@
 package com.stepanov.bbf.bugfinder.executor
 
+import com.intellij.psi.PsiFile
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.lang.StringBuilder
 
-fun KtFile.addMain(boxFuncs: List<KtNamedFunction>) {
+fun PsiFile.addMain(boxFuncs: List<KtNamedFunction>) {
     val m = StringBuilder()
     m.append("fun main(args: Array<String>) {\n")
     for (func in boxFuncs) m.append("println(${func.name}())\n")

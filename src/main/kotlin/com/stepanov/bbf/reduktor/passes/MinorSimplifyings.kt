@@ -28,6 +28,7 @@ class MinorSimplifyings : SimplificationPass() {
                         val defValue =
                             customStructures.find { it.second == "$type" }?.let { getDefValueForCustomClass(it.first) }
                                 ?: generateDefValuesAsString("$type")
+                        if (defValue.isEmpty()) return@forEach
                         val exp = KtPsiFactory(file.project).createExpression(defValue)
                         if (it.text.length < exp.text.length) return@forEach
                         checker.replaceNodeIfPossible(it, exp)

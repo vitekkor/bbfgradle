@@ -3,6 +3,9 @@ package com.stepanov.bbf.bugfinder
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.manager.Bug
+import com.stepanov.bbf.bugfinder.manager.BugManager
+import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
@@ -22,7 +25,16 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
-    SingleFileBugFinder("tmp/test.kt").findBugsInFile()
+    val text = File("tmp/test.kt").readText()
+    BugManager.saveBug(
+        Bug(
+            JVMCompiler(""),
+            "",
+            Project.createFromCode(text),
+            BugType.BACKEND
+        )
+    )
+//    SingleFileBugFinder("tmp/test.kt").findBugsInFile()
     System.exit(0)
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
@@ -91,12 +103,13 @@ fun main(args: Array<String>) {
 //    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
     //val file = File("tmp/test.kt")
     val regex = Regex("""import kotlin.reflect.typeOf""")
-    val files = Files.walk(Paths.get("/home/stepanov/Kotlin/kotlin/compiler/testData/codegen/box/callableReference/adaptedReferences/"))
-        .map { it.toFile() }.filter { it.isFile }.toList()
+    val files =
+        Files.walk(Paths.get("/home/stepanov/Kotlin/kotlin/compiler/testData/codegen/box/callableReference/adaptedReferences/"))
+            .map { it.toFile() }.filter { it.isFile }.toList()
     //val condition = {f: File -> okFiles.any { f.name.contains(it.name) }}
-    val condition2 = {f: File -> f.readText().contains(regex)}
-    val condition3 = {f: File -> f.readText().contains(Regex(""""FunctionalInterfaceConversion""""))}
-    val condition4 = {f: File -> f.readText().contains(Regex(""""inline class""""))}
+    val condition2 = { f: File -> f.readText().contains(regex) }
+    val condition3 = { f: File -> f.readText().contains(Regex(""""FunctionalInterfaceConversion"""")) }
+    val condition4 = { f: File -> f.readText().contains(Regex(""""inline class"""")) }
     val cond = listOf(condition2, condition3, condition4)
     val files2 = File(CompilerArgs.baseDir).listFiles().filter { f -> f.isFile && (cond.any { it.invoke(f) }) }
 //    println(files.map { it.name })

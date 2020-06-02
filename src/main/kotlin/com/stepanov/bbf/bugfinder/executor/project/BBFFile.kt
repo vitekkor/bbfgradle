@@ -8,6 +8,7 @@ import com.stepanov.bbf.bugfinder.util.filterLines
 import com.stepanov.bbf.bugfinder.util.filterNotLines
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import com.stepanov.bbf.reduktor.util.containsChildOfType
 import org.jetbrains.kotlin.resolve.BindingContext
 import java.io.File
 import kotlin.contracts.ExperimentalContracts
@@ -23,13 +24,13 @@ data class BBFFile(val name: String, var psiFile: PsiFile, var ctx: BindingConte
 
     fun changePsiFile(newPsiFileText: String) {
         val (psiFile, ctx) = createPSI(newPsiFileText)
+        require(!psiFile.containsChildOfType<PsiErrorElement>())
         this.psiFile = psiFile
         this.ctx = ctx
     }
 
     fun isPsiWrong(): Boolean =
         createPSI(psiFile.text, false).first.getAllPSIChildrenOfType<PsiErrorElement>().isNotEmpty()
-
 
     private fun createPSI(text: String, withCtx: Boolean = true): Pair<PsiFile, BindingContext?> {
         val creator = PSICreator("")

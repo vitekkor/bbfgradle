@@ -1,25 +1,14 @@
 package com.stepanov.bbf.reduktor.manager
 
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiWhiteSpace
-import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
-import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
-import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation.Companion.log
-import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
-import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.passes.*
 import com.stepanov.bbf.reduktor.passes.slicer.Slicer
-import com.stepanov.bbf.reduktor.util.*
+import com.stepanov.bbf.reduktor.util.ReduKtorProperties
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
-import org.jetbrains.kotlin.resolve.BindingContext
-import java.io.File
-import java.io.PrintWriter
 
 class TransformationManager(val checker: CompilerTestChecker) {
 
@@ -27,6 +16,7 @@ class TransformationManager(val checker: CompilerTestChecker) {
     private val log = Logger.getLogger("transformationManagerLog")
 
     init {
+        SimplificationPass.checker = checker
         ktFactory = Factory.psiFactory
     }
 
@@ -107,30 +97,23 @@ class TransformationManager(val checker: CompilerTestChecker) {
 //            writer.write(f.text)
 //            writer.close()
 //        }
+
+    private var prevState = checker.curFile.text
     private fun executePass(pass: SimplificationPass) {
         pass.simplify()
-        Transformation.log.debug("After ${pass::class.simpleName} = ${Transformation.checker.curFile.text}")
-        Transformation.log.debug("Verify = ${checker.checkTest()}")
+        log.debug("Changes after ${pass::class.simpleName} = ${SimplificationPass.checker.curFile.text != prevState}")
+        log.debug("Verify = ${checker.checkTest()}")
+        prevState = checker.curFile.text
     }
 
     fun doTransformationsForFile() {
         val file = checker.curFile
-        Transformation.log.debug("FILE NAME = ${file.name}")
-        Transformation.log.debug("Content = ${file.text}")
+        log.debug("FILE NAME = ${file.name}")
+        log.debug("Content = ${file.text}")
         (file.psiFile as KtFile).beforeAstChange()
         require(checker.checkTest()) { "No bug" }
         checker.refreshAlreadyCheckedConfigurations()
-//        if (checker.getErrorMessage().contains("Unresolved") || checker.getErrorMessage().contains("Expecting")
-//                || checker.getErrorMessage().isEmpty() || checker.getErrorInfo().type == ErrorType.UNKNOWN) {
-//            return file
-//        }
-        Transformation.log.debug("ERROR = ${checker.getErrorMessage()}")
-        //log.debug("MSG = ${CCTC.getErrorInfo().errorMessage}")
-//            if (CCTC.getErrorInfo().type == ErrorType.UNKNOWN)
-//                continue
         var oldRes = file.text
-//            DeleteComments(CCTC).transform(rFile)
-
         while (true) {
             if (ReduKtorProperties.getPropAsBoolean("TRANSFORMATIONS") == true) {
                 executePass(RemoveSuperTypeList())
@@ -145,16 +128,43 @@ class TransformationManager(val checker: CompilerTestChecker) {
                 executePass(TryCatchDeleter())
                 executePass(SimplifyIf())
                 executePass(SimplifyFor())
-//executePass(SimplifyLambdaExpression)
-//                        executePass(RemoveInheritance)
-//                        executePass(SimplifyInheritance)
+//              executePass(SimplifyLambdaExpression)
+//              executePass(RemoveInheritance)
+//              executePass(SimplifyInheritance)
                 executePass(SimplifyConstructor())
                 executePass(ReturnValueToConstant())
                 executePass(SimplifyBlockExpression())
                 executePass(SimplifyBinaryExpression())
                 executePass(SimplifyStringConstants())
             }
-            break
+            if (ReduKtorProperties.getPropAsBoolean("SLICING") == true) {
+                executePass(Slicer)
+            }
+            if (ReduKtorProperties.getPropAsBoolean("TRANSFORMATIONS") == true) {
+                executePass(MinorSimplifyings())
+                executePass(RemoveParameterFromDeclaration())
+                executePass(FunInliner())
+                executePass(ReplaceArgOnTODO())
+                executePass(SimplifyCallExpression())
+                executePass(ValueArgumentListSimplifying())
+                executePass(PeepholePasses())
+                executePass(ConstructionsDeleter())
+            }
+            if (ReduKtorProperties.getPropAsBoolean("HDD") == true) {
+                executePass(HierarchicalDeltaDebugger())
+            }
+            if (ReduKtorProperties.getPropAsBoolean("TRANSFORMATIONS") == true) {
+                executePass(EqualityMapper())
+                executePass(FunSimplifier())
+                executePass(TypeChanger())
+            }
+            executePass(RemoveWhitespaces())
+            log.debug("CURRENT RESULT = ${checker.curFile.text}")
+            if (checker.curFile.text.filterNot { it.isWhitespace() } == oldRes.filterNot { it.isWhitespace() }) {
+                break
+            }
+            oldRes = checker.curFile.text
+
 //            if (ReduKtorProperties.getPropAsBoolean("SLICING") == true) {
 //                var errorInfo = checker.getErrorInfo()
 //                Transformation.log.debug("ERROR INFO = $errorInfo")
@@ -265,6 +275,7 @@ class TransformationManager(val checker: CompilerTestChecker) {
 //        Transformation.log.debug("TOKENS = $tokens ")
 //        return rFile
         }
+    }
 
         var tokensSum: Long = 0
 
@@ -272,8 +283,7 @@ class TransformationManager(val checker: CompilerTestChecker) {
             checker: CompilerTestChecker,
             isProject: Boolean = false,
             projectDir: String = ""
-        ): Nothing =
-            TODO()
+        ): Nothing = TODO()
 //    {
 //        println("Size = ${psiFiles.size}")
 //        for (file in psiFiles) {
@@ -327,7 +337,6 @@ class TransformationManager(val checker: CompilerTestChecker) {
 //        }
 //        return null
 //    }
-    }
 }
 
 

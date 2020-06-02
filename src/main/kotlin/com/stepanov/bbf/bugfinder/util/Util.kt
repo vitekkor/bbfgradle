@@ -6,6 +6,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.util.replaceReturnValueTypeOnUnit
 import com.stepanov.bbf.reduktor.util.replaceThis
 import org.jetbrains.kotlin.cli.jvm.compiler.CompileEnvironmentException
@@ -84,8 +86,8 @@ fun KtNamedFunction.initBodyByValue(psiFactory: KtPsiFactory, value: String) {
 fun PsiElement.find(el: PsiElement): PsiElement? = this.node.getAllChildrenNodes().find { it.psi == el }?.psi
 
 //Returns true if all compilers compiling
-fun List<CommonCompiler>.checkCompilingForAllBackends(psiFile: PsiFile): Boolean =
-    this.map { it.checkCompilingText(psiFile.text) }.all { it }
+fun List<CommonCompiler>.checkCompilingForAllBackends(project: Project): Boolean =
+    this.map { it.checkCompiling(project) }.all { it }
 
 
 fun writeRuntimeToJar(lib: String, stream: JarOutputStream) {
