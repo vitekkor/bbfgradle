@@ -45,8 +45,8 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
         tryToCompile(project).hasException
 
     override fun compile(project: Project, includeRuntime: Boolean): CompilingResult {
-        val path = project.saveOrRemoveToTmp(true)
         val projectWithMainFun = project.addMain()
+        val path = projectWithMainFun.saveOrRemoveToTmp(true)
         val tmpJar = "$pathToCompiled.jar"
         val args = prepareArgs(projectWithMainFun, path, tmpJar)
         val status = executeCompiler(projectWithMainFun, args)
@@ -66,7 +66,7 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
     private fun prepareArgs(project: Project, path: String, destination: String): K2JVMCompilerArguments {
         val destFile = File(destination)
         if (destFile.isFile) destFile.delete()
-        else FileUtils.cleanDirectory(destFile)
+        else if (destFile.isDirectory) FileUtils.cleanDirectory(destFile)
         val projectArgs = project.getProjectSettingsAsCompilerArgs("JVM") as K2JVMCompilerArguments
         val compilerArgs =
             if (arguments.isEmpty())

@@ -23,7 +23,7 @@ open class CompilationChecker(val compilers: List<CommonCompiler>) /*: Checker()
                 val msg = compiler.getErrorMessage(project)
                 val type =
                     if (msg.contains("Exception while analyzing expression")) BugType.FRONTEND else BugType.BACKEND
-                res.add(Bug(compiler, msg, project, type))
+                res.add(Bug(compiler, msg, project.copy(), type))
             }
         }
         if (res.size != 0) return res
@@ -34,7 +34,7 @@ open class CompilationChecker(val compilers: List<CommonCompiler>) /*: Checker()
                 val diffCompilers =
                     g.value.groupBy { it.second }.mapValues { it.value.first().first }.values.toList()
                 res.add(
-                    Bug(diffCompilers, "", project, BugType.DIFFCOMPILE)
+                    Bug(diffCompilers, "", project.copy(), BugType.DIFFCOMPILE)
                 )
             }
         }

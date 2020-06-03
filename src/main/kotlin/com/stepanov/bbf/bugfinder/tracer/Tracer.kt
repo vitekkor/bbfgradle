@@ -2,7 +2,11 @@ package com.stepanov.bbf.bugfinder.tracer
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
+import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
+import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import org.jetbrains.kotlin.psi.*
 import java.io.BufferedWriter
 import java.io.File
@@ -22,9 +26,20 @@ import com.stepanov.bbf.bugfinder.util.replaceThis
 import java.lang.StringBuilder
 
 //TODO delete getType fun
-class Tracer(private var tree: PsiFile, private val ctx: BindingContext, val checker: MutationChecker) : KtVisitorVoid() {
+class Tracer(val compiler: CommonCompiler, val project: Project) : KtVisitorVoid() {
 
-    fun trace(): KtFile {
+    fun trace() {
+        project.files.forEach {
+            if (it.getLanguage() == LANGUAGE.KOTLIN) {
+                checker = MutationChecker(compiler, project, it)
+                tree = it.psiFile as KtFile
+                ctx = it.ctx as BindingContext
+                it.changePsiFile(traceCurFile())
+            }
+        }
+    }
+
+    private fun traceCurFile(): KtFile {
         //Handle all functions
         tree.getAllPSIChildrenOfType<KtNamedFunction>().forEach { it.accept(this) }
         //Classes
@@ -222,6 +237,9 @@ class Tracer(private var tree: PsiFile, private val ctx: BindingContext, val che
         }
     }
 
-    private val factory: KtPsiFactory = KtPsiFactory(tree)
+    private val factory = Factory.psiFactory
+    private lateinit var checker: MutationChecker
+    private lateinit var tree: KtFile
+    private lateinit var ctx: BindingContext
 
 }

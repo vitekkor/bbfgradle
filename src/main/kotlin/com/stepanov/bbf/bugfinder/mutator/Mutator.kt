@@ -1,16 +1,11 @@
 package com.stepanov.bbf.bugfinder.mutator
 
-import com.intellij.psi.PsiFile
-import com.stepanov.bbf.bugfinder.executor.project.BBFFileFactory
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.projectTransformations.ShuffleNodes
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
-import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
-import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
 import org.apache.log4j.Logger
-import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.random.Random
 
 class Mutator(val project: Project) {
@@ -85,104 +80,6 @@ class Mutator(val project: Project) {
         executeMutation(AddFunInvocations(), 75)
         executeMutation(ChangeRandomLines())
         executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 75)
-
-//        //AddNullabilityTransformer().transform()
-//        log.debug("After AddNullabilityTransformer = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(AddPossibleModifiers())
-//        //AddPossibleModifiers().transform()
-//        log.debug("After AddPossibleModifiers = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(AddReifiedToType())
-//        //AddReifiedToType().transform()
-//        log.debug("After AddReifiedToType = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(ChangeSmthToExtension())
-//        //ChangeSmthToExtension().transform()
-//        log.debug("After ChangeSmthToExtension = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(AddDefaultValueToArg())
-//        //AddDefaultValueToArg().transform()
-//        log.debug("After AddDefaultValueToArg = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(ChangeArgToAnotherValue())
-//        //ChangeArgToAnotherValue().transform()
-//        log.debug("After ChangeArgToAnotherValue = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        if (curFile.ctx != null)
-//            executeMutation(ReinitProperties(curFile.ctx))
-//        //ReinitProperties(context).transform()
-//        log.debug("After ReinitProperties = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(AddNotNullAssertions())
-//        //AddNotNullAssertions().transform()
-//        log.debug("After AddNotNullAssertions = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(AddBlockToExpression())
-//        //AddBlockToExpression().transform()
-//        log.debug("After AddBlockToExpression = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(ChangeOperators())
-//        //ChangeOperators().transform()
-//        log.debug("After ChangeOperators = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(ChangeConstants())
-//        //ChangeConstants().transform()
-//        log.debug("After ChangeConstants = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        if (curFile.ctx != null)
-//            executeMutation(ChangeTypes(curFile.ctx))
-//        //ChangeConstants().transform()
-//        log.debug("After ChangeTypes = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(ChangeReturnValueToConstant())
-//        //ChangeReturnValueToConstant().transform()
-//        log.debug("After ChangeReturnValueToConstant = $curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        //has the meaning?
-//        //ChangeVarToNull().transform()
-//        //executeMutation(RemoveRandomLines())
-//        //RemoveRandomLines().transform()
-//        //log.debug("After RemoveRandomLines = ${Transformation.file.text}")
-//        //log.debug("Verify = ${verify()}")
-//        executeMutation(AddBracketsToExpression())
-//        //AddBracketsToExpression().transform()
-//        log.debug("After AddBrackets = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(ChangeModifiers())
-//        //ChangeModifiers().transform()
-//        log.debug("After ChangeModifiers = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        if (curFile.ctx != null)
-//            executeMutation(AddSameFunctions(curFile.ctx))
-//        //AddSameFunctions(context!!).transform()
-//        log.debug("After AddSameFunctions = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(ChangeOperatorsToFunInvocations())
-//        //ChangeOperatorsToFunInvocations().transform()
-//        log.debug("After ChangeOperatorsToFunInvocations = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        if (isProject()) {
-//            executeMutation(ShuffleNodes(), 75)
-//            log.debug("After ShuffleNodes = ${curFile.text}")
-//            log.debug("Verify = ${verify()}")
-//        } else {
-//            executeMutation(ChangeRandomASTNodes(), 75)
-//            log.debug("After ChangeRandomASTNodes = ${curFile.text}")
-//            log.debug("Verify = ${verify()}")
-//        }
-//        executeMutation(AddNodesFromAnotherFiles(), 75)
-//        log.debug("After AddNodesFromAnotherFiles = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(AddFunInvocations(), 75)
-//        log.debug("After AddFunInvocations = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(ChangeRandomLines())
-//        log.debug("After ChangeRandomLines = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
-//        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 75)
-//        log.debug("After ChangeRandomASTNodesFromAnotherTrees = ${curFile.text}")
-//        log.debug("Verify = ${verify()}")
     }
 
 

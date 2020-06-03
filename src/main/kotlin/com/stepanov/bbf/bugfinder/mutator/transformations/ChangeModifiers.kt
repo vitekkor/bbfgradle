@@ -40,7 +40,7 @@ class ChangeModifiers : Transformation() {
                     val oldModList = parent.modifierList!!.copy() as KtModifierList
                     parent.removeModifier(oldKeyword)
                     parent.addModifier(keyword)
-                    if (!checker.checkCompiling(file)) {
+                    if (!checker.checkCompilingWithBugSaving(file)) {
                         parent.setModifierList(oldModList)
                     }
                 }

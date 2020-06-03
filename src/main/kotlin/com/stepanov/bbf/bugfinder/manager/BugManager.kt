@@ -85,43 +85,43 @@ object BugManager {
         saveBug(bug)
     }
 
-    private fun checkIfBugIsProject(bug: Bug): Bug =
-        if (bug.crashedProject.files.size > 1) {
-            val checker =
-                CompilationChecker(bug.compilers)
-            if (bug.crashedProject.language == LANGUAGE.KOTLIN) {
-                val oneFileBugs = checker.checkAndGetCompilerBugs(bug.crashedProject.moveAllCodeInOneFile())
-                if (oneFileBugs.isNotEmpty()) Bug(
-                    bug.compilers,
-                    bug.msg,
-                    bug.crashedProject.moveAllCodeInOneFile(),
-                    bug.type
-                )
-                else bug
-            } else {
-                val text = bug.crashedProject.files.map { it.psiFile.text }.joinToString("\n")
-                if (checker.checkAndGetCompilerBugs(Project.createFromCode(text)).isNotEmpty())
-                    Bug(
-                        bug.compilers,
-                        bug.msg,
-                        Project.createFromCode(text),
-                        bug.type
-                    )
-                else bug
-            }
-        } else bug
+//    private fun checkIfBugIsProject(bug: Bug): Bug =
+//        if (bug.crashedProject.files.size > 1) {
+//            val checker =
+//                CompilationChecker(bug.compilers)
+//            if (bug.crashedProject.language == LANGUAGE.KOTLIN) {
+//                val oneFileBugs = checker.checkAndGetCompilerBugs(bug.crashedProject.moveAllCodeInOneFile())
+//                if (oneFileBugs.isNotEmpty()) Bug(
+//                    bug.compilers,
+//                    bug.msg,
+//                    bug.crashedProject.moveAllCodeInOneFile(),
+//                    bug.type
+//                )
+//                else bug
+//            } else {
+//                val text = bug.crashedProject.files.map { it.psiFile.text }.joinToString("\n")
+//                if (checker.checkAndGetCompilerBugs(Project.createFromCode(text)).isNotEmpty())
+//                    Bug(
+//                        bug.compilers,
+//                        bug.msg,
+//                        Project.createFromCode(text),
+//                        bug.type
+//                    )
+//                else bug
+//            }
+//        } else bug
 
 
     fun saveBug(bug: Bug) {
         try {
             if (ReportProperties.getPropAsBoolean("SAVE_STATS") == true) saveStats()
             //Check if bug is real project bug
-            val newBug = checkIfBugIsProject(bug)
+            val newBug = bug//checkIfBugIsProject(bug)
             log.debug("Start to reduce ${newBug.crashedProject}")
             val reduced = Reducer.reduce(newBug, false)
             val reducedBug = Bug(newBug.compilers, newBug.msg, reduced, newBug.type)
             log.debug("Reduced: ${reducedBug.crashedProject}")
-            val newestBug = checkIfBugIsProject(reducedBug)
+            val newestBug = reducedBug//checkIfBugIsProject(reducedBug)
             //Try to find duplicates
             if (/*newBug.crashedProject.texts.size == 1 &&*/
                 CompilerArgs.shouldFilterDuplicateCompilerBugs &&

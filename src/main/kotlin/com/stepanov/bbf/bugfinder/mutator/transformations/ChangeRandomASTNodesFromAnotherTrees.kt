@@ -6,7 +6,9 @@ import com.stepanov.bbf.bugfinder.util.NodeCollector
 import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.apache.log4j.Logger
+import org.jetbrains.kotlin.psi.KtIfExpression
 import java.io.File
 import kotlin.random.Random
 

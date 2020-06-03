@@ -24,6 +24,17 @@ data class Header(
         }
     }
 
+    fun isWithCoroutines() = withDirectives.any { it.contains("COROUTINES") }
+
+    override fun toString() =
+        StringBuilder().apply {
+            if (languageSettings.isNotEmpty()) appendln("${Directives.language}${languageSettings.joinToString(", ")}")
+            if (withDirectives.isNotEmpty()) withDirectives.forEach { appendln(it) }
+            if (ignoreBackends.isNotEmpty()) ignoreBackends.forEach { appendln(it) }
+            if (targetBackend.isNotEmpty()) appendln(targetBackend)
+        }.toString()
+
+
 }
 
 internal object Directives {
@@ -32,7 +43,7 @@ internal object Directives {
     const val language = "// !LANGUAGE: "
     const val withDirectives = "// WITH_"
     const val ignoreBackends = "// IGNORE_BACKEND"
-    const val targetBackend = "// TARGET_BACKEND"
+    const val targetBackend = "// TARGET_BACKEND: "
     const val coroutinesDirective = "// WITH_COROUTINES"
 }
 

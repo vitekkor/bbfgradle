@@ -19,7 +19,7 @@ open class MutationChecker(compilers: List<CommonCompiler>, val project: Project
 
     fun replaceNodeIfPossible(node: ASTNode, replacement: ASTNode): Boolean {
         log.debug("Trying to replace $node on $replacement")
-        if (node.text.isEmpty() || node == replacement) return checkCompiling(project, curFile)
+        if (node.text.isEmpty() || node == replacement) return checkCompilingWithBugSaving(project, curFile)
         for (p in node.getAllParentsWithoutNode()) {
             try {
                 if (node.treeParent.elementType.index == DUMMY_HOLDER_INDEX) continue
@@ -31,7 +31,7 @@ open class MutationChecker(compilers: List<CommonCompiler>, val project: Project
                 p.replaceChild(node, replCopy)
                 if (oldText == curFile.text)
                     continue
-                if (!checkCompiling(project, curFile)) {
+                if (!checkCompilingWithBugSaving(project, curFile)) {
                     log.debug("Result = false\nText:\n${curFile.text}")
                     p.replaceChild(replCopy, node)
                     return false
@@ -48,12 +48,12 @@ open class MutationChecker(compilers: List<CommonCompiler>, val project: Project
 
     fun addNodeIfPossible(anchor: PsiElement, node: PsiElement, before: Boolean = false): Boolean {
         log.debug("Trying to add $node to $anchor")
-        if (node.text.isEmpty() || node == anchor) return checkCompiling(project, curFile)
+        if (node.text.isEmpty() || node == anchor) return checkCompilingWithBugSaving(project, curFile)
         try {
             val addedNode =
                 if (before) anchor.parent.addBefore(node, anchor)
                 else anchor.parent.addAfter(node, anchor)
-            if (checkCompiling(project)) {
+            if (checkCompilingWithBugSaving(project)) {
                 log.debug("Result = true\nText:\n${curFile.text}")
                 return true
             }
@@ -73,7 +73,7 @@ open class MutationChecker(compilers: List<CommonCompiler>, val project: Project
             val addedNode =
                 if (before) anchor.parent.addBefore(node, anchor)
                 else anchor.parent.addAfter(node, anchor)
-            if (checkCompiling(project, curFile)) {
+            if (checkCompilingWithBugSaving(project, curFile)) {
                 log.debug("Result = true\nText:\n${curFile.text}")
                 return addedNode
             }

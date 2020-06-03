@@ -29,7 +29,7 @@ class ChangeSmthToExtension : Transformation() {
                     //file.node.removeChild(it.node)
                     klass.parent.node.addChild(newProp.node, null)
                     klass.parent.node.addChild(psiFactory.createWhiteSpace("\n").node, null)
-                    if (!checker.checkCompiling(file)) {
+                    if (!checker.checkCompilingWithBugSaving(file)) {
                         children.forEach { it1 -> it.node.addChild(it1, null) }
                         file.node.removeChild(newProp.node)
                     } else {
@@ -56,7 +56,7 @@ class ChangeSmthToExtension : Transformation() {
                     //file.node.removeChild(it.node)
                     klass.parent.node.addChild(newFun.node, null)
                     klass.parent.node.addChild(psiFactory.createWhiteSpace("\n").node, null)
-                    if (!checker.checkCompiling(file)) {
+                    if (!checker.checkCompilingWithBugSaving(file)) {
                         children.forEach { it1 -> it.node.addChild(it1, null) }
                         file.node.removeChild(newFun.node)
                     } else {

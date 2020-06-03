@@ -67,7 +67,7 @@ class AddNodesFromAnotherFiles : Transformation() {
                     fl = true
                     res.replaceThis(psiFactory.createWhiteSpace("\n"))
                 }
-                if (fl && !checker.checkCompiling(psi)) {
+                if (fl && !checker.checkCompilingWithBugSaving(psi)) {
                     log.debug("CANT COMPILE AFTER REMOVING $res")
                     psi = creator.getPSIForText(psiBackup)
                     ctx = creator.ctx!!

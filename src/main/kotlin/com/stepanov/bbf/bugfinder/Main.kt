@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.manager.Bug
@@ -25,16 +26,7 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
-    val text = File("tmp/test.kt").readText()
-    BugManager.saveBug(
-        Bug(
-            JVMCompiler(""),
-            "",
-            Project.createFromCode(text),
-            BugType.BACKEND
-        )
-    )
-//    SingleFileBugFinder("tmp/test.kt").findBugsInFile()
+    SingleFileBugFinder("tmp/test.kt").findBugsInFile()
     System.exit(0)
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF

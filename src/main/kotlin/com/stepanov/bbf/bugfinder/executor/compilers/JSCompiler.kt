@@ -46,8 +46,8 @@ class JSCompiler(private val arguments: String = "") : CommonCompiler() {
         tryToCompile(project).hasException
 
     override fun compile(project: Project, includeRuntime: Boolean): CompilingResult {
-        val path = project.saveOrRemoveToTmp(true)
         val projectWithMainFun = project.addMain()
+        val path = projectWithMainFun.saveOrRemoveToTmp(true)
         val args = prepareArgs(projectWithMainFun, path, pathToCompiled)
         val status = executeCompiler(projectWithMainFun, args)
         if (status.hasException || status.hasTimeout || !status.isCompileSuccess) return CompilingResult(-1, "")

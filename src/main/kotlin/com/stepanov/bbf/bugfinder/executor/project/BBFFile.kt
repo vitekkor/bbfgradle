@@ -36,10 +36,19 @@ data class BBFFile(val name: String, var psiFile: PsiFile, var ctx: BindingConte
         val creator = PSICreator("")
         val newPsi = when (getLanguage()) {
             LANGUAGE.JAVA -> creator.getPsiForJava(text)
-            else -> creator.getPSIForText(text)
+            else -> creator.getPSIForText(text, withCtx)
         }
         return newPsi to creator.ctx
     }
+
+    fun copy() =
+        ctx?.let {
+            val (newPsi, ctx) = createPSI(text)
+            BBFFile(name, newPsi, ctx)
+        } ?: BBFFile(name, psiFile.copy() as PsiFile, null)
+
+    override fun toString(): String =
+        "// FILE: ${name.substringAfter(CompilerArgs.pathToTmpDir).substring(1)}\n\n${psiFile.text}"
 
     val text: String
         get() = psiFile.text

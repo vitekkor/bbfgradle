@@ -36,19 +36,17 @@ open class BugFinder(protected val dir: String) {
         }
     }
 
-    fun makeMutant(
+    fun mutate(
         project: Project,
         curFile: BBFFile,
         conditions: List<(PsiFile) -> Boolean> = listOf()
-    ): PsiFile {
+    ) {
         Transformation.checker = MutationChecker(
                 compilers,
                 project,
                 curFile
-            )
-            .also { checker -> conditions.forEach { checker.additionalConditions.add(it) } }
+            ).also { checker -> conditions.forEach { checker.additionalConditions.add(it) } }
         Mutator(project).startMutate()
-        return PSICreator("").getPSIForText(Transformation.file.text)
     }
 
     protected val log = Logger.getLogger("bugFinderLogger")

@@ -37,7 +37,7 @@ class AddPossibleModifiers : Transformation() {
                 val keyword = KtTokens.MODIFIER_KEYWORDS_ARRAY.find { it.value == curWorkingList[num] } ?: return@forEach
                 if (el.hasModifier(keyword)) return@forEach
                 el.addModifier(keyword)
-                if (!checker.checkCompiling(file))
+                if (!checker.checkCompilingWithBugSaving(file))
                     el.removeModifier(keyword)
             }
         }

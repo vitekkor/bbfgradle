@@ -5,6 +5,7 @@ import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.addMain
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
+import com.stepanov.bbf.bugfinder.util.getAllWithoutLast
 import com.stepanov.bbf.reduktor.util.MsgCollector
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.getAllWithout
@@ -39,10 +40,27 @@ class Project(
         return files.joinToString(" ") { it.name }
     }
 
+    fun moveAllCodeInOneFile() =
+        StringBuilder().apply {
+            append(configuration.toString());
+            if (configuration.isWithCoroutines())
+                files.getAllWithoutLast().forEach { appendln(it.toString()) }
+            else files.forEach { appendln(it.toString()) }
+        }.toString()
+
+    fun saveInOneFile(pathToSave: String) {
+        val text = moveAllCodeInOneFile()
+        File(pathToSave).writeText(text)
+    }
+
+
     fun isBackendIgnores(backend: String): Boolean = configuration.ignoreBackends.contains(backend)
 
     fun getProjectSettingsAsCompilerArgs(backendType: String): CommonCompilerArguments {
-        val args = if (backendType == "JVM") K2JVMCompilerArguments() else K2JSCompilerArguments()
+        val args = when (backendType) {
+            "JVM" -> K2JVMCompilerArguments()
+            else -> K2JSCompilerArguments()
+        }
         val languageSettings = configuration.languageSettings
         for (feature in languageSettings) {
             val isEnable = feature[0] == '+'
@@ -63,8 +81,13 @@ class Project(
         val psiCopy = file.psiFile.copy() as PsiFile
         psiCopy.addMain(boxFuncs)
         val newFirstFile = BBFFile(file.name, psiCopy)
-        val newFiles = listOf(newFirstFile) + files.getAllWithout(0).map { BBFFile(it.name, it.psiFile.copy() as PsiFile) }
+        val newFiles =
+            listOf(newFirstFile) + files.getAllWithout(0).map { BBFFile(it.name, it.psiFile.copy() as PsiFile) }
         return Project(configuration, newFiles, language)
+    }
+
+    fun copy(): Project {
+        return Project(configuration, files.map { it.copy() }, language)
     }
 
 

@@ -17,8 +17,8 @@ import org.apache.log4j.Logger
 open class Checker(compilers: List<CommonCompiler>) : CompilationChecker(compilers) {
 
     //Back compatibility
-    fun checkTextCompiling(text: String): Boolean = checkCompiling(Project.createFromCode(text), null)
-    fun checkCompiling(file: PsiFile): Boolean = checkTextCompiling(file.text)
+    fun checkTextCompiling(text: String): Boolean = checkCompilingWithBugSaving(Project.createFromCode(text), null)
+    fun checkCompilingWithBugSaving(file: PsiFile): Boolean = checkTextCompiling(file.text)
 
 
     private fun createPsiAndCheckOnErrors(text: String, language: LANGUAGE): Boolean =
@@ -58,8 +58,26 @@ open class Checker(compilers: List<CommonCompiler>) : CompilationChecker(compile
 //            return false
 //        }
 
+    fun checkCompiling(project: Project): Boolean {
+        val allTexts = project.files.map { it.psiFile.text }.joinToString()
+        checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
+        //Checking syntax correction
+        if (!checkSyntaxCorrectnessAndAddCond(project, null)) {
+            log.debug("Wrong syntax or breaks conditions")
+            checkedConfigurations[allTexts] = false
+            return false
+        }
+        val statuses = compileAndGetStatuses(project)
+        return if (statuses.all { it == COMPILE_STATUS.OK }) {
+            checkedConfigurations[allTexts] = true
+            true
+        } else {
+            checkedConfigurations[allTexts] = false
+            false
+        }
+    }
 
-    fun checkCompiling(project: Project, curFile: BBFFile? = null): Boolean {
+    fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null): Boolean {
         val allTexts = project.files.map { it.psiFile.text }.joinToString()
         checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
         //Checking syntax correction
