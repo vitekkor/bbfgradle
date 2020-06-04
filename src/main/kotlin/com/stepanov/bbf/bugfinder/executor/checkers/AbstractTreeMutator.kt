@@ -4,17 +4,21 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Header
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.reduktor.parser.PSICreator
 
-class AbstractTreeMutator(private val compilers: List<CommonCompiler>) {
-    constructor(compiler: CommonCompiler) : this(listOf(compiler))
+class AbstractTreeMutator(private val compilers: List<CommonCompiler>, val configuration: Header) {
+    constructor(compiler: CommonCompiler, configuration: Header) : this(listOf(compiler), configuration)
 
     private fun prepareChecker(file: PsiFile): MutationChecker {
-        val bbfFile = BBFFile("tmp.kt", file)
-        val pr = Project(Header.createHeader(""), listOf(bbfFile), LANGUAGE.KOTLIN)//Project.createFromCode(file.text)
+        val tmpName = "${CompilerArgs.pathToTmpDir}/tmp.kt"
+        val ctx = PSICreator.analyze(file)
+        val bbfFile = BBFFile(tmpName, file, ctx)
+        val pr = Project(configuration, listOf(bbfFile), LANGUAGE.KOTLIN)
         return MutationChecker(compilers, pr, pr.files.first())
     }
 

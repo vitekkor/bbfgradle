@@ -26,7 +26,7 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
                 log.debug("Ignore some of backends")
             }
             if (compilers.any { !it.checkCompiling(project) }) {
-                log.debug("Could not compile $dir")
+                log.debug("Can not compile $dir")
                 return
             }
             log.debug("Start to mutate")

@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.types.typeUtil.makeNotNullable
 import java.io.File
 import kotlin.random.Random
 import kotlin.streams.toList
+import kotlin.system.exitProcess
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 class AddNodesFromAnotherFiles : Transformation() {
@@ -25,7 +26,7 @@ class AddNodesFromAnotherFiles : Transformation() {
     override fun transform() {
         val creator = PSICreator("")
         var psi = creator.getPSIForText(file.text)
-        var ctx = creator.ctx!!
+        var ctx = creator.ctx ?: return
         for (i in 0 until randomConst) {
             log.debug("Try №$i")
             val line = File("database.txt").bufferedReader().lines().toList().random()
@@ -82,7 +83,7 @@ class AddNodesFromAnotherFiles : Transformation() {
         val block = psiFactory.createBlock(targetNode.text)
         block.lBrace?.delete()
         block.rBrace?.delete()
-        return AbstractTreeMutator(checker.compilers).addNodeIfPossibleWithNode(psi, placeToInsert, block)
+        return AbstractTreeMutator(checker.compilers, checker.project.configuration).addNodeIfPossibleWithNode(psi, placeToInsert, block)
     }
 
     private fun renameNameReferences(

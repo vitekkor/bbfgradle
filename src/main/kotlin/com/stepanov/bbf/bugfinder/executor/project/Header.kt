@@ -3,24 +3,29 @@ package com.stepanov.bbf.bugfinder.executor.project
 import kotlin.reflect.KProperty
 
 data class Header(
-//    val fileName: String,
     val languageSettings: List<String>,
     val withDirectives: List<String>,
     val ignoreBackends: List<String>,
-    val targetBackend: String
+    val targetBackend: String,
+    val useExperimental: List<String>
 ) {
 
 
     companion object {
         fun createHeader(commentSection: String): Header {
             val commentSectionLines = commentSection.lines()
-//            val fileName: String by HeaderDelegate(commentSectionLines, Directives.fileName)
             val language: String by HeaderDelegate(commentSectionLines, Directives.language)
-            val languageFeatures = if (language.trim().isEmpty()) listOf() else language.substringAfter(Directives.language).split(" ")
+            val languageFeatures =
+                if (language.trim().isEmpty()) listOf()
+                else language.substringAfter(Directives.language).split(" ")
             val targetBackend: String by HeaderDelegate(commentSectionLines, Directives.targetBackend)
             val withDirectives = commentSectionLines.filter { it.startsWith(Directives.withDirectives) }
             val ignoreBackends = commentSectionLines.filter { it.startsWith(Directives.ignoreBackends) }
-            return Header(languageFeatures, withDirectives, ignoreBackends, targetBackend)
+            val useExperimental: String by HeaderDelegate(commentSectionLines, Directives.useExperimental)
+            val useExperimentalFeatures =
+                if (useExperimental.trim().isEmpty()) listOf()
+                else useExperimental.substringAfter(Directives.useExperimental).split(" ")
+            return Header(languageFeatures, withDirectives, ignoreBackends, targetBackend, useExperimentalFeatures)
         }
     }
 
@@ -28,10 +33,10 @@ data class Header(
 
     override fun toString() =
         StringBuilder().apply {
-            if (languageSettings.isNotEmpty()) appendln("${Directives.language}${languageSettings.joinToString(", ")}")
-            if (withDirectives.isNotEmpty()) withDirectives.forEach { appendln(it) }
-            if (ignoreBackends.isNotEmpty()) ignoreBackends.forEach { appendln(it) }
-            if (targetBackend.isNotEmpty()) appendln(targetBackend)
+            if (languageSettings.isNotEmpty()) appendLine("${Directives.language}${languageSettings.joinToString(", ")}")
+            if (withDirectives.isNotEmpty()) withDirectives.forEach { appendLine(it) }
+            if (ignoreBackends.isNotEmpty()) ignoreBackends.forEach { appendLine(it) }
+            if (targetBackend.isNotEmpty()) appendLine(targetBackend)
         }.toString()
 
 
@@ -45,6 +50,7 @@ internal object Directives {
     const val ignoreBackends = "// IGNORE_BACKEND"
     const val targetBackend = "// TARGET_BACKEND: "
     const val coroutinesDirective = "// WITH_COROUTINES"
+    const val useExperimental = "// !USE_EXPERIMENTAL: "
 }
 
 private class HeaderDelegate(private val sec: List<String>, private val directive: String) {

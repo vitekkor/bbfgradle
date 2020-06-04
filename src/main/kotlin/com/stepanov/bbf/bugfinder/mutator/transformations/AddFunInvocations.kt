@@ -116,7 +116,7 @@ class AddFunInvocations : Transformation() {
         val block = psiFactory.createBlock(node.text)
         block.lBrace?.delete()
         block.rBrace?.delete()
-        AbstractTreeMutator(checker.compilers).addNodeIfPossibleWithNode(tree, this, block)
+        AbstractTreeMutator(checker.compilers, checker.project.configuration).addNodeIfPossibleWithNode(tree, this, block)
         //checker.addNodeIfPossible(this, block)
     }
 

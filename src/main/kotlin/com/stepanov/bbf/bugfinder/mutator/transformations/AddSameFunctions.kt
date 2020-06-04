@@ -14,14 +14,14 @@ class AddSameFunctions() : Transformation() {
     override fun transform() {
         if (context == null) return
         val functions = file.getAllPSIChildrenOfType<KtNamedFunction>()//.filter { Random().nextBoolean() }
-        for (func in functions) {
+        for (func in functions.filter { Random().nextBoolean() }) {
             val retType = func.typeReference?.text ?: func.getType(context).toString()
             val newRtv = generateDefValuesAsString(retType)
             if (newRtv.isEmpty()) continue
             val allParams = mutableListOf<List<Pair<KtParameter, Int>>>()
             //Adding to not create duplicates to function
             allParams.add(func.valueParameters.withIndex().map { it.value to it.index }.toList())
-            for (i in 0 until 25/*Random.nextInt(10)*/) {
+            for (i in 0 until Random().nextInt(10)) {
                 val tmpParam = mutableListOf<Pair<KtParameter, Int>>()
                 for ((index, par) in func.valueParameters.withIndex()) {
                     val type = par?.typeReference ?: continue

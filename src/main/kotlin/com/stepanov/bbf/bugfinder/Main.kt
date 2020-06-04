@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
@@ -26,8 +27,22 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
-    SingleFileBugFinder("tmp/test.kt").findBugsInFile()
-    System.exit(0)
+//    val code = File("/home/stepanov/Kotlin/kotlin/compiler/testData/codegen/box/callableReference/adaptedReferences/localFunctionWithDefault.kt").readText()
+//    val project = Project.createFromCode(code)
+//    println(project.files.map { it.name })
+//    val checker = MutationChecker(JVMCompiler(), project, project.files.first())
+//    val psi = PSICreator("").getPSIForText(File("tmp/test.kt").readText())
+//    checker.checkCompilingWithBugSaving(psi)
+//    System.exit(0)
+//    BugManager.saveBug(Bug(
+//        JVMCompiler(),
+//        "",
+//        Project.createFromCode(File("tmp/test.kt").readText()),
+//        BugType.BACKEND
+//    ))
+//    val status = JVMCompiler("").tryToCompile(Project.createFromCode(File("tmp/test.kt").readText()))
+//    println(status.combinedOutput)
+//    System.exit(0)
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
         Logger.getLogger("bugFinderLogger").level = Level.OFF

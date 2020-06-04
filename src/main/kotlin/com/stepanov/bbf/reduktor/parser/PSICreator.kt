@@ -17,6 +17,7 @@ import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.kootstrap.FooBarCompiler
 import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyCfg
+import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyEnv
 import com.stepanov.bbf.kootstrap.util.opt
 import com.stepanov.bbf.kootstrap.util.targetRoots
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
@@ -201,6 +202,34 @@ class PSICreator(var projectDir: String) {
             }
         }
         return targetFiles.first()
+    }
+
+    companion object {
+        fun analyze(psiFile: PsiFile): BindingContext? {
+            try {
+                val cmd = opt.parse(arrayOf())
+
+                val cfg = setupMyCfg(cmd)
+                val env = setupMyEnv(cfg)
+                val configuration = env.configuration.copy()
+
+                configuration.put(JSConfigurationKeys.LIBRARIES, JsConfig.JS_STDLIB)
+                configuration.put(CommonConfigurationKeys.MODULE_NAME, "sample")
+
+                configuration.put(
+                    JSConfigurationKeys.LIBRARIES, listOf(
+                        CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
+                        CompilerArgs.getStdLibPath("kotlin-test-js")
+                    )
+                )
+                return TopDownAnalyzerFacadeForJS.analyzeFiles(
+                    (listOf(psiFile as KtFile)),
+                    JsConfig(env.project, configuration)
+                ).bindingContext
+            } catch (e: Exception) {
+                return null
+            }
+        }
     }
 
     fun updateCtx() {

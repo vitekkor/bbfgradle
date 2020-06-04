@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 //
 class MinorSimplifyings : SimplificationPass() {
     override fun simplify() {
+        if (ctx == null) return
         //Replace variable on constant if we can get type
         try {
             file.getAllPSIChildrenOfType<KtExpression>()
@@ -59,7 +60,7 @@ class MinorSimplifyings : SimplificationPass() {
         return null
     }
 
-    val ctx = checker.curFile.ctx!!
+    val ctx = checker.curFile.ctx
     val customStructures = file.getAllPSIChildrenOfType<KtClassOrObject>().map { it to it.name }
 }
 

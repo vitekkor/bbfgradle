@@ -17,7 +17,7 @@ import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
 
 class Project(
-    private val configuration: Header,
+    val configuration: Header,
     val files: List<BBFFile>,
     val language: LANGUAGE = LANGUAGE.KOTLIN
 ) {
@@ -70,6 +70,7 @@ class Project(
                 if (isEnable) LanguageFeature.State.ENABLED else
                     LanguageFeature.State.DISABLED
         }
+        args.optIn = configuration.useExperimental.toTypedArray()
         return args
     }
 
