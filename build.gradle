@@ -1,5 +1,6 @@
 buildscript {
-    ext.kotlin_version = '1.4-M1'
+    //Do not forget to update intellij core
+    ext.kotlin_version = '1.4.20-dev-41-219'
     repositories {
         maven() {
             url "https://dl.bintray.com/kotlin/kotlin-eap/"
@@ -12,7 +13,7 @@ buildscript {
 
 
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.4-M1"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.4-M2"
         classpath "org.jetbrains.kotlin:kotlin-serialization:${kotlin_version}"
     }
 }
@@ -83,7 +84,7 @@ dependencies {
     compile "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.14.0"
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlin_version}"
-    compile group: 'com.android.tools.external.com-intellij', name: 'intellij-core', version: '27.1.0-alpha03'
+    compile group: 'com.android.tools.external.com-intellij', name: 'intellij-core', version: '27.1.0-alpha10'
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-compiler', version: "${kotlin_version}"
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-compiler-embeddable', version: "${kotlin_version}"
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-test', version: "${kotlin_version}"
