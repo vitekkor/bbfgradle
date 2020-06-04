@@ -20,6 +20,7 @@ import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.utils.PathUtil.kotlinPathsForCompiler
 import java.io.*
+import java.lang.Exception
 import java.util.jar.JarInputStream
 import java.util.jar.JarOutputStream
 
@@ -103,8 +104,12 @@ fun copyJarImpl(stream: JarOutputStream, jarPath: File) {
         while (true) {
             val e = jis.nextJarEntry ?: break
             if (FileUtilRt.extensionEquals(e.name, "class")) {
-                stream.putNextEntry(e)
-                FileUtil.copy(jis, stream)
+                try {
+                    stream.putNextEntry(e)
+                    FileUtil.copy(jis, stream)
+                } catch (e: Exception) {
+                    continue
+                }
             }
         }
     }
