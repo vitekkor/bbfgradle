@@ -16,7 +16,9 @@ class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compil
     private companion object FalsePositivesTemplates {
         //Regex and replacing
         val exclErrorMessages = listOf(
-            "IndexOutOfBoundsException"
+            "IndexOutOfBoundsException",
+            "ArithmeticException",
+            "KotlinReflectionInternalError" //TODO!!
         )
     }
 

@@ -1,10 +1,14 @@
 package com.stepanov.bbf.bugfinder.executor.checkers
 
+import com.intellij.psi.PsiErrorElement
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.manager.BugType
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
 import com.stepanov.bbf.reduktor.executor.error.Error
+import com.stepanov.bbf.reduktor.util.containsChildOfType
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtPsiFactory
 
@@ -12,14 +16,20 @@ class DiffBehaviorChecker(
     override val project: Project,
     override val curFile: BBFFile,
     private val compilers: List<CommonCompiler>
-) : MultiCompilerCrashChecker(project, curFile, null) {
+) : MultiCompilerCrashChecker(project, curFile, null, BugType.DIFFBEHAVIOR) {
+
+    val prevResults: MutableList<List<String>> = mutableListOf()
 
     init {
         val results = compileAndGetExecResult()
-        results.forEachIndexed { _, pair -> prevResults.add(pair.second.split("\n").filter { it.isNotEmpty() }) }
+        results.forEach { pair ->
+            val bblocks = pair.second.split("\n").filter { it.isNotEmpty() }
+            prevResults.add(bblocks)
+        }
     }
 
-    private fun compileAndGetExecResult(): List<Pair<CommonCompiler, String>> {
+    private fun compileAndGetExecResult(): List<Pair<CommonCompiler, String>> = compileAndGetExecResult(project)
+    private fun compileAndGetExecResult(project: Project): List<Pair<CommonCompiler, String>> {
         val results = mutableListOf<Pair<CommonCompiler, String>>()
         for (comp in compilers) {
             val status = comp.compile(project)
@@ -32,13 +42,27 @@ class DiffBehaviorChecker(
         return results
     }
 
-    private fun isSameDiffBehavior(): Boolean {
+    @Deprecated("")
+    override fun checkTest(text: String): Boolean {
+        val project = Project.createFromCode(text)
+        val projectHash = text.trim().hashCode()
+        val preCheck = isAlreadyCheckedOrWrong(projectHash, project.files.first())
+        if (preCheck.first) return preCheck.second
+        val res = isSameDiffBehavior(project)
+        alreadyChecked[projectHash] = res
+        return res
+    }
+
+    private fun isSameDiffBehavior(): Boolean = isSameDiffBehavior(project)
+
+    @Deprecated("")
+    private fun isSameDiffBehavior(project: Project): Boolean {
         if (!compilers.checkCompilingForAllBackends(project)) {
             log.debug("Cannot compile with main")
             return false
         }
         log.debug("Executing traced code:\n$project")
-        val results = compileAndGetExecResult()
+        val results = compileAndGetExecResult(project)
         if (results.isEmpty()) return false
         val backup = prevResults.map { it }
         for ((ind, res) in results.withIndex()) {
@@ -70,6 +94,7 @@ class DiffBehaviorChecker(
         return res
     }
 
+
     override fun checkTest(): Boolean {
         val preCheck = isAlreadyCheckedOrWrong()
         if (preCheck.first) return preCheck.second
@@ -78,8 +103,4 @@ class DiffBehaviorChecker(
         return res
     }
 
-
-    val prevResults: MutableList<List<String>> = ArrayList()
-
-    override val log = Logger.getLogger("bugFinderLogger")
 }

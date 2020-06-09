@@ -3,10 +3,12 @@ package com.stepanov.bbf.bugfinder.executor.checkers
 import com.intellij.lang.ASTNode
 import com.intellij.lang.FileASTNode
 import com.intellij.psi.PsiErrorElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.TreeElement
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.util.*
@@ -15,7 +17,8 @@ import org.apache.log4j.Logger
 open class MultiCompilerCrashChecker(
     override val project: Project,
     override val curFile: BBFFile,
-    val compiler: CommonCompiler?
+    val compiler: CommonCompiler?,
+    val bugType: BugType
 ) : CompilerTestChecker {
 
     override fun removeNodeIfPossible(node: ASTNode): Boolean {
@@ -89,17 +92,19 @@ open class MultiCompilerCrashChecker(
         return false
     }
 
-    fun isAlreadyCheckedOrWrong(): Pair<Boolean, Boolean> {
+    fun isAlreadyCheckedOrWrong(projectHash: Int, bbfFile: BBFFile): Pair<Boolean, Boolean> {
         if (alreadyChecked.containsKey(projectHash)) {
             log.debug("ALREADY CHECKED!!!")
             return true to alreadyChecked[projectHash]!!
         }
-        if (curFile.isPsiWrong()) {
+        if (bugType != BugType.FRONTEND && bbfFile.isPsiWrong()) {
             alreadyChecked[projectHash] = false
             return true to false
         }
         return false to false
     }
+
+    fun isAlreadyCheckedOrWrong(): Pair<Boolean, Boolean> = isAlreadyCheckedOrWrong(projectHash, curFile)
 
     override fun checkTest(): Boolean {
         val firstCheck = isAlreadyCheckedOrWrong()

@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.executor.*
+import com.stepanov.bbf.bugfinder.executor.checkers.DiffBehaviorChecker
 import com.stepanov.bbf.bugfinder.executor.checkers.MultiCompilerCrashChecker
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
@@ -30,9 +31,9 @@ object Reducer {
         val compilers = bug.compilers
         val proj = bug.crashedProject
         val checker = when (bug.type) {
-            BugType.BACKEND, BugType.FRONTEND -> MultiCompilerCrashChecker(proj, proj.files.first(), compilers.first())
+            BugType.BACKEND, BugType.FRONTEND -> MultiCompilerCrashChecker(proj, proj.files.first(), compilers.first(), bug.type)
             //BugType.DIFFCOMPILE -> DiffCompileChecker(compilers)
-            //BugType.DIFFBEHAVIOR -> DiffBehaviorChecker(compilers)
+            BugType.DIFFBEHAVIOR -> DiffBehaviorChecker(proj, proj.files.first(), compilers)
             else -> return bug.crashedProject
         }
         reduceFile(checker)
