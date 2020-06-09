@@ -31,7 +31,9 @@ import org.jetbrains.kotlin.js.config.JsConfig
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.utils.KotlinExceptionWithAttachments
 import java.io.File
+import java.lang.IllegalStateException
 
 
 class PSICreator(var projectDir: String) {
@@ -195,9 +197,11 @@ class PSICreator(var projectDir: String) {
 
         if (generateCtx) {
             try {
-                ctx = TopDownAnalyzerFacadeForJS.analyzeFiles(listOf(file), JsConfig(env.project, configuration))
-                    .bindingContext
+                val tmpCtx =
+                    TopDownAnalyzerFacadeForJS.analyzeFiles(listOf(file), JsConfig(env.project, configuration)).bindingContext
+                ctx = tmpCtx
             } catch (e: Throwable) {
+                ctx = null
                 return targetFiles.first()
             }
         }

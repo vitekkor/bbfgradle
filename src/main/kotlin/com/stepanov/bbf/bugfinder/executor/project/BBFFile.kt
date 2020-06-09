@@ -115,15 +115,22 @@ internal class BBFFileFactory(
         val nameOfHelpersFile = "CoroutineUtil.kt"
         val pathToHelpersFile = "${CompilerArgs.pathToTmpDir}/lib/CoroutineUtil.kt"
         val textOfFile = "${Directives.file}$nameOfHelpersFile\n${File(pathToHelpersFile).readText()}"
-        fragments.forEach { it.replace(coroutinesPackage, ktCoroutinesPackage) }
+        for (i in fragments.indices) {
+            fragments[i] = fragments[i]
+                .replace(coroutinesPackage, ktCoroutinesPackage)
+                .replace("import kotlin.coroutines.experimental", "import kotlin.coroutines")
+
+        }
         //Handle helpers
         if (fragments.any { it.contains(helpersImportDirective) }) fragments.add(textOfFile)
     }
 
     private fun splitCodeByFiles(text: String): List<String> {
-        val modules = splitByFragments(text, Directives.module)
-        return if (modules.size > 1) modules
-        else splitByFragments(text, Directives.file)
+//        val modules = splitByFragments(text, Directives.module)
+//        return if (modules.size > 1)
+//            modules
+//        else
+            return splitByFragments(text, Directives.file)
     }
 
     private fun createKtFileWithCtx(text: String): Pair<PsiFile, BindingContext?> {

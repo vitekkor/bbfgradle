@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder.executor.project
 
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.addMain
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
@@ -12,6 +13,8 @@ import com.stepanov.bbf.reduktor.util.getAllWithout
 import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
+import org.jetbrains.kotlin.cli.js.K2JSCompiler
+import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
@@ -21,6 +24,8 @@ class Project(
     val files: List<BBFFile>,
     val language: LANGUAGE = LANGUAGE.KOTLIN
 ) {
+
+    constructor(configuration: Header, file: BBFFile, language: LANGUAGE) : this(configuration, listOf(file), language)
 
     companion object {
         fun createFromCode(code: String): Project {
@@ -34,8 +39,16 @@ class Project(
     fun saveOrRemoveToTmp(flag: Boolean): String {
         files.forEach {
             if (flag) {
+                File(it.name.substringBeforeLast("/")).mkdirs()
                 File(it.name).writeText(it.psiFile.text)
-            } else File(it.name).delete()
+            } else {
+                val createdDirectories = it.name.substringAfter(CompilerArgs.pathToTmpDir).substringBeforeLast('/')
+                if (createdDirectories.trim().isNotEmpty()) {
+                    File("${CompilerArgs.pathToTmpDir}$createdDirectories").deleteRecursively()
+                } else {
+                    File(it.name).delete()
+                }
+            }
         }
         return files.joinToString(" ") { it.name }
     }
@@ -61,14 +74,24 @@ class Project(
             "JVM" -> K2JVMCompilerArguments()
             else -> K2JSCompilerArguments()
         }
-        val languageSettings = configuration.languageSettings
-        for (feature in languageSettings) {
-            val isEnable = feature[0] == '+'
-            val featureName = feature.substring(1)
-            val langFeature = LanguageFeature.fromString(featureName) ?: continue
-            args.configureLanguageFeatures(MsgCollector)[langFeature] =
-                if (isEnable) LanguageFeature.State.ENABLED else
-                    LanguageFeature.State.DISABLED
+        val languageDirective = "-XXLanguage:"
+        val languageFeaturesAsArgs = configuration.languageSettings.joinToString(
+            separator = " $languageDirective",
+            prefix = languageDirective,
+        ).split(" ")
+        when (backendType) {
+            "JVM" -> args.apply {
+                K2JVMCompiler().parseArguments(
+                    languageFeaturesAsArgs.toTypedArray(),
+                    this as K2JVMCompilerArguments
+                )
+            }
+            "JS" -> args.apply {
+                K2JSCompiler().parseArguments(
+                    languageFeaturesAsArgs.toTypedArray(),
+                    this as K2JSCompilerArguments
+                )
+            }
         }
         args.optIn = configuration.useExperimental.toTypedArray()
         return args

@@ -1,16 +1,10 @@
 package com.stepanov.bbf.bugfinder.executor.checkers
 
-import com.intellij.psi.PsiErrorElement
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.manager.BugType
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
-import com.stepanov.bbf.reduktor.executor.error.Error
-import com.stepanov.bbf.reduktor.util.containsChildOfType
-import org.apache.log4j.Logger
-import org.jetbrains.kotlin.psi.KtPsiFactory
 
 class DiffBehaviorChecker(
     override val project: Project,

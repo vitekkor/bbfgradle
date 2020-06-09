@@ -9,6 +9,7 @@ import com.stepanov.bbf.reduktor.util.ReduKtorProperties
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
+import kotlin.system.exitProcess
 
 class TransformationManager(val checker: CompilerTestChecker) {
 

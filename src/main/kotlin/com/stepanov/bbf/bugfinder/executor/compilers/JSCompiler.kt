@@ -63,7 +63,7 @@ class JSCompiler(private val arguments: String = "") : CommonCompiler() {
     private fun prepareArgs(project: Project, path: String, destination: String): K2JSCompilerArguments {
         val destFile = File(destination)
         if (destFile.isFile) destFile.delete()
-        else FileUtils.cleanDirectory(destFile)
+        else if (destFile.isDirectory) FileUtils.cleanDirectory(destFile)
         val projectArgs = project.getProjectSettingsAsCompilerArgs("JS") as K2JSCompilerArguments
         val compilerArgs =
             if (arguments.isEmpty())

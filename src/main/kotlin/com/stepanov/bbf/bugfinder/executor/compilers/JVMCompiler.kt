@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.executor.compilers
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.CompilingResult
+import com.stepanov.bbf.bugfinder.executor.project.Directives
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.bugfinder.util.copyFullJarImpl
@@ -13,7 +14,9 @@ import org.apache.commons.io.FileUtils
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
+import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.Services
 import java.io.File
 import java.util.concurrent.Executors
@@ -78,6 +81,9 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
                 postfix = ":",
                 separator = ":"
             )}:${System.getProperty("java.class.path")}"
+        projectArgs.jvmTarget = "1.8"
+        if (project.configuration.jvmDefault.isNotEmpty())
+            projectArgs.jvmDefault = project.configuration.jvmDefault.substringAfter(Directives.jvmDefault)
         return projectArgs
     }
 

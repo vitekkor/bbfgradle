@@ -67,6 +67,7 @@ class JVMBackend(private val arguments: String) : CommonBackend {
                     hasCompileError = true
                 }
             }
+
         }
 
         msgCollector.clear()

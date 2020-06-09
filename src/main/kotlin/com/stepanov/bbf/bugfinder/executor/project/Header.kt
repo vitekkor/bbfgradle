@@ -7,7 +7,8 @@ data class Header(
     val withDirectives: List<String>,
     val ignoreBackends: List<String>,
     val targetBackend: String,
-    val useExperimental: List<String>
+    val useExperimental: List<String>,
+    val jvmDefault: String
 ) {
 
 
@@ -25,7 +26,8 @@ data class Header(
             val useExperimentalFeatures =
                 if (useExperimental.trim().isEmpty()) listOf()
                 else useExperimental.substringAfter(Directives.useExperimental).split(" ")
-            return Header(languageFeatures, withDirectives, ignoreBackends, targetBackend, useExperimentalFeatures)
+            val jvmDefault: String by HeaderDelegate(commentSectionLines, Directives.jvmDefault)
+            return Header(languageFeatures, withDirectives, ignoreBackends, targetBackend, useExperimentalFeatures, jvmDefault)
         }
     }
 
@@ -37,6 +39,8 @@ data class Header(
             if (withDirectives.isNotEmpty()) withDirectives.forEach { appendLine(it) }
             if (ignoreBackends.isNotEmpty()) ignoreBackends.forEach { appendLine(it) }
             if (targetBackend.isNotEmpty()) appendLine(targetBackend)
+            if (useExperimental.isNotEmpty()) appendLine("${Directives.useExperimental}${useExperimental.joinToString(", ")}")
+            if (jvmDefault.isNotEmpty()) appendLine(jvmDefault)
         }.toString()
 
 
@@ -51,6 +55,7 @@ internal object Directives {
     const val targetBackend = "// TARGET_BACKEND: "
     const val coroutinesDirective = "// WITH_COROUTINES"
     const val useExperimental = "// !USE_EXPERIMENTAL: "
+    const val jvmDefault = "// !JVM_DEFAULT_MODE: "
 }
 
 private class HeaderDelegate(private val sec: List<String>, private val directive: String) {

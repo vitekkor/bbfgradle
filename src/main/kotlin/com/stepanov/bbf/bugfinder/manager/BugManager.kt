@@ -136,7 +136,7 @@ object BugManager {
                 FileReporter.dump(listOf(newestBug))
             }
         } catch (e: Exception) {
-            log.debug("Exception ${e.localizedMessage}\n${e.stackTrace}")
+            log.debug("Exception ${e.localizedMessage} ${e.stackTraceToString()}\n")
             System.exit(1)
         }
     }

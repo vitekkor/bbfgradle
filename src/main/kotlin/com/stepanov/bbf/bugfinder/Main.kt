@@ -1,9 +1,13 @@
 package com.stepanov.bbf.bugfinder
 
+import com.intellij.psi.PsiErrorElement
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.project.BBFFile
+import com.stepanov.bbf.bugfinder.executor.project.BBFFileFactory
+import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
@@ -34,12 +38,39 @@ fun main(args: Array<String>) {
 //    val psi = PSICreator("").getPSIForText(File("tmp/test.kt").readText())
 //    checker.checkCompilingWithBugSaving(psi)
 //    System.exit(0)
+//    for (f in File("/home/stepanov/Kotlin/bbfgradle/tmp/testDir/").listFiles()) {
+//        if (!f.name.contains("nezivic_FILE")) continue
+//        println(f.name)
+//        val c1 = JVMCompiler()
+//        val c2 = JSCompiler()
+//        val proj = Project.createFromCode(f.readText())
+//        val c1R = c1.compile(proj)
+//        println(c1R)
+//        val res1 = c1.exec(c1R.pathToCompiled, Stream.ERROR)
+//        println(res1)
+//        exitProcess(0)
+//        if (res1.trim().isEmpty()) {
+//            val res11 = c1.exec(c1R.pathToCompiled, Stream.ERROR)
+//            val fl = res11.contains("Java.lang.object", true)
+//            println("BE OF OBJ = ${fl}")
+//            if (!fl) println(res11)
+//        }
+//        println("r1 = $res1")
+////        exitProcess(0)
+//        val c2R = c2.compile(proj)
+//        println("c2r = $c2R")
+//        val res2 = c2.exec(c2R.pathToCompiled)
+//        println("r2 = $res2")
+////        exitProcess(0)
+//    }
+//    exitProcess(0)
 //    BugManager.saveBug(Bug(
-//        JVMCompiler(),
+//        listOf(JVMCompiler(), JVMCompiler("-Xuse-ir")),
 //        "",
 //        Project.createFromCode(File("tmp/test.kt").readText()),
-//        BugType.BACKEND
+//        BugType.DIFFBEHAVIOR
 //    ))
+//    exitProcess(0)
 //    val status = JVMCompiler("").tryToCompile(Project.createFromCode(File("tmp/test.kt").readText()))
 //    println(status.combinedOutput)
 //    System.exit(0)
@@ -107,7 +138,7 @@ fun main(args: Array<String>) {
 //    } else {
     //ProjectBugFinder("tmp/arrays/classTests").findBugsInProjects()
 //    }
-//    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
+    //val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
     //val file = File("tmp/test.kt")
     val regex = Regex("""import kotlin.reflect.typeOf""")
     val files =
