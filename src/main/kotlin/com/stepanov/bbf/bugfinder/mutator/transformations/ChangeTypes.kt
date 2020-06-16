@@ -1,16 +1,18 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 
+import com.stepanov.bbf.bugfinder.util.generateRandomType
 import com.stepanov.bbf.bugfinder.util.getType
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.KtProperty
-import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.psi.KtTypeReference
 import kotlin.random.Random
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 class ChangeTypes : Transformation() {
 
     override fun transform() {
+        changeRandomTypeOnRandomType()
         if (context == null) return
         val properties = file.getAllPSIChildrenOfType<KtProperty>().filter { Random.nextBoolean() }
         for (prop in properties) {
@@ -20,7 +22,7 @@ class ChangeTypes : Transformation() {
             typeRef?.let { newTypeRef ->
                 if (prop.typeReference == null) {
                     prop.typeReference = newTypeRef
-                    if (!checker.checkTextCompiling(file.text)) {
+                    if (!checker.checkCompiling()) {
                         prop.typeReference = null
                         return@let
                     }
@@ -28,6 +30,19 @@ class ChangeTypes : Transformation() {
                     checker.replacePSINodeIfPossible(prop.typeReference!!, newTypeRef)
                 }
             }
+        }
+    }
+
+    private fun changeRandomTypeOnRandomType() {
+        val types = file.getAllPSIChildrenOfType<KtTypeReference>()
+        for (i in 0 until magicConst) {
+            val type = types.random()
+            val newType =
+                when (Random.nextBoolean()) {
+                    true -> types.random()
+                    else -> psiFactory.createTypeIfPossible(generateRandomType()) ?: continue
+                }
+            checker.replaceNodeIfPossible(type.node, newType.node)
         }
     }
 
@@ -83,4 +98,5 @@ class ChangeTypes : Transformation() {
     )
 
     private val context = checker.curFile.ctx
+    private val magicConst = 100
 }

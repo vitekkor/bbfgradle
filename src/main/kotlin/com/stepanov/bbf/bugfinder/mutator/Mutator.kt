@@ -52,34 +52,38 @@ class Mutator(val project: Project) {
     }
 
     private fun startKotlinMutations() {
-        //Set of transformations over PSI
-        executeMutation(AddNullabilityTransformer())
-        executeMutation(AddPossibleModifiers())
-        executeMutation(AddReifiedToType())
-        executeMutation(ChangeSmthToExtension())
-        executeMutation(AddDefaultValueToArg())
-        executeMutation(ChangeArgToAnotherValue())
-        executeMutation(ReinitProperties())
-        executeMutation(AddNotNullAssertions())
-        executeMutation(AddBlockToExpression())
-        executeMutation(ChangeOperators())
-        executeMutation(ChangeConstants())
-        executeMutation(ChangeTypes())
-        executeMutation(ChangeReturnValueToConstant())
-        //executeMutation(RemoveRandomLines())
-        executeMutation(AddBracketsToExpression())
-        executeMutation(ChangeModifiers())
-        executeMutation(AddSameFunctions())
-        executeMutation(ChangeOperatorsToFunInvocations())
-        if (project.files.size > 1) {
-            executeMutation(ShuffleNodes(), 75)
-        } else {
-            executeMutation(ChangeRandomASTNodes(), 75)
+        for (i in 0 until Random.nextInt(1, 3)) {
+            transformations.shuffled().forEach { executeMutation(it.first, it.second) }
         }
-        executeMutation(AddNodesFromAnotherFiles(), 75)
-        executeMutation(AddFunInvocations(), 75)
-        executeMutation(ChangeRandomLines())
-        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 75)
+//        //Set of transformations over PSI
+//        executeMutation(AddNullabilityTransformer())
+//        executeMutation(AddPossibleModifiers())
+//        executeMutation(AddReifiedToType())
+//        executeMutation(ChangeSmthToExtension())
+//        executeMutation(AddDefaultValueToArg())
+//        executeMutation(ChangeArgToAnotherValue())
+//        executeMutation(ReinitProperties())
+//        executeMutation(AddNotNullAssertions())
+//        executeMutation(AddBlockToExpression())
+//        executeMutation(ChangeOperators())
+//        executeMutation(ChangeConstants())
+//        executeMutation(ChangeTypes(), 75)
+//        executeMutation(ChangeReturnValueToConstant())
+//        //executeMutation(RemoveRandomLines())
+//        executeMutation(AddBracketsToExpression())
+//        executeMutation(ChangeModifiers())
+//        executeMutation(AddSameFunctions())
+//        executeMutation(ChangeOperatorsToFunInvocations())
+//        if (project.files.size > 1) {
+//            executeMutation(ShuffleNodes(), 75)
+//        } else {
+//            executeMutation(ChangeRandomASTNodes(), 75)
+//        }
+//        executeMutation(AddNodesFromAnotherFiles(), 75)
+//        executeMutation(AddFunInvocations(), 75)
+//        executeMutation(ChangeRandomLines())
+//        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 75)
+//        executeMutation(AddTryExpression())
     }
 
 
@@ -96,6 +100,30 @@ class Mutator(val project: Project) {
     //private fun verify(): String = "${compilers.checkCompilingForAllBackends(Transformation.file)}"
     //private fun verify(): String = Transformation.checker.isCompilationSuccessful()
 
+    private val transformations = listOf(AddNullabilityTransformer() to 50,
+        AddPossibleModifiers() to 50,
+        AddReifiedToType() to 50,
+        ChangeSmthToExtension() to 50,
+        AddDefaultValueToArg() to 50,
+        ChangeArgToAnotherValue() to 50,
+        ReinitProperties() to 50,
+        AddNotNullAssertions() to 50,
+        AddBlockToExpression() to 50,
+        ChangeOperators() to 50,
+        ChangeConstants() to 50,
+        ChangeTypes() to 75,
+        ChangeReturnValueToConstant() to 50,
+        AddBracketsToExpression() to 50,
+        ChangeModifiers() to 50,
+        AddSameFunctions() to 50,
+        ChangeOperatorsToFunInvocations() to 50,
+        ChangeRandomASTNodes() to 75,
+        AddNodesFromAnotherFiles() to 75,
+        AddFunInvocations() to 75,
+        ChangeRandomLines() to 50,
+        ChangeRandomASTNodesFromAnotherTrees() to 75,
+        AddTryExpression() to 50
+    )
     private val log = Logger.getLogger("mutatorLogger")
     private val checker
         get() = Transformation.checker

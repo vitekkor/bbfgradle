@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
 
 class Project(
-    val configuration: Header,
+    var configuration: Header,
     val files: List<BBFFile>,
     val language: LANGUAGE = LANGUAGE.KOTLIN
 ) {

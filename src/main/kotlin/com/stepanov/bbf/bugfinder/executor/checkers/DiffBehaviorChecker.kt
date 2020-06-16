@@ -38,11 +38,12 @@ class DiffBehaviorChecker(
 
     @Deprecated("")
     override fun checkTest(text: String): Boolean {
-        val project = Project.createFromCode(text)
+        val tmpProject = Project.createFromCode(text)
+        tmpProject.configuration = project.configuration
         val projectHash = text.trim().hashCode()
-        val preCheck = isAlreadyCheckedOrWrong(projectHash, project.files.first())
+        val preCheck = isAlreadyCheckedOrWrong(projectHash, tmpProject.files.first())
         if (preCheck.first) return preCheck.second
-        val res = isSameDiffBehavior(project)
+        val res = isSameDiffBehavior(tmpProject)
         alreadyChecked[projectHash] = res
         return res
     }

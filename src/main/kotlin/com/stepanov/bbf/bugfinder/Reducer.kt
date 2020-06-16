@@ -4,6 +4,7 @@ import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.executor.checkers.DiffBehaviorChecker
+import com.stepanov.bbf.bugfinder.executor.checkers.DiffCompileChecker
 import com.stepanov.bbf.bugfinder.executor.checkers.MultiCompilerCrashChecker
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
@@ -19,7 +20,7 @@ object Reducer {
 
     fun reduce(bug: Bug, shouldSave: Boolean = false): Project {
         if (bug.crashedProject.files.size > 1) {
-            return Project.createFromCode("")
+            return bug.crashedProject
 //            if (bug.type != BugType.BACKEND && bug.type != BugType.FRONTEND) return bug.crashedProject
 //            val checker = ProjectMultiCompilerTestChecker(bug.compilers.first(), null, 0)
 //            val reduced = reduceProject(bug.crashedProject, checker)
@@ -32,8 +33,8 @@ object Reducer {
         val proj = bug.crashedProject
         val checker = when (bug.type) {
             BugType.BACKEND, BugType.FRONTEND -> MultiCompilerCrashChecker(proj, proj.files.first(), compilers.first(), bug.type)
-            //BugType.DIFFCOMPILE -> DiffCompileChecker(compilers)
-            BugType.DIFFBEHAVIOR -> DiffBehaviorChecker(proj, proj.files.first(), compilers)
+            BugType.DIFFCOMPILE -> DiffCompileChecker(proj, proj.files.first(), compilers)
+//            BugType.DIFFBEHAVIOR -> DiffBehaviorChecker(proj, proj.files.first(), compilers)
             else -> return bug.crashedProject
         }
         reduceFile(checker)

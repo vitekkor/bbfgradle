@@ -68,7 +68,7 @@ fun main(args: Array<String>) {
 //        listOf(JVMCompiler(), JVMCompiler("-Xuse-ir")),
 //        "",
 //        Project.createFromCode(File("tmp/test.kt").readText()),
-//        BugType.DIFFBEHAVIOR
+//        BugType.DIFFCOMPILE
 //    ))
 //    exitProcess(0)
 //    val status = JVMCompiler("").tryToCompile(Project.createFromCode(File("tmp/test.kt").readText()))
@@ -146,11 +146,10 @@ fun main(args: Array<String>) {
             .map { it.toFile() }.filter { it.isFile }.toList()
     //val condition = {f: File -> okFiles.any { f.name.contains(it.name) }}
     val condition2 = { f: File -> f.readText().contains(regex) }
-    val condition3 = { f: File -> f.readText().contains(Regex(""""FunctionalInterfaceConversion"""")) }
-    val condition4 = { f: File -> f.readText().contains(Regex(""""inline class"""")) }
+    val condition3 = { f: File -> f.readText().contains(Regex("""FunctionalInterfaceConversion""")) }
+    val condition4 = { f: File -> f.readText().contains(Regex("""inline class""")) }
     val cond = listOf(condition2, condition3, condition4)
     val files2 = File(CompilerArgs.baseDir).listFiles().filter { f -> f.isFile && (cond.any { it.invoke(f) }) }
-//    println(files.map { it.name })
 //    System.exit(0)
     val file = (files + files2).random()
     SingleFileBugFinder(file.absolutePath).findBugsInFile()

@@ -7,13 +7,14 @@ fun generateRandomType(): String =
     if (Random.nextBoolean()) generateContainer() else generatePrimitive()
 
 private fun generateContainer(): String {
-    val container = listOf("ArrayList", "List", "Set", "Map", "Array").random()
+    val container = listOf("ArrayList", "List", "Set", "Map", "Array", "HashMap").random()
     return when (Random.nextBoolean()) {
-        true -> if (container == "Map") "Map<${generateContainer()}, ${generateContainer()}>" else "$container<${generateContainer()}>"
-        false -> if (container == "Map") "Map<${generatePrimitive()}, ${generatePrimitive()}>" else "$container<${generatePrimitive()}>"
+        true -> if (container.endsWith("Map")) "$container<${generateContainer()}, ${generateContainer()}>" else "$container<${generateContainer()}>"
+        false -> if (container.endsWith("Map")) "$container<${generatePrimitive()}, ${generatePrimitive()}>" else "$container<${generatePrimitive()}>"
     }
 }
 
 private fun generatePrimitive(): String =
-    listOf("Int", "Double", "String", "Float", "Long", "Short", "Byte", "Char").random()
+    listOf("Int", "Double", "String", "Float", "Long", "Short", "Byte", "Char",
+    "UByte", "ULong", "UShort", "UInt").random()
 

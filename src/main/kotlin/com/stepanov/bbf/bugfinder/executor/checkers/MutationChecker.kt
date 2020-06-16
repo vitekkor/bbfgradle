@@ -14,6 +14,8 @@ open class MutationChecker(compilers: List<CommonCompiler>, val project: Project
 
     constructor(compiler: CommonCompiler, project: Project, curFile: BBFFile) : this(listOf(compiler), project, curFile)
 
+    fun checkCompiling() = checkCompilingWithBugSaving(project, curFile)
+
     fun replacePSINodeIfPossible(node: PsiElement, replacement: PsiElement) =
         replaceNodeIfPossible(node.node, replacement.node)
 
