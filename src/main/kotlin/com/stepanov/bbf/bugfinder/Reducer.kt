@@ -1,30 +1,26 @@
 package com.stepanov.bbf.bugfinder
 
 import com.intellij.psi.PsiFile
-import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.executor.checkers.DiffBehaviorChecker
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.executor.checkers.DiffCompileChecker
 import com.stepanov.bbf.bugfinder.executor.checkers.MultiCompilerCrashChecker
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.manager.TransformationManager
-import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.apache.log4j.Logger
-import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 
 object Reducer {
 
     fun reduce(bug: Bug, shouldSave: Boolean = false): Project {
         if (bug.crashedProject.files.size > 1) {
+            //return bug.crashedProject
+            if (bug.type != BugType.BACKEND && bug.type != BugType.FRONTEND) return bug.crashedProject
+            val checker = MultiCompilerCrashChecker(bug.crashedProject, bug.crashedProject.files.first(), bug.compilers.first(), bug.type)
+            reduceProject(checker)//Project.createFromCode((reduced, bug.crashedProject.language)
             return bug.crashedProject
-//            if (bug.type != BugType.BACKEND && bug.type != BugType.FRONTEND) return bug.crashedProject
-//            val checker = ProjectMultiCompilerTestChecker(bug.compilers.first(), null, 0)
-//            val reduced = reduceProject(bug.crashedProject, checker)
-//            return reduced//Project.createFromCode((reduced, bug.crashedProject.language)
         }
 
         //if (bug.crashedProject.texts.size != 1 || bug.crashedProject.language == LANGUAGE.KJAVA) return bug.crashedProject
@@ -34,7 +30,7 @@ object Reducer {
         val checker = when (bug.type) {
             BugType.BACKEND, BugType.FRONTEND -> MultiCompilerCrashChecker(proj, proj.files.first(), compilers.first(), bug.type)
             BugType.DIFFCOMPILE -> DiffCompileChecker(proj, proj.files.first(), compilers)
-//            BugType.DIFFBEHAVIOR -> DiffBehaviorChecker(proj, proj.files.first(), compilers)
+            //BugType.DIFFBEHAVIOR -> DiffBehaviorChecker(proj, proj.files.first(), compilers)
             else -> return bug.crashedProject
         }
         reduceFile(checker)
@@ -95,7 +91,15 @@ object Reducer {
         TransformationManager(checker).doTransformationsForFile()
     }
 
-    private fun reduceProject(project: Project): Project = TODO()
+    private fun reduceProject(checker: CompilerTestChecker) {
+        var oldText = checker.project.files.map { it.text }.joinToString("\n").trim().filter { !it.isWhitespace() }
+        while (true) {
+            TransformationManager(checker).doProjectTransformations()
+            val newText = checker.project.files.map { it.text }.joinToString("\n").trim().filter { !it.isWhitespace() }
+            if (oldText == newText) break
+            else oldText = newText
+        }
+    }
 //    {
 //        val files =
 //            path.split(" ").map {

@@ -7,12 +7,17 @@ import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
+import com.stepanov.bbf.bugfinder.util.flatMap
 
 internal fun getSlice(node: PsiElement): Set<KtExpression> {
     val res = mutableSetOf<KtExpression>()
-    getPropsUntil(node.parent, node).forEach { res.addAll(it.getAllPSIDFSChildrenOfType()) }
+    for (prop in getPropsUntil(node.parent, node)) {
+        res.addAll(prop.getAllPSIDFSChildrenOfType())
+    }
+    //getPropsUntil(node.parent, node).forEach { res.addAll(it.getAllPSIDFSChildrenOfType()) }
     node.getAllParentsWithoutThis().zipWithNext().forEach {
-        getPropsUntil(it.second, it.first).forEach { res.add(it) }
+        for (prop in getPropsUntil(it.second, it.first)) res.add(prop)
+        //getPropsUntil(it.second, it.first).forEach { res.add(it) }
     }
     return res
 }

@@ -14,6 +14,7 @@ import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import com.stepanov.bbf.reduktor.util.getAllParentsWithoutNode
 import com.stepanov.bbf.reduktor.util.replaceThis
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 
@@ -35,13 +36,13 @@ interface CompilerTestChecker {
     fun checkTest(text: String): Boolean
 
     fun getErrorMessage(): String
-    fun getErrorMessageWithLocation(): Pair<String, List<CompilerMessageLocation>>
+    fun getErrorMessageWithLocation(): Pair<String, List<CompilerMessageSourceLocation>>
 
     fun refreshAlreadyCheckedConfigurations() {
         alreadyChecked.clear()
     }
 
     val project: Project
-    val curFile: BBFFile
+    var curFile: BBFFile
     val alreadyChecked: HashMap<Int, Boolean>
 }

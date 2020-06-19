@@ -5,6 +5,7 @@ import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.reduktor.executor.KotlincInvokeStatus
 import org.apache.commons.exec.*
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import org.jetbrains.kotlin.psi.KtFile
 import java.io.BufferedWriter
 import java.io.ByteArrayOutputStream
@@ -20,7 +21,7 @@ enum class COMPILE_STATUS {
 abstract class CommonCompiler {
 
     abstract fun checkCompiling(project: Project): Boolean
-    abstract fun getErrorMessageWithLocation(project: Project): Pair<String, List<CompilerMessageLocation>>
+    abstract fun getErrorMessageWithLocation(project: Project): Pair<String, List<CompilerMessageSourceLocation>>
     abstract fun tryToCompile(project: Project): KotlincInvokeStatus
     abstract fun isCompilerBug(project: Project): Boolean
     abstract fun compile(project: Project, includeRuntime: Boolean = true): CompilingResult
@@ -31,7 +32,7 @@ abstract class CommonCompiler {
 
     fun getErrorMessage(project: Project): String = getErrorMessageWithLocation(project).first
     fun getErrorMessageForText(text: String): String = getErrorMessageForTextWithLocation(text).first
-    fun getErrorMessageForTextWithLocation(text: String) : Pair<String, List<CompilerMessageLocation>> =
+    fun getErrorMessageForTextWithLocation(text: String) : Pair<String, List<CompilerMessageSourceLocation>> =
         getErrorMessageWithLocation(Project.createFromCode(text))
 
     fun tryToCompileWithStatus(project: Project): COMPILE_STATUS {

@@ -16,7 +16,7 @@ import org.apache.log4j.Logger
 
 open class MultiCompilerCrashChecker(
     override val project: Project,
-    override val curFile: BBFFile,
+    override var curFile: BBFFile,
     val compiler: CommonCompiler?,
     val bugType: BugType
 ) : CompilerTestChecker {

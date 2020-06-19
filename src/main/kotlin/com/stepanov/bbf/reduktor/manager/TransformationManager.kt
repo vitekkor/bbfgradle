@@ -1,6 +1,8 @@
 package com.stepanov.bbf.reduktor.manager
 
 import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.passes.*
@@ -21,9 +23,14 @@ class TransformationManager(val checker: CompilerTestChecker) {
         ktFactory = Factory.psiFactory
     }
 
-    fun doProjectTransformations(
-        targetFiles: List<Pair<PsiFile, String>>
-    ): List<PsiFile> = TODO()
+    fun doProjectTransformations() {
+        for (file in checker.project.files) {
+            if (file.getLanguage() == LANGUAGE.KOTLIN) {
+                checker.curFile = file
+                doTransformationsForFile()
+            }
+        }
+    }
 
     //    {
 //        val path = targetFiles.joinToString(" ") { it.second }

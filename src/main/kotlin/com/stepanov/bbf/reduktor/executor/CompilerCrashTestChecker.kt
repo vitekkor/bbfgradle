@@ -12,6 +12,7 @@ import com.stepanov.bbf.reduktor.util.replaceThis
 import org.apache.log4j.Logger
 import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
@@ -21,7 +22,7 @@ class KotlincInvokeStatus(
         val isCompileSuccess: Boolean,
         val hasException: Boolean,
         val hasTimeout: Boolean,
-        val locations: List<CompilerMessageLocation> = listOf()
+        val locations: List<CompilerMessageSourceLocation> = listOf()
 ) {
     fun hasCompilerCrash(): Boolean = hasTimeout || hasException
 

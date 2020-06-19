@@ -2,6 +2,7 @@ package com.stepanov.bbf.reduktor.util
 
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 
 object MsgCollector : MessageCollector {
@@ -9,7 +10,7 @@ object MsgCollector : MessageCollector {
     var hasCompileError = false
     var crashMessages = mutableListOf<String>()
     var compileErrorMessages = mutableListOf<String>()
-    val locations = mutableListOf<CompilerMessageLocation>()
+    val locations = mutableListOf<CompilerMessageSourceLocation>()
 
     override fun clear() {
         hasException = false
@@ -23,7 +24,7 @@ object MsgCollector : MessageCollector {
         return hasException
     }
 
-    override fun report(severity: CompilerMessageSeverity, message: String, location: CompilerMessageLocation?) {
+    override fun report(severity: CompilerMessageSeverity, message: String, location: CompilerMessageSourceLocation?) {
         if (severity == CompilerMessageSeverity.EXCEPTION) {
             hasException = true
             crashMessages.add(message)
@@ -34,6 +35,5 @@ object MsgCollector : MessageCollector {
             hasCompileError = true
             location?.let { locations.add(it) }
         }
-
     }
 }

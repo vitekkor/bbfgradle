@@ -65,15 +65,12 @@ fun main(args: Array<String>) {
 //    }
 //    exitProcess(0)
 //    BugManager.saveBug(Bug(
-//        listOf(JVMCompiler(), JVMCompiler("-Xuse-ir")),
+//        listOf(JVMCompiler("-Xuse-ir")),
 //        "",
 //        Project.createFromCode(File("tmp/test.kt").readText()),
-//        BugType.DIFFCOMPILE
+//        BugType.BACKEND
 //    ))
 //    exitProcess(0)
-//    val status = JVMCompiler("").tryToCompile(Project.createFromCode(File("tmp/test.kt").readText()))
-//    println(status.combinedOutput)
-//    System.exit(0)
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
         Logger.getLogger("bugFinderLogger").level = Level.OFF
@@ -138,20 +135,20 @@ fun main(args: Array<String>) {
 //    } else {
     //ProjectBugFinder("tmp/arrays/classTests").findBugsInProjects()
 //    }
-    //val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
+    val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
     //val file = File("tmp/test.kt")
-    val regex = Regex("""import kotlin.reflect.typeOf""")
-    val files =
-        Files.walk(Paths.get("/home/stepanov/Kotlin/kotlin/compiler/testData/codegen/box/callableReference/adaptedReferences/"))
-            .map { it.toFile() }.filter { it.isFile }.toList()
-    //val condition = {f: File -> okFiles.any { f.name.contains(it.name) }}
-    val condition2 = { f: File -> f.readText().contains(regex) }
-    val condition3 = { f: File -> f.readText().contains(Regex("""FunctionalInterfaceConversion""")) }
-    val condition4 = { f: File -> f.readText().contains(Regex("""inline class""")) }
-    val cond = listOf(condition2, condition3, condition4)
-    val files2 = File(CompilerArgs.baseDir).listFiles().filter { f -> f.isFile && (cond.any { it.invoke(f) }) }
-//    System.exit(0)
-    val file = (files + files2).random()
+//    val regex = Regex("""import kotlin.reflect.typeOf""")
+//    val files =
+//        Files.walk(Paths.get("/home/stepanov/Kotlin/kotlin/compiler/testData/codegen/box/callableReference/adaptedReferences/"))
+//            .map { it.toFile() }.filter { it.isFile }.toList()
+//    //val condition = {f: File -> okFiles.any { f.name.contains(it.name) }}
+//    val condition2 = { f: File -> f.readText().contains(regex) }
+//    val condition3 = { f: File -> f.readText().contains(Regex("""FunctionalInterfaceConversion""")) }
+//    val condition4 = { f: File -> f.readText().contains(Regex("""inline class""")) }
+//    val cond = listOf(condition2, condition3, condition4)
+//    val files2 = File(CompilerArgs.baseDir).listFiles().filter { f -> f.isFile && (cond.any { it.invoke(f) }) }
+////    System.exit(0)
+//    val file = (files + files2).random()
     SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 }

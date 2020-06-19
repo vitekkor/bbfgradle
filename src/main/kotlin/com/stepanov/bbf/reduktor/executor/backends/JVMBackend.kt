@@ -6,6 +6,7 @@ import org.apache.commons.io.FileUtils
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.config.IncrementalCompilation
@@ -57,7 +58,11 @@ class JVMBackend(private val arguments: String) : CommonBackend {
                 return hasException
             }
 
-            override fun report(severity: CompilerMessageSeverity, message: String, location: CompilerMessageLocation?) {
+            override fun report(
+                severity: CompilerMessageSeverity,
+                message: String,
+                location: CompilerMessageSourceLocation?
+            ) {
                 if (severity == CompilerMessageSeverity.EXCEPTION) {
                     hasException = true
                     crashMessages.add(message)

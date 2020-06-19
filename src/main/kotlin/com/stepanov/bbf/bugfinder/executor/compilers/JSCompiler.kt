@@ -16,6 +16,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import java.io.*
 import java.util.concurrent.Executors
@@ -37,7 +38,7 @@ class JSCompiler(private val arguments: String = "") : CommonCompiler() {
         return !MsgCollector.hasCompileError && !status.hasTimeout && !MsgCollector.hasException
     }
 
-    override fun getErrorMessageWithLocation(project: Project): Pair<String, List<CompilerMessageLocation>> {
+    override fun getErrorMessageWithLocation(project: Project): Pair<String, List<CompilerMessageSourceLocation>> {
         val status = tryToCompile(project)
         return status.combinedOutput to status.locations
     }

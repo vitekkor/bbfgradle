@@ -1,4 +1,19 @@
-package com.stepanov.bbf.bugfinder.executor.checkers//package com.stepanov.bbf.bugfinder.executor
+package com.stepanov.bbf.bugfinder.executor.checkers
+
+import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.project.BBFFile
+import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.manager.BugType
+
+//class ProjectMultiCompilerTestChecker(
+//    override val project: Project,
+//    override var curFile: BBFFile,
+//    private val compilers: List<CommonCompiler>
+//) : MultiCompilerCrashChecker(project, curFile, null, BugType.DIFFBEHAVIOR) {
+//
+//}
+
+//package com.stepanov.bbf.bugfinder.executor
 //
 //import com.intellij.psi.PsiErrorElement
 //import com.intellij.psi.PsiFile

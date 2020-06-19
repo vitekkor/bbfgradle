@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
+import com.stepanov.bbf.bugfinder.util.flatMap
 
 class Project(
     var configuration: Header,

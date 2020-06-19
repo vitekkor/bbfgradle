@@ -10,7 +10,7 @@ import java.io.File
 
 class DiffCompileChecker(
     override val project: Project,
-    override val curFile: BBFFile,
+    override var curFile: BBFFile,
     private val compilers: List<CommonCompiler>
 ) : MultiCompilerCrashChecker(project, curFile, null, BugType.DIFFBEHAVIOR) {
 

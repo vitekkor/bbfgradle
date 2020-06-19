@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.ImportPath
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
+import com.stepanov.bbf.bugfinder.util.flatMap
 
 
 fun Project.moveAllCodeInOneFile(): Project {
