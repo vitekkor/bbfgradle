@@ -22,9 +22,9 @@ data class BBFFile(val name: String, var psiFile: PsiFile, var ctx: BindingConte
 
     fun changePsiFile(newPsiFile: PsiFile) = changePsiFile(newPsiFile.text)
 
-    fun changePsiFile(newPsiFileText: String) {
+    fun changePsiFile(newPsiFileText: String, checkCorrectness: Boolean = true) {
         val (psiFile, ctx) = createPSI(newPsiFileText)
-        require(!psiFile.containsChildOfType<PsiErrorElement>())
+        if (checkCorrectness) require(!psiFile.containsChildOfType<PsiErrorElement>())
         this.psiFile = psiFile
         this.ctx = ctx
     }
