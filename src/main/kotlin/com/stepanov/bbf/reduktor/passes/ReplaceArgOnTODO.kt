@@ -12,7 +12,7 @@ class ReplaceArgOnTODO : SimplificationPass() {
 
     override fun simplify() {
         file.getAllPSIChildrenOfType<KtCallExpression>()
-            .filter { it.valueArguments.size != 0 }
+            .filter { it.valueArguments.size != 0 && it.valueArgumentList?.arguments?.size != 0}
             .forEach { call ->
                 for (i in 0 until call.valueArguments.size - 1)
                     replaceArgOnTODO(call, i)

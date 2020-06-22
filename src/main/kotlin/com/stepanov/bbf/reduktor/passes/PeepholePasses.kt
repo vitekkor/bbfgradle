@@ -15,7 +15,7 @@ class PeepholePasses(private val isShort: Boolean = false) : SimplificationPass(
 
     override fun simplify() {
         val text = simplifyText()
-        checker.curFile.changePsiFile(text)
+        checker.curFile.changePsiFile(text, false)
     }
 
     fun simplifyText(): String {

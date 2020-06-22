@@ -30,7 +30,7 @@ class HierarchicalDeltaDebugger: SimplificationPass() {
             nodes = tree.getAllChildrenOfTheLevel(level)
             log.debug("RES after level $level: ${tree.text}")
         }
-        checker.curFile.changePsiFile(tree.text)
+        checker.curFile.changePsiFile(tree.text, false)
         log.debug("Result: ${tree.text}")
     }
 

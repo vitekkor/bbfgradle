@@ -2,6 +2,7 @@ package com.stepanov.bbf.reduktor.passes
 
 import com.stepanov.bbf.bugfinder.util.debugPrint
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
+import com.stepanov.bbf.bugfinder.util.replaceThis
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import org.jetbrains.kotlin.psi.*
 
@@ -22,10 +23,10 @@ class ValueArgumentListSimplifying : SimplificationPass() {
             }
             //Handle last arg
             val last = argList.arguments.last()
-            val lastCopy = argList.arguments.last().copy() as KtValueArgument
+            val argListCopy = argList.copy() as KtValueArgumentList
             argList.removeArgument(last)
             if (!checker.checkTest()) {
-                argList.addArgument(lastCopy)
+                argList.replaceThis(argListCopy)
             }
         }
     }
