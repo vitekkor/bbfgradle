@@ -121,10 +121,12 @@ open class MultiCompilerCrashChecker(
             log.debug("ALREADY CHECKED!!!")
             return alreadyChecked[hash]!!
         }
-        val psi = Factory.psiFactory.createFile(text)
-        if (psi.containsChildOfType<PsiErrorElement>()) {
-            alreadyChecked[hash] = false
-            return false
+        if (bugType != BugType.FRONTEND) {
+            val psi = Factory.psiFactory.createFile(text)
+            if (psi.containsChildOfType<PsiErrorElement>()) {
+                alreadyChecked[hash] = false
+                return false
+            }
         }
         val isBug = compiler!!.isCompilerBug(text)
         alreadyChecked[hash] = isBug
@@ -139,7 +141,7 @@ open class MultiCompilerCrashChecker(
         if (node.getAllChildrenNodes().contains(replacement)) {
             val backup = node.copyElement()
             node.replaceThis(replacement)
-            if (!checkTest()) {
+            if (!checkTest(tree.text)) {
                 log.debug("REPLACING BACK")
                 replacement.replaceThis(backup)
             } else {
