@@ -20,9 +20,7 @@ import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyCfg
 import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyEnv
 import com.stepanov.bbf.kootstrap.util.opt
 import com.stepanov.bbf.kootstrap.util.targetRoots
-import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
-import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
-import org.jetbrains.kotlin.cli.jvm.compiler.TopDownAnalyzerFacadeForJVM
+import org.jetbrains.kotlin.cli.jvm.compiler.*
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.js.analyze.TopDownAnalyzerFacadeForJS
@@ -226,6 +224,15 @@ class PSICreator(var projectDir: String) {
                         CompilerArgs.getStdLibPath("kotlin-test-js")
                     )
                 )
+//                val sourcesOnly = TopDownAnalyzerFacadeForJVM.newModuleSearchScope(psiFile.project, listOf(psiFile as KtFile))
+//                return TopDownAnalyzerFacadeForJVM.analyzeFilesWithJavaIntegration(
+//                    psiFile.project,
+//                    listOf(psiFile as KtFile),
+//                    NoScopeRecordCliBindingTrace(),
+//                    env.configuration,
+//                    env::createPackagePartProvider
+//                    //{ scope -> JvmPackagePartProvider(LANGUAGE_FEATURE_SETTINGS, scope) }
+//                ).bindingContext
                 return TopDownAnalyzerFacadeForJS.analyzeFiles(
                     (listOf(psiFile as KtFile)),
                     JsConfig(env.project, configuration)

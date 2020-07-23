@@ -14,7 +14,7 @@ class ConstructionContext {
         return if (usagesOfNeededType.isEmpty()) null else usagesOfNeededType.random()
     }
 
-    val classesAndUsages: MutableMap<ASTNode, List<UsingExample>?> = mutableMapOf()
+    var classesAndUsages: MutableMap<ASTNode, List<UsingExample>?> = mutableMapOf()
 }
 
 data class UsingExample(val node: ASTNode, val type: KotlinType) {

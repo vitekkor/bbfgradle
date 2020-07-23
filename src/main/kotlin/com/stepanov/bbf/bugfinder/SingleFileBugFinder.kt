@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.checkers.TracesChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.tracer.Tracer
 import com.stepanov.bbf.bugfinder.util.*
@@ -15,6 +16,7 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
             ++counter
             log.debug("Name = $dir")
             val project = Project.createFromCode(File(dir).readText())
+            if (project.language != LANGUAGE.KOTLIN) return
             if (project.files.isEmpty()) {
                 log.debug("Cant create project")
                 return

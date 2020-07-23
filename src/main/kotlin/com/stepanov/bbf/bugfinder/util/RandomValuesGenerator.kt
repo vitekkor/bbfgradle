@@ -11,16 +11,32 @@ const val RANDOM_CONST = 5
 
 fun generateDefValuesAsString(type: String): String {
     return when {
-        type == "Any" -> "42"
+        type.let { it == "UByte" || it == "UShort" || it == "UInt" || it == "ULong" } ->
+            "${generateDefValuesAsString(type.substring(1))}.to$type()".substringAfter('-')
+        type.let { it == "UByte?" || it == "UShort?" || it == "UInt?" || it == "ULong?" } ->
+            "${generateDefValuesAsString(type.substring(1))}.to$type()".substringAfter('-')
+        type == "Any" -> generateDefValuesAsString(generateRandomType())
+        type == "Any?" -> generateDefValuesAsString(generateRandomType())
         type == "String" -> "\"${generateDefValuesForDefaultTypes<String>(type)}\""
+        type == "Number" -> generateDefValuesForDefaultTypes<Int>("Int").toString()
+        type == "Number?" -> generateDefValuesForDefaultTypes<Int>("Int").toString()
         type == "Int" -> generateDefValuesForDefaultTypes<Int>(type).toString()
         type == "Double" -> generateDefValuesForDefaultTypes<Double>(type).toString()
         type == "Boolean" -> generateDefValuesForDefaultTypes<Boolean>(type).toString()
         type == "Long" -> generateDefValuesForDefaultTypes<Long>(type).toString()
         type == "Short" -> generateDefValuesForDefaultTypes<Short>(type).toString()
-        type == "Char" -> generateDefValuesForDefaultTypes<Char>(type).toString()
+        type == "Char" -> "\'${generateDefValuesForDefaultTypes<Char>(type)}\'"
         type == "Byte" -> generateDefValuesForDefaultTypes<Byte>(type).toString()
-        type == "Float" -> generateDefValuesForDefaultTypes<Float>(type).toString()
+        type == "Float" -> generateDefValuesForDefaultTypes<Float>(type).toString()+"f"
+        type == "String?" -> "\"${generateDefValuesForDefaultTypes<String>(type)}\""
+        type == "Int?" -> generateDefValuesForDefaultTypes<Int>(type).toString()
+        type == "Double?" -> generateDefValuesForDefaultTypes<Double>(type).toString()
+        type == "Boolean?" -> generateDefValuesForDefaultTypes<Boolean>(type).toString()
+        type == "Long?" -> generateDefValuesForDefaultTypes<Long>(type).toString()
+        type == "Short?" -> generateDefValuesForDefaultTypes<Short>(type).toString()
+        type == "Char?" -> "\'${generateDefValuesForDefaultTypes<Char>(type)}\'"
+        type == "Byte?" -> generateDefValuesForDefaultTypes<Byte>(type).toString()
+        type == "Float?" -> generateDefValuesForDefaultTypes<Float>(type).toString()+"f"
         type.startsWith("List") -> {
             if (type.contains('<'))
                 createDefaultValueForContainer(
@@ -53,6 +69,38 @@ fun generateDefValuesAsString(type: String): String {
                 )
             else "setOf()"
         }
+        type.startsWith("Iterable") -> {
+            if (type.contains('<'))
+                createDefaultValueForContainer(
+                    "arrayListOf(",
+                    type.substringAfter('<').substringBeforeLast('>')
+                )
+            else "arrayListOf()"
+        }
+        type.startsWith("HashSet") -> {
+            if (type.contains('<'))
+                createDefaultValueForContainer(
+                    "hashSetOf(",
+                    type.substringAfter('<').substringBeforeLast('>')
+                )
+            else "hashSetOf()"
+        }
+        type.startsWith("LinkedHashSet") -> {
+            if (type.contains('<'))
+                createDefaultValueForContainer(
+                    "linkedSetOf(",
+                    type.substringAfter('<').substringBeforeLast('>')
+                )
+            else "linkedSetOf()"
+        }
+        type.startsWith("MutableSet") -> {
+            if (type.contains('<'))
+                createDefaultValueForContainer(
+                    "mutableSetOf(",
+                    type.substringAfter('<').substringBeforeLast('>')
+                )
+            else "mutableSetOf()"
+        }
         type.startsWith("Array") -> {
             if (type.contains('<'))
                 createDefaultValueForContainer(
@@ -61,11 +109,30 @@ fun generateDefValuesAsString(type: String): String {
                 )
             else "arrayOf()"
         }
+        type.startsWith("HashMap") -> {
+            createDefaultValueWithToOperator(type, /*Random().nextInt(randomConst)*/5)
+        }
+        type.startsWith("MutableMap") -> {
+            createDefaultValueWithToOperator(type, /*Random().nextInt(randomConst)*/5)
+        }
+        type.startsWith("LinkedHashMap") -> {
+            createDefaultValueWithToOperator(
+                type.replaceFirst(
+                    "LinkedHashMap",
+                    "LinkedMap"
+                ), /*Random().nextInt(randomConst)*/5
+            )
+        }
         type.startsWith("Pair") -> {
             createDefaultValueWithToOperator(type, 1)
         }
         type.startsWith("Map") -> {
             createDefaultValueWithToOperator(type, /*Random().nextInt(randomConst)*/5)
+        }
+        type.substringBefore('<').contains("Array") ->
+            type.substringBefore("Array").let { createDefaultValueForContainer("${it.toLowerCase()}ArrayOf(", it) }
+        type.startsWith("Function") -> {
+            "{${generateDefValuesAsString(type.substringAfter('<').substringBeforeLast('>').substringAfterLast(',').trim())}}"
         }
         else -> {
             //println("Unsupported type : $type")
@@ -77,18 +144,28 @@ fun generateDefValuesAsString(type: String): String {
 
 @Suppress("UNCHECKED_CAST")
 private fun <T> generateDefValuesForDefaultTypes(type: String): T =
-        when (type) {
-            "Int" -> Random().nextInt()
-            "Double" -> Random().nextDouble()
-            "Boolean" -> Random().nextBoolean()
-            "Long" -> Random().nextLong()
-            "Short" -> Random().nextShort()
-            "Char" -> Random().nextChar()
-            "Byte" -> Random().nextByte()
-            "Float" -> Random().nextFloat()
-            else -> Random().nextString(('a'..'z').asCharSequence(),
-                LINE_SIZE, LINE_SIZE + 1)
-        } as T
+    when (type) {
+        "Int"  -> Random().nextInt()
+        "Double" -> Random().nextDouble()
+        "Boolean" -> Random().nextBoolean()
+        "Long" -> Random().nextLong()
+        "Short" -> Random().nextShort()
+        "Char" -> Random().nextChar()
+        "Byte" -> Random().nextByte()
+        "Float" -> Random().nextFloat()
+        "Int?"  -> Random().nextInt()
+        "Double?" -> Random().nextDouble()
+        "Boolean?" -> Random().nextBoolean()
+        "Long?" -> Random().nextLong()
+        "Short?" -> Random().nextShort()
+        "Char?" -> Random().nextChar()
+        "Byte?" -> Random().nextByte()
+        "Float?" -> Random().nextFloat()
+        else -> Random().nextString(
+            ('a'..'z').asCharSequence(),
+            LINE_SIZE, LINE_SIZE + 1
+        )
+    } as T
 
 
 private fun getLeftAndRightTypes(type: String): Pair<String, String> {
@@ -115,7 +192,7 @@ private fun createDefaultValueWithToOperator(type: String, size: Int): String {
     if (size == 1)
         res.append("(")
     else
-        res.append("mapOf(")
+        res.append("${type.decapitalize().substringBefore('<')}Of(")
     repeat(size) {
         res.append(generateDefValuesAsString(types.first))
         res.append(" to ")
@@ -131,9 +208,13 @@ private fun createDefaultValueForContainer(name: String, typeParam: String): Str
     if (typeParam.contains('{')) return ""
     val values = StringBuilder()
     values.append(name)
-    repeat(Random().nextInt(RANDOM_CONST) + 1) { values.append("${generateDefValuesAsString(
-        typeParam
-    )}, ") }
+    repeat(Random().nextInt(RANDOM_CONST) + 1) {
+        values.append(
+            "${generateDefValuesAsString(
+                typeParam
+            )}, "
+        )
+    }
     values.replace(values.length - 2, values.length, ")")
     return values.toString()
 }

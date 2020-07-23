@@ -3,8 +3,8 @@ package com.stepanov.bbf.bugfinder.mutator
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
-import com.stepanov.bbf.bugfinder.mutator.projectTransformations.ShuffleNodes
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
+import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.AddNodesFromAnotherFiles
 import org.apache.log4j.Logger
 import kotlin.random.Random
 
@@ -52,6 +52,8 @@ class Mutator(val project: Project) {
     }
 
     private fun startKotlinMutations() {
+        executeMutation(AddNodesFromAnotherFiles(), 100)
+        System.exit(0)
         for (i in 0 until Random.nextInt(1, 3)) {
             transformations.shuffled().forEach { executeMutation(it.first, it.second) }
         }

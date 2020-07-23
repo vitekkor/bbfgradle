@@ -1,7 +1,6 @@
-package com.stepanov.bbf.bugfinder.mutator
+package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory
-import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.util.getTrueWithProbability
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.KtExpression

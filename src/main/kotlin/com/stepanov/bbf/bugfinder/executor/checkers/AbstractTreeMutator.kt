@@ -28,6 +28,8 @@ class AbstractTreeMutator(private val compilers: List<CommonCompiler>, val confi
     fun addNodeIfPossible(file: PsiFile, anchor: PsiElement, node: PsiElement, before: Boolean = false) =
         prepareChecker(file).addNodeIfPossible(anchor, node, before)
 
+    fun checkCompiling(file: PsiFile) = prepareChecker(file).checkCompiling()
+
     fun addNodeIfPossibleWithNode(
         file: PsiFile,
         anchor: PsiElement,

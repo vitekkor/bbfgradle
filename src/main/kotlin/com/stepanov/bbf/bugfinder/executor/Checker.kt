@@ -16,6 +16,8 @@ import org.apache.log4j.Logger
 //Project adaptation
 open class Checker(compilers: List<CommonCompiler>) : CompilationChecker(compilers) {
 
+    constructor(compiler: CommonCompiler) : this(listOf(compiler))
+
     //Back compatibility
     fun checkTextCompiling(text: String): Boolean = checkCompilingWithBugSaving(Project.createFromCode(text), null)
     fun checkCompilingWithBugSaving(file: PsiFile): Boolean = checkTextCompiling(file.text)

@@ -28,6 +28,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
 import java.util.function.BiPredicate
+import kotlin.Comparator
 
 
 fun KtProperty.getLeft(): List<PsiElement> =
@@ -260,6 +261,9 @@ private fun ASTNode.getAllDFSChildrenWithoutItSelf1(): List<ASTNode> {
     return res
 }
 
+fun PsiElement.getAllChildrenOfType(type: IElementType): List<ASTNode> =
+    this.node.getAllChildrenNodes().filter { it.elementType == type }
+
 inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfType(): List<T> =
     this.node.getAllChildrenNodes().asSequence().filter { it.psi is T }.map { it.psi as T }.toList()
 
@@ -359,6 +363,28 @@ fun removeMainFromFiles(dir: String) {
         fooStream.close()
     }
 }
+
+fun <T, R: Comparable<R>> List<T>.removeDuplicatesBy(f: (T) -> R): List<T> {
+    val list1 = this.zip(this.map(f))
+    val res = mutableListOf<Pair<T, R>>()
+    for (i in 0 until size) {
+        val item = list1[i].second
+        if (res.all { it.second != item }) res.add(list1[i])
+    }
+    return res.map { it.first }
+}
+
+fun KtBlockExpression.addProperty(prop: KtProperty) {
+    val factory = KtPsiFactory(this.project)
+    val firstStatement = this.firstStatement ?: this.rBrace ?: return
+    addBefore(factory.createWhiteSpace("\n"), firstStatement)
+    addBefore(prop, firstStatement)
+    addBefore(factory.createWhiteSpace("\n"), firstStatement)
+}
+
+fun KtFile.getBoxFun(): KtNamedFunction? =
+    this.getAllPSIChildrenOfType<KtNamedFunction> { it.name?.contains("box") == true }.firstOrNull()
+
 //
 //fun Project.saveOrRemoveToTmp(save: Boolean): String {
 //    val texts = this.texts
@@ -433,6 +459,7 @@ fun removeMainFromFiles(dir: String) {
 //}
 
 fun KtFile.addImport(import: KtImportDirective) {
+    if (this.importDirectives.any { it.text == import.text }) return
     this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
     this.importList?.add(import)
     this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
@@ -452,3 +479,6 @@ fun String.filterNotLines(cond: (String) -> Boolean): String =
     this.lines().filterNot { cond(it) }.joinToString("\n")
 
 fun kotlin.random.Random.getTrue(prop: Int) = Random().nextInRange(0, 100) < prop
+
+fun KtFile.findFunByName(name: String): KtNamedFunction? =
+    this.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name == name }
