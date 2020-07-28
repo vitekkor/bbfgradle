@@ -3,10 +3,9 @@ package com.stepanov.bbf.bugfinder
 import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
-import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.generator.constructor.ProgramConstructor
-import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.UsagesSamplesGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.RandomInstancesGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.UsageSamplesGeneratorWithStLibrary
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import net.sourceforge.argparse4j.ArgumentParsers
@@ -14,19 +13,44 @@ import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
-import org.jetbrains.kotlin.cfg.pseudocode.getSubtypesPredicate
-import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtExpression
-import org.jetbrains.kotlin.types.getSubtypeRepresentative
-import org.jetbrains.kotlin.types.typeUtil.supertypes
+import org.jetbrains.kotlin.psi.KtNamedFunction
+import org.jetbrains.kotlin.psi.KtProperty
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import java.io.File
-import kotlin.reflect.jvm.internal.impl.types.TypeCapabilitiesKt
 import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
+    val cre = PSICreator("")
+    val psi = cre.getPSIForFile("tmp/test.kt")
+    val ctx = cre.ctx!!
+    val types = psi.getAllPSIChildrenOfType<KtExpression>().map { it.getType(ctx) }.filterNotNull()
+//    System.exit(0)
+//    println(types.map { it.toString() })
+    for (t in types) {
+        if (t.toString() != "A") continue
+        println("trying to gen for type $t")
+        val res = UsageSamplesGeneratorWithStLibrary().generateForStandardType(t, "Int")
+        println("size = ${res.size}\n\n")
+        for (funcs in res) {
+            println("text = ${funcs.map { it.text }}")
+            val newFunc = psi.addToTheEnd(funcs[0])
+            println(psi.text)
+            val inv = RandomInstancesGenerator(psi).generateTopLevelFunctionCall(newFunc as KtNamedFunction)
+            println(inv)
+            System.exit(0)
+//            val invokations = funcs.map {
+//                when (it) {
+//                    is KtNamedFunction -> RandomInstancesGenerator(psi).generateTopLevelFunctionCall(it)?.first
+//                    else -> it
+//                }
+//            }
+        }
+    }
+    System.exit(0)
     val f1 = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
     SingleFileBugFinder(f1.absolutePath).findBugsInFile()
     System.exit(0)

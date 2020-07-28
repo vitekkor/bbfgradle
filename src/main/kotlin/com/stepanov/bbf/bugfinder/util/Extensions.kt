@@ -9,6 +9,7 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildrenOfCurLevel
 import org.jetbrains.kotlin.KtNodeTypes
@@ -385,6 +386,14 @@ fun KtBlockExpression.addProperty(prop: KtProperty) {
 fun KtFile.getBoxFun(): KtNamedFunction? =
     this.getAllPSIChildrenOfType<KtNamedFunction> { it.name?.contains("box") == true }.firstOrNull()
 
+fun KtFile.addToTheEnd(psiElement: PsiElement): PsiElement {
+    return this.getAllPSIDFSChildrenOfType<PsiElement>().last().parent.let {
+        it.add(Factory.psiFactory.createWhiteSpace("\n\n"))
+        val res = it.add(psiElement)
+        it.add(Factory.psiFactory.createWhiteSpace("\n\n"))
+        res
+    }
+}
 //
 //fun Project.saveOrRemoveToTmp(save: Boolean): String {
 //    val texts = this.texts

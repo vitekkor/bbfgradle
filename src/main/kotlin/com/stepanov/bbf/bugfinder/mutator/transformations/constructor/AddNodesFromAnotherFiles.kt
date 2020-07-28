@@ -12,7 +12,9 @@ import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.psi.psiUtil.isTopLevelKtOrJavaMember
+import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
@@ -56,8 +58,8 @@ class AddNodesFromAnotherFiles : Transformation() {
 //                (targetNode.psi as PsiNamedElement).setName(generateRandomName())
 //                if (tryToAdd(targetNode.psi, psi, placeToInsert) != null) continue
 //            }
-            addPropertiesToFun(targetNode)
-            addAllDataFromAnotherFile(psi, anonPsi)
+            //addPropertiesToFun(targetNode)
+            val addedNodes = addAllDataFromAnotherFile(psi, anonPsi)
             if (!mutChecker.checkCompiling(psi)) {
                 psi = file.copy() as KtFile
                 continue
@@ -66,7 +68,7 @@ class AddNodesFromAnotherFiles : Transformation() {
             val newTargetNode = psi.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name == targetNode.name }
                 ?: throw Exception("Cant find node")
             val ctx2 = PSICreator.analyze(psi)!!
-            renameNameReferences(ctx, placeToInsert, newTargetNode, ctx2)
+            replaceNodesOfFile(addedNodes, ctx2)
             //Add info in psi
 //            ctx = PSICreator.analyze(psi)!!
 //            log.debug("renamed = ${targetNode.text}")
@@ -99,19 +101,18 @@ class AddNodesFromAnotherFiles : Transformation() {
     }
 
 
-    private fun renameNameReferences(
-        psiCtx: BindingContext,
-        placeToInsert: PsiElement,
-        replacementNode: PsiElement,
-        replacementCtx: BindingContext
+    private fun replaceNodesOfFile(
+        replaceNodes: List<PsiElement>,
+        ctx: BindingContext
     ): Boolean {
 //        val table1 = getSlice(placeToInsert)
 //            .map { Triple(it, it.text, it.getType(psiCtx)) }
 //            .filter { it.third != null }
 //        if (table1.isEmpty()) return false
-        var nodesForChange = updateReplacement(replacementNode, replacementCtx).shuffled()
+        var nodesForChange = updateReplacement(replaceNodes, ctx).shuffled()
         for (i in 0 until nodesForChange.size) {
             val node = nodesForChange.randomOrNull() ?: continue
+            node.first.parents.firstOrNull { it is KtNamedFunction }?.let { addPropertiesToFun(it as KtNamedFunction)  }
             val expressionsWhichWeCanPaste = getInsertableExpressions(node)
             val replacement =
                 if (expressionsWhichWeCanPaste.isEmpty()) {
@@ -134,7 +135,7 @@ class AddNodesFromAnotherFiles : Transformation() {
                 replacement.copy().node
             )
             //node.first.replaceThis(replacement.copy())
-            nodesForChange = updateReplacement(replacementNode, replacementCtx)
+            nodesForChange = updateReplacement(replaceNodes, ctx)
         }
         return true
 //        while (nodesForChange.isNotEmpty()) {
@@ -193,7 +194,11 @@ class AddNodesFromAnotherFiles : Transformation() {
 
     private fun addPropertiesToFun(node: KtNamedFunction) {
         val props = usageExamples.filter { it.first is KtProperty }
-        props.reversed().forEach { node.bodyBlockExpression?.addProperty(it.first as KtProperty) }
+        val funProps = node.bodyBlockExpression?.allChildren?.filter { it is KtProperty }?.toList() ?: listOf()
+        props.reversed().forEach {
+            val pr = it.first as KtProperty
+            if (funProps.all { it.text != pr.text }) node.bodyBlockExpression?.addProperty(pr)
+        }
     }
 
     private fun collectUsageCases(): List<Triple<KtExpression, String, KotlinType?>> {
@@ -210,9 +215,9 @@ class AddNodesFromAnotherFiles : Transformation() {
             .map { Triple(it, it.text, it.getType(ctx)) }
             .filter {
                 it.third != null &&
-                !it.third!!.isError &&
-                it.first !is KtStringTemplateEntry &&
-                it.first !is KtConstantExpression
+                        !it.third!!.isError &&
+                        it.first !is KtStringTemplateEntry &&
+                        it.first !is KtConstantExpression
             }
         val generatedSamples = UsagesSamplesGenerator.generate(psi)
         return (properties + exprs).map { Triple(it.first, it.second, it.third!!) } + generatedSamples
@@ -225,7 +230,7 @@ class AddNodesFromAnotherFiles : Transformation() {
         //Nullable or most common types
         val res = mutableListOf<Triple<KtExpression, String, KotlinType?>>()
         val nodeType = node.second ?: return emptyList()
-        for (el in usageExamples) {
+        for (el in usageExamples.filter { it.first !is KtProperty }) {
             when {
                 el.third == nodeType -> res.add(el)
                 el.third?.toString() == "$nodeType?" -> res.add(el)
@@ -235,7 +240,11 @@ class AddNodesFromAnotherFiles : Transformation() {
         return res
     }
 
-    private fun addAllDataFromAnotherFile(file: KtFile, anotherFile: KtFile, except: List<PsiElement> = listOf()) {
+    private fun addAllDataFromAnotherFile(
+        file: KtFile,
+        anotherFile: KtFile,
+        except: List<PsiElement> = listOf()
+    ): List<PsiElement> {
         val topLevelNodes =
             anotherFile.getAllChildren()
                 .filter { it.isTopLevelKtOrJavaMember() && it !is KtImportList && it !in except }
@@ -243,13 +252,15 @@ class AddNodesFromAnotherFiles : Transformation() {
         //block.lBrace?.delete()
         //block.rBrace?.delete()
         anotherFile.importDirectives.forEach { file.addImport(it) }
+        val addedNodes = mutableListOf<PsiElement>()
         topLevelNodes.forEach { node ->
             file.getAllPSIDFSChildrenOfType<PsiElement>().last().parent.let {
-                it.add(psiFactory.createWhiteSpace("\n"))
-                it.add(node)
-                it.add(psiFactory.createWhiteSpace("\n"))
+                it.add(psiFactory.createWhiteSpace("\n\n"))
+                addedNodes.add(it.add(node))
+                it.add(psiFactory.createWhiteSpace("\n\n"))
             }
         }
+        return addedNodes
     }
 
     private fun tryToAdd(targetNode: PsiElement, psi: KtFile, placeToInsert: PsiElement): PsiElement? {
@@ -263,14 +274,17 @@ class AddNodesFromAnotherFiles : Transformation() {
         )
     }
 
-    private fun updateReplacement(replacementNode: PsiElement, replacementCtx: BindingContext) =
-        replacementNode.getAllPSIChildrenOfType<KtExpression>()
-            .map { it to it.getType(replacementCtx) }
+    private fun updateReplacement(nodes: List<PsiElement>, ctx: BindingContext) =
+        nodes.flatMap { updateReplacement(it, ctx) }
+
+    private fun updateReplacement(node: PsiElement, ctx: BindingContext) =
+        node.getAllPSIChildrenOfType<KtExpression>()
+            .map { it to it.getType(ctx) }
             .filter {
                 it.second != null &&
-                !it.second!!.isError &&
-                it.second.toString() !in blockListOfTypes &&
-                it.second?.toString()?.contains("name provided") == false
+                        !it.second!!.isError &&
+                        it.second.toString() !in blockListOfTypes &&
+                        it.second?.toString()?.contains("name provided") == false
             }
 
     private fun generateRandomName() = java.util.Random().getRandomVariableName(4)
