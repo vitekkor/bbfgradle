@@ -6,11 +6,17 @@ import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.supertypes
 import com.stepanov.bbf.bugfinder.util.flatMap
+import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getAllWithoutLast
 import com.stepanov.bbf.bugfinder.util.removeDuplicatesBy
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.descriptors.impl.PropertyDescriptorImpl
+import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.serialization.deserialization.DeserializedPackageFragmentImpl
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedCallableMemberDescriptor
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedPropertyDescriptor
@@ -18,7 +24,17 @@ import org.jetbrains.kotlin.serialization.deserialization.descriptors.Deserializ
 import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 
-class UsageSamplesGeneratorWithStLibrary {
+object UsageSamplesGeneratorWithStLibrary {
+
+    private val descriptorDecl: List<DeclarationDescriptor>
+    init {
+        val (psi, ctx) = PSICreator("").let { it.getPSIForText("val a: StringBuilder = StringBuilder(\"\")") to it.ctx!! }
+        val kType = psi.getAllPSIChildrenOfType<KtProperty>().map { it.typeReference?.getAbbreviatedTypeOrType(ctx) }[0]!!
+        val module = kType.constructor.declarationDescriptor!!.module
+        val stringPackages = module.getSubPackagesOf(FqName("kotlin")) {true}
+        val packages = stringPackages.map { module.getPackage(it) }
+        descriptorDecl = packages.flatMap { it.memberScope.getDescriptorsFiltered { true } }
+    }
 
     fun generateForStandardType(type: KotlinType, needType: String): List<List<PsiElement>> {
         val resForType = gen(type, needType)
@@ -31,7 +47,7 @@ class UsageSamplesGeneratorWithStLibrary {
         if (prefix.size == maxDepth) return listOf()
         val typeParamToArg = type.constructor.parameters.zip(type.arguments)
         val ext = getExtensionFuncsFromStdLibrary(type, needType)
-        val funList: MutableList<List<PsiElement>> = mutableListOf()//mutableListOf(listOf<PsiElement>())
+        val funList: MutableList<List<PsiElement>> = mutableListOf()
         for (decl in ext) {
             val typeParamNameToRealArg =
                 decl.recType!!.arguments.map { it.toString() }.zip(typeParamToArg.map { it.second.toString() }).toMap()
@@ -43,7 +59,8 @@ class UsageSamplesGeneratorWithStLibrary {
         }
         val derivedTypes = mutableListOf<Pair<List<PsiElement>, KotlinType>>()
         for (mem in getMemberFields(type)) {
-            val descriptor = mem as? DeserializedCallableMemberDescriptor ?: mem as? CallableMemberDescriptor ?: continue
+            val descriptor =
+                mem as? DeserializedCallableMemberDescriptor ?: mem as? CallableMemberDescriptor ?: continue
             if (descriptor.returnType?.toString() == needType) {
                 createPsiElement(descriptor)?.let { funList.add(prefix + it) }
             } else {
@@ -59,7 +76,7 @@ class UsageSamplesGeneratorWithStLibrary {
         return funList
     }
 
-    fun List<PsiElement>.createTypeCallSeq(): String =
+    private fun List<PsiElement>.createTypeCallSeq(): String =
         this.joinToString(".") {
             when (it) {
                 is KtProperty -> it.name ?: ""
@@ -83,7 +100,7 @@ class UsageSamplesGeneratorWithStLibrary {
         }
 
 
-    fun KotlinType.replaceTypeArgsToTypes(map: Map<String, String>): String {
+    private fun KotlinType.replaceTypeArgsToTypes(map: Map<String, String>): String {
         val realType =
             if (isTypeParameter())
                 map[this.constructor.toString()] ?: map["${this.constructor}?"] ?: this.toString()
@@ -94,9 +111,9 @@ class UsageSamplesGeneratorWithStLibrary {
     }
 
     private fun getExtensionFuncsFromStdLibrary(type: KotlinType, needType: String): List<DeclarationDescr> {
-        val containingDeclaration = type.constructor.declarationDescriptor!!.containingDeclaration
-        val scope = (containingDeclaration as PackageFragmentDescriptor).getMemberScope()
-        val descriptorDecl = scope.getDescriptorsFiltered { true }
+        //val containingDeclaration = type.constructor.declarationDescriptor!!.containingDeclaration
+        //val scope = (containingDeclaration as PackageFragmentDescriptor).getMemberScope()
+        //val descriptorDecl = scope.getDescriptorsFiltered { true }
         val res = mutableListOf<DeclarationDescr>()
         for (desc in descriptorDecl) {
             val rec = when (desc) {

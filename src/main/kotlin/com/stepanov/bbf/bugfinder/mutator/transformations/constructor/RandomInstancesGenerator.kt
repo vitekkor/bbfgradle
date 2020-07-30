@@ -31,7 +31,8 @@ class RandomInstancesGenerator(private val file: KtFile) {
             .map { it.typeReference?.getAbbreviatedTypeOrType(ctx) }
             .map { it?.let { generateValueOfType(it) } ?: return null }
             .joinToString(", ")
-        val expr = Factory.psiFactory.createExpressionIfPossible("${func.name}($generatedParams)") as? KtCallExpression ?: return null
+        val expr = Factory.psiFactory.createExpressionIfPossible("${func.name}($generatedParams)") as? KtCallExpression
+            ?: return null
         return expr to func.valueParameters
     }
 
@@ -154,7 +155,7 @@ class RandomInstancesGenerator(private val file: KtFile) {
             }
 
 
-    private fun generateValueOfType(type: KotlinType): String {
+    fun generateValueOfType(type: KotlinType): String {
         if (type.isError) {
             val recreatedType = recreateType(type)
             if (recreatedType == null || recreatedType.isError) {
@@ -189,7 +190,8 @@ class RandomInstancesGenerator(private val file: KtFile) {
             if (type.arguments.isEmpty()) return ""
             return "{${generateValueOfType(type.arguments.last().type)}}"
         }
-        if (type.constructor.toString().startsWith("KProperty")) {
+        if (type.constructor.toString().let { it.startsWith("KProperty") || it.startsWith("KMutableProperty") }) {
+            //TODO
             return type.arguments.joinToString("::") { it.type.toString() }
         }
         if (type.toString().startsWith("Iterable")) {
@@ -215,6 +217,9 @@ class RandomInstancesGenerator(private val file: KtFile) {
         }
         if (type.toString().startsWith("CharSequence")) {
             return generateDefValuesAsString("String")
+        }
+        if (type.toString().startsWith("Regex")) {
+            return "Regex(${generateDefValuesAsString("String")})"
         }
         if (type.toString().startsWith("Comparable")) {
             if (type.arguments.isEmpty()) return ""
