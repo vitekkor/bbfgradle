@@ -4,18 +4,20 @@ import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import org.jetbrains.kotlin.js.descriptorUtils.hasPrimaryConstructor
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getValueParameters
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
+import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
+import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.UnresolvedType
 import org.jetbrains.kotlin.types.isError
 import org.jetbrains.kotlin.types.typeUtil.supertypes
 import java.lang.StringBuilder
 import kotlin.random.Random
-import kotlin.reflect.KTypeParameter
 
 class RandomInstancesGenerator(private val file: KtFile) {
 
@@ -155,6 +157,20 @@ class RandomInstancesGenerator(private val file: KtFile) {
             }
 
 
+    fun generateValueOfType(type: String): String {
+        try {
+            val propWithType =
+                Factory.psiFactory.createProperty("lateinit var ${Random.getRandomVariableName()}: $type")
+            val addedProp = file.addToTheEnd(propWithType) as KtProperty
+            val ctx = PSICreator.analyze(file)!!
+            val kotlinType = addedProp.typeReference!!.getAbbreviatedTypeOrType(ctx) ?: return ""
+            addedProp.delete()
+            return generateValueOfType(kotlinType)
+        } catch (e: Exception) {
+            return ""
+        }
+    }
+
     fun generateValueOfType(type: KotlinType): String {
         if (type.isError) {
             val recreatedType = recreateType(type)
@@ -186,7 +202,7 @@ class RandomInstancesGenerator(private val file: KtFile) {
             }
             return "${constructor}${res.joinToString { "${it.first} to ${it.second}" }})"
         }
-        if (type.constructor.toString().startsWith("Function")) {
+        if (type.constructor.toString().let { it.startsWith("Function") || it.startsWith("KFunction") }) {
             if (type.arguments.isEmpty()) return ""
             return "{${generateValueOfType(type.arguments.last().type)}}"
         }
@@ -196,7 +212,24 @@ class RandomInstancesGenerator(private val file: KtFile) {
         }
         if (type.toString().startsWith("Iterable")) {
             //TODO make more diverse
-            if (type.arguments.isEmpty()) return ""
+//            val classDescriptors =
+//                UsageSamplesGeneratorWithStLibrary.descriptorDecl.filter { it is DeserializedClassDescriptor }
+//            val a = classDescriptors
+//                .map { it as DeserializedClassDescriptor }
+//                .asSequence()
+//                .filter { it.getAllSuperClassifiers().any { it.name.asString() == "Iterable" } }
+//                .filter { it.hasPrimaryConstructor() }
+//                .filter {
+//                    it.constructors.first().let { it.visibility.isPublicAPI && it.visibility.name != "protected" }
+//                }
+//                .toList()
+//            val constructor = a[9].constructors.toList()[2]
+//            val typeParams = constructor.typeParameters.joinToString { it.name.asString() }
+//            val name = constructor.constructedClass.name
+//            val valueParams = constructor.valueParameters.joinToString { "${it.name}: ${it.type.toString()}" }
+//            println("fun <$typeParams> $name($valueParams) = TODO()")
+//            println(constructor)
+//            System.exit(0)
             return "arrayListOf(${generateValueOfType(type.arguments.first().type)})"
         }
         if (type.toString().startsWith("Sequence")) {

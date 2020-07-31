@@ -328,6 +328,9 @@ fun getTrueWithProbability(probability: Int): Boolean = Random().nextInt(100) in
 fun Random.getRandomVariableName(length: Int = 5): String =
     this.nextString(('a'..'z').asCharSequence(), length, length + 1)
 
+fun kotlin.random.Random.getRandomVariableName(length: Int = 5): String =
+    Random().nextString(('a'..'z').asCharSequence(), length, length + 1)
+
 fun String.isSubstringOf(other: String): Boolean {
     val m = this.length
     val n = other.length
@@ -365,7 +368,7 @@ fun removeMainFromFiles(dir: String) {
     }
 }
 
-fun <T, R: Comparable<R>> List<T>.removeDuplicatesBy(f: (T) -> R): List<T> {
+fun <T, R : Comparable<R>> List<T>.removeDuplicatesBy(f: (T) -> R): List<T> {
     val list1 = this.zip(this.map(f))
     val res = mutableListOf<Pair<T, R>>()
     for (i in 0 until size) {
@@ -375,12 +378,13 @@ fun <T, R: Comparable<R>> List<T>.removeDuplicatesBy(f: (T) -> R): List<T> {
     return res.map { it.first }
 }
 
-fun KtBlockExpression.addProperty(prop: KtProperty) {
+fun KtBlockExpression.addProperty(prop: KtProperty): PsiElement? {
     val factory = KtPsiFactory(this.project)
-    val firstStatement = this.firstStatement ?: this.rBrace ?: return
+    val firstStatement = this.firstStatement ?: this.rBrace ?: return null
     addBefore(factory.createWhiteSpace("\n"), firstStatement)
-    addBefore(prop, firstStatement)
+    val res = addBefore(prop, firstStatement)
     addBefore(factory.createWhiteSpace("\n"), firstStatement)
+    return res
 }
 
 fun KtFile.getBoxFun(): KtNamedFunction? =

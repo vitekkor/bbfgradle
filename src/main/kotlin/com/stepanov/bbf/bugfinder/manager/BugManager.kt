@@ -114,6 +114,7 @@ object BugManager {
 
     fun saveBug(bug: Bug) {
         try {
+            println("SAVING BUG")
             if (ReportProperties.getPropAsBoolean("SAVE_STATS") == true) saveStats()
             //Check if bug is real project bug
             val newBug = bug//checkIfBugIsProject(bug)

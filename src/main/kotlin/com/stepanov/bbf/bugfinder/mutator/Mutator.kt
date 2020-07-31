@@ -12,20 +12,20 @@ class Mutator(val project: Project) {
 
     private fun executeMutation(t: Transformation, probPercentage: Int = 50) {
         if (Random.nextInt(0, 100) < probPercentage) {
-            try {
+//            try {
                 t.transform()
                 log.debug("After ${t::class.simpleName} = ${Transformation.checker.curFile.text}")
-                log.debug("Verify = ${verify()}")
+                //log.debug("Verify = ${verify()}")
                 //Update ctx and file
                 checker.curFile.changePsiFile(checker.curFile.text)
                 //val newFile = Project.createFromCode(Transformation.checker.curFile.text).files.first()
                 //Transformation.checker.curFile = newFile
-            } catch (e: Exception) {
-                log.debug("Exception ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
-                System.exit(1)
-            } catch (e: Error) {
-                log.debug("Error ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
-            }
+//            } catch (e: Exception) {
+//                log.debug("Exception ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
+//                System.exit(1)
+//            } catch (e: Error) {
+//                log.debug("Error ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
+//            }
         }
     }
 
@@ -53,7 +53,7 @@ class Mutator(val project: Project) {
 
     private fun startKotlinMutations() {
         executeMutation(AddNodesFromAnotherFiles(), 100)
-        System.exit(0)
+        return
         for (i in 0 until Random.nextInt(1, 3)) {
             transformations.shuffled().forEach { executeMutation(it.first, it.second) }
         }

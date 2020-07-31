@@ -26,7 +26,8 @@ import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 
 object UsageSamplesGeneratorWithStLibrary {
 
-    private val descriptorDecl: List<DeclarationDescriptor>
+    val descriptorDecl: List<DeclarationDescriptor>
+
     init {
         val (psi, ctx) = PSICreator("").let { it.getPSIForText("val a: StringBuilder = StringBuilder(\"\")") to it.ctx!! }
         val kType = psi.getAllPSIChildrenOfType<KtProperty>().map { it.typeReference?.getAbbreviatedTypeOrType(ctx) }[0]!!
@@ -158,7 +159,13 @@ object UsageSamplesGeneratorWithStLibrary {
         val recWithoutTypeParam = rec?.value?.type?.replaceTypeArgsToTypes(typeParamsToArgs) ?: rec.toString()
         val params = handleParams(decl.valueParameters, typeParamsToArgs)
         val func = "fun $typeParam $recWithoutTypeParam.${decl.name}($params): ${decl.returnType}{}"
-        return Factory.psiFactory.createFunction(func)
+        return try {
+            Factory.psiFactory.createFunction(func)
+        } catch (e: Exception) {
+            println("cant create fun ${func}")
+            System.exit(1)
+            null
+        }
     }
 
     private fun handleParams(valParamDesc: List<ValueParameterDescriptor>, typeParamsToArgs: Map<String, String>) =
