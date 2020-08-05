@@ -37,7 +37,7 @@ fun generateDefValuesAsString(type: String): String {
         type == "Char?" -> "\'${generateDefValuesForDefaultTypes<Char>(type)}\'"
         type == "Byte?" -> generateDefValuesForDefaultTypes<Byte>(type).toString()
         type == "Float?" -> generateDefValuesForDefaultTypes<Float>(type).toString()+"f"
-        type == "CharSequence" -> "\"${generateDefValuesForDefaultTypes<String>(type)}\""
+        //type == "CharSequence" -> "\"${generateDefValuesForDefaultTypes<String>(type)}\""
         type.startsWith("List") -> {
             if (type.contains('<'))
                 createDefaultValueForContainer(

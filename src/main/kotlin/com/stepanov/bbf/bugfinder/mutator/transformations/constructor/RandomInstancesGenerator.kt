@@ -4,31 +4,47 @@ import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import org.jetbrains.kotlin.js.descriptorUtils.hasPrimaryConstructor
+import com.stepanov.bbf.reduktor.util.getAllChildren
+import org.jetbrains.kotlin.builtins.KotlinBuiltIns
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
+import org.jetbrains.kotlin.js.descriptorUtils.nameIfStandardType
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getValueParameters
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
-import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.UnresolvedType
+import org.jetbrains.kotlin.types.isCustomTypeVariable
 import org.jetbrains.kotlin.types.isError
+import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
+import org.jetbrains.kotlin.types.typeUtil.isInterface
+import org.jetbrains.kotlin.types.typeUtil.isUnit
 import org.jetbrains.kotlin.types.typeUtil.supertypes
-import java.lang.StringBuilder
 import kotlin.random.Random
 
 class RandomInstancesGenerator(private val file: KtFile) {
 
     fun generateTopLevelFunctionCall(function: KtNamedFunction): Pair<KtCallExpression, List<KtParameter>>? {
-        val func = function.copy() as KtNamedFunction
+        val addedFun =
+            if (!file.getAllChildren().contains(function)) {
+                file.addToTheEnd(function) as KtNamedFunction
+            } else {
+                function
+            }
+        var func = function.copy() as KtNamedFunction
         if (func.typeParameterList != null) {
             generateRandomTypeParams(func.typeParameters, func.valueParameters)
         }
-        function.replaceThis(func)
-        val ctx = PSICreator.analyze(file)!!
-        func.replaceThis(function)
+        println("WITHOUT TYPE PARAMS = ${func.text}")
+        addedFun.replaceThis(func)
+        val creator = PSICreator("")
+        val newFile = creator.getPSIForText(file.text)
+        val ctx = creator.ctx!!
+        func.replaceThis(addedFun)
+        if (addedFun != function) addedFun.delete()
+        func = newFile.getAllChildren().find { it.text == func.text }!! as KtNamedFunction
         val generatedParams = func.valueParameters
             .map { it.typeReference?.getAbbreviatedTypeOrType(ctx) }
             .map { it?.let { generateValueOfType(it) } ?: return null }
@@ -53,9 +69,10 @@ class RandomInstancesGenerator(private val file: KtFile) {
             findImplementationAndGenerateInstance(kl)?.let { return it }
         }
         val klass = kl.copy() as KtClassOrObject
-        ctx = PSICreator.analyze(file)!!
-        val generatedTypeParams = generateRandomTypeParams(kl.typeParameters, kl.getValueParameters()) ?: return null
         kl.replaceThis(klass)
+        ctx = PSICreator.analyze(file)!!
+        val generatedTypeParams =
+            generateRandomTypeParams(klass.typeParameters, klass.getValueParameters()) ?: return null
         val listOfParams = klass.allConstructors.map { it.valueParameters }
         val res = mutableListOf<String>()
         for (param in /*listOfParams.random()*/ listOfParams[0]) {
@@ -163,15 +180,19 @@ class RandomInstancesGenerator(private val file: KtFile) {
                 Factory.psiFactory.createProperty("lateinit var ${Random.getRandomVariableName()}: $type")
             val addedProp = file.addToTheEnd(propWithType) as KtProperty
             val ctx = PSICreator.analyze(file)!!
-            val kotlinType = addedProp.typeReference!!.getAbbreviatedTypeOrType(ctx) ?: return ""
+            val kotlinType = addedProp.typeReference!!.getAbbreviatedTypeOrType(ctx)
             addedProp.delete()
-            return generateValueOfType(kotlinType)
+            kotlinType?.let { return generateValueOfType(kotlinType) } ?: return ""
         } catch (e: Exception) {
             return ""
         }
     }
 
     fun generateValueOfType(type: KotlinType): String {
+        println("generating value of type = $type ${type.isPrimitiveTypeOrNullablePrimitiveTypeOrString()}")
+        //TODO deal with Any
+        //if (type.isAnyOrNullableAny()) return generateDefValuesAsString(generateRandomType())
+        if (type.isAnyOrNullableAny()) return generateDefValuesAsString("String")
         if (type.isError) {
             val recreatedType = recreateType(type)
             if (recreatedType == null || recreatedType.isError) {
@@ -187,6 +208,14 @@ class RandomInstancesGenerator(private val file: KtFile) {
             newKlWithGenTypeParams.replaceThis(it)
             return res?.text ?: ""
         }
+        if (type.isPrimitiveTypeOrNullablePrimitiveTypeOrString())
+            generateDefValuesAsString(type.toString()).let { if (it.isNotEmpty()) return it }
+        if (type.constructor.toString().let { it.startsWith("Function") || it.startsWith("KFunction") }) {
+            if (type.arguments.isEmpty()) return ""
+            return "{${generateValueOfType(type.arguments.last().type)}}"
+        }
+        return searchForImplementation(type)
+        System.exit(0)
         val constructor = "${type.constructor.toString().decapitalize()}Of("
         if (type.supertypes().any { it.toString().contains("Iterable") } && type.arguments.isNotEmpty()) {
             val res = mutableListOf<String>()
@@ -265,6 +294,29 @@ class RandomInstancesGenerator(private val file: KtFile) {
         return ""
     }
 
+    private fun searchForImplementation(type: KotlinType): String {
+        println("TYPE = $type")
+        val funcs = UsageSamplesGeneratorWithStLibrary.searchForFunWithRetType(type)
+        val implementations = UsageSamplesGeneratorWithStLibrary.findImplementationOf(type)
+        val prob = if (funcs.size > implementations.size) 75 else 25
+        val el =
+            if (Random.getTrue(prob)) {
+                funcs.randomOrNull() ?: implementations.randomOrNull()
+            } else {
+                implementations.randomOrNull() ?: funcs.randomOrNull()
+            }
+        if (el is ClassDescriptor && el.defaultType.isPrimitiveTypeOrNullablePrimitiveTypeOrString())
+            return generateDefValuesAsString(el.name.asString())
+        val psi = when (el) {
+            is SimpleFunctionDescriptor -> TypeParamsReplacer.throwTypeParams(type, el)
+            is ClassDescriptor -> TypeParamsReplacer.throwTypeParams(type, el)
+            else -> return ""
+        }
+        val extTypeRec = (el as? SimpleFunctionDescriptor)?.extensionReceiverParameter?.value?.type
+        val generatedExtension = extTypeRec?.let { generateValueOfType(it) + "." } ?: ""
+        generateTopLevelFunctionCall(psi)?.let { return "$generatedExtension${it.first.text}" } ?: return ""
+    }
+
     private fun recreateType(type: KotlinType): KotlinType? {
         val stringType = (type as? UnresolvedType)?.presentableName ?: return null
         val newFile = Factory.psiFactory.createFile("val abcq: $stringType\n\n${fileCopy.text}")
@@ -288,18 +340,6 @@ class RandomInstancesGenerator(private val file: KtFile) {
 
     private fun getTypeNameWithoutError(type: KotlinType): String? =
         (type as? UnresolvedType)?.presentableName
-
-    private fun KotlinType.isErrorType(): Boolean = this.isError || this.arguments.any { it.type.isErrorType() }
-
-    private fun KotlinType.getNameWithoutError(): String {
-        val thisName =
-            if (this.isError) (this as UnresolvedType).presentableName
-            else "${this.constructor}"
-        val argsName =
-            if (arguments.isNotEmpty()) "<${this.arguments.joinToString { it.type.getNameWithoutError() }}>"
-            else ""
-        return thisName + argsName
-    }
 
 
     private val typeParamToRandomType: MutableMap<String, String> = mutableMapOf()

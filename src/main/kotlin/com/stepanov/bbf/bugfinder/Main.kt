@@ -13,10 +13,8 @@ import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
-import org.jetbrains.kotlin.psi.KtClass
-import org.jetbrains.kotlin.psi.KtExpression
-import org.jetbrains.kotlin.psi.KtNamedFunction
-import org.jetbrains.kotlin.psi.KtProperty
+import org.jetbrains.kotlin.codegen.kotlinType
+import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import java.io.File
 import kotlin.system.exitProcess
@@ -25,16 +23,23 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
-    val f1 = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
-    SingleFileBugFinder(f1.absolutePath).findBugsInFile()
-    System.exit(0)
+//    val f1 = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
+//    SingleFileBugFinder(f1.absolutePath).findBugsInFile()
+//    System.exit(0)
     val cre = PSICreator("")
     val psi = cre.getPSIForFile("tmp/test.kt")
     val ctx = cre.ctx!!
-    val types = psi.getAllPSIChildrenOfType<KtExpression>().map { it.getType(ctx) }.filterNotNull()
-    val ta = types[36]
-    val res = UsageSamplesGeneratorWithStLibrary.generateForStandardType(ta, "List<Int>")
-    println(res.size)
+    val klasses = psi.getAllPSIChildrenOfType<KtClassOrObject>()
+    val kla = klasses[7]
+    for (kl in klasses) {
+        val res = RandomInstancesGenerator(psi).generateRandomInstanceOfClass(kla)
+        println(res?.text)
+        System.exit(0)
+    }
+    //val a = klasses.map { it.getAllPSIChildrenOfType<KtExpression>().map { it.getType(ctx) } }
+    //println(a)
+    //val types = psi.getAllPSIChildrenOfType<KtExpression>().map { it.getType(ctx) }.filterNotNull()
+    //println(types)
     System.exit(0)
 //    System.exit(0)
 //    println(types.map { it.toString() })

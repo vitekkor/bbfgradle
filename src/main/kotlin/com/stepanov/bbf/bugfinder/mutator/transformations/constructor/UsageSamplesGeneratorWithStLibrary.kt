@@ -2,23 +2,24 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.constructor
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.UsageSamplesGeneratorWithStLibrary.compareStringRepOfTypesWithoutTypeParams
+import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.supertypes
-import com.stepanov.bbf.bugfinder.util.flatMap
-import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
-import com.stepanov.bbf.bugfinder.util.getAllWithoutLast
-import com.stepanov.bbf.bugfinder.util.removeDuplicatesBy
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.descriptors.impl.PropertyDescriptorImpl
+import org.jetbrains.kotlin.js.descriptorUtils.hasPrimaryConstructor
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.serialization.deserialization.DeserializedPackageFragmentImpl
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedCallableMemberDescriptor
+import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedPropertyDescriptor
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
 import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
@@ -30,9 +31,10 @@ object UsageSamplesGeneratorWithStLibrary {
 
     init {
         val (psi, ctx) = PSICreator("").let { it.getPSIForText("val a: StringBuilder = StringBuilder(\"\")") to it.ctx!! }
-        val kType = psi.getAllPSIChildrenOfType<KtProperty>().map { it.typeReference?.getAbbreviatedTypeOrType(ctx) }[0]!!
+        val kType =
+            psi.getAllPSIChildrenOfType<KtProperty>().map { it.typeReference?.getAbbreviatedTypeOrType(ctx) }[0]!!
         val module = kType.constructor.declarationDescriptor!!.module
-        val stringPackages = module.getSubPackagesOf(FqName("kotlin")) {true}
+        val stringPackages = module.getSubPackagesOf(FqName("kotlin")) { true } + listOf(FqName("kotlin"))
         val packages = stringPackages.map { module.getPackage(it) }
         descriptorDecl = packages.flatMap { it.memberScope.getDescriptorsFiltered { true } }
     }
@@ -167,6 +169,50 @@ object UsageSamplesGeneratorWithStLibrary {
             null
         }
     }
+
+    fun searchForFunWithRetType(type: KotlinType): List<SimpleFunctionDescriptor> {
+        val implementations =
+            findImplementationOf(type, false)
+                .removeDuplicatesBy { it.name }
+                .map { it.name.asString().substringBefore('<') }.toMutableList()
+        implementations.add(type.toString().substringBefore('<'))
+        val funDescriptors =
+            descriptorDecl.filterIsInstance<DeserializedSimpleFunctionDescriptor>()
+        return funDescriptors.asSequence()
+            .filter {
+                if (it.typeParameters.isEmpty()) {
+                    it.returnType?.let { it.toString() == type.toString() } ?: false
+                } else {
+                    it.returnType?.toString()?.substringBefore('<') in implementations
+                }
+            }
+            .filter {
+                it.extensionReceiverParameter?.value?.type?.let { !it.compareStringRepOfTypesWithoutTypeParams(type) } ?: true
+            }
+            .filter { it.visibility.isPublicAPI }
+            .toList()
+    }
+
+    fun findImplementationOf(type: KotlinType, withoutInterfaces: Boolean = true): List<ClassDescriptor> =
+        descriptorDecl.filterIsInstance<DeserializedClassDescriptor>()
+            .asSequence()
+            .filter {
+                if (it.declaredTypeParameters.isEmpty()) {
+                    it.defaultType.supertypesWithoutAny().any { it.toString() == type.getNameWithoutError() }
+                } else {
+                    it.getAllSuperClassifiers().any { it.name.asString() == type.toString().substringBefore('<') }
+                }
+            }
+            .filter { ((it.constructors.isNotEmpty() && it.modality != Modality.ABSTRACT) || !withoutInterfaces) && it.visibility.isPublicAPI }
+            .filter {
+                if (it.constructors.isNotEmpty() && !it.defaultType.isPrimitiveTypeOrNullablePrimitiveTypeOrString()) {
+                    it.constructors.any { it.visibility.isPublicAPI && it.visibility.name != "protected" }
+                } else true
+            }
+            .toList()
+
+    private fun KotlinType.compareStringRepOfTypesWithoutTypeParams(other: KotlinType) =
+        this.toString().substringBefore('<') == other.toString().substringBefore("<")
 
     private fun handleParams(valParamDesc: List<ValueParameterDescriptor>, typeParamsToArgs: Map<String, String>) =
         valParamDesc.map { "${it.name}: ${it.type.replaceTypeArgsToTypes(typeParamsToArgs)}" }.joinToString()

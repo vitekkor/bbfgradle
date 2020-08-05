@@ -13,11 +13,21 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildrenOfCurLevel
 import org.jetbrains.kotlin.KtNodeTypes
+import org.jetbrains.kotlin.builtins.KotlinBuiltIns
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.js.descriptorUtils.nameIfStandardType
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.resolve.ImportPath
+import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.types.TypeUtils
+import org.jetbrains.kotlin.types.UnresolvedType
+import org.jetbrains.kotlin.types.isError
+import org.jetbrains.kotlin.types.typeUtil.isPrimitiveNumberType
+import org.jetbrains.kotlin.types.typeUtil.isUnsignedNumberType
+import org.jetbrains.kotlin.types.typeUtil.supertypes
 import ru.spbstu.kotlin.generate.util.asCharSequence
 import ru.spbstu.kotlin.generate.util.nextInRange
 import ru.spbstu.kotlin.generate.util.nextString
@@ -495,3 +505,25 @@ fun kotlin.random.Random.getTrue(prop: Int) = Random().nextInRange(0, 100) < pro
 
 fun KtFile.findFunByName(name: String): KtNamedFunction? =
     this.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name == name }
+
+fun KotlinType.isPrimitiveTypeOrNullablePrimitiveTypeOrString(): Boolean {
+    val descriptor = this.constructor.declarationDescriptor
+    return descriptor is ClassDescriptor &&
+            (KotlinBuiltIns.isPrimitiveClass((descriptor as ClassDescriptor?)!!)
+                    || this.isUnsignedNumberType()
+                    || this.nameIfStandardType?.asString() == "String")
+}
+
+fun KotlinType.isErrorType(): Boolean = this.isError || this.arguments.any { it.type.isErrorType() }
+
+fun KotlinType.getNameWithoutError(): String {
+    val thisName =
+        if (this.isError) (this as UnresolvedType).presentableName
+        else "${this.constructor}"
+    val argsName =
+        if (arguments.isNotEmpty()) "<${this.arguments.joinToString { it.type.getNameWithoutError() }}>"
+        else ""
+    return thisName + argsName
+}
+
+fun KotlinType.supertypesWithoutAny(): Collection<KotlinType> = this.supertypes().getAllWithoutLast()
