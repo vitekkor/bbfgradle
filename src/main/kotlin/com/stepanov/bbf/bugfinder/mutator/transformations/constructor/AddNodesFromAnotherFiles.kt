@@ -232,7 +232,8 @@ class AddNodesFromAnotherFiles : Transformation() {
 
     private fun collectUsageCases(): List<Triple<KtExpression, String, KotlinType?>> {
         val ctx = PSICreator.analyze(psi)!!
-        val boxFun = psi.getBoxFun() ?: return listOf()
+        val generatedSamples = UsagesSamplesGenerator.generate(psi)
+        val boxFun = psi.getBoxFun() ?: return generatedSamples
         val properties =
             (boxFun.getAllPSIChildrenOfType<KtProperty>() + psi.getAllPSIChildrenOfType { it.isTopLevel })
                 .map {
@@ -249,7 +250,6 @@ class AddNodesFromAnotherFiles : Transformation() {
                         it.first !is KtStringTemplateEntry &&
                         it.first !is KtConstantExpression
             }
-        val generatedSamples = UsagesSamplesGenerator.generate(psi)
         return (properties + exprs).map { Triple(it.first, it.second, it.third!!) } + generatedSamples
     }
 

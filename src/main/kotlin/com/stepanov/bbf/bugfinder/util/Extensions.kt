@@ -21,10 +21,8 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.resolve.ImportPath
-import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.TypeUtils
-import org.jetbrains.kotlin.types.UnresolvedType
-import org.jetbrains.kotlin.types.isError
+import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
+import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.isPrimitiveNumberType
 import org.jetbrains.kotlin.types.typeUtil.isUnsignedNumberType
 import org.jetbrains.kotlin.types.typeUtil.supertypes
@@ -40,6 +38,7 @@ import java.nio.file.Paths
 import java.util.*
 import java.util.function.BiPredicate
 import kotlin.Comparator
+import kotlin.reflect.KClass
 
 
 fun KtProperty.getLeft(): List<PsiElement> =
@@ -518,8 +517,11 @@ fun KotlinType.isErrorType(): Boolean = this.isError || this.arguments.any { it.
 
 fun KotlinType.getNameWithoutError(): String {
     val thisName =
-        if (this.isError) (this as UnresolvedType).presentableName
-        else "${this.constructor}"
+        when (this) {
+            is ErrorType -> this.presentableName
+            is UnresolvedType -> this.presentableName
+            else -> "${this.constructor}"
+        }
     val argsName =
         if (arguments.isNotEmpty()) "<${this.arguments.joinToString { it.type.getNameWithoutError() }}>"
         else ""
@@ -527,3 +529,15 @@ fun KotlinType.getNameWithoutError(): String {
 }
 
 fun KotlinType.supertypesWithoutAny(): Collection<KotlinType> = this.supertypes().getAllWithoutLast()
+
+@Deprecated("")
+fun <T : Any> List<Any>.flatten(type: KClass<T>): List<T> {
+    val res = mutableListOf<T>()
+    this.forEach { el ->
+        if (type.isInstance(el)) res.add(el as T)
+        if (el is List<*>) (el as List<Any>).flatten(type).forEach { res.add(it) }
+    }
+    return res
+}
+
+inline fun <reified T : Any> List<Any>.flatten(): List<T> = this.flatten(T::class)

@@ -26,7 +26,7 @@ object StatisticCollector {
 
 
     fun serializeAndSave() {
-        val content = Json.stringify(StatisticContent.serializer(), content)
+        val content = Json.encodeToString(StatisticContent.serializer(), content)
         File(path).writeText(content)
     }
 
@@ -41,7 +41,7 @@ object StatisticCollector {
     private fun deserialize(): StatisticContent {
         return try {
             val content = File(path).readText()
-            Json.parse(StatisticContent.serializer(), content)
+            Json.decodeFromString(StatisticContent.serializer(), content)
         } catch (e: Exception) {
             StatisticContent()
         }

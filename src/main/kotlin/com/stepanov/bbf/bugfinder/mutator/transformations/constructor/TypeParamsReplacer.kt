@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.constructor
 
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.util.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.util.splitWithoutRemoving
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
@@ -10,10 +11,22 @@ import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.asSimpleType
+import com.stepanov.bbf.bugfinder.util.flatMap
+import com.stepanov.bbf.bugfinder.util.removeDuplicatesBy
+import org.jetbrains.kotlin.backend.common.serialization.findPackage
+import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
+import org.jetbrains.kotlin.resolve.calls.components.isVararg
+import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
+import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
+import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 
 object TypeParamsReplacer {
 
-    fun throwTypeParams(fromType: KotlinType, toType: ClassDescriptor): KtNamedFunction {
+    fun throwTypeParams(
+        fromType: KotlinType,
+        toType: ClassDescriptor,
+        typeGenerator: RandomTypeGenerator
+    ): Pair<KtNamedFunction, Map<String, String>> {
         val implConstr = toType.constructors.filter { it.visibility.isPublicAPI }.random()
         val implSupertype =
             toType.getAllSuperClassifiers()
@@ -25,7 +38,7 @@ object TypeParamsReplacer {
             val index = implSupertypeTypeParams.indexOf(name)
             if (index != -1)
                 realTypeParams[index].toString()
-            else name.asString()
+            else typeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull()).toString()
         }
         val oldToRealTypeParams = toType.declaredTypeParameters.map { it.name.asString() }.zip(typeParams).toMap()
         val valueParams = produceValueParams(implConstr.valueParameters, oldToRealTypeParams)
@@ -38,26 +51,35 @@ object TypeParamsReplacer {
             append(fromType.toString())
             append(" = TODO()")
         }.toString()
-        return Factory.psiFactory.createFunction(func)
+        return Factory.psiFactory.createFunction(func) to oldToRealTypeParams
     }
 
-    fun throwTypeParams(fromType: KotlinType, toType: SimpleFunctionDescriptor): KtNamedFunction {
+    fun throwTypeParams(
+        fromType: KotlinType,
+        toType: SimpleFunctionDescriptor,
+        typeGenerator: RandomTypeGenerator
+    ): Pair<KtNamedFunction, Map<String, String>> {
         val retType = toType.returnType!!
         val realTypeParams = fromType.arguments.map { it.type }
         val implSupertypeTypeParams = retType.arguments.map { it.type.toString() }
         val typeParams = toType.typeParameters.map {
             val name = it.name.asString()
             val index = implSupertypeTypeParams.indexOf(name)
-            if (index != -1)
+            if (index != -1) {
                 realTypeParams[index].toString()
-            else name
+            } else {
+                typeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull()).toString()
+                //name
+            }
         }
         val oldToRealTypeParams = toType.typeParameters.map { it.name.asString() }.zip(typeParams).toMap()
         val valueParams = produceValueParams(toType.valueParameters, oldToRealTypeParams)
         val res = StringBuilder().apply {
             append("fun")
             if (toType.typeParameters.isNotEmpty()) {
-                append(toType.typeParameters.joinToString(prefix = " <", postfix = ">") { it.name.asString() })
+                append(toType.typeParameters.joinToString(prefix = " <", postfix = ">") {
+                    it.name.asString()
+                })
             }
             append(" ${toType.name}")
             append("($valueParams): ")
@@ -65,7 +87,7 @@ object TypeParamsReplacer {
             append(" = TODO()")
         }
         val func = Factory.psiFactory.createFunction(res.toString())
-        return func
+        return func to oldToRealTypeParams
     }
 
     private fun produceValueParams(
@@ -73,8 +95,10 @@ object TypeParamsReplacer {
         oldToRealTypeParams: Map<String, String>
     ) =
         valueParameters.joinToString { param ->
+            val paramType = if (param.isVararg) param.varargElementType!! else param.type
             param.name.asString() + ": " +
-                    param.type.toString().splitWithoutRemoving(Regex("""[<>,]|in |out |\[.*\]"""))
+                    paramType.toString().splitWithoutRemoving(Regex("""[<>,]|in |out """))
+                        .flatMap { it.splitWithoutRemoving(Regex("""\[.*\]""")) }
                         .map { it.trim() }
                         .filter { it.isNotEmpty() && !it.startsWith('[') }
                         .joinToString(separator = "") {

@@ -3,7 +3,10 @@ package com.stepanov.bbf.bugfinder
 import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.generator.constructor.ProgramConstructor
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.UsageSamplesGeneratorWithStLibrary
 import com.stepanov.bbf.bugfinder.util.*
@@ -15,6 +18,7 @@ import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
 import org.jetbrains.kotlin.codegen.kotlinType
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import java.io.File
 import kotlin.system.exitProcess
@@ -23,48 +27,10 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
-//    val f1 = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
-//    SingleFileBugFinder(f1.absolutePath).findBugsInFile()
-//    System.exit(0)
-    val cre = PSICreator("")
-    val psi = cre.getPSIForFile("tmp/test.kt")
-    val ctx = cre.ctx!!
-    val klasses = psi.getAllPSIChildrenOfType<KtClassOrObject>()
-    val kla = klasses[7]
-    for (kl in klasses) {
-        val res = RandomInstancesGenerator(psi).generateRandomInstanceOfClass(kla)
-        println(res?.text)
-        System.exit(0)
-    }
-    //val a = klasses.map { it.getAllPSIChildrenOfType<KtExpression>().map { it.getType(ctx) } }
-    //println(a)
-    //val types = psi.getAllPSIChildrenOfType<KtExpression>().map { it.getType(ctx) }.filterNotNull()
-    //println(types)
+    //val f1 = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
+    val f1 = File("tmp/test.kt")
+    SingleFileBugFinder(f1.absolutePath).findBugsInFile()
     System.exit(0)
-//    System.exit(0)
-//    println(types.map { it.toString() })
-//    for (t in types) {
-//        if (t.toString() != "A") continue
-//        println("trying to gen for type $t")
-//        val res = UsageSamplesGeneratorWithStLibrary().generateForStandardType(t, "Int")
-//        println("size = ${res.size}\n\n")
-//        for (funcs in res) {
-//            println("text = ${funcs.map { it.text }}")
-//            val newFunc = psi.addToTheEnd(funcs[0])
-//            println(psi.text)
-//            val inv = RandomInstancesGenerator(psi).generateTopLevelFunctionCall(newFunc as KtNamedFunction)
-//            println(inv)
-//            System.exit(0)
-////            val invokations = funcs.map {
-////                when (it) {
-////                    is KtNamedFunction -> RandomInstancesGenerator(psi).generateTopLevelFunctionCall(it)?.first
-////                    else -> it
-////                }
-////            }
-//        }
-//    }
-//    System.exit(0)
-
 //    for (f in File("/home/stepanov/Kotlin/bbfgradle/tmp/arrays/").listFiles().filter { !it.isDirectory && it.name.endsWith(".kt") }) {
 //    //val f = File("tmp/test.kt")
 //        println("Name = ${f.name}")

@@ -2,22 +2,19 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.constructor
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.UsageSamplesGeneratorWithStLibrary.compareStringRepOfTypesWithoutTypeParams
 import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.supertypes
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import org.jetbrains.kotlin.backend.common.serialization.findPackage
 import org.jetbrains.kotlin.descriptors.*
-import org.jetbrains.kotlin.descriptors.impl.PropertyDescriptorImpl
-import org.jetbrains.kotlin.js.descriptorUtils.hasPrimaryConstructor
+import org.jetbrains.kotlin.descriptors.impl.EnumEntrySyntheticClassDescriptor
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
-import org.jetbrains.kotlin.serialization.deserialization.DeserializedPackageFragmentImpl
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedCallableMemberDescriptor
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedPropertyDescriptor
@@ -179,29 +176,58 @@ object UsageSamplesGeneratorWithStLibrary {
         val funDescriptors =
             descriptorDecl.filterIsInstance<DeserializedSimpleFunctionDescriptor>()
         return funDescriptors.asSequence()
+            .filter { it.returnType?.toString()?.substringBefore('<') in implementations }
+            .filter { it.returnType?.let { checkTypeParams(type, it) } ?: false }
             .filter {
-                if (it.typeParameters.isEmpty()) {
-                    it.returnType?.let { it.toString() == type.toString() } ?: false
-                } else {
-                    it.returnType?.toString()?.substringBefore('<') in implementations
-                }
-            }
-            .filter {
-                it.extensionReceiverParameter?.value?.type?.let { !it.compareStringRepOfTypesWithoutTypeParams(type) } ?: true
+                it.extensionReceiverParameter?.value?.type?.let { !it.compareStringRepOfTypesWithoutTypeParams(type) }
+                    ?: true
             }
             .filter { it.visibility.isPublicAPI }
             .toList()
+    }
+
+    private fun checkTypeParams(toType: KotlinType, retValueType: KotlinType): Boolean {
+        if (retValueType.isTypeParameter()) return true
+        if (retValueType.arguments.size != toType.arguments.size) return false
+        if (retValueType.arguments.isEmpty() && toType.arguments.isEmpty()) {
+            return retValueType.constructor.toString() == toType.constructor.toString()
+        }
+        for (i in retValueType.arguments.indices) {
+            val retValueTypeParam = retValueType.arguments[i]
+            val typeParam = toType.arguments[i]
+            if (retValueTypeParam.type.isTypeParameter()) continue
+            if (typeParam.type.constructor.toString() != retValueTypeParam.type.constructor.toString()) return false
+            val argCompRes = typeParam.type.arguments.zip(retValueTypeParam.type.arguments)
+                .map { checkTypeParams(it.first.type, it.second.type) }
+            if (argCompRes.any { !it }) return false
+        }
+        return true
+    }
+
+    fun findEnumMembers(type: KotlinType): List<KotlinType> {
+        val klass = descriptorDecl.filterIsInstance<DeserializedClassDescriptor>()
+            .find {
+                if (it.declaredTypeParameters.isEmpty()) {
+                    it.getAllSuperClassifiers().any { it.name.asString() == type.getNameWithoutError() }
+                } else {
+                    it.getAllSuperClassifiers().any { it.name.asString() == type.toString().substringBefore('<') }
+                }
+            } ?: return listOf()
+        return klass.unsubstitutedMemberScope.getContributedDescriptors { true }
+            .filterIsInstance<EnumEntrySyntheticClassDescriptor>()
+            .map { it.defaultType }
     }
 
     fun findImplementationOf(type: KotlinType, withoutInterfaces: Boolean = true): List<ClassDescriptor> =
         descriptorDecl.filterIsInstance<DeserializedClassDescriptor>()
             .asSequence()
             .filter {
-                if (it.declaredTypeParameters.isEmpty()) {
-                    it.defaultType.supertypesWithoutAny().any { it.toString() == type.getNameWithoutError() }
-                } else {
-                    it.getAllSuperClassifiers().any { it.name.asString() == type.toString().substringBefore('<') }
-                }
+//                if (it.declaredTypeParameters.isEmpty()) {
+//                    it.getAllSuperClassifiers().any { it.name.asString() == type.getNameWithoutError() }
+//                } else {
+//                    it.getAllSuperClassifiers().any { it.name.asString() == type.toString().substringBefore('<') }
+//                }
+                it.getAllSuperClassifiers().any { it.name.asString() == type.toString().substringBefore('<') }
             }
             .filter { ((it.constructors.isNotEmpty() && it.modality != Modality.ABSTRACT) || !withoutInterfaces) && it.visibility.isPublicAPI }
             .filter {
@@ -210,6 +236,16 @@ object UsageSamplesGeneratorWithStLibrary {
                 } else true
             }
             .toList()
+
+    fun findImplementaionFromFile(type: KotlinType, withoutInterfaces: Boolean = true): List<ClassDescriptor> =
+        type.constructor.declarationDescriptor!!
+            .findPackage().getMemberScope()
+            .getDescriptorsFiltered { true }.filterIsInstance<ClassDescriptor>()
+            .filter { it.name.asString() != type.toString().substringBefore('<') }
+            .filter { it.getAllSuperClassifiers().any { it.name.asString() == type.toString().substringBefore('<') } }
+
+    fun getDeclDescriptorOf(klassName: String): DeclarationDescriptor =
+        descriptorDecl.mapNotNull { it as? DeserializedClassDescriptor }.first { it.name.asString() == klassName }
 
     private fun KotlinType.compareStringRepOfTypesWithoutTypeParams(other: KotlinType) =
         this.toString().substringBefore('<') == other.toString().substringBefore("<")

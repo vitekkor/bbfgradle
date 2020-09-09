@@ -8,6 +8,7 @@ import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.isPrivate
 import org.jetbrains.kotlin.psi.psiUtil.isPropertyParameter
+import org.jetbrains.kotlin.psi.psiUtil.isProtected
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.random.Random
@@ -53,25 +54,36 @@ object UsagesSamplesGenerator {
         val classes = file.getAllPSIChildrenOfType<KtClassOrObject>()
         for (klass in classes) {
             val openFuncsAndProps = mutableListOf<String>()
-            klass.primaryConstructor?.getValueParameters()
+            klass.primaryConstructor?.valueParameters
                 ?.filter { it.isPropertyParameter() && !it.isPrivate() && it.name != null }
                 ?.forEach { openFuncsAndProps.add(it.name!!) }
-            val declarations = klass.declarations
-            //if (declarations.isEmpty()) continue
-            for (decl in declarations) {
-                when (decl) {
-                    is KtProperty -> if (!decl.isPrivate() && decl.name != null)
-                        openFuncsAndProps.add(decl.name!!)
-                    is KtNamedFunction -> if (!decl.isPrivate() && decl.name != null)
-                        openFuncsAndProps.add("${decl.name!!}()")
-                }
-            }
+            filterOpenFuncsAndPropsFromDecl(klass.declarations).forEach { openFuncsAndProps.add(it) }
             val instanceOfKlass = generator.generateRandomInstanceOfClass(klass)
             openFuncsAndProps
-                .map { Factory.psiFactory.createExpressionIfPossible("${instanceOfKlass?.text}.$it") }
-                .filterNotNull()
+                .mapNotNull {
+                    if (it.startsWith("CoBj"))
+                        Factory.psiFactory.createExpressionIfPossible("${klass.name}.${it.substringAfter("CoBj")}")
+                    else
+                        Factory.psiFactory.createExpressionIfPossible("${instanceOfKlass?.text}.$it")
+                }
                 .forEach { res.add(it) }
         }
+    }
+
+    private fun filterOpenFuncsAndPropsFromDecl(declarations: List<KtDeclaration>): List<String> {
+        val openFuncsAndProps = mutableListOf<String>()
+        for (decl in declarations) {
+            if (decl.isPrivate() || decl.isProtected() || (decl.name == null && decl !is KtObjectDeclaration)) continue
+            when (decl) {
+                is KtProperty -> openFuncsAndProps.add(decl.name!!)
+                is KtNamedFunction -> openFuncsAndProps.add("${decl.name!!}()")
+                is KtObjectDeclaration ->
+                    filterOpenFuncsAndPropsFromDecl(decl.declarations).forEach {
+                        openFuncsAndProps.add("CoBj$it")
+                    }
+            }
+        }
+        return openFuncsAndProps
     }
 
     private fun generateTypes(file: KtFile, resToStr: String): List<Triple<KtExpression, String, KotlinType?>> {
