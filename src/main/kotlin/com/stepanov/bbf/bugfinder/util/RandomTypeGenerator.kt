@@ -105,7 +105,6 @@ object RandomTypeGenerator {
             //require(generatedType != null) { println(it.text + "\n" + randomClass.text) }
             typeParamToType[it.name!!] = generatedType
         }
-        println(typeParamToType)
 //        val finalTypeParams =
 //            randomClass.typeParameters.map { typeParamToType[it.name]!! }
         val klassNames = file.getAllPSIChildrenOfType<KtClassOrObject>().map { it.name }.filterNotNull()
@@ -117,16 +116,13 @@ object RandomTypeGenerator {
                 .split(Regex("""[,<>]"""))
                 .map { it.trim() }
                 .filter { it in klassNames }
-        println("KlassList = $name ${klassList}")
         val finalTypeParams = if (klassList.size == klassList.toSet().size)
             randomClass.typeParameters.map { typeParamToType.getOrDefault(it.name, it.name) }
         else
             randomClass.typeParameters.map { generateType(generatePrimitive()) }
-        println("FINAL = $finalTypeParams")
         val strTypeParams =
             if (finalTypeParams.isEmpty()) "" else finalTypeParams.joinToString(prefix = "<", postfix = ">")
         val klassToStr = randomClass.name + strTypeParams
-        println(klassToStr)
         return generateType(klassToStr)
     }
 

@@ -6,6 +6,7 @@ import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.bugfinder.util.KotlinTypeCreator.recreateType
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
+import org.apache.log4j.Logger
 import org.jetbrains.kotlin.builtins.isExtensionFunctionType
 import org.jetbrains.kotlin.builtins.isFunctionType
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
@@ -41,7 +42,7 @@ class RandomInstancesGenerator(private val file: KtFile) {
         if (withTypeParams && func.typeParameterList != null) {
             generateRandomTypeParams(func.typeParameters, func.valueParameters, func.name!!, ctx)
         }
-        println("WITHOUT TYPE PARAMS = ${func.text}")
+        log.debug("WITHOUT TYPE PARAMS = ${func.text}")
         addedFun.replaceThis(func)
         val creator = PSICreator("")
         val newFile = creator.getPSIForText(file.text)
@@ -67,7 +68,7 @@ class RandomInstancesGenerator(private val file: KtFile) {
         typeArgs: List<TypeProjection> = listOf(),
         depth: Int = 0
     ): PsiElement? {
-        println("generating klass ${klOrObj.name} text = ${klOrObj.text}")
+        log.debug("generating klass ${klOrObj.name} text = ${klOrObj.text}")
         if (klOrObj.name == null || klOrObj.isAnnotation() ||
             klOrObj.isLocal || klOrObj.isPrivate() ||
             klOrObj.primaryConstructor?.isPrivate() == true
@@ -139,7 +140,7 @@ class RandomInstancesGenerator(private val file: KtFile) {
             return Factory.psiFactory.createExpression(generated)
             //findImplementationAndGenerateInstance(kl)?.let { return it }
         }
-        println("Type params = ${generatedTypeParams.map { it.text }}")
+        log.debug("Type params = ${generatedTypeParams.map { it.text }}")
         if (kl.primaryConstructor == null && !kl.isInterface() && !kl.isAbstract()) {
             val typeParams =
                 if (kl.typeParameters.isEmpty()) ""
@@ -235,14 +236,14 @@ class RandomInstancesGenerator(private val file: KtFile) {
     }
 
     fun generateValueOfType(type: KotlinType, depth: Int = 0): String {
-        println("generating value of type = $type ${type.isPrimitiveTypeOrNullablePrimitiveTypeOrString()} depth = $depth")
+        log.debug("generating value of type = $type ${type.isPrimitiveTypeOrNullablePrimitiveTypeOrString()} depth = $depth")
         if (depth > MAGIC_CONST) return ""
         //TODO deal with Any KReflection
         //if (type.isAnyOrNullableAny()) return generateDefValuesAsString(generateRandomType())
         if (type.isAnyOrNullableAny()) return generateDefValuesAsString("String")
         if (type.isError || type.arguments.flatten<TypeProjection>().any { it.type.isError }) {
             val recreatedType = recreateType(fileCopy, type)
-            println("RECREATED ERROR TYPE = $recreatedType")
+            log.debug("RECREATED ERROR TYPE = $recreatedType")
             if (recreatedType == null || recreatedType.isError) {
                 val name = (type as? UnresolvedType)?.presentableName ?: return ""
                 return generateDefValuesAsString(name)
@@ -286,7 +287,6 @@ class RandomInstancesGenerator(private val file: KtFile) {
             } else {
                 implementations.randomOrNull() ?: funcs.randomOrNull()
             }
-        println("EL = $el")
         if (el is ClassDescriptor && el.defaultType.isPrimitiveTypeOrNullablePrimitiveTypeOrString())
             return generateDefValuesAsString(el.name.asString())
         val (psi, typeParamsToRealTypes) = when (el) {
@@ -297,7 +297,6 @@ class RandomInstancesGenerator(private val file: KtFile) {
         val extTypeRec = (el as? SimpleFunctionDescriptor)?.extensionReceiverParameter?.value?.type
         val generatedExtension = extTypeRec?.let { generateValueOfType(it) + "." } ?: ""
         generateTopLevelFunctionCall(psi, typeParamsToRealTypes, false)?.let {
-            println("CALL = ${it.first.text}")
             return "$generatedExtension${it.first.text}"
         } ?: return ""
     }
@@ -315,5 +314,6 @@ class RandomInstancesGenerator(private val file: KtFile) {
     private val fileCopy = file.copy() as KtFile
     val randomTypeGenerator = RandomTypeGenerator
     private val MAGIC_CONST = 15
+    private val log = Logger.getLogger("mutatorLogger")
 
 }
