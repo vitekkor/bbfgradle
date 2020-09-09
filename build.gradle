@@ -1,7 +1,7 @@
 buildscript {
     //Do not forget to update intellij core
-    ext.kotlin_version = '1.4-M3-eap-68'
-    ext.kotlin_plugin_version = '1.4-M2'
+    ext.kotlin_version = '1.4.0'
+    ext.kotlin_plugin_version = '1.4.0'
     repositories {
         maven() {
             url "https://dl.bintray.com/kotlin/kotlin-eap/"
@@ -12,10 +12,9 @@ buildscript {
         }
     }
 
-
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlin_plugin_version}"
-        classpath "org.jetbrains.kotlin:kotlin-serialization:${kotlin_plugin_version}"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
     }
 }
 
@@ -28,7 +27,7 @@ plugins {
 group 'com.stepanov.bbf'
 version '1.0'
 
-sourceCompatibility = 1.8
+sourceCompatibility = 11
 
 repositories {
     mavenCentral()
@@ -80,9 +79,9 @@ dependencies {
 
 
     //Serialization
-    compile "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.14.0"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-core:1.0.0-RC"
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlin_plugin_version}"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlin_version}"
     compile group: 'com.android.tools.external.com-intellij', name: 'intellij-core', version: '27.1.0-alpha10'
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-compiler', version: "${kotlin_version}"
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-compiler-embeddable', version: "${kotlin_version}"
@@ -120,10 +119,10 @@ dependencies {
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "11"
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "11"
 }
 
 application {
