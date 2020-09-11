@@ -29,9 +29,13 @@ class RandomInstancesGenerator(private val file: KtFile) {
 
     fun generateTopLevelFunctionCall(
         function: KtNamedFunction,
-        typeParamsToRealTypeParams: Map<String, String> = mapOf(),
+        m: Map<String, String> = mapOf(),
         withTypeParams: Boolean = true
-    ): Pair<KtCallExpression, List<KtParameter>>? {
+    ): Pair<KtExpression, List<KtParameter>>? {
+        var typeParamsToRealTypeParams = m
+        if (function.bodyExpression == null) return null
+        ctx = PSICreator.analyze(file)!!
+        log.debug("GENERATING CALL OF ${function.text}")
         val addedFun =
             if (!file.getAllChildren().contains(function)) {
                 file.addToTheEnd(function) as KtNamedFunction
@@ -40,7 +44,13 @@ class RandomInstancesGenerator(private val file: KtFile) {
             }
         var func = function.copy() as KtNamedFunction
         if (withTypeParams && func.typeParameterList != null) {
-            generateRandomTypeParams(func.typeParameters, func.valueParameters, func.name!!, ctx)
+            if (m.isEmpty()) typeParamsToRealTypeParams = generateRandomTypeParams(
+                function.typeParameters,
+                func.valueParameters,
+                func.text.substringBefore(func.bodyExpression!!.text),
+                ctx,
+                func = func
+            )?.second ?: mapOf()
         }
         log.debug("WITHOUT TYPE PARAMS = ${func.text}")
         addedFun.replaceThis(func)
@@ -49,17 +59,20 @@ class RandomInstancesGenerator(private val file: KtFile) {
         val ctx = creator.ctx!!
         func.replaceThis(addedFun)
         if (addedFun != function) addedFun.delete()
-        func = newFile.getAllChildren().find { it.text == func.text }!! as KtNamedFunction
+        func = newFile.getAllChildren().find { it.text.trim() == func.text.trim() } as? KtNamedFunction ?: return null
         val generatedParams = func.valueParameters
             .map { it.typeReference?.getAbbreviatedTypeOrType(ctx) }
             .map { it?.let { generateValueOfType(it) } ?: return null }
             .joinToString(", ")
+        val generatedReciever =
+            func.receiverTypeReference?.getAbbreviatedTypeOrType(ctx)?.let { generateValueOfType(it) + "." } ?: ""
         val typeParams =
             func.typeParameters.map { typeParamsToRealTypeParams.getOrDefault(it.name!!, it.name!!) }
                 .let { if (it.isNotEmpty()) it.joinToString(prefix = "<", postfix = ">") else "" }
         val expr =
-            Factory.psiFactory.createExpressionIfPossible("${func.name}$typeParams($generatedParams)") as? KtCallExpression
+            Factory.psiFactory.createExpressionIfPossible("$generatedReciever${func.name}$typeParams($generatedParams)")
                 ?: return null
+        log.debug("GENERATED = ${expr.text}")
         return expr to func.valueParameters
     }
 
@@ -97,9 +110,8 @@ class RandomInstancesGenerator(private val file: KtFile) {
                         kl.name!!,
                         ctx,
                         typeArgs
-                    )?.joinToString(prefix = "<", postfix = ">") { it.text } ?: ""
-                }
-                else ""
+                    )?.first?.joinToString(prefix = "<", postfix = ">") { it.text } ?: ""
+                } else ""
             return Factory.psiFactory.createExpression(
                 "${kl.name}$genTypeParams()"
             )
@@ -115,7 +127,7 @@ class RandomInstancesGenerator(private val file: KtFile) {
             generateRandomTypeParams(klass.typeParameters, klass.getValueParameters(), klass.name!!, ctx, typeArgs)
                 ?: return null
         if (kl.isInterface() || kl.isAbstract()) {
-            val typeParams = generatedTypeParams.let {
+            val typeParams = generatedTypeParams.first.let {
                 if (it.isEmpty()) ""
                 else it.joinToString(prefix = "<", postfix = ">") { it.text }
             }
@@ -140,11 +152,11 @@ class RandomInstancesGenerator(private val file: KtFile) {
             return Factory.psiFactory.createExpression(generated)
             //findImplementationAndGenerateInstance(kl)?.let { return it }
         }
-        log.debug("Type params = ${generatedTypeParams.map { it.text }}")
+        log.debug("Type params = ${generatedTypeParams.first.map { it.text }}")
         if (kl.primaryConstructor == null && !kl.isInterface() && !kl.isAbstract()) {
             val typeParams =
                 if (kl.typeParameters.isEmpty()) ""
-                else generatedTypeParams.joinToString(prefix = "<", postfix = ">") { it.text }
+                else generatedTypeParams.first.joinToString(prefix = "<", postfix = ">") { it.text }
             klass.replaceThis(kl)
             return Factory.psiFactory.createExpression("${kl.name}$typeParams()")
         }
@@ -166,7 +178,7 @@ class RandomInstancesGenerator(private val file: KtFile) {
             if (klass.typeParameters.size == 0)
                 klass.name
             else
-                "${klass.name}<${generatedTypeParams.joinToString { it.text }}>"
+                "${klass.name}<${generatedTypeParams.first.joinToString { it.text }}>"
         val r = Factory.psiFactory.createExpression("${klass.prefix + constructor}(${res.joinToString()})")
         klass.replaceThis(kl)
         return r
@@ -177,17 +189,27 @@ class RandomInstancesGenerator(private val file: KtFile) {
         valueParameters: List<KtParameter>,
         name: String,
         ctx: BindingContext,
-        typeProjections: List<TypeProjection> = listOf()
-    ): List<KtTypeReference>? {
+        typeProjections: List<TypeProjection> = listOf(),
+        func: KtNamedFunction? = null
+    ): Pair<List<KtTypeReference>, Map<String, String>>? {
         randomTypeGenerator.setFileAndContext(file, ctx)
-        if (typeParameters.isEmpty()) return listOf()
-        val generatedTypeParams = randomTypeGenerator.getTypeFromFile(name) ?: return null
+        if (typeParameters.isEmpty()) return null
+        val generatedTypeParams =
+            (if (func != null) typeParameters.map {
+                randomTypeGenerator.generateRandomTypeWithCtx(
+                    it.extendsBound?.getAbbreviatedTypeOrType(
+                        ctx
+                    )
+                )
+            }.map { it!!.asTypeProjection() }
+            else randomTypeGenerator.getTypeFromFile(name)?.arguments)
+                ?: return null
         //require(generatedTypeParams != null) { println("cant generate type params") }
         val generatedTypeParamsPsi =
             if (typeProjections.isEmpty())
-                generatedTypeParams.arguments.map { Factory.psiFactory.createType(it.type.toString()) }
+                generatedTypeParams.map { Factory.psiFactory.createType(it.type.toString()) }
             else
-                generatedTypeParams.arguments.zip(typeProjections)
+                generatedTypeParams.zip(typeProjections)
                     .map { if (it.second.type.isTypeParameter()) it.first else it.second }
                     .map { Factory.psiFactory.createType(it.type.toString()) }
 //        val generatedTypeParamsPsi =
@@ -200,7 +222,20 @@ class RandomInstancesGenerator(private val file: KtFile) {
                 strTypeParamToRandomType[typeRef.text]?.let { typeRef.replaceThis(Factory.psiFactory.createExpression(it)) }
             }
         }
-        return generatedTypeParamsPsi
+        if (func != null) {
+            listOfNotNull(func.typeReference, func.receiverTypeReference).forEach { param ->
+                param.getAllPSIChildrenOfType<KtReferenceExpression>().map { typeRef ->
+                    strTypeParamToRandomType[typeRef.text]?.let {
+                        typeRef.replaceThis(
+                            Factory.psiFactory.createExpression(
+                                it
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        return generatedTypeParamsPsi to strTypeParamToRandomType
     }
 
     private val KtClassOrObject.prefix: String

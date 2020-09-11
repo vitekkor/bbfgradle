@@ -34,7 +34,10 @@ object UsagesSamplesGenerator {
     ) {
         for (func in file.getAllPSIChildrenOfType<KtNamedFunction>().filter { it.isTopLevel }) {
             val (instance, valueParams) = generator.generateTopLevelFunctionCall(func) ?: continue
-            for ((valueArg, param) in instance.valueArguments.zip(valueParams)) {
+            val valueArgs =
+                if (instance is KtCallExpression) instance.valueArguments
+                else null
+            for ((valueArg, param) in valueArgs?.zip(valueParams) ?: listOf()) {
                 if (param.typeReference == null) continue
                 val anotherExpr = klassInstances.getValueOfType(param.typeReference!!.text)
                 if (anotherExpr != null && Random.nextBoolean()) {

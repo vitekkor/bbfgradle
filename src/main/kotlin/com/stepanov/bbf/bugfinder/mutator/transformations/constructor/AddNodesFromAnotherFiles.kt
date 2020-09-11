@@ -11,6 +11,9 @@ import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
+import org.jetbrains.kotlin.descriptors.CallableDescriptor
+import org.jetbrains.kotlin.descriptors.FunctionDescriptor
+import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.psi.psiUtil.isTopLevelKtOrJavaMember
@@ -86,7 +89,7 @@ class AddNodesFromAnotherFiles : Transformation() {
             val node = nodesForChange.randomOrNull() ?: continue
             println("replacing ${node.first.text to node.second?.toString()}")
             node.first.parents.firstOrNull { it is KtNamedFunction }?.let { addPropertiesToFun(it as KtNamedFunction) }
-            val replacement = getInsertableExpressions(Pair(node.first, node.second?.toString())).randomOrNull()
+            val replacement = getInsertableExpressions(Pair(node.first, node.second)).randomOrNull()
             if (replacement == null) {
                 log.debug("Cant find and generate replacement for ${node.first.text} type ${node.second}")
                 continue
@@ -104,19 +107,21 @@ class AddNodesFromAnotherFiles : Transformation() {
     }
 
     private fun getInsertableExpressions(
-        node: Pair<KtExpression, String?>, depth: Int = 0
+        node: Pair<KtExpression, KotlinType?>, depth: Int = 0
     ): List<KtExpression> {
         //Nullable or most common types
         val res = mutableListOf<KtExpression>()
         val nodeType = node.second ?: return emptyList()
-        isUserType(nodeType)?.let { klass ->
-            val instance =
-                RandomInstancesGenerator(psi).generateRandomInstanceOfClass(klass) as? KtExpression ?: return@let
-            println("GENERATED FOR USER TYPE = ${instance.text} ${instance is KtCallElement} ${instance is KtDotQualifiedExpression}")
-            res.add(instance)
-            return res
-            //TODO change params
-        }
+        val strNodeType = nodeType.toString()
+//        isUserType(nodeType)?.let { klass ->
+//            val instance =
+//                RandomInstancesGenerator(psi).generateRandomInstanceOfClass(klass) as? KtExpression ?: return@let
+//            println("GENERATED FOR USER TYPE = ${instance.text} ${instance is KtCallElement} ${instance is KtDotQualifiedExpression}")
+//            res.add(instance)
+//            return res
+//            //TODO change params
+//        }
+//        val generated = RandomInstancesGenerator(psi).generateValueOfType(nodeType)
         val generated = RandomInstancesGenerator(psi).generateValueOfType(nodeType)
         println("GENERATED VALUE OF TYPE $nodeType = $generated")
         if (generated.isNotEmpty()) {
@@ -130,22 +135,22 @@ class AddNodesFromAnotherFiles : Transformation() {
         for (el in usageExamples.filter { it.first !is KtProperty }.shuffled()) {
             if (el.third.toString() in blockListOfTypes) continue
             when {
-                el.third?.toString() == nodeType -> localRes.add(el.first)
+                el.third?.toString() == strNodeType -> localRes.add(el.first)
                 el.third?.toString() == "$nodeType?" -> localRes.add(el.first)
-                commonTypesMap[nodeType]?.contains(el.third?.toString()) ?: false -> localRes.add(el.first)
+                commonTypesMap[strNodeType]?.contains(el.third?.toString()) ?: false -> localRes.add(el.first)
             }
-            val notNullableType = if (nodeType.last() == '?') nodeType.substringBeforeLast('?') else nodeType
-            if (notNullableType != nodeType) res.add(psiFactory.createExpression("null"))
+            val notNullableType = if (strNodeType.last() == '?') strNodeType.substringBeforeLast('?') else strNodeType
+            if (notNullableType != strNodeType) res.add(psiFactory.createExpression("null"))
             if (depth > 0) continue
             //val deeperCases = UsageSamplesGeneratorWithStLibrary.generateForStandardType(el.third!!, nodeType)
             println("GETTING ${nodeType} from ${el.third.toString()}")
             if (checkedTypes.contains(el.third!!.toString())) continue
             checkedTypes.add(el.third!!.toString())
-            UsageSamplesGeneratorWithStLibrary.generateForStandardType(el.third!!, nodeType)
+            UsageSamplesGeneratorWithStLibrary.generateForStandardType(el.third!!, strNodeType)
                 .shuffled()
                 .take(10)
                 .forEach { list ->
-                    println("Case = ${list.map { it.text }}")
+                    println("Case = ${list.map { it }}")
                     handleCallSeq(list)?.let {
                         psiFactory.createExpressionIfPossible("(${el.second}).${it.text}")?.let {
                             println("GENERATED CALL = ${it.text}")
@@ -162,11 +167,11 @@ class AddNodesFromAnotherFiles : Transformation() {
         return res
     }
 
-    private fun handleCallSeq(postfix: List<PsiElement>): KtExpression? {
+    private fun handleCallSeq(postfix: List<CallableDescriptor>): KtExpression? {
         val expr = postfix.map { el ->
             val expr = when (el) {
-                is KtProperty -> el.name!!
-                is KtNamedFunction -> generateCallExpr(el)?.text
+                is PropertyDescriptor -> el.name.asString()
+                is FunctionDescriptor -> generateCallExpr(el)?.text
                 else -> ""
             }
             expr ?: return null
@@ -175,16 +180,17 @@ class AddNodesFromAnotherFiles : Transformation() {
     }
 
     //We are not expecting typeParams
-    private fun generateCallExpr(func: KtNamedFunction): KtExpression? {
+    private fun generateCallExpr(func: CallableDescriptor): KtExpression? {
         val name = func.name
         val valueParams = func.valueParameters.map {
-            getInsertableExpressions(Pair(it, it.typeReference?.text), 1).randomOrNull()
+            RandomInstancesGenerator(psi).generateValueOfType(it.type)
+            //getInsertableExpressions(Pair(it, it.typeReference?.getAbbreviatedTypeOrType()), 1).randomOrNull()
         }
-        if (valueParams.any { it == null }) {
-            println("CANT GENERATE PARAMS FOR ${func.text}")
+        if (valueParams.any { it.isEmpty() }) {
+            println("CANT GENERATE PARAMS FOR $func")
             return null
         }
-        val inv = "$name(${valueParams.joinToString { it!!.text }})"
+        val inv = "$name(${valueParams.joinToString()})"
         return psiFactory.createExpression(inv)
     }
 

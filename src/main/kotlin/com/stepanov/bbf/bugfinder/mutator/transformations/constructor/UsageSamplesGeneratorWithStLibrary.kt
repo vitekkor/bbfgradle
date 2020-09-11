@@ -36,36 +36,36 @@ object UsageSamplesGeneratorWithStLibrary {
         descriptorDecl = packages.flatMap { it.memberScope.getDescriptorsFiltered { true } }
     }
 
-    fun generateForStandardType(type: KotlinType, needType: String): List<List<PsiElement>> {
+    fun generateForStandardType(type: KotlinType, needType: String): List<List<CallableDescriptor>> {
         val resForType = gen(type, needType)
         val resForSuperTypes = type.supertypes().getAllWithoutLast().flatMap { gen(it, needType) }.toList()
         val res = resForType + resForSuperTypes
-        return res.removeDuplicatesBy { it.createTypeCallSeq() }
+        return res.removeDuplicatesBy { it.joinToString { it.name.asString() } }
     }
 
-    private fun gen(type: KotlinType, needType: String, prefix: List<PsiElement> = listOf()): List<List<PsiElement>> {
+    private fun gen(type: KotlinType, needType: String, prefix: List<CallableDescriptor> = listOf()): List<List<CallableDescriptor>> {
         if (prefix.size == maxDepth) return listOf()
         val typeParamToArg = type.constructor.parameters.zip(type.arguments)
         val ext = getExtensionFuncsFromStdLibrary(type, needType)
-        val funList: MutableList<List<PsiElement>> = mutableListOf()
+        val funList: MutableList<List<CallableDescriptor>> = mutableListOf()
         for (decl in ext) {
             val typeParamNameToRealArg =
                 decl.recType!!.arguments.map { it.toString() }.zip(typeParamToArg.map { it.second.toString() }).toMap()
             val retValueType = decl.retValueType!!
             val realType = retValueType.replaceTypeArgsToTypes(typeParamNameToRealArg)
             if (realType == needType) {
-                createPsiElement(decl.descriptor.containingDeclaration!!)?.let { funList.add(prefix + it) }
+                funList.add(prefix + decl.descriptor.containingDeclaration as CallableDescriptor)
             }
         }
-        val derivedTypes = mutableListOf<Pair<List<PsiElement>, KotlinType>>()
+        val derivedTypes = mutableListOf<Pair<List<CallableDescriptor>, KotlinType>>()
         for (mem in getMemberFields(type)) {
             val descriptor =
                 mem as? DeserializedCallableMemberDescriptor ?: mem as? CallableMemberDescriptor ?: continue
             if (descriptor.returnType?.toString() == needType) {
-                createPsiElement(descriptor)?.let { funList.add(prefix + it) }
+                funList.add(prefix + descriptor)
             } else {
                 val anotherType = descriptor.returnType ?: continue
-                createPsiElement(descriptor)?.let { derivedTypes.add(prefix + it to anotherType) }
+                derivedTypes.add(prefix + descriptor to anotherType)
             }
         }
         derivedTypes
@@ -85,21 +85,6 @@ object UsageSamplesGeneratorWithStLibrary {
         }
 
 
-    private fun createPsiElement(descriptor: DeclarationDescriptor): PsiElement? =
-        when (descriptor) {
-            is DeserializedSimpleFunctionDescriptor, is SimpleFunctionDescriptor -> {
-                createFunDefinitionFromDeclarationDescriptor(mapOf(), descriptor)
-            }
-            is DeserializedPropertyDescriptor -> {
-                Factory.psiFactory.createProperty("val ${descriptor.name}: ${descriptor.returnType}")
-            }
-            is CallableMemberDescriptor -> {
-                Factory.psiFactory.createProperty("val ${descriptor.name}: ${descriptor.returnType}")
-            }
-            else -> null
-        }
-
-
     private fun KotlinType.replaceTypeArgsToTypes(map: Map<String, String>): String {
         val realType =
             if (isTypeParameter())
@@ -111,9 +96,6 @@ object UsageSamplesGeneratorWithStLibrary {
     }
 
     private fun getExtensionFuncsFromStdLibrary(type: KotlinType, needType: String): List<DeclarationDescr> {
-        //val containingDeclaration = type.constructor.declarationDescriptor!!.containingDeclaration
-        //val scope = (containingDeclaration as PackageFragmentDescriptor).getMemberScope()
-        //val descriptorDecl = scope.getDescriptorsFiltered { true }
         val res = mutableListOf<DeclarationDescr>()
         for (desc in descriptorDecl) {
             val rec = when (desc) {

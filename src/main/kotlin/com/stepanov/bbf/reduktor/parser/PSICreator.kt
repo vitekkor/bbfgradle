@@ -217,7 +217,7 @@ class PSICreator(var projectDir: String) {
                 val configuration = env.configuration.copy()
 
                 configuration.put(JSConfigurationKeys.LIBRARIES, JsConfig.JS_STDLIB)
-                configuration.put(CommonConfigurationKeys.MODULE_NAME, "sample")
+                configuration.put(CommonConfigurationKeys.MODULE_NAME, "root")
 
                 configuration.put(
                     JSConfigurationKeys.LIBRARIES, listOf(
