@@ -39,8 +39,9 @@ class AddNodesFromAnotherFiles : Transformation() {
             val randomType = line.takeWhile { it != ' ' }
             val files = line.dropLast(1).takeLastWhile { it != '[' }.split(", ")
             val randomFile = files.random()
-            val creator2 = PSICreator("")
-            val psi2 = creator2.getPSIForText(File("${CompilerArgs.baseDir}/$randomFile").readText())
+            val proj = Project.createFromCode(File("${CompilerArgs.baseDir}/$randomFile").readText())
+            if (proj.files.size > 1) continue
+            val psi2 = proj.files.first().psiFile
             if (Project.createFromCode(psi2.text).language != LANGUAGE.KOTLIN) continue
             val anonPsi = psi2.copy() as KtFile
             if (!Anonymizer.anon(anonPsi)) continue
@@ -83,11 +84,13 @@ class AddNodesFromAnotherFiles : Transformation() {
 //            .map { Triple(it, it.text, it.getType(psiCtx)) }
 //            .filter { it.third != null }
 //        if (table1.isEmpty()) return false
+        val replacementsList = mutableListOf<PsiElement>()
         var nodesForChange = updateReplacement(replaceNodes, ctx).shuffled()
-        println("Trying to change ${nodesForChange.size} nodes")
+        log.debug("Trying to change ${nodesForChange.size} nodes")
         for (i in 0 until nodesForChange.size) {
+            if (Random.getTrue(30)) continue
             val node = nodesForChange.randomOrNull() ?: continue
-            println("replacing ${node.first.text to node.second?.toString()}")
+            log.debug("replacing ${node.first.text to node.second?.toString()}")
             node.first.parents.firstOrNull { it is KtNamedFunction }?.let { addPropertiesToFun(it as KtNamedFunction) }
             val replacement = getInsertableExpressions(Pair(node.first, node.second)).randomOrNull()
             if (replacement == null) {
@@ -95,14 +98,15 @@ class AddNodesFromAnotherFiles : Transformation() {
                 continue
             }
             log.debug("replacement of ${node.first.text} of type ${node.second} is ${replacement.text}")
-            mutChecker.replaceNodeIfPossible(
+            mutChecker.replaceNodeIfPossibleWithNode(
                 psi,
                 node.first.node,
                 replacement.copy().node
-            )
+            )?.let { replacementsList.add(it.psi) }
             //node.first.replaceThis(replacement.copy())
             nodesForChange = updateReplacement(replaceNodes, ctx)
         }
+        changeValuesInExpression(replacementsList)
         return true
     }
 
@@ -112,21 +116,13 @@ class AddNodesFromAnotherFiles : Transformation() {
         //Nullable or most common types
         val res = mutableListOf<KtExpression>()
         val nodeType = node.second ?: return emptyList()
+        log.debug("Getting value of type $nodeType")
         val strNodeType = nodeType.toString()
-//        isUserType(nodeType)?.let { klass ->
-//            val instance =
-//                RandomInstancesGenerator(psi).generateRandomInstanceOfClass(klass) as? KtExpression ?: return@let
-//            println("GENERATED FOR USER TYPE = ${instance.text} ${instance is KtCallElement} ${instance is KtDotQualifiedExpression}")
-//            res.add(instance)
-//            return res
-//            //TODO change params
-//        }
-//        val generated = RandomInstancesGenerator(psi).generateValueOfType(nodeType)
         val generated = RandomInstancesGenerator(psi).generateValueOfType(nodeType)
-        println("GENERATED VALUE OF TYPE $nodeType = $generated")
+        log.debug("GENERATED VALUE OF TYPE $nodeType = $generated")
         if (generated.isNotEmpty()) {
             psiFactory.createExpressionIfPossible(generated)?.let {
-                println("GENERATED IS CALL =${it is KtCallExpression}")
+                log.debug("GENERATED IS CALL =${it is KtCallExpression}")
                 res.add(it)
             }
         }
@@ -135,26 +131,32 @@ class AddNodesFromAnotherFiles : Transformation() {
         for (el in usageExamples.filter { it.first !is KtProperty }.shuffled()) {
             if (el.third.toString() in blockListOfTypes) continue
             when {
-                el.third?.toString() == strNodeType -> localRes.add(el.first)
-                el.third?.toString() == "$nodeType?" -> localRes.add(el.first)
-                commonTypesMap[strNodeType]?.contains(el.third?.toString()) ?: false -> localRes.add(el.first)
+                el.third?.toString() == strNodeType -> {
+                    localRes.add(el.first); continue
+                }
+                el.third?.toString() == "$nodeType?" -> {
+                    localRes.add(el.first); continue
+                }
+                UsageSamplesGeneratorWithStLibrary.isImplementation(nodeType, el.third) -> {
+                    localRes.add(el.first); continue
+                }
+                //commonTypesMap[strNodeType]?.contains(el.third?.toString()) ?: false -> localRes.add(el.first)
             }
             val notNullableType = if (strNodeType.last() == '?') strNodeType.substringBeforeLast('?') else strNodeType
             if (notNullableType != strNodeType) res.add(psiFactory.createExpression("null"))
             if (depth > 0) continue
             //val deeperCases = UsageSamplesGeneratorWithStLibrary.generateForStandardType(el.third!!, nodeType)
-            println("GETTING ${nodeType} from ${el.third.toString()}")
+            log.debug("GETTING ${nodeType} from ${el.third.toString()}")
             if (checkedTypes.contains(el.third!!.toString())) continue
             checkedTypes.add(el.third!!.toString())
             UsageSamplesGeneratorWithStLibrary.generateForStandardType(el.third!!, strNodeType)
                 .shuffled()
                 .take(10)
                 .forEach { list ->
-                    println("Case = ${list.map { it }}")
+                    log.debug("Case = ${list.map { it }}")
                     handleCallSeq(list)?.let {
                         psiFactory.createExpressionIfPossible("(${el.second}).${it.text}")?.let {
-                            println("GENERATED CALL = ${it.text}")
-                            //println("ADDING ${it.text} to res")
+                            log.debug("GENERATED CALL = ${it.text}")
                             localRes.add(it)
                         }
                     }
@@ -187,41 +189,31 @@ class AddNodesFromAnotherFiles : Transformation() {
             //getInsertableExpressions(Pair(it, it.typeReference?.getAbbreviatedTypeOrType()), 1).randomOrNull()
         }
         if (valueParams.any { it.isEmpty() }) {
-            println("CANT GENERATE PARAMS FOR $func")
+            log.debug("CANT GENERATE PARAMS FOR $func")
             return null
         }
         val inv = "$name(${valueParams.joinToString()})"
         return psiFactory.createExpression(inv)
     }
 
-    private fun changeValuesInExpression(
-        node: PsiElement,
-        ctx: BindingContext
-    ): PsiElement {
-        return node
-//        while (true) {
-//            val table = node.getAllPSIChildrenOfType<KtExpression>()
-//                .map { it to it.getType(ctx) }
-//                .filter { it.second != null && !it.second!!.toString().contains("Nothing") }
-//            if (table.isEmpty() || Random.getTrue(20)) break
-//            val randomEl = table.randomOrNull() ?: continue
-//            val newEl = generateDefValuesAsString(randomEl.second!!.toString())
-//            //Get value of same type
-//            val newElFromProg = fileTable.filter { it.third == randomEl.second }.randomOrNull()
-//            when {
-//                newEl.isNotEmpty() && Random.nextBoolean() -> {
-//                    try {
-//                        psiFactory.createExpressionIfPossible(newEl)?.let { randomEl.first.replaceThis(it) }
-//                    } catch (e: Exception) {
-//                        log.debug("Cant create expression from $newEl")
-//                    }
-//                }
-//                newElFromProg != null && Random.nextBoolean() -> randomEl.first.replaceThis(newElFromProg.first.copy())
-//            }
-//        }
-//        //Return old node
-//        node.replaceThis(nodeCopy)
-//        return node.copy() as PsiElement
+    private fun changeValuesInExpression(nodeList: List<PsiElement>) {
+        val ctx = PSICreator.analyze(psi)!!
+        val constants = nodeList
+            .flatMap { it.getAllPSIChildrenOfType<KtConstantExpression>() }
+            .map { it to it.getType(ctx) }
+            .filter { it.second != null }
+        val psiExpToType = psi.getAllPSIChildrenOfType<KtExpression>()
+            .map { it to it.getType(ctx) }
+            .filter { it.second != null }
+        val expToType = usageExamples.map { it.first to it.third } + psiExpToType
+        for (constant in constants) {
+            val sameTypeExpression =
+                expToType.filter { it.second!!.toString() == constant.second!!.toString() }.randomOrNull()
+            sameTypeExpression?.let {
+                log.debug("TRYING TO REPLACE CONSTANT ${constant.first.text}")
+                mutChecker.replacePSINodeIfPossible(psi, constant.first, it.first)
+            }
+        }
     }
 
     private fun addPropertiesToFun(node: KtNamedFunction) {
@@ -230,7 +222,7 @@ class AddNodesFromAnotherFiles : Transformation() {
         val funProps = bodyBlockExpr.getAllPSIChildrenOfType<KtProperty>()
         props.reversed().forEach {
             val pr = it.first as KtProperty
-            if (funProps.all { it.name != pr.name }) {
+            if (funProps.all { it.name != pr.name } && !node.text.contains(pr.text)) {
                 node.bodyBlockExpression?.addProperty(pr)
             }
         }
@@ -309,25 +301,6 @@ class AddNodesFromAnotherFiles : Transformation() {
     private fun generateRandomName() = java.util.Random().getRandomVariableName(4)
 
     private val blockListOfTypes = listOf("Unit", "Nothing", "Nothing?")
-
-    private val commonTypesMap = mapOf(
-        "Byte" to listOf("Number"),
-        "Short" to listOf("Number"),
-        "Int" to listOf("Number"),
-        "Long" to listOf("Number"),
-        "Float" to listOf("Number"),
-        "Double" to listOf("Number"),
-        "String" to listOf("CharSequence"),
-        "Collection" to listOf("Iterable"),
-        "MutableCollection" to listOf("Collection", "MutableIterable"),
-        "MutableIterable" to listOf("Iterable"),
-        "List" to listOf("Collection"),
-        "Set" to listOf("Collection"),
-        "List" to listOf("Collection"),
-        "MutableList" to listOf("List", "MutableCollection"),
-        "MutableSet" to listOf("Set", "MutableCollection"),
-        "MutableMap" to listOf("Map")
-    )
 
     private fun isUserType(type: String) =
         psi.getAllPSIChildrenOfType<KtClassOrObject>().find { it.name == type }

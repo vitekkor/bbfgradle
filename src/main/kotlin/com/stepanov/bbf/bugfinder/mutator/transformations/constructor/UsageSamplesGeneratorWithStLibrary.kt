@@ -43,7 +43,11 @@ object UsageSamplesGeneratorWithStLibrary {
         return res.removeDuplicatesBy { it.joinToString { it.name.asString() } }
     }
 
-    private fun gen(type: KotlinType, needType: String, prefix: List<CallableDescriptor> = listOf()): List<List<CallableDescriptor>> {
+    private fun gen(
+        type: KotlinType,
+        needType: String,
+        prefix: List<CallableDescriptor> = listOf()
+    ): List<List<CallableDescriptor>> {
         if (prefix.size == maxDepth) return listOf()
         val typeParamToArg = type.constructor.parameters.zip(type.arguments)
         val ext = getExtensionFuncsFromStdLibrary(type, needType)
@@ -225,6 +229,13 @@ object UsageSamplesGeneratorWithStLibrary {
             .getDescriptorsFiltered { true }.filterIsInstance<ClassDescriptor>()
             .filter { it.name.asString() != type.toString().substringBefore('<') }
             .filter { it.getAllSuperClassifiers().any { it.name.asString() == type.toString().substringBefore('<') } }
+
+    fun isImplementation(type: KotlinType, potImpl: KotlinType?): Boolean {
+        if (potImpl == null) return true
+        (findImplementaionFromFile(type) + findImplementationOf(type))
+            .find { it.name.asString() == potImpl.constructor.toString() }
+            ?.let { return true } ?: return false
+    }
 
     fun getDeclDescriptorOf(klassName: String): DeclarationDescriptor =
         descriptorDecl.mapNotNull { it as? DeserializedClassDescriptor }.first { it.name.asString() == klassName }

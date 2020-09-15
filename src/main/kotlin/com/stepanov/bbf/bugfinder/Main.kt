@@ -1,16 +1,20 @@
 package com.stepanov.bbf.bugfinder
 
+import com.intellij.psi.codeStyle.CodeStyleManager
 import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.generator.constructor.ProgramConstructor
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.UsageSamplesGeneratorWithStLibrary
+import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.UsagesSamplesGenerator
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
@@ -20,6 +24,8 @@ import org.jetbrains.kotlin.codegen.kotlinType
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.types.isError
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -27,74 +33,6 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
-    //val f1 = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
-    val f1 = File("tmp/test.kt")
-    SingleFileBugFinder(f1.absolutePath).findBugsInFile()
-    System.exit(0)
-//    for (f in File("/home/stepanov/Kotlin/bbfgradle/tmp/arrays/").listFiles().filter { !it.isDirectory && it.name.endsWith(".kt") }) {
-//    //val f = File("tmp/test.kt")
-//        println("Name = ${f.name}")
-//        //if (!f.absolutePath.contains("kt26103_original.kt")) continue
-//        val fi = creator.getPSIForFile(f.absolutePath)
-//        val r = RandomInstancesGenerator(fi)
-//        fi.getAllPSIChildrenOfType<KtClassOrObject>().forEach {
-//            println("INSTANCE OF ${it.text}")
-//            val res = r.generateRandomInstanceOfClass(it); println("${res?.text}\n\n")
-//        }
-//        //System.exit(0)
-//    }
-    System.exit(0)
-    while (true) ProgramConstructor(Checker(JVMCompiler())).construct()
-    System.exit(0)
-
-//    val creator = PSICreator("")
-//    val f = creator.getPSIForFile("tmp/test.kt")
-//    val r = RandomInstancesGenerator(f)
-//    f.getAllPSIChildrenOfType<KtClassOrObject>()[6].let {
-//        val r = r.generateRandomInstanceOfClass(it); println("FINRES = ${r?.text}")
-//    }
-    //while (true) ProgramConstructor(Checker(JVMCompiler())).construct()
-    System.exit(0)
-//    val code = File("/home/stepanov/Kotlin/kotlin/compiler/testData/codegen/box/callableReference/adaptedReferences/localFunctionWithDefault.kt").readText()
-//    val project = Project.createFromCode(code)
-//    println(project.files.map { it.name })
-//    val checker = MutationChecker(JVMCompiler(), project, project.files.first())
-//    val psi = PSICreator("").getPSIForText(File("tmp/test.kt").readText())
-//    checker.checkCompilingWithBugSaving(psi)
-//    System.exit(0)
-//    for (f in File("/home/stepanov/Kotlin/bbfgradle/tmp/testDir/").listFiles()) {
-//        if (!f.name.contains("nezivic_FILE")) continue
-//        println(f.name)
-//        val c1 = JVMCompiler()
-//        val c2 = JSCompiler()
-//        val proj = Project.createFromCode(f.readText())
-//        val c1R = c1.compile(proj)
-//        println(c1R)
-//        val res1 = c1.exec(c1R.pathToCompiled, Stream.ERROR)
-//        println(res1)
-//        exitProcess(0)
-//        if (res1.trim().isEmpty()) {
-//            val res11 = c1.exec(c1R.pathToCompiled, Stream.ERROR)
-//            val fl = res11.contains("Java.lang.object", true)
-//            println("BE OF OBJ = ${fl}")
-//            if (!fl) println(res11)
-//        }
-//        println("r1 = $res1")
-////        exitProcess(0)
-//        val c2R = c2.compile(proj)
-//        println("c2r = $c2R")
-//        val res2 = c2.exec(c2R.pathToCompiled)
-//        println("r2 = $res2")
-////        exitProcess(0)
-//    }
-//    exitProcess(0)
-//    BugManager.saveBug(Bug(
-//        listOf(JVMCompiler(), JVMCompiler("-Xuse-ir")),
-//        "",
-//        Project.createFromCode(File("tmp/test.kt").readText()),
-//        BugType.FRONTEND
-//    ))
-//    exitProcess(0)
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
         Logger.getLogger("bugFinderLogger").level = Level.OFF

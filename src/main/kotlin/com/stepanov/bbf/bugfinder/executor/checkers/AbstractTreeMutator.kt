@@ -22,8 +22,14 @@ class AbstractTreeMutator(private val compilers: List<CommonCompiler>, val confi
         return MutationChecker(compilers, pr, pr.files.first())
     }
 
+    fun replacePSINodeIfPossible(file: PsiFile, node: PsiElement, replacement: PsiElement) =
+        prepareChecker(file).replacePSINodeIfPossible(node, replacement)
+
     fun replaceNodeIfPossible(file: PsiFile, node: ASTNode, replacement: ASTNode) =
         prepareChecker(file).replaceNodeIfPossible(node, replacement)
+
+    fun replaceNodeIfPossibleWithNode(file: PsiFile, node: ASTNode, replacement: ASTNode) =
+        prepareChecker(file).replaceNodeIfPossibleWithNode(node, replacement)
 
     fun addNodeIfPossible(file: PsiFile, anchor: PsiElement, node: PsiElement, before: Boolean = false) =
         prepareChecker(file).addNodeIfPossible(anchor, node, before)

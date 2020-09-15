@@ -75,9 +75,9 @@ object RandomTypeGenerator {
                     .filter { it.name != null }
                     .filter { !it.isLocal }
                     .filter { it.parents.all { !(it is KtClassOrObject) } }
-                    .randomOrNull() ?: return null
+                    .randomOrNull() ?: return generateType(primitives.random())
             else
-                file.getAllPSIChildrenOfType<KtClassOrObject>().find { it.name == name } ?: return null
+                file.getAllPSIChildrenOfType<KtClassOrObject>().find { it.name == name } ?: return generateType(primitives.random())
         val typeParamToType = mutableMapOf<String, KotlinType>()
         val sortedTypeParams =
             randomClass.typeParameters
@@ -126,7 +126,11 @@ object RandomTypeGenerator {
         return generateType(klassToStr)
     }
 
-    private fun generateType(name: String): KotlinType? = generateType(file, ctx, name)
+    private fun generateType(name: String): KotlinType? {
+        if (!RandomTypeGenerator::file.isInitialized || !RandomTypeGenerator::ctx.isInitialized) return null
+        return generateType(file, ctx, name)
+    }
+
     fun generateType(file: KtFile, ctx: BindingContext, name: String): KotlinType? {
         val exprs = file.getAllPSIChildrenOfType<KtExpression>().mapNotNull { it.getType(ctx) }
         val references =

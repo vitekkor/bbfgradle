@@ -10,7 +10,8 @@ import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
 import org.apache.log4j.Logger
 
-open class MutationChecker(compilers: List<CommonCompiler>, val project: Project, var curFile: BBFFile) : Checker(compilers) {
+open class MutationChecker(compilers: List<CommonCompiler>, val project: Project, var curFile: BBFFile) :
+    Checker(compilers) {
 
     constructor(compiler: CommonCompiler, project: Project, curFile: BBFFile) : this(listOf(compiler), project, curFile)
 
@@ -19,9 +20,11 @@ open class MutationChecker(compilers: List<CommonCompiler>, val project: Project
     fun replacePSINodeIfPossible(node: PsiElement, replacement: PsiElement) =
         replaceNodeIfPossible(node.node, replacement.node)
 
-    fun replaceNodeIfPossible(node: ASTNode, replacement: ASTNode): Boolean {
+    fun replaceNodeIfPossibleWithNode(node: ASTNode, replacement: ASTNode): ASTNode? {
         log.debug("Trying to replace $node on $replacement")
-        if (node.text.isEmpty() || node == replacement) return checkCompilingWithBugSaving(project, curFile)
+        if (node.text.isEmpty() || node == replacement) {
+            return if (checkCompilingWithBugSaving(project, curFile)) node else null
+        }
         for (p in node.getAllParentsWithoutNode()) {
             try {
                 if (node.treeParent.elementType.index == DUMMY_HOLDER_INDEX) continue
@@ -36,16 +39,19 @@ open class MutationChecker(compilers: List<CommonCompiler>, val project: Project
                 if (!checkCompilingWithBugSaving(project, curFile)) {
                     log.debug("Result = false\nText:\n${curFile.text}")
                     p.replaceChild(replCopy, node)
-                    return false
+                    return null
                 } else {
                     log.debug("Result = true\nText:\n${curFile.text}")
-                    return true
+                    return replCopy
                 }
             } catch (e: Error) {
             }
         }
-        return false
+        return null
     }
+
+    fun replaceNodeIfPossible(node: ASTNode, replacement: ASTNode): Boolean =
+        replaceNodeIfPossibleWithNode(node, replacement) != null
 
 
     fun addNodeIfPossible(anchor: PsiElement, node: PsiElement, before: Boolean = false): Boolean {
