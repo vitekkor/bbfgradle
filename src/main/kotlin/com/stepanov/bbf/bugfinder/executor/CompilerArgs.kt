@@ -109,8 +109,8 @@ object CompilerArgs {
     )
 
     val jsStdLibPaths = listOf(
-        getStdLibPath("kotlin-stdlib-js"), getStdLibPath("kotlin-stdlib-common")
-        //,getStdLibPath("kotlin-test-js"), getStdLibPath("kotlin-test-common"), getStdLibPath("kotlin-reflect")
+        getStdLibPath("kotlin-stdlib-js"), getStdLibPath("kotlin-stdlib-common"),
+        getStdLibPath("kotlin-test-common"), getStdLibPath("kotlin-test-js"), getStdLibPath("kotlin-reflect")
     )
     val pathToStdLibScheme = "tmp/lib/standardLibraryTree.txt"
 }

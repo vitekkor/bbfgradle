@@ -70,7 +70,7 @@ abstract class CommonCompiler {
             return when (streamType) {
                 Stream.INPUT -> ""
                 Stream.ERROR -> errorStream.toString()
-                else -> ""
+                else -> "" + errorStream.toString()
             }
             //return outputStream.toString()
         }

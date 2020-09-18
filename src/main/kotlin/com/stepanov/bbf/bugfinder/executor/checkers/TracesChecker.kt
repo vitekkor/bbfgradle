@@ -6,9 +6,12 @@ import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.Stream
+import com.stepanov.bbf.bugfinder.util.addToTheTop
 import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
 import org.apache.log4j.Logger
+import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch
 
 // Transformation is here only for PSIFactory
 class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compilers) {
@@ -144,12 +147,30 @@ class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compil
 //        }
 //    }
 
-    fun checkTest(project: Project) {
+    fun checkBehavior(project: Project) {
+        val groupedRes = checkTest(project)
+        if (groupedRes.size > 1) {
+            if (groupedRes.keys.first().split("\n").any { it.matches(Regex(""".+@[0-9a-z]""")) }) {
+                val comment = Factory.psiFactory.createComment("// DIFF_ONLY_IN_ADDRESSES")
+                project.files.first().psiFile.addToTheTop(comment)
+            }
+            BugManager.saveBug(
+                Bug(
+                    groupedRes.map { it.value.first() },
+                    "",
+                    project,
+                    BugType.DIFFBEHAVIOR
+                )
+            )
+        }
+    }
+
+    private fun checkTest(project: Project): Map<String, List<CommonCompiler>> {
         log.debug("Trying to compile with main function:")
         val extendedCompilerList = compilers + listOf(JVMCompiler("-Xno-optimize"))
         if (!extendedCompilerList.checkCompilingForAllBackends(project)) {
             log.debug("Cannot compile with main")
-            return
+            return mapOf()
         }
 
         log.debug("Executing traced code:\n$project")
@@ -157,13 +178,13 @@ class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compil
         for (comp in extendedCompilerList) {
             val status = comp.compile(project)
             if (status.status == -1)
-                return
+                return mapOf()
             val res = comp.exec(status.pathToCompiled)
             val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
             log.debug("Result of ${comp.compilerInfo}: $res\n")
             log.debug("Errors: $errors")
             if (exclErrorMessages.any { errors.contains(it) })
-                return
+                return mapOf()
             results.add(comp to res.trim())
         }
 //        //Compare with java
@@ -179,17 +200,7 @@ class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compil
 //                log.debug("Exception with Java compilation")
 //            }
 //        }
-        val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap()
-        if (groupedRes.size != 1) {
-            BugManager.saveBug(
-                Bug(
-                    groupedRes.map { it.value.first() },
-                    "",
-                    project,
-                    BugType.DIFFBEHAVIOR
-                )
-            )
-        }
+        return results.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap()
     }
 
     private val log = Logger.getLogger("bugFinderLogger")

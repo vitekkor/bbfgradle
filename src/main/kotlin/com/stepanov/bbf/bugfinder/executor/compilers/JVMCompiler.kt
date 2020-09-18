@@ -79,10 +79,13 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
         projectArgs.apply { K2JVMCompiler().parseArguments(compilerArgs.toTypedArray(), this) }
         projectArgs.classpath =
             "${CompilerArgs.jvmStdLibPaths.joinToString(
-                postfix = ":",
                 separator = ":"
             )}:${System.getProperty("java.class.path")}"
-        projectArgs.jvmTarget = "1.8"
+                .split(":")
+                .filter { it.isNotEmpty() }
+                .toSet().toList()
+                .joinToString(":")
+        projectArgs.jvmTarget = "11"
         if (project.configuration.jvmDefault.isNotEmpty())
             projectArgs.jvmDefault = project.configuration.jvmDefault.substringAfter(Directives.jvmDefault)
         return projectArgs
@@ -123,7 +126,14 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
         return executeCompiler(project, args)
     }
 
-    override fun exec(path: String, streamType: Stream): String = commonExec("java -jar $path", streamType)
+    override fun exec(path: String, streamType: Stream): String {
+        val mainClass = JarInputStream(File(path).inputStream()).manifest.mainAttributes.getValue("Main-class")
+        return commonExec(
+            "java -classpath ${CompilerArgs.jvmStdLibPaths.joinToString(":")}:$path $mainClass",
+            streamType
+        )
+    }
+        //commonExec("java -classpath ${CompilerArgs.jvmStdLibPaths.joinToString(":")} -jar $path", streamType)
 
     private fun analyzeErrorMessage(msg: String): Boolean = !msg.split("\n").any { it.contains(": error:") }
 

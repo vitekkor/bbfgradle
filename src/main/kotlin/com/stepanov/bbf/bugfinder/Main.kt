@@ -1,31 +1,13 @@
 package com.stepanov.bbf.bugfinder
 
-import com.intellij.psi.codeStyle.CodeStyleManager
-import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
-import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
-import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.generator.constructor.ProgramConstructor
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.RandomInstancesGenerator
-import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.UsageSamplesGeneratorWithStLibrary
-import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.UsagesSamplesGenerator
-import com.stepanov.bbf.bugfinder.util.*
-import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
+import com.stepanov.bbf.bugfinder.util.FalsePositivesDeleter
+import com.stepanov.bbf.bugfinder.util.NodeCollector
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
-import org.jetbrains.kotlin.codegen.kotlinType
-import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
-import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.isError
 import java.io.File
 import kotlin.system.exitProcess
 

@@ -44,7 +44,7 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
             log.debug("Mutated = $project")
             Tracer(compilers.first(), project).trace()
             log.debug("Traced = $project")
-            TracesChecker(compilers).checkTest(project)
+            TracesChecker(compilers).checkBehavior(project)
             return
         } catch (e: Error) {
             log.debug("ERROR: $e")

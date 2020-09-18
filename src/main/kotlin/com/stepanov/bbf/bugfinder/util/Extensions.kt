@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.lang.FileASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
@@ -399,13 +400,20 @@ fun KtBlockExpression.addProperty(prop: KtProperty): PsiElement? {
 fun KtFile.getBoxFun(): KtNamedFunction? =
     this.getAllPSIChildrenOfType<KtNamedFunction> { it.name?.contains("box") == true }.firstOrNull()
 
-fun KtFile.addToTheEnd(psiElement: PsiElement): PsiElement {
+fun PsiFile.addToTheEnd(psiElement: PsiElement): PsiElement {
     return this.getAllPSIDFSChildrenOfType<PsiElement>().last().parent.let {
         it.add(Factory.psiFactory.createWhiteSpace("\n\n"))
         val res = it.add(psiElement)
         it.add(Factory.psiFactory.createWhiteSpace("\n\n"))
         res
     }
+}
+
+fun PsiFile.addToTheTop(psiElement: PsiElement): PsiElement {
+    val firstChild = this.allChildren.first!!
+    val res = firstChild.add(psiElement)
+    firstChild.add(Factory.psiFactory.createWhiteSpace("\n"))
+    return res
 }
 //
 //fun Project.saveOrRemoveToTmp(save: Boolean): String {
