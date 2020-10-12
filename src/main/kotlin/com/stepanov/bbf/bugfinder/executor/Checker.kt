@@ -8,6 +8,7 @@ import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.util.StatisticCollector
 import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
@@ -79,7 +80,14 @@ open class Checker(compilers: List<CommonCompiler>) : CompilationChecker(compile
         }
     }
 
-    fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null): Boolean {
+    fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null) =
+        checkCompilingWithBugSaving1(project, curFile).let {
+            if (it) StatisticCollector.incField("Correct programs")
+            else StatisticCollector.incField("Incorrect programs")
+            it
+        }
+
+    fun checkCompilingWithBugSaving1(project: Project, curFile: BBFFile? = null): Boolean {
         val allTexts = project.files.map { it.psiFile.text }.joinToString()
         checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
         //Checking syntax correction

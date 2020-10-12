@@ -257,6 +257,9 @@ fun ASTNode.getAllChildrenOfType(type: IElementType): List<ASTNode> =
 inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfType(): List<T> =
     this.node.getAllChildrenNodes().filter { it.psi is T }.map { it.psi as T }
 
+inline fun <reified T : PsiElement> List<PsiElement>.getAllPSIChildrenOfType(): List<T> =
+    this.flatMap { it.getAllPSIChildrenOfType() }
+
 fun PsiElement.getAllChildren(): List<PsiElement> = this.node.getAllChildrenNodes().map { it.psi }
 
 inline fun <reified T : PsiElement> PsiElement.containsChildOfType(): Boolean = this.node.children().any { it is T }

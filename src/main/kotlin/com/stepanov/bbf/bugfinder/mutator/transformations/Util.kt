@@ -22,7 +22,7 @@ internal fun getSlice(node: PsiElement): Set<KtExpression> {
     return res
 }
 
-private fun PsiElement.getAllParentsWithoutThis(): List<PsiElement> {
+internal fun PsiElement.getAllParentsWithoutThis(): List<PsiElement> {
     val result = arrayListOf<ASTNode>()
     var node = this.node.treeParent ?: return arrayListOf<PsiElement>()
     while (true) {
@@ -34,7 +34,7 @@ private fun PsiElement.getAllParentsWithoutThis(): List<PsiElement> {
     return result.map { it.psi }
 }
 
-private fun getPropsUntil(node: PsiElement, until: PsiElement) =
+fun getPropsUntil(node: PsiElement, until: PsiElement) =
     node.getAllChildren()
         .takeWhile { it != until }
         .filter { it !is KtNamedFunction && it !is KtClassOrObject && it is KtExpression }

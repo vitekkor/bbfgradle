@@ -52,8 +52,10 @@ class Mutator(val project: Project) {
     }
 
     private fun startKotlinMutations() {
-        executeMutation(AddNodesFromAnotherFiles(), 100)
+        executeMutation(SkeletonEnumeration(), 100)
         return
+//        executeMutation(AddNodesFromAnotherFiles(), 100)
+//        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 25)
         for (i in 0 until Random.nextInt(1, 3)) {
             transformations.shuffled().forEach { executeMutation(it.first, it.second) }
         }
@@ -124,7 +126,8 @@ class Mutator(val project: Project) {
         AddFunInvocations() to 75,
         ChangeRandomLines() to 50,
         ChangeRandomASTNodesFromAnotherTrees() to 75,
-        AddTryExpression() to 50
+        AddTryExpression() to 50,
+        AddNodesFromAnotherFiles() to 100
     )
     private val log = Logger.getLogger("mutatorLogger")
     private val checker

@@ -1,20 +1,63 @@
 package com.stepanov.bbf.bugfinder
 
+import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.util.FalsePositivesDeleter
-import com.stepanov.bbf.bugfinder.util.NodeCollector
+import com.stepanov.bbf.bugfinder.executor.checkers.TracesChecker
+import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
+import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.manager.Bug
+import com.stepanov.bbf.bugfinder.manager.BugManager
+import com.stepanov.bbf.bugfinder.manager.BugType
+import com.stepanov.bbf.bugfinder.tracer.Tracer
+import com.stepanov.bbf.bugfinder.util.*
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
+import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 import kotlin.system.exitProcess
 
+//fun compile(compiler: CommonCompiler, path: String) {
+//    val f1 = File(path)
+//    val project = Project.createFromCode(f1.readText())
+//    val r = compiler.compile(project)
+//    var ex = compiler.exec(r.pathToCompiled)
+//    if (ex.trim().isEmpty()) ex = compiler.exec(r.pathToCompiled, Stream.BOTH)
+//    println(r)
+//    println("COMPILER = $compiler EXECUTION RES = $ex\n\n")
+//}
 
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
+//    val proj = Project.createFromCode(File("tmp/test.kt").readText())
+    //println(JSCompiler("").isCompilerBug(proj))
+//    val bug = Bug(listOf(JVMCompiler("-Xuse-ir")), "", proj, BugType.BACKEND)
+//    val reduced = Reducer.reduce(bug, false)
+//    println(reduced)
+//    System.exit(0)
+//    var fl = false
+//    for (fi in File("tmp/testDir").listFiles().toList().sortedBy { it.absolutePath }) {
+//        //if (fi.name == "idlwyuq_FILE.kt") fl = true
+//        //if (!fl) continue
+//        println(fi.absolutePath)
+//        val compilers =
+//            fi.readText().split("\n").first { it.startsWith("// Bug happens on ") }
+//                .substringAfter("// Bug happens on ").split(',').map { it.trim() }
+//                .map { when {
+//                    it.startsWith("JS") -> JSCompiler("")
+//                    it.startsWith("JVM -Xuse-ir") -> JVMCompiler("-Xuse-ir")
+//                    else -> JVMCompiler()
+//                }}
+//        //println(compilers)
+//        compilers.map { compile(it, fi.absolutePath)  }
+//    }
+//    System.exit(0)
+
     if (!CompilerArgs.getPropAsBoolean("LOG")) {
         Logger.getRootLogger().level = Level.OFF
         Logger.getLogger("bugFinderLogger").level = Level.OFF

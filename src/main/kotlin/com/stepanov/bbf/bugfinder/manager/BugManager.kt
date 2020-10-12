@@ -7,6 +7,7 @@ import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.moveAllCodeInOneFile
 import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
+import com.stepanov.bbf.bugfinder.util.StatisticCollector
 import org.apache.log4j.Logger
 import java.io.File
 
@@ -114,6 +115,13 @@ object BugManager {
 
     fun saveBug(bug: Bug) {
         try {
+            val field = when (bug.type) {
+                BugType.BACKEND -> "Backend"
+                BugType.FRONTEND -> "Frontend"
+                BugType.DIFFBEHAVIOR -> "Miscompilation"
+                else -> ""
+            }
+            if (field.isNotEmpty()) StatisticCollector.incField(field)
             println("SAVING BUG")
             if (ReportProperties.getPropAsBoolean("SAVE_STATS") == true) saveStats()
             //Check if bug is real project bug
@@ -127,7 +135,10 @@ object BugManager {
             if (/*newBug.crashedProject.texts.size == 1 &&*/
                 CompilerArgs.shouldFilterDuplicateCompilerBugs &&
                 haveDuplicates(newestBug)
-            ) return
+            ) {
+                StatisticCollector.incField("Duplicates")
+                return
+            }
             bugs.add(newestBug)
             //Report bugs
             if (ReportProperties.getPropAsBoolean("TEXT_REPORTER") == true) {

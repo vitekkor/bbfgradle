@@ -82,7 +82,7 @@ class SimplifyConstructor : SimplificationPass() {
                     //Process last element
                     primaryConstructor = it.primaryConstructor?.allChildren?.first?.allChildren?.toList()!!
                     val lastParam = it.primaryConstructorParameters.last()
-                    val lastArgs = invocations.map { it.valueArguments.last() }
+                    val lastArgs = invocations.map { it.valueArguments.last().asElement().copy() }
                     val constructorCopy = it.primaryConstructor!!.copy() as KtPrimaryConstructor
                     var prevComma: PsiElement? = null
                     primaryConstructor.forEach {

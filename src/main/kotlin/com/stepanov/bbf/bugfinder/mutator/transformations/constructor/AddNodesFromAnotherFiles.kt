@@ -1,7 +1,6 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.constructor
 
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiWhiteSpace
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.checkers.AbstractTreeMutator
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
@@ -11,13 +10,14 @@ import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
+import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.psi.psiUtil.isTopLevelKtOrJavaMember
 import org.jetbrains.kotlin.psi.psiUtil.parents
+import org.jetbrains.kotlin.psi.stubs.elements.KtStringTemplateExpressionElementType
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
@@ -40,11 +40,15 @@ class AddNodesFromAnotherFiles : Transformation() {
             val files = line.dropLast(1).takeLastWhile { it != '[' }.split(", ")
             val randomFile = files.random()
             val proj = Project.createFromCode(File("${CompilerArgs.baseDir}/$randomFile").readText())
-            if (proj.files.size > 1) continue
+            if (proj.files.size != 1) continue
             val psi2 = proj.files.first().psiFile
             if (Project.createFromCode(psi2.text).language != LANGUAGE.KOTLIN) continue
-            val anonPsi = psi2.copy() as KtFile
-            if (!Anonymizer.anon(anonPsi)) continue
+            val anonProj = Project.createFromCode(psi2.text)
+            val anonPsi = anonProj.files.first().psiFile
+            if (!Anonymizer.anon(anonProj)) {
+                log.debug("Cant anonymize")
+                continue
+            }
             //val ctx2 = PSICreator.analyze(anonPsi)!!
             val sameTypeNodes = anonPsi.node.getAllChildrenNodes().filter { it.elementType.toString() == randomType }
             val targetNode = sameTypeNodes.random().psi as KtNamedFunction
@@ -60,14 +64,14 @@ class AddNodesFromAnotherFiles : Transformation() {
 //            }
             //addPropertiesToFun(targetNode)
             val psiBackup = psi.copy() as KtFile
-            val addedNodes = addAllDataFromAnotherFile(psi, anonPsi)
+            val addedNodes = addAllDataFromAnotherFile(psi, anonPsi as KtFile)
             if (!mutChecker.checkCompiling(psi)) {
                 psi = psiBackup
                 continue
             }
             val newTargetNode = psi.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name == targetNode.name }
                 ?: throw Exception("Cant find node")
-            val ctx2 = PSICreator.analyze(psi)!!
+            val ctx2 = PSICreator.analyze(psi) ?: continue
             replaceNodesOfFile(addedNodes, ctx2)
         }
         log.debug("Final res = ${psi.text}")
@@ -229,26 +233,32 @@ class AddNodesFromAnotherFiles : Transformation() {
     }
 
     private fun collectUsageCases(): List<Triple<KtExpression, String, KotlinType?>> {
-        val ctx = PSICreator.analyze(psi)!!
+        val ctx = PSICreator.analyze(psi) ?: return listOf()
         val generatedSamples = UsagesSamplesGenerator.generate(psi)
-        val boxFun = psi.getBoxFun() ?: return generatedSamples
+        val boxFuncs = psi.getBoxFuncs() ?: return generatedSamples
         val properties =
-            (boxFun.getAllPSIChildrenOfType<KtProperty>() + psi.getAllPSIChildrenOfType { it.isTopLevel })
+            (boxFuncs.getAllPSIChildrenOfType<KtProperty>() + psi.getAllPSIChildrenOfType { it.isTopLevel })
                 .map {
                     if (it.typeReference != null) Triple(it, it.text, it.typeReference!!.getAbbreviatedTypeOrType(ctx))
                     else Triple(it, it.text, it.initializer?.getType(ctx))
                 }
                 .filter { it.third != null && !it.third!!.isError } ?: listOf()
-        val exprs = boxFun.getAllPSIChildrenOfType<KtExpression> { it !is KtProperty }
+        val destrDecl = boxFuncs.getAllPSIChildrenOfType<KtDestructuringDeclaration>()
+            .map { Triple(it, it.text, it.initializer?.getType(ctx) ) }
+            .filter { it.third != null && !it.third!!.isError } ?: listOf()
+        val exprs = boxFuncs.getAllPSIChildrenOfType<KtExpression>()
+            .filter { it !is KtProperty }
             .removeDuplicatesBy { it.text }
             .map { Triple(it, it.text, it.getType(ctx)) }
             .filter {
                 it.third != null &&
                         !it.third!!.isError &&
                         it.first !is KtStringTemplateEntry &&
-                        it.first !is KtConstantExpression
+                        it.first !is KtConstantExpression &&
+                        it.first.node.elementType != KtNodeTypes.STRING_TEMPLATE &&
+                        !it.first.parent.text.endsWith(it.first.text)
             }
-        return (properties + exprs).map { Triple(it.first, it.second, it.third!!) } + generatedSamples
+        return (properties + destrDecl + exprs).map { Triple(it.first, it.second, it.third!!) } + generatedSamples
     }
 
     private fun addAllDataFromAnotherFile(

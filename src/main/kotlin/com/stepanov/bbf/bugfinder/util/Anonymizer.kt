@@ -1,99 +1,83 @@
 package com.stepanov.bbf.bugfinder.util
 
+import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.Checker
-import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
-import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.reduktor.util.getAllChildren
+import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.parents
 import kotlin.random.Random
 
 object Anonymizer {
 
     val counters = mutableListOf(0, 0, 0, 0, 0)
-    fun anon(psi: KtFile): Boolean {
+    fun anon(project: Project): Boolean {
+        val psi = project.files.first().psiFile
         val checker = Checker(JVMCompiler())
 
         /*if (f.name != "singleAssignmentToVarargInAnnotation.kt") continue*/
         val named = mutableListOf<KtNamedDeclaration>()
         for (child in psi.getAllChildren()) {
-            if (child is KtNamedDeclaration && child.name != null && !child.name!!.startsWith("<") &&
-                !child.name!!.contains("box")
+            if (child is KtNamedDeclaration
+                && child.name != null && !child.name!!.startsWith("<")
+                && !child.text.contains(Regex("""fun box\d*\("""))
+                && child !is KtParameter && child !is KtPrimaryConstructor && child !is KtSecondaryConstructor
+                && child.modifierList?.let { !it.hasModifier(KtTokens.OVERRIDE_KEYWORD) } != false
+                && child.modifierList?.let { !it.hasModifier(KtTokens.OPERATOR_KEYWORD) } != false
             ) {
                 if (named.all { it.name != child.name })
                     named.add(child)
             }
         }
         //Rename box
-        psi.getAllPSIChildrenOfType<KtNamedFunction>().firstOrNull { it.name?.startsWith("box") == true }
-            ?.setName("box${Random.nextInt(100, 1000)}")
-        for (n in named) {
-            val newName = when (n) {
-                is KtClassOrObject -> "Kl${counters[0]++}"
-                is KtFunction -> "f${counters[1]++}"
-                is KtProperty -> "prop${counters[2]++}"
-                is KtParameter -> "par${counters[3]++}"
-                else -> "smth${counters[4]++}"
-            }
-            val oldExpr = n.copy()
-            val usages = psi.getAllPSIChildrenOfType<KtNameReferenceExpression>().filter { it.text == n.name }
-            val newNameRef = KtPsiFactory(psi.project).createSimpleName(newName)
-            val newUsages = usages.map {
-                val copy = newNameRef.copy()
-                it.replaceThis(copy)
-                it.copy() to copy
-            }
-            n.setName(newName)
-            val res = checker.checkCompiling(Project.createFromCode(psi.text))
-            if (!res) {
-                newUsages.forEach { it.second.replaceThis(it.first) }
-                n.replaceThis(oldExpr)
-                if (!checker.checkCompiling(Project.createFromCode(psi.text))) {
-                    return false
-                }
+        psi.getAllPSIChildrenOfType<KtNamedFunction>()
+            .firstOrNull { it.text.contains(Regex("""fun box\d*\(""")) }
+            ?.let { tryToReplace(psi, "box${Random.nextInt(100, 1000)}", it, checker, project) }
+        named.forEach { tryToReplace(psi, generateNewName(it), it, checker, project) }
+        return true
+    }
+
+    private fun tryToReplace(
+        psi: PsiFile,
+        newName: String,
+        n: KtNamedDeclaration,
+        checker: Checker,
+        project: Project
+    ): Boolean {
+        val oldExpr = n.copy()
+        val usages = psi.getAllChildren()
+            .filter { it.node.elementType == KtTokens.IDENTIFIER }
+            .filter { it.text == n.name && it != n.nameIdentifier }
+            .filter { !it.parents.any { it is KtImportDirective } }
+        //val usages = psi.getAllPSIChildrenOfType<KtNameReferenceExpression>().filter { it.text == n.name }
+        val newNameRef = KtPsiFactory(psi.project).createSimpleName(newName)
+        val newUsages = usages.map {
+            val copy = newNameRef.copy()
+            it.replaceThis(copy)
+            it.copy() to copy
+        }
+        n.setName(newName)
+        val res = checker.checkCompiling(project)
+        if (!res) {
+            newUsages.forEach { it.second.replaceThis(it.first) }
+            n.replaceThis(oldExpr)
+            if (!checker.checkCompiling(project)) {
+                return false
             }
         }
         return true
     }
-//
-//    //Shit code here =(
-//    fun anonymizeAnonimized(psi: PsiFile, counters: MutableList<Int>, fl: Boolean) {
-//        val named = mutableListOf<KtNamedDeclaration>()
-//        for (child in psi.getAllChildren()) {
-//            if (child is KtNamedDeclaration && child.name != null && !child.name!!.startsWith("<") &&
-//                child.name!!.contains(Regex("""(Kl|f|prop|par|smth)\d+"""))
-//            ) {
-//                if (named.all { it.name != child.name })
-//                    named.add(child)
-//            }
-//        }
-//
-//        for (n in named) {
-//            val newName =
-//                if (fl)
-//                    when (n) {
-//                        is KtClassOrObject -> "myKl${counters[0]++}"
-//                        is KtFunction -> "myfu${counters[1]++}"
-//                        is KtProperty -> "myprop${counters[2]++}"
-//                        is KtParameter -> "mypar${counters[3]++}"
-//                        else -> "mysmth${counters[4]++}"
-//                    }
-//                else when (n) {
-//                    is KtClassOrObject -> "Kl${counters[0]++}"
-//                    is KtFunction -> "fu${counters[1]++}"
-//                    is KtProperty -> "prop${counters[2]++}"
-//                    is KtParameter -> "par${counters[3]++}"
-//                    else -> "smth${counters[4]++}"
-//                }
-//            val usages = psi.getAllPSIChildrenOfType<KtNameReferenceExpression>().filter { it.text == n.name }
-//            val newNameRef = KtPsiFactory(psi.project).createSimpleName(newName)
-//            usages.map {
-//                val copy = newNameRef.copy()
-//                it.replaceThis(copy)
-//                it.copy() to copy
-//            }
-//            n.setName(newName)
-//        }
-//    }
+
+    private fun generateNewName(decl: KtNamedDeclaration): String =
+        when (decl) {
+            is KtClassOrObject -> "Kla${counters[0]++}"
+            is KtFunction -> "fu${counters[1]++}"
+            is KtProperty -> "prope${counters[2]++}"
+            is KtParameter -> "para${counters[3]++}"
+            else -> "Ty${counters[4]++}"
+        }
+
+    fun resetCounters() = counters.replaceAll { 0 }
 }
