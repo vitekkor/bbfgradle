@@ -1,4 +1,4 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.constructor
+package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.serialization.deserialization.descriptors.Deserializ
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedPropertyDescriptor
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
+import org.jetbrains.kotlin.types.isNullable
 import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 
@@ -43,6 +44,17 @@ object UsageSamplesGeneratorWithStLibrary {
         return res.removeDuplicatesBy { it.joinToString { it.name.asString() } }
     }
 
+
+    private fun checkVisibility(decl: DeclarationDescr) : Boolean {
+        val contDecl = decl.descriptor.containingDeclaration
+        return when (contDecl) {
+            is SimpleFunctionDescriptor -> contDecl.visibility.isPublicAPI
+            is PropertyDescriptor -> contDecl.visibility.isPublicAPI
+            else -> false
+        }
+    }
+
+    //No hashcode()
     private fun gen(
         type: KotlinType,
         needType: String,
@@ -53,6 +65,7 @@ object UsageSamplesGeneratorWithStLibrary {
         val ext = getExtensionFuncsFromStdLibrary(type, needType)
         val funList: MutableList<List<CallableDescriptor>> = mutableListOf()
         for (decl in ext) {
+            if (!checkVisibility(decl)) continue
             val typeParamNameToRealArg =
                 decl.recType!!.arguments.map { it.toString() }.zip(typeParamToArg.map { it.second.toString() }).toMap()
             val retValueType = decl.retValueType!!
@@ -65,12 +78,13 @@ object UsageSamplesGeneratorWithStLibrary {
         for (mem in getMemberFields(type)) {
             val descriptor =
                 mem as? DeserializedCallableMemberDescriptor ?: mem as? CallableMemberDescriptor ?: continue
-            if (descriptor.returnType?.toString() == needType) {
+            if (descriptor.name.asString() in blockList) continue
+            if (!descriptor.visibility.isPublicAPI) continue
+            if (descriptor.returnType?.toString().let { it == needType || "$it?" == needType || it == "$needType?"}) {
                 funList.add(prefix + descriptor)
-            } else {
-                val anotherType = descriptor.returnType ?: continue
-                derivedTypes.add(prefix + descriptor to anotherType)
             }
+            val anotherType = descriptor.returnType ?: continue
+            derivedTypes.add(prefix + descriptor to anotherType)
         }
         derivedTypes
             .filter { it.second.toString() != type.toString() }
@@ -91,10 +105,11 @@ object UsageSamplesGeneratorWithStLibrary {
 
     private fun KotlinType.replaceTypeArgsToTypes(map: Map<String, String>): String {
         val realType =
-            if (isTypeParameter())
-                map[this.constructor.toString()] ?: map["${this.constructor}?"] ?: this.toString()
-            else
-                this.constructor.toString()
+            when {
+                isTypeParameter() -> map[this.constructor.toString()] ?: map["${this.constructor}?"] ?: this.toString()
+                this.isNullable() -> "${this.constructor}?"
+                else -> this.constructor.toString()
+            }
         val typeParams = this.arguments.map { it.type.replaceTypeArgsToTypes(map) }
         return if (typeParams.isNotEmpty()) "$realType<${typeParams.joinToString()}>" else realType
     }
@@ -247,6 +262,7 @@ object UsageSamplesGeneratorWithStLibrary {
         valParamDesc.map { "${it.name}: ${it.type.replaceTypeArgsToTypes(typeParamsToArgs)}" }.joinToString()
 
     private val maxDepth = 2
+    private val blockList = listOf("hashCode", "toString")
 }
 
 data class DeclarationDescr(

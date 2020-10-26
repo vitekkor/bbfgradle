@@ -32,7 +32,7 @@ val TIMEOUT_SEC = Properties()
 const val pathToErrorLogs = "tmp/results/errorLogs"
 fun main(args: Array<String>) {
     File("logs/stats.log").let { if (it.exists()) it.delete() }
-    File("/home/stepanov/Kotlin/bbfgradle/bugsPerMinute.txt").writeText("""
+    File("bugsPerMinute.txt").writeText("""
 Bugs: 0
 Time: 0
 Bugs per minute: 0.0  

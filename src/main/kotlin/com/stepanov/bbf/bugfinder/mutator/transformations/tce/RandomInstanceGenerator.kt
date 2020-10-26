@@ -1,4 +1,4 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.constructor
+package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.types.KotlinType

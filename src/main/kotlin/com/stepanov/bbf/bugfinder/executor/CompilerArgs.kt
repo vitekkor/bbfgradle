@@ -1,5 +1,8 @@
 package com.stepanov.bbf.bugfinder.executor
 
+import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.util.BBFProperties
 import org.apache.commons.io.IOUtils
 import java.io.File
 import java.util.*
@@ -64,6 +67,27 @@ object CompilerArgs {
         return "${System.getProperty("user.dir")}/tmp/lib/"
     }
 
+    fun getCompilersList(): List<CommonCompiler> {
+        val compilers = mutableListOf<CommonCompiler>()
+        //Init compilers
+        val compilersConf = BBFProperties.getStringGroupWithoutQuotes("BACKENDS")
+        compilersConf.filter { it.key.contains("JVM") }.forEach {
+            compilers.add(
+                JVMCompiler(
+                    it.value
+                )
+            )
+        }
+        compilersConf.filter { it.key.contains("JS") }.forEach {
+            compilers.add(
+                JSCompiler(
+                    it.value
+                )
+            )
+        }
+        return compilers
+    }
+
     val baseDir = getPropValueWithoutQuotes("MUTATING_DIR")
     val javaBaseDir = getPropValueWithoutQuotes("JAVA_FILES_DIR")
     val dirForNewTests = "$baseDir/newTests"
@@ -75,6 +99,10 @@ object CompilerArgs {
 
     //RESULT
     val resultsDir = getPropValueWithoutQuotes("RESULTS")
+
+    //MODE
+    val isMiscompilationMode = getPropAsBoolean("MISCOMPILATION_MODE")
+    val isStrictMode = getPropAsBoolean("STRICT_MODE")
 
     //ORACLE
     val useJavaAsOracle = getPropAsBoolean("USE_JAVA_AS_ORACLE")

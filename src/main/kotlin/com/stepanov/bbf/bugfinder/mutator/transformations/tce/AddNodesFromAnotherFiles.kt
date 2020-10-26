@@ -1,4 +1,4 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.constructor
+package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
@@ -15,25 +15,46 @@ import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.getReceiverExpression
 import org.jetbrains.kotlin.psi.psiUtil.isTopLevelKtOrJavaMember
 import org.jetbrains.kotlin.psi.psiUtil.parents
-import org.jetbrains.kotlin.psi.stubs.elements.KtStringTemplateExpressionElementType
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isError
+import org.jetbrains.kotlin.types.isNullable
 import java.io.File
+import java.lang.StringBuilder
 import kotlin.random.Random
 import kotlin.streams.toList
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 class AddNodesFromAnotherFiles : Transformation() {
 
+    private val blockListOfTypes = listOf("Unit", "Nothing", "Nothing?")
+    private val randomConst = 3//Random.nextInt(700, 1000)
+    private var psi = PSICreator("").getPSIForText(file.text)
+    lateinit var usageExamples: List<Triple<KtExpression, String, KotlinType?>>
+    private val mutChecker = AbstractTreeMutator(checker.compilers, checker.project.configuration)
+
     override fun transform() {
         for (i in 0 until randomConst) {
             log.debug("AFTER TRY $i res = ${psi.text}")
             usageExamples = collectUsageCases()
+//            val ctx = PSICreator.analyze(psi)!!
+//            replaceNodesOfFile(
+//                psi.getAllPSIChildrenOfType<KtNamedFunction>()[1].getAllPSIChildrenOfType<KtExpression>(),
+//                ctx
+//            )
+//            println("RES = ${psi.text}")
+//            val ctx777 = PSICreator.analyze(psi)!!
+//            replaceNodesOfFile(
+//                psi.getAllPSIChildrenOfType<KtNamedFunction>()[1].getAllPSIChildrenOfType<KtExpression>(),
+//                ctx777
+//            )
+//            println("RES 2 = ${psi.text}")
+//            System.exit(0)
             log.debug("Try №$i")
             val line = File("database.txt").bufferedReader().lines().toList().find { it.startsWith("FUN") }!!//.random()
             val randomType = line.takeWhile { it != ' ' }
@@ -49,20 +70,10 @@ class AddNodesFromAnotherFiles : Transformation() {
                 log.debug("Cant anonymize")
                 continue
             }
-            //val ctx2 = PSICreator.analyze(anonPsi)!!
             val sameTypeNodes = anonPsi.node.getAllChildrenNodes().filter { it.elementType.toString() == randomType }
             val targetNode = sameTypeNodes.random().psi as KtNamedFunction
-//            val psiBackup = psi.text
-//            val backup = targetNode.text
-            //Filter useless nodes
             if (targetNode.getAllPSIChildrenOfType<KtExpression>().isEmpty()) continue
             log.debug("Trying to insert ${targetNode.text}")
-            //If node is fun or property then rename
-//            if (targetNode.psi is KtProperty || targetNode.psi is KtNamedFunction) {
-//                (targetNode.psi as PsiNamedElement).setName(generateRandomName())
-//                if (tryToAdd(targetNode.psi, psi, placeToInsert) != null) continue
-//            }
-            //addPropertiesToFun(targetNode)
             val psiBackup = psi.copy() as KtFile
             val addedNodes = addAllDataFromAnotherFile(psi, anonPsi as KtFile)
             if (!mutChecker.checkCompiling(psi)) {
@@ -84,19 +95,16 @@ class AddNodesFromAnotherFiles : Transformation() {
         replaceNodes: List<PsiElement>,
         ctx: BindingContext
     ): Boolean {
-//        val table1 = getSlice(placeToInsert)
-//            .map { Triple(it, it.text, it.getType(psiCtx)) }
-//            .filter { it.third != null }
-//        if (table1.isEmpty()) return false
+        val fillerGenerator = FillerGenerator(psi, ctx, usageExamples)
         val replacementsList = mutableListOf<PsiElement>()
         var nodesForChange = updateReplacement(replaceNodes, ctx).shuffled()
         log.debug("Trying to change ${nodesForChange.size} nodes")
-        for (i in 0 until nodesForChange.size) {
+        for (i in nodesForChange.indices) {
             if (Random.getTrue(30)) continue
             val node = nodesForChange.randomOrNull() ?: continue
             log.debug("replacing ${node.first.text to node.second?.toString()}")
             node.first.parents.firstOrNull { it is KtNamedFunction }?.let { addPropertiesToFun(it as KtNamedFunction) }
-            val replacement = getInsertableExpressions(Pair(node.first, node.second)).randomOrNull()
+            val replacement = fillerGenerator.getFillExpressions(node).randomOrNull()
             if (replacement == null) {
                 log.debug("Cant find and generate replacement for ${node.first.text} type ${node.second}")
                 continue
@@ -114,92 +122,6 @@ class AddNodesFromAnotherFiles : Transformation() {
         return true
     }
 
-    private fun getInsertableExpressions(
-        node: Pair<KtExpression, KotlinType?>, depth: Int = 0
-    ): List<KtExpression> {
-        //Nullable or most common types
-        val res = mutableListOf<KtExpression>()
-        val nodeType = node.second ?: return emptyList()
-        log.debug("Getting value of type $nodeType")
-        val strNodeType = nodeType.toString()
-        val generated = RandomInstancesGenerator(psi).generateValueOfType(nodeType)
-        log.debug("GENERATED VALUE OF TYPE $nodeType = $generated")
-        if (generated.isNotEmpty()) {
-            psiFactory.createExpressionIfPossible(generated)?.let {
-                log.debug("GENERATED IS CALL =${it is KtCallExpression}")
-                res.add(it)
-            }
-        }
-        val localRes = mutableListOf<PsiElement>()
-        val checkedTypes = mutableListOf<String>()
-        for (el in usageExamples.filter { it.first !is KtProperty }.shuffled()) {
-            if (el.third.toString() in blockListOfTypes) continue
-            when {
-                el.third?.toString() == strNodeType -> {
-                    localRes.add(el.first); continue
-                }
-                el.third?.toString() == "$nodeType?" -> {
-                    localRes.add(el.first); continue
-                }
-                UsageSamplesGeneratorWithStLibrary.isImplementation(nodeType, el.third) -> {
-                    localRes.add(el.first); continue
-                }
-                //commonTypesMap[strNodeType]?.contains(el.third?.toString()) ?: false -> localRes.add(el.first)
-            }
-            val notNullableType = if (strNodeType.last() == '?') strNodeType.substringBeforeLast('?') else strNodeType
-            if (notNullableType != strNodeType) res.add(psiFactory.createExpression("null"))
-            if (depth > 0) continue
-            //val deeperCases = UsageSamplesGeneratorWithStLibrary.generateForStandardType(el.third!!, nodeType)
-            log.debug("GETTING ${nodeType} from ${el.third.toString()}")
-            if (checkedTypes.contains(el.third!!.toString())) continue
-            checkedTypes.add(el.third!!.toString())
-            UsageSamplesGeneratorWithStLibrary.generateForStandardType(el.third!!, strNodeType)
-                .shuffled()
-                .take(10)
-                .forEach { list ->
-                    log.debug("Case = ${list.map { it }}")
-                    handleCallSeq(list)?.let {
-                        psiFactory.createExpressionIfPossible("(${el.second}).${it.text}")?.let {
-                            log.debug("GENERATED CALL = ${it.text}")
-                            localRes.add(it)
-                        }
-                    }
-                }
-            if (localRes.isNotEmpty()) {
-                localRes.forEach { res.add(it as KtExpression) }
-                break
-            }
-        }
-        return res
-    }
-
-    private fun handleCallSeq(postfix: List<CallableDescriptor>): KtExpression? {
-        val expr = postfix.map { el ->
-            val expr = when (el) {
-                is PropertyDescriptor -> el.name.asString()
-                is FunctionDescriptor -> generateCallExpr(el)?.text
-                else -> ""
-            }
-            expr ?: return null
-        }
-        return psiFactory.createExpression(expr.joinToString("."))
-    }
-
-    //We are not expecting typeParams
-    private fun generateCallExpr(func: CallableDescriptor): KtExpression? {
-        val name = func.name
-        val valueParams = func.valueParameters.map {
-            RandomInstancesGenerator(psi).generateValueOfType(it.type)
-            //getInsertableExpressions(Pair(it, it.typeReference?.getAbbreviatedTypeOrType()), 1).randomOrNull()
-        }
-        if (valueParams.any { it.isEmpty() }) {
-            log.debug("CANT GENERATE PARAMS FOR $func")
-            return null
-        }
-        val inv = "$name(${valueParams.joinToString()})"
-        return psiFactory.createExpression(inv)
-    }
-
     private fun changeValuesInExpression(nodeList: List<PsiElement>) {
         val ctx = PSICreator.analyze(psi)!!
         val constants = nodeList
@@ -215,7 +137,9 @@ class AddNodesFromAnotherFiles : Transformation() {
                 expToType.filter { it.second!!.toString() == constant.second!!.toString() }.randomOrNull()
             sameTypeExpression?.let {
                 log.debug("TRYING TO REPLACE CONSTANT ${constant.first.text}")
-                mutChecker.replacePSINodeIfPossible(psi, constant.first, it.first)
+                if (constant.first.parent is KtPrefixExpression) {
+                    mutChecker.replacePSINodeIfPossible(psi, constant.first.parent, it.first)
+                } else mutChecker.replacePSINodeIfPossible(psi, constant.first, it.first)
             }
         }
     }
@@ -244,7 +168,7 @@ class AddNodesFromAnotherFiles : Transformation() {
                 }
                 .filter { it.third != null && !it.third!!.isError } ?: listOf()
         val destrDecl = boxFuncs.getAllPSIChildrenOfType<KtDestructuringDeclaration>()
-            .map { Triple(it, it.text, it.initializer?.getType(ctx) ) }
+            .map { Triple(it, it.text, it.initializer?.getType(ctx)) }
             .filter { it.third != null && !it.third!!.isError } ?: listOf()
         val exprs = boxFuncs.getAllPSIChildrenOfType<KtExpression>()
             .filter { it !is KtProperty }
@@ -284,17 +208,6 @@ class AddNodesFromAnotherFiles : Transformation() {
         return addedNodes
     }
 
-    private fun tryToAdd(targetNode: PsiElement, psi: KtFile, placeToInsert: PsiElement): PsiElement? {
-        val block = psiFactory.createBlock(targetNode.text)
-        block.lBrace?.delete()
-        block.rBrace?.delete()
-        return AbstractTreeMutator(checker.compilers, checker.project.configuration).addNodeIfPossibleWithNode(
-            psi,
-            placeToInsert,
-            block
-        )
-    }
-
     private fun updateReplacement(nodes: List<PsiElement>, ctx: BindingContext) =
         nodes.flatMap { updateReplacement(it, ctx) }
 
@@ -307,21 +220,8 @@ class AddNodesFromAnotherFiles : Transformation() {
                         it.second.toString() !in blockListOfTypes &&
                         it.second?.toString()?.contains("name provided") == false
             }
-
-    private fun generateRandomName() = java.util.Random().getRandomVariableName(4)
-
-    private val blockListOfTypes = listOf("Unit", "Nothing", "Nothing?")
-
-    private fun isUserType(type: String) =
-        psi.getAllPSIChildrenOfType<KtClassOrObject>().find { it.name == type }
-
-    private fun <T> Collection<T>.randomOrNull(): T? = if (this.isEmpty()) null else this.random()
+            .filter { if (it is KtSimpleNameExpression) it.getReceiverExpression() == null else true }
 
     private fun Random.getTrue(prob: Int): Boolean =
         Random.nextInt(0, 100) < prob
-
-    private val randomConst = 3//Random.nextInt(700, 1000)
-    private var psi = PSICreator("").getPSIForText(file.text)
-    lateinit var usageExamples: List<Triple<KtExpression, String, KotlinType?>>
-    private val mutChecker = AbstractTreeMutator(checker.compilers, checker.project.configuration)
 }

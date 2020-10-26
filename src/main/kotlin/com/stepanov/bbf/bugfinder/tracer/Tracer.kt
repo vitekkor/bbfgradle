@@ -25,13 +25,14 @@ import com.stepanov.bbf.bugfinder.util.isBlockExpr
 import com.stepanov.bbf.bugfinder.util.replaceThis
 import java.lang.StringBuilder
 
-//TODO delete getType fun
+//TODO rewrite
+//replace on bytecode instumentation?
 class Tracer(val compiler: CommonCompiler, val project: Project) : KtVisitorVoid() {
 
     fun trace() {
         project.files.forEach {
             if (it.getLanguage() == LANGUAGE.KOTLIN) {
-                checker = MutationChecker(compiler, project, it)
+                checker = MutationChecker(compiler, project, it, false)
                 tree = it.psiFile as KtFile
                 ctx = it.ctx as BindingContext
                 it.changePsiFile(traceCurFile())
@@ -100,7 +101,6 @@ class Tracer(val compiler: CommonCompiler, val project: Project) : KtVisitorVoid
         val newFunc = factory.createFunction("override fun toString(): String")
         val block = factory.createBlock(newFun.toString())
         newFunc.node.addChild(block.node, null)
-        //TODO addIfPossible
         if (klass.body != null)
             checker.addNodeIfPossible(klass.body!!.rBrace!!, newFunc, true)
         else

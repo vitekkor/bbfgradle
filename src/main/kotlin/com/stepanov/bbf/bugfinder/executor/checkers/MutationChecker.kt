@@ -10,10 +10,17 @@ import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
 import org.apache.log4j.Logger
 
-open class MutationChecker(compilers: List<CommonCompiler>, val project: Project, var curFile: BBFFile) :
-    Checker(compilers) {
+open class MutationChecker(
+    compilers: List<CommonCompiler>,
+    val project: Project,
+    var curFile: BBFFile,
+    withTracesCheck: Boolean = true
+) :
+    Checker(compilers, withTracesCheck) {
 
     constructor(compiler: CommonCompiler, project: Project, curFile: BBFFile) : this(listOf(compiler), project, curFile)
+    constructor(compiler: CommonCompiler, project: Project, curFile: BBFFile, withTracesCheck: Boolean) :
+            this(listOf(compiler), project, curFile, withTracesCheck)
 
     fun checkCompiling() = checkCompilingWithBugSaving(project, curFile)
 

@@ -1,6 +1,5 @@
 package com.stepanov.bbf.bugfinder.generator.antrlgenerator
 
-import com.intellij.lang.ASTNode
 import com.stepanov.bbf.reduktor.util.getAllWithout
 import org.antlr.runtime.tree.CommonTree
 import org.antlr.v4.tool.Grammar
@@ -20,27 +19,21 @@ class Generator() {
         rules = rulesCollector.getRules()
     }
 
-    fun generate(randomNode: ASTNode): String {
+    fun generate(): String {
         val (lexer, parser) = loadGrammar(
             lexerGrammarPath = "tmp/grammar/KotlinLexer.g4",
             parserGrammarPath = "tmp/grammar/KotlinParser.g4"
         )
 
-        val codegen = CodeGen(rules.first, rules.second, rulesCollector.getBaseRule("ifExpression"), maxDepth = 30)
+        val codegen = CodeGen(rules.first, rules.second, rulesCollector.getBaseRule("kotlinFile"), maxDepth = 30)
         val code = codegen.gen()
-        println(code)
         val tokens = (lexer.ast.children[2] as GrammarAST).children.map { it as RuleAST }
         val tokensToValue = tokens.map { it.children.first().toString() to getFirstTerminalASTNode(it.children.last() as BlockAST) }
-//        for (v in tokensToValue) {
-//            print("Terminal for ${v.first} = ")
-//            println(getFirstTerminalASTNode(v.second))
-//        }
         val myCode = code.split(" ")
             .getAllWithout(0)
             .map { tokensToValue.toMap()[it] }.mapNotNull { it?.text }
             .map { if (it.contains("'\\n'")) "\n" else it.substringAfter('\'').substringBefore('\'') }
-        println(myCode.joinToString(""))
-        return code
+        return myCode.joinToString("")
     }
 
     private fun getFirstTerminalASTNode(node: CommonTree): TerminalAST? {

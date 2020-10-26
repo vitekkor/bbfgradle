@@ -1,11 +1,9 @@
 package com.stepanov.bbf.bugfinder.util
 
-import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.generator.constructor.util.StandardLibraryInheritanceTree
-import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.UsageSamplesGeneratorWithStLibrary
-import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.UsageSamplesGeneratorWithStLibrary.getDeclDescriptorOf
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary.getDeclDescriptorOf
 import com.stepanov.bbf.bugfinder.util.KotlinTypeCreator.createType
-import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.builtins.PrimitiveType
 import org.jetbrains.kotlin.builtins.UnsignedType
 import org.jetbrains.kotlin.psi.*
@@ -17,7 +15,6 @@ import org.jetbrains.kotlin.serialization.deserialization.descriptors.Deserializ
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.replace
 import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
-import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 import org.jetbrains.kotlin.types.typeUtil.substitute
 import kotlin.random.Random
 
@@ -184,7 +181,7 @@ object RandomTypeGenerator {
     val containers = listOf(
         "ArrayList", "List", "Set", "Map", "Array", "HashMap", "MutableMap",
         "HashSet", "LinkedHashMap", "LinkedHashSet", "Collection", "ArrayDeque",
-        "Pair", "Triple"
+        "Pair", "Triple", "Sequence"
     )
 
     private val typeParamComparator = Comparator { t1: KtTypeParameter, t2: KtTypeParameter ->

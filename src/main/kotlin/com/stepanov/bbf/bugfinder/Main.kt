@@ -1,23 +1,13 @@
 package com.stepanov.bbf.bugfinder
 
-import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.checkers.TracesChecker
-import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
-import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
-import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.manager.Bug
-import com.stepanov.bbf.bugfinder.manager.BugManager
-import com.stepanov.bbf.bugfinder.manager.BugType
-import com.stepanov.bbf.bugfinder.tracer.Tracer
-import com.stepanov.bbf.bugfinder.util.*
+import com.stepanov.bbf.bugfinder.util.FalsePositivesDeleter
+import com.stepanov.bbf.bugfinder.util.NodeCollector
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
-import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -34,8 +24,24 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
-//    val proj = Project.createFromCode(File("tmp/test.kt").readText())
-    //println(JSCompiler("").isCompilerBug(proj))
+
+//    repeat(100) {
+//        val code = Generator().generate()
+//        val psi = PSICreator("").getPSIForText(code, false)
+//        if (JVMCompiler("").isCompilerBug(psi.text)) {
+//            BugManager.saveBug(Bug(JVMCompiler(), "", Project.createFromCode(psi.text), BugType.FRONTEND))
+//            StatisticCollector.incField("Frontend")
+//        }
+//        if (JVMCompiler("").checkCompilingText(psi.text)) {
+//            StatisticCollector.incField("Correct programs")
+//        } else {
+//            StatisticCollector.incField("Incorrect programs")
+//        }
+//    }
+//    System.exit(0)
+//    val proj = Project.createFromCode(File("tmp/myTest.kt").readText())
+//    println(JVMCompiler("-Xuse-ir").isCompilerBug(proj))
+//    System.exit(0)
 //    val bug = Bug(listOf(JVMCompiler("-Xuse-ir")), "", proj, BugType.BACKEND)
 //    val reduced = Reducer.reduce(bug, false)
 //    println(reduced)

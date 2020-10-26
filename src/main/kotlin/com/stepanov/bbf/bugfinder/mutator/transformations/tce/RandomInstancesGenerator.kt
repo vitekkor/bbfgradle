@@ -1,4 +1,4 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.constructor
+package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
@@ -11,7 +11,6 @@ import org.jetbrains.kotlin.builtins.isExtensionFunctionType
 import org.jetbrains.kotlin.builtins.isFunctionType
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
-import org.jetbrains.kotlin.lexer.KtModifierKeywordToken
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getValueParameters
@@ -20,7 +19,6 @@ import org.jetbrains.kotlin.psi.psiUtil.isPrivate
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.descriptorUtil.classValueType
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.*
 import kotlin.random.Random
@@ -66,7 +64,13 @@ class RandomInstancesGenerator(private val file: KtFile) {
         func = newFile.getAllChildren().find { it.text.trim() == func.text.trim() } as? KtNamedFunction ?: return null
         val generatedParams = func.valueParameters
             .map { it.typeReference?.getAbbreviatedTypeOrType(ctx) }
-            .map { it?.let { generateValueOfType(it, depth + 1).let { if (it.trim().isEmpty()) return null } } ?: return null }
+            .map {
+                it?.let {
+                    generateValueOfType(it, depth + 1).let {
+                        if (it.trim().isEmpty()) return null else it
+                    }
+                } ?: return null
+            }
             .joinToString(", ")
         val generatedReciever =
             func.receiverTypeReference?.getAbbreviatedTypeOrType(ctx)?.let { generateValueOfType(it, depth + 1) + "." } ?: ""

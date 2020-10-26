@@ -2,9 +2,11 @@ package com.stepanov.bbf.bugfinder.executor.checkers
 
 import com.stepanov.bbf.bugfinder.executor.COMPILE_STATUS
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.tracer.Tracer
 
 open class CompilationChecker(val compilers: List<CommonCompiler>) /*: Checker()*/ {
 
@@ -15,6 +17,13 @@ open class CompilationChecker(val compilers: List<CommonCompiler>) /*: Checker()
     fun compileAndGetMessage(project: Project): String = compilers.first().getErrorMessage(project)
 
     fun compileAndGetStatuses(project: Project): List<COMPILE_STATUS> = compilers.map { it.tryToCompileWithStatus(project) }
+
+    fun checkTraces(project: Project): Boolean {
+        val compilers = CompilerArgs.getCompilersList()
+        val copyOfProject = project.copy()
+        Tracer(compilers.first(), copyOfProject).trace()
+        return TracesChecker(compilers).checkBehavior(copyOfProject)
+    }
 
     fun checkAndGetCompilerBugs(project: Project): List<Bug> {
         val res = mutableListOf<Bug>()

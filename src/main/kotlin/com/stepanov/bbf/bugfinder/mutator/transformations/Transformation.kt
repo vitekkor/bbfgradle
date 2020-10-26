@@ -13,7 +13,7 @@ abstract class Transformation {
             get() = checker.curFile.psiFile
 
         //val curProject = checker.project
-        val log = Logger.getLogger("mutatorLogger")
+        internal val log = Logger.getLogger("mutatorLogger")
     }
 
 }

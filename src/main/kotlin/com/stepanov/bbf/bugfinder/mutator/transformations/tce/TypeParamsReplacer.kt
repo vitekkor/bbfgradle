@@ -1,4 +1,4 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.constructor
+package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.RandomTypeGenerator
@@ -6,19 +6,11 @@ import com.stepanov.bbf.bugfinder.util.splitWithoutRemoving
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
-import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.asSimpleType
 import com.stepanov.bbf.bugfinder.util.flatMap
-import com.stepanov.bbf.bugfinder.util.removeDuplicatesBy
-import org.jetbrains.kotlin.backend.common.serialization.findPackage
-import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
 import org.jetbrains.kotlin.resolve.calls.components.isVararg
-import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
-import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
-import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 
 object TypeParamsReplacer {
 

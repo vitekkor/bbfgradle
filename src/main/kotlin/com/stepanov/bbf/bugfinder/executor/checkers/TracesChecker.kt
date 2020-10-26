@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.executor.checkers
 
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.manager.Bug
@@ -25,129 +26,7 @@ class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compil
         )
     }
 
-//    fun checkTest(text: String): List<CommonCompiler>? {
-//        var resText = text
-//        if (!resText.contains("fun main(")) {
-//            resText += "fun main(args: Array<String>) {\n" +
-//                    "    println(box())\n" +
-//                    "}"
-//        }
-//        val writer = BufferedWriter(FileWriter(CompilerArgs.pathToTmpFile))
-//        writer.write(resText)
-//        writer.close()
-//        val res = checkTest(resText, CompilerArgs.pathToTmpFile)
-//        File(CompilerArgs.pathToTmpFile).delete()
-//        return res
-//    }
-
-//    fun addMainForKJavaProject(project: Project): Nothing = TODO()
-//        Project(project.texts
-//            .map { it to it.getFileLanguageIfExist() }
-//            .map { if (it.second == LANGUAGE.KOTLIN) it.first to psiFactory.createFile(it.first) else it.first to null }
-//            .map {
-//                if (it.second?.getAllPSIChildrenOfType<KtNamedFunction>()
-//                        ?.any { it.name?.contains("box") == true } == true
-//                ) addMain(it.first) else
-//                    it.first
-//            }, null, LANGUAGE.KJAVA
-//        )
-
-
-//    fun addMainForProject(project: Project): Project = TODO()
-//    {
-//        if (project.language == LANGUAGE.KJAVA) return addMainForKJavaProject(project)
-//        if (project.texts.size == 1) {
-//            val newText = addMain(project.texts.first())
-//            return Project(listOf(newText))
-//        } else {
-//            val files = project.texts.map { psiFactory.createFile(it) }
-//            val boxFuncs = files.map { file ->
-//                file.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name?.contains("box") ?: false }!!
-//            }
-//            //Add import of box_I functions
-//            val firstFile = files.first()
-//            boxFuncs.forEachIndexed { i, func ->
-//                val `package` = (func.parents.find { it is KtFile } as KtFile).packageDirective?.fqName
-//                    ?: throw IllegalArgumentException("No package")
-//                val newImport =
-//                    psiFactory.createImportDirective(ImportPath(FqName("${`package`}.${func.name}"), false))
-//                firstFile.addImport(newImport)
-//            }
-//            firstFile.addMain(boxFuncs)
-//            return Project(files)
-//        }
-//    }
-
-//    fun compareTraces(project: Project): List<CommonCompiler>? = TODO()
-//    {
-//        val path = project.generateCommonName()
-//        //Check if already checked
-//        val text = project.getCommonText(path)
-//        val hash = text.hashCode()
-//        if (alreadyChecked.containsKey(hash)) {
-//            log.debug("ALREADY CHECKED!!!")
-//            return alreadyChecked[hash]!!
-//        }
-//
-//        //Add main
-//        val projectWithMain = addMainForProject(project)
-//        if (!isCompilationSuccessful(projectWithMain)) {
-//            log.debug("Cant compile with main")
-//            log.debug("Proj = ${projectWithMain.getCommonTextWithDefaultPath()}")
-//            return null
-//        }
-//        projectWithMain.saveOrRemoveToTmp(true)
-//        val results = mutableListOf<Pair<CommonCompiler, String>>()
-//        for (comp in compilers) {
-//            val status = comp.compile(path)
-//            if (status.status == -1) {
-//                clean(projectWithMain, status.pathToCompiled)
-//                return null
-//            }
-//            val res = comp.exec(status.pathToCompiled)
-//            val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
-//            log.debug("Result of ${comp.compilerInfo}: $res\n")
-//            log.debug("Errors: $errors")
-//            if (exclErrorMessages.any { errors.contains(it) }) {
-//                clean(projectWithMain, status.pathToCompiled)
-//                return null
-//            }
-//            results.add(comp to res.trim())
-//        }
-//        clean(projectWithMain, null)
-//        val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first })
-//        return if (groupedRes.size == 1) {
-//            null
-//        } else {
-//            val res = groupedRes.map { it.value.first() }
-//            alreadyChecked[hash] = res
-//            res
-//        }
-//    }
-
-
-//    fun checkTestForProject(commonPath: String): List<CommonCompiler>? = TODO()
-//    {
-//        val results = mutableListOf<Pair<CommonCompiler, String>>()
-//        for (comp in compilers) {
-//            val status = comp.compile(commonPath)
-//            if (status.status == -1)
-//                return null
-//            val res = comp.exec(status.pathToCompiled)
-//            val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
-//            log.debug("Result of ${comp.compilerInfo}: $res\n")
-//            log.debug("Errors: $errors")
-//            results.add(comp to res.trim())
-//        }
-//        val groupedRes = results.groupBy({ it.second }, valueTransform = { it.first })
-//        return if (groupedRes.size == 1) {
-//            null
-//        } else {
-//            groupedRes.map { it.value.first() }
-//        }
-//    }
-
-    fun checkBehavior(project: Project) {
+    fun checkBehavior(project: Project): Boolean {
         val groupedRes = checkTest(project)
         if (groupedRes.size > 1) {
             if (groupedRes.keys.first().split("\n").any { it.matches(Regex(""".+@[0-9a-z]""")) }) {
@@ -162,19 +41,27 @@ class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compil
                     BugType.DIFFBEHAVIOR
                 )
             )
+            return false
         }
+        if (CompilerArgs.isStrictMode && CompilerArgs.isMiscompilationMode) {
+            if (groupedRes.keys.firstOrNull() == "-1Exception") {
+                return false
+            }
+        }
+        return true
     }
 
     private fun checkTest(project: Project): Map<String, List<CommonCompiler>> {
         log.debug("Trying to compile with main function:")
         val extendedCompilerList = compilers + listOf(JVMCompiler("-Xno-optimize"))
         if (!extendedCompilerList.checkCompilingForAllBackends(project)) {
-            log.debug("Cannot compile with main")
+            log.debug("Cannot compile with main + \n$project")
             return mapOf()
         }
 
         log.debug("Executing traced code:\n$project")
         val results = mutableListOf<Pair<CommonCompiler, String>>()
+        val errorsMap = mutableListOf<Pair<CommonCompiler, String>>()
         for (comp in extendedCompilerList) {
             val status = comp.compile(project)
             if (status.status == -1)
@@ -186,6 +73,10 @@ class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compil
             if (exclErrorMessages.any { errors.contains(it) })
                 return mapOf()
             results.add(comp to res.trim())
+            errorsMap.add(comp to errors.trim())
+        }
+        if (results.all { it.second.trim().isEmpty() }) {
+            return mapOf("-1Exception" to listOf())
         }
 //        //Compare with java
 //        if (CompilerArgs.useJavaAsOracle) {

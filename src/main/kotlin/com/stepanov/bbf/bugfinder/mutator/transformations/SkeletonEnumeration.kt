@@ -55,13 +55,15 @@ class SkeletonEnumeration : Transformation() {
     private fun shuffle(): Boolean {
         val (key1, value1) = programInfo.entries.randomOrNull() ?: return false
         val randomValue = value1.third.randomOrNull() ?: return false
+        val rvDepth = getDepth(randomValue)
 //        if (!checkBinExp(key1, randomValue)) return false
         val avProps = getSlice(randomValue)
             .filter { it is KtProperty || it is KtParameter }
             .map { it as KtNamedDeclaration }
             .mapNotNull { it.nameIdentifier }
+            .filter { getDepth(it) <= rvDepth }
         val replacement = programInfo.entries.filter { it.key in avProps }
-            .filter { it.value.first == value1.first }
+            //.filter { it.value.first == value1.first }
             .randomOrNull() ?: return false
         val replacementNode = replacement.value.third.randomOrNull() ?: return false
         if (!checkBinExp(replacement.key, randomValue)) return false
@@ -115,7 +117,7 @@ class SkeletonEnumeration : Transformation() {
         return null
     }
 
-    private fun getDepth(el: PsiElement) = el.parents.count { it is KtBlockExpression }
+    private fun getDepth(el: PsiElement) = el.parents.count { it is KtBlockExpression || it is KtClassBody }
 
     private val programInfo: MutableMap<PsiElement, UsageInfo> = mutableMapOf()
 

@@ -4,7 +4,7 @@ import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
-import com.stepanov.bbf.bugfinder.mutator.transformations.constructor.AddNodesFromAnotherFiles
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.AddNodesFromAnotherFiles
 import org.apache.log4j.Logger
 import kotlin.random.Random
 
@@ -52,13 +52,13 @@ class Mutator(val project: Project) {
     }
 
     private fun startKotlinMutations() {
-        executeMutation(SkeletonEnumeration(), 100)
-        return
-//        executeMutation(AddNodesFromAnotherFiles(), 100)
+//        executeMutation(SkeletonEnumeration(), 100)
+//        return
+        executeMutation(AddNodesFromAnotherFiles(), 100)
 //        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 25)
-        for (i in 0 until Random.nextInt(1, 3)) {
-            transformations.shuffled().forEach { executeMutation(it.first, it.second) }
-        }
+//        for (i in 0 until Random.nextInt(1, 3)) {
+//            transformations.shuffled().forEach { executeMutation(it.first, it.second) }
+//        }
 //        //Set of transformations over PSI
 //        executeMutation(AddNullabilityTransformer())
 //        executeMutation(AddPossibleModifiers())

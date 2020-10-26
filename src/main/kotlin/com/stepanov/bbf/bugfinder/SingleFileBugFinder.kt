@@ -1,5 +1,7 @@
 package com.stepanov.bbf.bugfinder
 
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.checkers.TracesChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
@@ -42,9 +44,11 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
 //                File(pathToSave).writeText(resultingMutant.text)
 //            }
             log.debug("Mutated = $project")
-            Tracer(compilers.first(), project).trace()
-            log.debug("Traced = $project")
-            TracesChecker(compilers).checkBehavior(project)
+            if (!CompilerArgs.isMiscompilationMode) {
+                Tracer(compilers.first(), project).trace()
+                log.debug("Traced = $project")
+                TracesChecker(compilers).checkBehavior(project)
+            }
             return
         } catch (e: Error) {
             log.debug("ERROR: $e")

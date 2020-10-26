@@ -1,4 +1,4 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.constructor
+package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.findFunByName
@@ -33,6 +33,7 @@ object UsagesSamplesGenerator {
         klassInstances: List<Triple<KtExpression, String, KotlinType?>>
     ) {
         for (func in file.getAllPSIChildrenOfType<KtNamedFunction>().filter { it.isTopLevel }) {
+            if (func.name?.startsWith("box") == true) continue
             val (instance, valueParams) = generator.generateTopLevelFunctionCall(func) ?: continue
             val valueArgs =
                 if (instance is KtCallExpression) instance.valueArguments
