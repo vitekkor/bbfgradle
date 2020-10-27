@@ -1,5 +1,6 @@
 package com.stepanov.bbf.bugfinder
 
+import com.stepanov.bbf.bugfinder.abiComparator.tasks.JarTask
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.util.FalsePositivesDeleter
 import com.stepanov.bbf.bugfinder.util.NodeCollector
@@ -8,7 +9,13 @@ import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
+import com.stepanov.bbf.bugfinder.abiComparator.tasks.checkerConfiguration
+import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import java.io.File
+import java.util.jar.JarFile
 import kotlin.system.exitProcess
 
 //fun compile(compiler: CommonCompiler, path: String) {
@@ -24,6 +31,32 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
+
+    File("tmp/arrays/classTests").listFiles().filter { it.absolutePath.endsWith("kt") }.sortedBy { it.absolutePath }.forEach { f1 ->
+        println("LOL")
+        println(f1.absolutePath)
+        val proj = Project.createFromCode(f1.readText())
+        if (proj.files.size != 1) return@forEach
+        val checker = MutationChecker(JVMCompiler(), proj)
+        checker.checkCompiling()
+    }
+//    val checkerConfiguration = checkerConfiguration {}
+////    println("Checkers:")
+////    println(checkerConfiguration.enabledCheckers.joinToString(separator = "\n") { " * ${it.name}" })
+//    val c1 = JVMCompiler("")
+//    c1.pathToCompiled = "tmp/tmp1.jar"
+//    val c2 = JVMCompiler("-Xuse-ir")
+//    c2.pathToCompiled = "tmp/tmp2.jar"
+//    val c1r = c1.compile(proj)
+//    val c2r = c2.compile(proj)
+//    println(c1r)
+//    println(c2r)
+//    val jar1 = JarFile("tmp/tmp1.jar")
+//    val jar2 = JarFile("tmp/tmp2.jar")
+//    val task = JarTask("", jar1, jar2, c1.compilerInfo, c2.compilerInfo, File("tmp/report.html"), checkerConfiguration {})
+//    task.execute()
+//
+//    System.exit(0)
 
 //    repeat(100) {
 //        val code = Generator().generate()

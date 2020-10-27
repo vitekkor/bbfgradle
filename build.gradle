@@ -1,6 +1,6 @@
 buildscript {
     //Do not forget to update intellij core
-    ext.kotlin_version = '1.4.10'
+    ext.kotlin_version = '1.4.20-RC-211'
     ext.kotlin_plugin_version = '1.4.10'
     repositories {
         maven() {
@@ -13,14 +13,23 @@ buildscript {
     }
 
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_plugin_version"
+        classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_plugin_version"
+    }
+
+    //ABI COMPARATOR
+    ext {
+        asm_debug_version = '6.0_BETA'
+        apache_commons_text_version = '1.8'
+        kotlinx_metadata_version = '0.1.0'
+        diff_version = '4.5'
     }
 }
 
 plugins {
     id 'java'
 //    id 'org.jetbrains.kotlin.jvm'
+    id 'org.jetbrains.kotlin.jvm' version "$kotlin_plugin_version"
     id 'application'
 }
 
@@ -82,7 +91,7 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-core:1.0.0-RC"
 
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlin_version}"
-    compile group: 'com.android.tools.external.com-intellij', name: 'intellij-core', version: '27.1.0-alpha10'
+    compile group: 'com.android.tools.external.com-intellij', name: 'intellij-core', version: '27.1.0'
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-compiler', version: "${kotlin_version}"
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-compiler-embeddable', version: "${kotlin_version}"
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-test', version: "${kotlin_version}"
@@ -111,6 +120,12 @@ dependencies {
     compile "org.apache.maven:maven-aether-provider:3.3.3"
 
     compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
+
+    //AbiComparator
+    implementation "org.ow2.asm:asm-debug-all:$asm_debug_version"
+    implementation "org.apache.commons:commons-text:$apache_commons_text_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-metadata-jvm:$kotlinx_metadata_version"
+    implementation "io.github.java-diff-utils:java-diff-utils:$diff_version"
 
     //Test
     testCompile group: 'junit', name: 'junit', version: '4.12'

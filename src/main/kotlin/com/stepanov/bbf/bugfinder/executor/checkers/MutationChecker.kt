@@ -21,6 +21,8 @@ open class MutationChecker(
     constructor(compiler: CommonCompiler, project: Project, curFile: BBFFile) : this(listOf(compiler), project, curFile)
     constructor(compiler: CommonCompiler, project: Project, curFile: BBFFile, withTracesCheck: Boolean) :
             this(listOf(compiler), project, curFile, withTracesCheck)
+    constructor(compiler: CommonCompiler, project: Project) : this(compiler, project, project.files.first())
+    constructor(compilers: List<CommonCompiler>, project: Project) : this(compilers, project, project.files.first())
 
     fun checkCompiling() = checkCompilingWithBugSaving(project, curFile)
 

@@ -19,8 +19,7 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
     override val compilerInfo: String
         get() = "KJVM $arguments"
 
-    override val pathToCompiled: String
-        get() = "tmp/tmp.jar"
+    override var pathToCompiled: String = "tmp/tmp.jar"
 
 //    fun compile(path: String, includeRuntime: Boolean): CompilingResult {
 //        val kotlinCompiled = super.compile(path, includeRuntime)

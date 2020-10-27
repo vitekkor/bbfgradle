@@ -30,8 +30,7 @@ class JSCompiler(private val arguments: String = "") : CommonCompiler() {
     override val compilerInfo: String
         get() = "JS $arguments"
 
-    override val pathToCompiled: String
-        get() = "tmp/tmp.js"
+    override var pathToCompiled: String = "tmp/tmp.js"
 
     override fun checkCompiling(project: Project): Boolean {
         val status = tryToCompile(project)

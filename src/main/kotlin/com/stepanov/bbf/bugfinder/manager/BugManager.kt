@@ -16,7 +16,8 @@ enum class BugType {
     FRONTEND,
     DIFFBEHAVIOR,
     UNKNOWN,
-    DIFFCOMPILE
+    DIFFCOMPILE,
+    DIFFABI
 }
 
 data class Bug(val compilers: List<CommonCompiler>, val msg: String, val crashedProject: Project, val type: BugType) {
@@ -40,6 +41,7 @@ data class Bug(val compilers: List<CommonCompiler>, val msg: String, val crashed
                 when (type) {
                     BugType.DIFFBEHAVIOR -> "diffBehavior"
                     BugType.DIFFCOMPILE -> "diffCompile"
+                    BugType.DIFFABI -> "diffABI"
                     BugType.FRONTEND, BugType.BACKEND -> compilers.first().compilerInfo.filter { it != ' ' }
                     else -> ""
                 }
@@ -122,7 +124,7 @@ object BugManager {
                 else -> ""
             }
             if (field.isNotEmpty()) StatisticCollector.incField(field)
-            println("SAVING BUG")
+            println("SAVING ${bug.type} BUG")
             if (ReportProperties.getPropAsBoolean("SAVE_STATS") == true) saveStats()
             //Check if bug is real project bug
             val newBug = bug//checkIfBugIsProject(bug)

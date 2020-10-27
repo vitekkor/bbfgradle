@@ -30,8 +30,8 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
     override val compilerInfo: String
         get() = "JVM $arguments"
 
-    override val pathToCompiled: String
-        get() = "tmp/tmp.jar"
+    override var pathToCompiled: String = "tmp/tmp.jar"
+        //get() =
 
 
     override fun checkCompiling(project: Project): Boolean {
@@ -85,7 +85,7 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
                 .filter { it.isNotEmpty() }
                 .toSet().toList()
                 .joinToString(":")
-        projectArgs.jvmTarget = "11"
+        projectArgs.jvmTarget = "1.8"
         if (project.configuration.jvmDefault.isNotEmpty())
             projectArgs.jvmDefault = project.configuration.jvmDefault.substringAfter(Directives.jvmDefault)
         return projectArgs

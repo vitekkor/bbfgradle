@@ -38,10 +38,14 @@ object FileReporter : Reporter {
                 BugType.BACKEND, BugType.FRONTEND -> "$resDir${bug.compilerVersion.filter { it != ' ' }}/${bug.type.name}_$name.kt"
                 BugType.DIFFCOMPILE -> "$resDir/diffCompile/$name.kt"
                 BugType.DIFFBEHAVIOR -> "$resDir/diffBehavior/$name.kt"
+                BugType.DIFFABI -> "$resDir/diffABI/$name.kt"
                 else -> return
             }
             File(newPath.substringBeforeLast('/')).mkdirs()
             val info = "// Bug happens on ${bug.compilerVersion}"
+            if (bug.type == BugType.DIFFABI) {
+                File(newPath.replaceAfter('.', "html")).writeText(bug.msg)
+            }
             File(newPath).writeText("$info\n${bug.crashedProject.moveAllCodeInOneFile()}")
         }
     }

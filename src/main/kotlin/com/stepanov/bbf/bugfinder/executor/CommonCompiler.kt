@@ -28,7 +28,7 @@ abstract class CommonCompiler {
     abstract fun exec(path: String, streamType: Stream = Stream.INPUT): String
 
     abstract val compilerInfo: String
-    abstract val pathToCompiled: String
+    abstract var pathToCompiled: String
 
     fun getErrorMessage(project: Project): String = getErrorMessageWithLocation(project).first
     fun getErrorMessageForText(text: String): String = getErrorMessageForTextWithLocation(text).first

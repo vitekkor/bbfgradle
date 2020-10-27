@@ -104,6 +104,9 @@ object CompilerArgs {
     val isMiscompilationMode = getPropAsBoolean("MISCOMPILATION_MODE")
     val isStrictMode = getPropAsBoolean("STRICT_MODE")
 
+    //ABI
+    val isABICheckMode = getPropAsBoolean("ABI_CHECK_MODE")
+
     //ORACLE
     val useJavaAsOracle = getPropAsBoolean("USE_JAVA_AS_ORACLE")
 

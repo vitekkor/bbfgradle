@@ -2,11 +2,14 @@ package com.stepanov.bbf.bugfinder.executor
 
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs.isABICheckMode
 import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
+import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.StatisticCollector
 import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
@@ -72,6 +75,18 @@ open class Checker(compilers: List<CommonCompiler>, private val withTracesCheck:
         val statuses = compileAndGetStatuses(project)
         when {
             statuses.all { it == COMPILE_STATUS.OK } -> {
+                if (isABICheckMode) {
+                    checkABI(project)?.let { res ->
+                        BugManager.saveBug(
+                            Bug(
+                                CompilerArgs.getCompilersList(),
+                                res.second.readText(),
+                                project,
+                                BugType.DIFFABI
+                            )
+                        )
+                    }
+                }
                 if (withTracesCheck && CompilerArgs.isMiscompilationMode) {
                     val checkRes = checkTraces(project)
                     checkedConfigurations[allTexts] = checkRes

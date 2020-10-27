@@ -1,5 +1,7 @@
 package com.stepanov.bbf.bugfinder.executor.checkers
 
+import com.stepanov.bbf.bugfinder.abiComparator.tasks.JarTask
+import com.stepanov.bbf.bugfinder.abiComparator.tasks.checkerConfiguration
 import com.stepanov.bbf.bugfinder.executor.COMPILE_STATUS
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
@@ -7,6 +9,8 @@ import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.tracer.Tracer
+import java.io.File
+import java.util.jar.JarFile
 
 open class CompilationChecker(val compilers: List<CommonCompiler>) /*: Checker()*/ {
 
@@ -16,13 +20,37 @@ open class CompilationChecker(val compilers: List<CommonCompiler>) /*: Checker()
 
     fun compileAndGetMessage(project: Project): String = compilers.first().getErrorMessage(project)
 
-    fun compileAndGetStatuses(project: Project): List<COMPILE_STATUS> = compilers.map { it.tryToCompileWithStatus(project) }
+    fun compileAndGetStatuses(project: Project): List<COMPILE_STATUS> =
+        compilers.map { it.tryToCompileWithStatus(project) }
 
     fun checkTraces(project: Project): Boolean {
         val compilers = CompilerArgs.getCompilersList()
         val copyOfProject = project.copy()
         Tracer(compilers.first(), copyOfProject).trace()
         return TracesChecker(compilers).checkBehavior(copyOfProject)
+    }
+
+    fun checkABI(project: Project): Pair<Int, File>? {
+        val compilers = CompilerArgs.getCompilersList()
+        if (compilers.size != 2) return null
+        val compiled = compilers.mapIndexed { index, comp ->
+            comp.pathToCompiled =
+                comp.pathToCompiled.replace(".jar", "$index.jar")
+            comp.compile(project).pathToCompiled
+        }
+        if (compiled.any { it == "" }) return null
+        val jars = compiled.map { JarFile(it) }
+        val task =
+            JarTask(
+                "",
+                jars.first(),
+                jars.last(),
+                compilers.first().compilerInfo,
+                compilers.last().compilerInfo,
+                File("tmp/report.html"),
+                checkerConfiguration {}
+            )
+        return task.execute()
     }
 
     fun checkAndGetCompilerBugs(project: Project): List<Bug> {
