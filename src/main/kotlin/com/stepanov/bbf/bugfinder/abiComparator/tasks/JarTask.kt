@@ -36,8 +36,10 @@ class JarTask(
 
     private val names1 = HashSet<String>()
 
+    private val log = Logger.getLogger("mutatorLogger")
+
     override fun run() {
-        println("Comparing jars: ${jarFile1.name}, ${jarFile2.name}")
+        log.debug("Comparing jars: ${jarFile1.name}, ${jarFile2.name}")
 
         addJarsInfo()
 
@@ -47,10 +49,24 @@ class JarTask(
         writeReportIfRequired()
     }
 
+    fun execute(): Pair<Int, File>? {
+        log.debug("Comparing jars: ${jarFile1.name}, ${jarFile2.name}")
+
+        addJarsInfo()
+
+        checkJarFile1()
+        checkJarFile2()
+
+        if (totalDiffs == 0) return null
+        writeReportIfRequired()
+        return totalDiffs to outputFile
+    }
+
     private fun checkJarFile1() {
         jarFile1.stream().forEach { entry1 ->
             val name1 = entry1.name
             if (name1.endsWith(".class")) {
+                if (name1.contains("kotlin/")) return@forEach
                 names1.add(name1)
                 val entry2 = jarFile2.getEntry(name1)
                 if (entry2 == null) {
@@ -64,7 +80,7 @@ class JarTask(
                     val class2 = parseClassNode(jarFile2.getInputStream(entry2))
 
                     if (!class1.shouldBeIgnored() || !class2.shouldBeIgnored()) {
-                        println("Comparing classes: ${class1.name}")
+                        log.debug("Comparing classes: ${class1.name}")
                         val classReport = report.classReport(class1.name)
                         val classTask = ClassTask(checkerConfiguration, class1, class2, classReport)
                         classTask.run()
@@ -72,7 +88,7 @@ class JarTask(
                             ++totalDiffs
                         }
                     } else {
-                        println("Skipping $name1")
+                        log.debug("Skipping $name1")
                     }
                 }
             }
@@ -86,6 +102,7 @@ class JarTask(
         jarFile2.stream().forEach { entry2 ->
             val name2 = entry2.name
             if (name2.endsWith(".class") && name2 !in names1) {
+                if (name2.contains("kotlin/")) return@forEach
                 val classNode = parseClassNode(jarFile2.getInputStream(entry2))
                 if (!classNode.shouldBeIgnored()) {
                     report.addMissingClassName1("$name2 ${classNode.access.classFlags()}")
@@ -96,6 +113,7 @@ class JarTask(
     }
 
     private fun writeReportIfRequired() {
+        println("TD = ${totalDiffs}")
         if (report.isNotEmpty()) {
             PrintWriter(outputFile).use { out ->
                 out.tag("html") {
