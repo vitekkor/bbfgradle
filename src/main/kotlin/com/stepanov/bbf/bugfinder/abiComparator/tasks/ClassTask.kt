@@ -1,12 +1,11 @@
 package com.stepanov.bbf.bugfinder.abiComparator.tasks
 
+import com.stepanov.bbf.bugfinder.abiComparator.checkers.loadFields
+import com.stepanov.bbf.bugfinder.abiComparator.checkers.loadMethods
 import com.stepanov.bbf.bugfinder.abiComparator.classFlags
 import com.stepanov.bbf.bugfinder.abiComparator.isSynthetic
-import com.stepanov.bbf.bugfinder.abiComparator.listOfNotNull
 import com.stepanov.bbf.bugfinder.abiComparator.reports.ClassReport
 import com.stepanov.bbf.bugfinder.abiComparator.tag
-import com.stepanov.bbf.bugfinder.abiComparator.tasks.FieldTask
-import com.stepanov.bbf.bugfinder.abiComparator.tasks.MethodTask
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.FieldNode
 import org.objectweb.asm.tree.MethodNode
@@ -43,9 +42,8 @@ class ClassTask(
     }
 
     private fun checkMethods() {
-        val methods1 = class1.methods.listOfNotNull<MethodNode>().associateBy { it.methodId() }
-        val methods2 = class2.methods.listOfNotNull<MethodNode>().associateBy { it.methodId() }
-
+        val methods1 = class1.loadMethods()
+        val methods2 = class2.loadMethods()
 
         val commonIds = methods1.keys.intersect(methods2.keys).sorted()
         for (id in commonIds) {
@@ -58,8 +56,8 @@ class ClassTask(
     }
 
     private fun checkFields() {
-        val fields1 = class1.fields.listOfNotNull<FieldNode>().associateBy { it.fieldId() }
-        val fields2 = class2.fields.listOfNotNull<FieldNode>().associateBy { it.fieldId() }
+        val fields1 = class1.loadFields()
+        val fields2 = class2.loadFields()
 
         val commonIds = fields1.keys.intersect(fields2.keys).sorted()
         for (id in commonIds) {
