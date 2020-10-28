@@ -1,6 +1,8 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.FalsePositivesDeleter
 import com.stepanov.bbf.bugfinder.util.NodeCollector
 import net.sourceforge.argparse4j.ArgumentParsers
@@ -39,8 +41,9 @@ fun main(args: Array<String>) {
 //        }
 //    }
 //    System.exit(0)
-//    val proj = Project.createFromCode(File("tmp/myTest.kt").readText())
-//    println(JVMCompiler("-Xuse-ir").isCompilerBug(proj))
+    val proj = Project.createFromCode(File("tmp/test.kt").readText())
+    println(JVMCompiler("-Xuse-ir").isCompilerBug(proj))
+    System.exit(0)
 //    System.exit(0)
 //    val bug = Bug(listOf(JVMCompiler("-Xuse-ir")), "", proj, BugType.BACKEND)
 //    val reduced = Reducer.reduce(bug, false)

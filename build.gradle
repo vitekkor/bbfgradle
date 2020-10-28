@@ -59,6 +59,7 @@ apply plugin: 'kotlinx-serialization'
 
 ext {
     aetherVersion = '1.1.0'
+    intellij_core_version = '27.1.0'
     javaMainClass = "com.stepanov.bbf.bugfinder.MainKt"
 }
 
@@ -82,7 +83,7 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-core:1.0.0-RC"
 
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlin_version}"
-    compile group: 'com.android.tools.external.com-intellij', name: 'intellij-core', version: '27.1.0-alpha10'
+    compile group: 'com.android.tools.external.com-intellij', name: 'intellij-core', version: "${intellij_core_version}"
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-compiler', version: "${kotlin_version}"
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-compiler-embeddable', version: "${kotlin_version}"
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-test', version: "${kotlin_version}"
