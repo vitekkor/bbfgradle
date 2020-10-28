@@ -1,6 +1,6 @@
 buildscript {
     //Do not forget to update intellij core
-    ext.kotlin_version = '1.4.20-RC-211'
+    ext.kotlin_version = '1.4.30-dev-1895'
     ext.kotlin_plugin_version = '1.4.10'
     repositories {
         maven() {
@@ -41,6 +41,9 @@ sourceCompatibility = 11
 repositories {
     mavenCentral()
     jcenter()
+    maven() {
+        url "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap/"
+    }
     maven() {
         url "https://dl.google.com/dl/android/maven2"
     }
