@@ -106,6 +106,7 @@ object CompilerArgs {
 
     //ABI
     val isABICheckMode = getPropAsBoolean("ABI_CHECK_MODE")
+    val ignoreMissingClosureConvertedMethod = getPropAsBoolean("IGNORE_MISSING_CLOSURE_CONVERTED_METHOD")
 
     //ORACLE
     val useJavaAsOracle = getPropAsBoolean("USE_JAVA_AS_ORACLE")

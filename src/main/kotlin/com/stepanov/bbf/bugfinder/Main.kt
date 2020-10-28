@@ -40,6 +40,7 @@ fun main(args: Array<String>) {
         val checker = MutationChecker(JVMCompiler(), proj)
         checker.checkCompiling()
     }
+    exitProcess(0)
 //    val checkerConfiguration = checkerConfiguration {}
 ////    println("Checkers:")
 ////    println(checkerConfiguration.enabledCheckers.joinToString(separator = "\n") { " * ${it.name}" })
