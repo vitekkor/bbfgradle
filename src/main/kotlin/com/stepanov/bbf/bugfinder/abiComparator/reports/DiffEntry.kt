@@ -1,9 +1,0 @@
-package com.stepanov.bbf.bugfinder.abiComparator.reports
-
-class DiffEntry(val value1: String, val value2: String)
-
-class NamedDiffEntry(val name: String, val value1: String, val value2: String)
-
-class ListDiff(val diff1: List<String>, val diff2: List<String>)
-
-class TextDiffEntry(val lines1: List<String>, val lines2: List<String>)

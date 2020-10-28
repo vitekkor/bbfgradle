@@ -1,6 +1,5 @@
 package com.stepanov.bbf.bugfinder
 
-import com.stepanov.bbf.bugfinder.abiComparator.tasks.JarTask
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.util.FalsePositivesDeleter
 import com.stepanov.bbf.bugfinder.util.NodeCollector
@@ -9,11 +8,16 @@ import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
-import com.stepanov.bbf.bugfinder.abiComparator.tasks.checkerConfiguration
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.util.addToTheTop
+import com.stepanov.bbf.bugfinder.util.replaceThis
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import org.jetbrains.kotlin.abicmp.MySummaryReport
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 import java.util.jar.JarFile
 import kotlin.system.exitProcess
@@ -32,13 +36,21 @@ fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
 
-    File("tmp/arrays/classTests").listFiles().filter { it.absolutePath.endsWith("kt") }.sortedBy { it.absolutePath }.forEach { f1 ->
+    File("/home/stepanov/Kotlin/bbfgradle/tmp/results/diffABI/filesWithBugs").listFiles().filter { it.absolutePath.endsWith("kt") }.sortedBy { it.absolutePath }.forEach { f1 ->
         println("LOL")
         println(f1.absolutePath)
         val proj = Project.createFromCode(f1.readText())
         if (proj.files.size != 1) return@forEach
+        //Change package directive
+        val psi = proj.files.first().psiFile as KtFile
+        val packageDir = Factory.psiFactory.createPackageDirective(FqName(f1.name.substringBefore('_')))
+        //println(packageDir.text)
+        if (psi.packageDirective?.text?.trim()?.isEmpty() == true) {
+            psi.addToTheTop(packageDir)
+        } else psi.packageDirective!!.replaceThis(packageDir)
         val checker = MutationChecker(JVMCompiler(), proj)
         checker.checkCompiling()
+        MySummaryReport.writeSummary()
     }
     exitProcess(0)
 //    val checkerConfiguration = checkerConfiguration {}

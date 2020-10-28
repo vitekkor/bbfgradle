@@ -1,7 +1,5 @@
 package com.stepanov.bbf.bugfinder.executor.checkers
 
-import com.stepanov.bbf.bugfinder.abiComparator.tasks.JarTask
-import com.stepanov.bbf.bugfinder.abiComparator.tasks.checkerConfiguration
 import com.stepanov.bbf.bugfinder.executor.COMPILE_STATUS
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
@@ -9,6 +7,9 @@ import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.tracer.Tracer
+import org.jetbrains.kotlin.abicmp.MySummaryReport
+import org.jetbrains.kotlin.abicmp.tasks.JarTask
+import org.jetbrains.kotlin.abicmp.tasks.checkerConfiguration
 import java.io.File
 import java.util.jar.JarFile
 
@@ -50,7 +51,9 @@ open class CompilationChecker(val compilers: List<CommonCompiler>) /*: Checker()
                 File("tmp/report.html"),
                 checkerConfiguration {}
             )
-        return task.execute()
+        val execRes = task.execute()
+        MySummaryReport.summary.add(task.defectReport)
+        return execRes
     }
 
     fun checkAndGetCompilerBugs(project: Project): List<Bug> {
