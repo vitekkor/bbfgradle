@@ -39,7 +39,7 @@ open class Checker(compilers: List<CommonCompiler>, private val withTracesCheck:
     //FALSE IF ERROR
     private fun checkSyntaxCorrectnessAndAddCond(project: Project, curFile: BBFFile?) =
         curFile?.let {
-            createPsiAndCheckOnErrors(curFile.text, curFile.text.getFileLanguageIfExist() ?: LANGUAGE.KOTLIN)
+            createPsiAndCheckOnErrors(curFile.text, curFile.getLanguage())
         } ?: project.files.any { createPsiAndCheckOnErrors(it.text, it.getLanguage()) }
 
 
@@ -87,11 +87,11 @@ open class Checker(compilers: List<CommonCompiler>, private val withTracesCheck:
                         )
                     }
                 }
-                if (withTracesCheck && CompilerArgs.isMiscompilationMode) {
-                    val checkRes = checkTraces(project)
-                    checkedConfigurations[allTexts] = checkRes
-                    return checkRes
-                }
+//                if (withTracesCheck && CompilerArgs.isMiscompilationMode) {
+//                    val checkRes = checkTraces(project)
+//                    checkedConfigurations[allTexts] = checkRes
+//                    return checkRes
+//                }
                 StatisticCollector.incField("Correct programs")
                 checkedConfigurations[allTexts] = true
                 return true

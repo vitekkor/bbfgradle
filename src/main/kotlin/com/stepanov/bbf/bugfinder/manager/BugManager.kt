@@ -169,6 +169,7 @@ object BugManager {
                 dirWithSameBugs,
                 bug.compilers.first()
             )
+            BugType.DIFFABI -> return FilterDuplcatesCompilerErrors.haveSameDiffABIErrors(bug)
         }
         return false
     }

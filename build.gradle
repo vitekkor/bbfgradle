@@ -1,6 +1,6 @@
 buildscript {
     //Do not forget to update intellij core
-    ext.kotlin_version = '1.4.30-dev-1895'
+    ext.kotlin_version = '1.4.30-dev-2196'
     ext.kotlin_plugin_version = '1.4.10'
     repositories {
         maven() {
@@ -89,7 +89,6 @@ dependencies {
     compile group: 'org.antlr', name: 'antlr4-runtime', version: '4.8-1'
     compile group: 'org.antlr', name: 'antlr4', version: '4.8-1'
 
-
     //Serialization
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-core:1.0.0-RC"
 
@@ -125,6 +124,7 @@ dependencies {
     compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
 
     //AbiComparator
+    compile group: 'org.jsoup', name: 'jsoup', version: '1.13.1'
     implementation "org.ow2.asm:asm-debug-all:$asm_debug_version"
     implementation "org.apache.commons:commons-text:$apache_commons_text_version"
     implementation "org.jetbrains.kotlinx:kotlinx-metadata-jvm:$kotlinx_metadata_version"

@@ -17,7 +17,8 @@ class ChangeArgToAnotherValue : Transformation() {
                     if (argInd < f.valueParameters.size) {
                         val type = f.valueParameters[argInd].typeReference?.text ?: return@forEachIndexed
                         val newRandomValue = generateDefValuesAsString(type)
-                        if (newRandomValue.isEmpty()) return@forEachIndexed
+                        log.debug("generated value for type $type is $newRandomValue")
+                        if (newRandomValue.trim().isEmpty()) return@forEachIndexed
                         val newArg = psiFactory.createArgument(newRandomValue)
                         checker.replacePSINodeIfPossible(arg, newArg)
                     }

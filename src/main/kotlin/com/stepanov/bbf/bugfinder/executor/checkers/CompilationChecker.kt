@@ -31,12 +31,14 @@ open class CompilationChecker(val compilers: List<CommonCompiler>) /*: Checker()
         return TracesChecker(compilers).checkBehavior(copyOfProject)
     }
 
+    //${Kostyl.name.substringBefore("_")}$index.jar"
     fun checkABI(project: Project): Pair<Int, File>? {
         val compilers = CompilerArgs.getCompilersList()
         if (compilers.size != 2) return null
         val compiled = compilers.mapIndexed { index, comp ->
             comp.pathToCompiled =
                 comp.pathToCompiled.replace(".jar", "$index.jar")
+                //comp.pathToCompiled.replace("tmp.jar", "${Kostyl.name.substringBefore("_")}$index.jar")
             comp.compile(project).pathToCompiled
         }
         if (compiled.any { it == "" }) return null

@@ -15,6 +15,7 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
+import org.jetbrains.kotlin.resolve.scopes.computeAllNames
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedCallableMemberDescriptor
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedPropertyDescriptor
@@ -26,6 +27,7 @@ import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 object UsageSamplesGeneratorWithStLibrary {
 
     val descriptorDecl: List<DeclarationDescriptor>
+    val klasses: List<ClassDescriptor>
 
     init {
         val (psi, ctx) = PSICreator("").let { it.getPSIForText("val a: StringBuilder = StringBuilder(\"\")") to it.ctx!! }
@@ -35,6 +37,7 @@ object UsageSamplesGeneratorWithStLibrary {
         val stringPackages = module.getSubPackagesOf(FqName("kotlin")) { true } + listOf(FqName("kotlin"))
         val packages = stringPackages.map { module.getPackage(it) }
         descriptorDecl = packages.flatMap { it.memberScope.getDescriptorsFiltered { true } }
+        klasses = descriptorDecl.filterIsInstance<DeserializedClassDescriptor>()
     }
 
     fun generateForStandardType(type: KotlinType, needType: String): List<List<CallableDescriptor>> {
@@ -44,12 +47,37 @@ object UsageSamplesGeneratorWithStLibrary {
         return res.removeDuplicatesBy { it.joinToString { it.name.asString() } }
     }
 
+    fun findPackageForType(type: String): PackageFragmentDescriptor? {
+        val klassDescriptor = klasses.find { it.name.asString() == type.toString().substringBefore("<") }
+        return klassDescriptor?.containingDeclaration?.findPackage()
+    }
 
-    private fun checkVisibility(decl: DeclarationDescr) : Boolean {
-        val contDecl = decl.descriptor.containingDeclaration
-        return when (contDecl) {
-            is SimpleFunctionDescriptor -> contDecl.visibility.isPublicAPI
-            is PropertyDescriptor -> contDecl.visibility.isPublicAPI
+    fun generateOpenClassType(): ClassDescriptor {
+        val openKlasses =
+            klasses
+                .filter { it.visibility.isPublicAPI && it.modality != Modality.FINAL }
+                .filterNot { it.containingDeclaration.findPackage().toString().contains("js") }
+                .filter { it.constructors.isEmpty() || it.constructors.any { it.visibility.isPublicAPI } }
+        return openKlasses.random()
+    }
+
+    private fun checkVisibility(decl: DeclarationDescr): Boolean =
+        decl.descriptor.containingDeclaration?.let { checkVisibility(it) } ?: false
+
+
+    private fun checkVisibility(decl: DeclarationDescriptor): Boolean {
+        return when (decl) {
+            is SimpleFunctionDescriptor -> decl.visibility.isPublicAPI
+            is PropertyDescriptor -> decl.visibility.isPublicAPI
+            else -> false
+        }
+    }
+
+    private fun checkVisibilityAndModality(decl: DeclarationDescriptor): Boolean {
+        if (!checkVisibility(decl)) return false
+        return when (decl) {
+            is SimpleFunctionDescriptor -> decl.modality != Modality.FINAL
+            is PropertyDescriptor -> decl.modality != Modality.FINAL
             else -> false
         }
     }
@@ -80,7 +108,7 @@ object UsageSamplesGeneratorWithStLibrary {
                 mem as? DeserializedCallableMemberDescriptor ?: mem as? CallableMemberDescriptor ?: continue
             if (descriptor.name.asString() in blockList) continue
             if (!descriptor.visibility.isPublicAPI) continue
-            if (descriptor.returnType?.toString().let { it == needType || "$it?" == needType || it == "$needType?"}) {
+            if (descriptor.returnType?.toString().let { it == needType || "$it?" == needType || it == "$needType?" }) {
                 funList.add(prefix + descriptor)
             }
             val anotherType = descriptor.returnType ?: continue
@@ -102,6 +130,25 @@ object UsageSamplesGeneratorWithStLibrary {
             }
         }
 
+
+    private fun getMembersToOverride1(kl: KotlinType): List<DeclarationDescriptor> {
+        kl.memberScope.computeAllNames()
+        return kl.memberScope.getDescriptorsFiltered { true }.toList() +
+                kl.supertypesWithoutAny().flatMap { getMembersToOverride1(it) }
+    }
+
+    fun getMembersToOverride(kl: KotlinType): List<DeclarationDescriptor> {
+        val fields = getMembersToOverride1(kl).filter {
+            it.toString().let { !it.contains("equals") && !it.contains("hashCode") && !it.contains("toString") } &&
+                    checkVisibilityAndModality(it)
+        }
+        return fields
+            .filter { it is PropertyDescriptor || it is FunctionDescriptor }
+            .removeDuplicatesBy {
+                if (it is FunctionDescriptor) "${it.name}${it.valueParameters.map { it.name.asString() + it.returnType.toString() }}"
+                else it.name.asString()
+            }
+    }
 
     private fun KotlinType.replaceTypeArgsToTypes(map: Map<String, String>): String {
         val realType =
@@ -130,7 +177,7 @@ object UsageSamplesGeneratorWithStLibrary {
         return res
     }
 
-    private fun getMemberFields(type: KotlinType): List<DeclarationDescriptor> =
+    fun getMemberFields(type: KotlinType): List<DeclarationDescriptor> =
         type.memberScope.getDescriptorsFiltered { true }
             .filter { !it.toString().contains("private") }
 
@@ -206,7 +253,7 @@ object UsageSamplesGeneratorWithStLibrary {
     }
 
     fun findEnumMembers(type: KotlinType): List<KotlinType> {
-        val klass = descriptorDecl.filterIsInstance<DeserializedClassDescriptor>()
+        val klass = klasses
             .find {
                 if (it.declaredTypeParameters.isEmpty()) {
                     it.getAllSuperClassifiers().any { it.name.asString() == type.getNameWithoutError() }
@@ -220,7 +267,7 @@ object UsageSamplesGeneratorWithStLibrary {
     }
 
     fun findImplementationOf(type: KotlinType, withoutInterfaces: Boolean = true): List<ClassDescriptor> =
-        descriptorDecl.filterIsInstance<DeserializedClassDescriptor>()
+        klasses
             .asSequence()
             .filter {
 //                if (it.declaredTypeParameters.isEmpty()) {
@@ -230,7 +277,7 @@ object UsageSamplesGeneratorWithStLibrary {
 //                }
                 it.getAllSuperClassifiers().any { it.name.asString() == type.toString().substringBefore('<') }
             }
-            .filter { ((it.constructors.isNotEmpty() && it.modality != Modality.ABSTRACT) || !withoutInterfaces) && it.visibility.isPublicAPI }
+            .filter { ((it.constructors.isNotEmpty() /*&& it.modality != Modality.ABSTRACT*/) || !withoutInterfaces) && it.visibility.isPublicAPI }
             .filter {
                 if (it.constructors.isNotEmpty() && !it.defaultType.isPrimitiveTypeOrNullablePrimitiveTypeOrString()) {
                     it.constructors.any { it.visibility.isPublicAPI && it.visibility.name != "protected" }

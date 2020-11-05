@@ -73,7 +73,8 @@ class RandomInstancesGenerator(private val file: KtFile) {
             }
             .joinToString(", ")
         val generatedReciever =
-            func.receiverTypeReference?.getAbbreviatedTypeOrType(ctx)?.let { generateValueOfType(it, depth + 1) + "." } ?: ""
+            func.receiverTypeReference?.getAbbreviatedTypeOrType(ctx)?.let { generateValueOfType(it, depth + 1) + "." }
+                ?: ""
         val typeParams =
             func.typeParameters.map { typeParamsToRealTypeParams.getOrDefault(it.name!!, it.name!!) }
                 .let { if (it.isNotEmpty()) it.joinToString(prefix = "<", postfix = ">") else "" }
@@ -259,7 +260,7 @@ class RandomInstancesGenerator(private val file: KtFile) {
             .joinToString(".", postfix = ".") { (it as KtClassOrObject).name!! }
             .let { if (it == ".") "" else it }
 
-    fun generateValueOfType(type: KotlinType, depth: Int = 0): String {
+    fun generateValueOfType(type: KotlinType, depth: Int = 0, onlyImpl: Boolean = false): String {
         log.debug("generating value of type = $type ${type.isPrimitiveTypeOrNullablePrimitiveTypeOrString()} depth = $depth")
         if (depth > MAGIC_CONST) return ""
         //TODO deal with Any KReflection
@@ -294,10 +295,10 @@ class RandomInstancesGenerator(private val file: KtFile) {
                 .joinToString() + " ->"
             return "{$prefix ${generateValueOfType(type.arguments.last().type, depth + 1)}}"
         }
-        return searchForImplementation(type, depth + 1)
+        return searchForImplementation(type, depth + 1, onlyImpl)
     }
 
-    private fun searchForImplementation(type: KotlinType, depth: Int): String {
+    private fun searchForImplementation(type: KotlinType, depth: Int, onlyImpl: Boolean = false): String {
         var funcs = UsageSamplesGeneratorWithStLibrary.searchForFunWithRetType(type)
         funcs = if (Random.getTrue(75))
             funcs.filter { it.extensionReceiverParameter == null }
@@ -306,7 +307,8 @@ class RandomInstancesGenerator(private val file: KtFile) {
         val implementations = UsageSamplesGeneratorWithStLibrary.findImplementationOf(type)
         val prob = if (funcs.size > implementations.size) 75 else 25
         val el =
-            if (Random.getTrue(prob)) {
+            if (onlyImpl) implementations.randomOrNull()
+            else if (Random.getTrue(prob)) {
                 funcs.randomOrNull() ?: implementations.randomOrNull()
             } else {
                 implementations.randomOrNull() ?: funcs.randomOrNull()

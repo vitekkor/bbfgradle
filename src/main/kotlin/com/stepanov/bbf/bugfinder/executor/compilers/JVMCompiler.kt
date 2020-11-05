@@ -77,6 +77,7 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
             else
                 "$path $arguments -d $destination".split(" ")
         projectArgs.apply { K2JVMCompiler().parseArguments(compilerArgs.toTypedArray(), this) }
+        //projectArgs.compileJava = true
         projectArgs.classpath =
             "${CompilerArgs.jvmStdLibPaths.joinToString(
                 separator = ":"

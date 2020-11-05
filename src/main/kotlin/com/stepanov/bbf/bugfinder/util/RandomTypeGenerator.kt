@@ -6,6 +6,7 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGenera
 import com.stepanov.bbf.bugfinder.util.KotlinTypeCreator.createType
 import org.jetbrains.kotlin.builtins.PrimitiveType
 import org.jetbrains.kotlin.builtins.UnsignedType
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
@@ -17,6 +18,7 @@ import org.jetbrains.kotlin.types.replace
 import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
 import org.jetbrains.kotlin.types.typeUtil.substitute
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 object RandomTypeGenerator {
 
@@ -39,6 +41,8 @@ object RandomTypeGenerator {
         }
         return type
     }
+
+    fun generateOpenClassType() = UsageSamplesGeneratorWithStLibrary.generateOpenClassType()
 
     private fun generateWithUpperBounds(upperBounds: KotlinType, depth: Int = 0): KotlinType? {
         var fromFile = false
@@ -123,7 +127,7 @@ object RandomTypeGenerator {
         return generateType(klassToStr)
     }
 
-    private fun generateType(name: String): KotlinType? {
+    fun generateType(name: String): KotlinType? {
         if (!RandomTypeGenerator::file.isInitialized || !RandomTypeGenerator::ctx.isInitialized) return null
         return generateType(file, ctx, name)
     }
@@ -171,7 +175,7 @@ object RandomTypeGenerator {
         return "$container$typeParams"
     }
 
-    private fun generatePrimitive(): String = primitives.random()
+    fun generatePrimitive(): String = primitives.random()
 
     val primitives =
         enumValues<PrimitiveType>().map { it.typeName.asString() } +

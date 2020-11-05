@@ -5,10 +5,10 @@ import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.addMain
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.util.contains
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getAllWithoutLast
 import com.stepanov.bbf.reduktor.util.MsgCollector
-import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.getAllWithout
 import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
@@ -100,14 +100,20 @@ class Project(
 
     fun addMain(): Project {
         if (files.map { it.text }.any { it.contains("fun main(") }) return Project(configuration, files, language)
-        val file = files.first()
         val boxFuncs =
             files.flatMap { it.psiFile.getAllPSIChildrenOfType<KtNamedFunction> { it.name?.contains("box") == true } }
+        if (boxFuncs.isEmpty()) return Project(configuration, files, language)
+        val indOfFile =
+            files.indexOfFirst {
+                it.psiFile.getAllPSIChildrenOfType<KtNamedFunction>().any { it.name?.contains("box") == true }
+            }
+        if (indOfFile == -1) return Project(configuration, files, language)
+        val file = files[indOfFile]
         val psiCopy = file.psiFile.copy() as PsiFile
         psiCopy.addMain(boxFuncs)
         val newFirstFile = BBFFile(file.name, psiCopy)
         val newFiles =
-            listOf(newFirstFile) + files.getAllWithout(0).map { BBFFile(it.name, it.psiFile.copy() as PsiFile) }
+            listOf(newFirstFile) + files.getAllWithout(indOfFile).map { BBFFile(it.name, it.psiFile.copy() as PsiFile) }
         return Project(configuration, newFiles, language)
     }
 
@@ -116,5 +122,8 @@ class Project(
     }
 
 
-    override fun toString(): String = files.joinToString("\n") { it.psiFile.text }
+    override fun toString(): String = files.joinToString("\n\n") {
+        it.name + "\n" +
+        it.psiFile.text
+    }
 }

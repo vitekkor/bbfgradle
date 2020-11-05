@@ -6,8 +6,12 @@ import com.stepanov.bbf.bugfinder.executor.checkers.TracesChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.mutator.transformations.abi.ProjectPreprocessor
 import com.stepanov.bbf.bugfinder.tracer.Tracer
 import com.stepanov.bbf.bugfinder.util.*
+import org.jetbrains.kotlin.psi.KtClassOrObject
+import org.jetbrains.kotlin.psi.KtEnumEntry
+import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
 
 class SingleFileBugFinder(dir: String) : BugFinder(dir) {
@@ -23,6 +27,12 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
                 log.debug("Cant create project")
                 return
             }
+            if (project.files.first().psiFile.getAllPSIChildrenOfType<KtNamedFunction> { it.isTopLevel }.size < 2) {
+                if (project.files.first().psiFile.getAllPSIChildrenOfTwoTypes<KtClassOrObject, KtEnumEntry>().isEmpty()) {
+                    log.debug("Uninteresting test")
+                    return
+                }
+            }
             val compilersConf = BBFProperties.getStringGroupWithoutQuotes("BACKENDS")
             val filterBackends = compilersConf.map { it.key }
             if (filterBackends.any { project.isBackendIgnores(it) }) {
@@ -35,6 +45,7 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
             }
             log.debug("Start to mutate")
             log.debug("BEFORE = ${project.files.first().text}")
+            //ProjectPreprocessor.preprocess(project, null)
             mutate(project, project.files.first(), listOf(::noBoxFunModifying))
 //            //Save mutated file
 //            if (CompilerArgs.shouldSaveMutatedFiles) {

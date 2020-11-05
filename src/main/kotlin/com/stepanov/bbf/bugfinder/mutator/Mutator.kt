@@ -4,17 +4,20 @@ import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
+import com.stepanov.bbf.bugfinder.mutator.transformations.abi.AddRandomDS
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.AddNodesFromAnotherFiles
 import org.apache.log4j.Logger
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 class Mutator(val project: Project) {
 
     private fun executeMutation(t: Transformation, probPercentage: Int = 50) {
         if (Random.nextInt(0, 100) < probPercentage) {
+            log.debug("Cur transformation ${t::class.simpleName}")
 //            try {
                 t.transform()
-                log.debug("After ${t::class.simpleName} = ${Transformation.checker.curFile.text}")
+                //log.debug("After ${t::class.simpleName} = ${Transformation.checker.curFile.text}")
                 //log.debug("Verify = ${verify()}")
                 //Update ctx and file
                 checker.curFile.changePsiFile(checker.curFile.text)
@@ -52,13 +55,15 @@ class Mutator(val project: Project) {
     }
 
     private fun startKotlinMutations() {
+        executeMutation(AddRandomDS(), 100)
+        exitProcess(0)
 //        executeMutation(SkeletonEnumeration(), 100)
 //        return
-        executeMutation(AddNodesFromAnotherFiles(), 100)
+//        executeMutation(AddNodesFromAnotherFiles(), 100)
 //        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 25)
-//        for (i in 0 until Random.nextInt(1, 3)) {
-//            transformations.shuffled().forEach { executeMutation(it.first, it.second) }
-//        }
+        for (i in 0 until Random.nextInt(1, 3)) {
+            transformations.shuffled().forEach { executeMutation(it.first, it.second) }
+        }
 //        //Set of transformations over PSI
 //        executeMutation(AddNullabilityTransformer())
 //        executeMutation(AddPossibleModifiers())
@@ -111,25 +116,24 @@ class Mutator(val project: Project) {
         AddDefaultValueToArg() to 50,
         ChangeArgToAnotherValue() to 50,
         ReinitProperties() to 50,
-        AddNotNullAssertions() to 50,
-        AddBlockToExpression() to 50,
-        ChangeOperators() to 50,
-        ChangeConstants() to 50,
-        ChangeTypes() to 75,
-        ChangeReturnValueToConstant() to 50,
-        AddBracketsToExpression() to 50,
+        //AddNotNullAssertions() to 50,
+        //AddBlockToExpression() to 50,
+        //ChangeOperators() to 50,
+        //ChangeConstants() to 50,
+        //ChangeTypes() to 75,
+        //ChangeReturnValueToConstant() to 50,
+        //AddBracketsToExpression() to 50,
         ChangeModifiers() to 50,
         AddSameFunctions() to 50,
-        ChangeOperatorsToFunInvocations() to 50,
+        //ChangeOperatorsToFunInvocations() to 50,
         ChangeRandomASTNodes() to 75,
-        AddNodesFromAnotherFiles() to 75,
-        AddFunInvocations() to 75,
+        //AddFunInvocations() to 75,
         ChangeRandomLines() to 50,
-        ChangeRandomASTNodesFromAnotherTrees() to 75,
-        AddTryExpression() to 50,
-        AddNodesFromAnotherFiles() to 100
+        ChangeRandomASTNodesFromAnotherTrees() to 100,
+        //AddTryExpression() to 50,
+        //AddNodesFromAnotherFiles() to 50
     )
-    private val log = Logger.getLogger("mutatorLogger")
+    private val log = Logger.getLogger("bugFinderLogger")
     private val checker
         get() = Transformation.checker
 
