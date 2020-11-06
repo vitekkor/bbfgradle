@@ -7,18 +7,20 @@ import com.stepanov.bbf.bugfinder.util.KotlinTypeCreator.createType
 import org.jetbrains.kotlin.builtins.PrimitiveType
 import org.jetbrains.kotlin.builtins.UnsignedType
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyPackageDescriptor
+import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.replace
 import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
 import org.jetbrains.kotlin.types.typeUtil.substitute
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 object RandomTypeGenerator {
 
@@ -42,14 +44,26 @@ object RandomTypeGenerator {
         return type
     }
 
-    fun generateOpenClassType() = UsageSamplesGeneratorWithStLibrary.generateOpenClassType()
+    fun generateOpenClassType(): ClassDescriptor {
+        val fromSrc = run {
+            val randomClass = file.getAllPSIChildrenOfType<KtClass>().firstOrNull() ?: return@run null
+            val typeParams = randomClass.typeParameters.let { if (it.isEmpty()) "" else randomClass.typeParameterList?.text }
+            val fromFile = generateType("${randomClass.name}$typeParams")!!
+            val p = fromFile.constructor.declarationDescriptor!!.containingDeclaration as LazyPackageDescriptor
+            val scope = p.getMemberScope().getDescriptorsFiltered { true }.filterIsInstance<ClassDescriptor>().toList()
+            scope.filter { it.modality == Modality.OPEN || it.modality == Modality.ABSTRACT }.randomOrNull()
+        }
+        //TODO!! Remove
+        if (/*Random.nextBoolean() &&*/ fromSrc != null) return fromSrc
+        return UsageSamplesGeneratorWithStLibrary.generateOpenClassType()
+    }
 
     private fun generateWithUpperBounds(upperBounds: KotlinType, depth: Int = 0): KotlinType? {
         var fromFile = false
         val impls =
             if (file.getAllPSIChildrenOfType<KtClassOrObject>().any { it.name == upperBounds.toString() }) {
                 fromFile = true
-                UsageSamplesGeneratorWithStLibrary.findImplementaionFromFile(upperBounds, false)
+                UsageSamplesGeneratorWithStLibrary.findImplementationFromFile(upperBounds, false)
             } else {
                 UsageSamplesGeneratorWithStLibrary.findImplementationOf(upperBounds, false)
             }

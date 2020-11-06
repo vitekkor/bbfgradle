@@ -490,6 +490,11 @@ fun PsiFile.addToTheTop(psiElement: PsiElement): PsiElement {
 //    }
 //}
 
+fun KtFile.addImport(import: String, isAllUnder: Boolean) {
+    val importDirective = Factory.psiFactory.createImportDirective(ImportPath(FqName(import), isAllUnder))
+    this.addImport(importDirective)
+}
+
 fun KtFile.addImport(import: KtImportDirective) {
     if (this.importDirectives.any { it.text == import.text }) return
     this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
@@ -553,3 +558,5 @@ fun <T : Any> List<Any>.flatten(type: KClass<T>): List<T> {
 inline fun <reified T : Any> List<Any>.flatten(): List<T> = this.flatten(T::class)
 
 fun PsiFile.contains(cond: (PsiElement) -> Boolean) = this.getAllChildren().any { cond(it) }
+
+fun KotlinType.getAllTypeArgs(): List<TypeProjection> = this.arguments + this.arguments.flatMap { it.type.getAllTypeArgs() }

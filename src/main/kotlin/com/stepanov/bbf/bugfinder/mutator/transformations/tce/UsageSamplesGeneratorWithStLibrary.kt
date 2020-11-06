@@ -48,7 +48,7 @@ object UsageSamplesGeneratorWithStLibrary {
     }
 
     fun findPackageForType(type: String): PackageFragmentDescriptor? {
-        val klassDescriptor = klasses.find { it.name.asString() == type.toString().substringBefore("<") }
+        val klassDescriptor = klasses.find { it.name.asString() == type.substringBefore('<').trim() }
         return klassDescriptor?.containingDeclaration?.findPackage()
     }
 
@@ -285,7 +285,7 @@ object UsageSamplesGeneratorWithStLibrary {
             }
             .toList()
 
-    fun findImplementaionFromFile(type: KotlinType, withoutInterfaces: Boolean = true): List<ClassDescriptor> =
+    fun findImplementationFromFile(type: KotlinType, withoutInterfaces: Boolean = true): List<ClassDescriptor> =
         type.constructor.declarationDescriptor!!
             .findPackage().getMemberScope()
             .getDescriptorsFiltered { true }.filterIsInstance<ClassDescriptor>()
@@ -294,7 +294,7 @@ object UsageSamplesGeneratorWithStLibrary {
 
     fun isImplementation(type: KotlinType, potImpl: KotlinType?): Boolean {
         if (potImpl == null) return true
-        (findImplementaionFromFile(type) + findImplementationOf(type))
+        (findImplementationFromFile(type) + findImplementationOf(type))
             .find { it.name.asString() == potImpl.constructor.toString() }
             ?.let { return true } ?: return false
     }

@@ -22,6 +22,7 @@ import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.*
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 class RandomInstancesGenerator(private val file: KtFile) {
 
@@ -150,7 +151,7 @@ class RandomInstancesGenerator(private val file: KtFile) {
             val strRepresentation = klass.name + typeParams
             val kType = KotlinTypeCreator.createType(file, strRepresentation)!!
             val impl =
-                UsageSamplesGeneratorWithStLibrary.findImplementaionFromFile(kType, true).randomOrNull() ?: return null
+                UsageSamplesGeneratorWithStLibrary.findImplementationFromFile(kType, true).randomOrNull() ?: return null
             val superTypeEntry =
                 impl.typeConstructor.supertypes.find { it.toString().substringBefore('<') == klass.name } ?: return null
             val genTypeParamsToTypeParams =
@@ -299,12 +300,14 @@ class RandomInstancesGenerator(private val file: KtFile) {
     }
 
     private fun searchForImplementation(type: KotlinType, depth: Int, onlyImpl: Boolean = false): String {
-        var funcs = UsageSamplesGeneratorWithStLibrary.searchForFunWithRetType(type)
+        var funcs = UsageSamplesGeneratorWithStLibrary.searchForFunWithRetType(type.makeNotNullable())
+        if (type.getAllTypeArgs().any { it.type.isInterface() })
+            funcs = funcs.filter { it.valueParameters.all { !it.type.isTypeParameter() } }
         funcs = if (Random.getTrue(75))
             funcs.filter { it.extensionReceiverParameter == null }
         else
             funcs.filter { it.extensionReceiverParameter?.value?.type?.arguments?.isEmpty() ?: true } //TODO
-        val implementations = UsageSamplesGeneratorWithStLibrary.findImplementationOf(type)
+        val implementations = UsageSamplesGeneratorWithStLibrary.findImplementationOf(type.makeNotNullable())
         val prob = if (funcs.size > implementations.size) 75 else 25
         val el =
             if (onlyImpl) implementations.randomOrNull()

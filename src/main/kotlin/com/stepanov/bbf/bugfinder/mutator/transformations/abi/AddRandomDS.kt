@@ -27,7 +27,7 @@ class AddRandomDS : Transformation() {
 
     override fun transform() {
         repeat(1) {
-            randomClassGenerator.generate()?.let { file.addToTheEnd(it) }
+            randomClassGenerator.generateAndAddToFile()
             //randomFunGenerator.generate()?.let { file.addToTheEnd(it) }
         }
         checker.checkCompiling()
