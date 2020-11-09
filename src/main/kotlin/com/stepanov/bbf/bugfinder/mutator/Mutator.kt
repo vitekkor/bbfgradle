@@ -56,6 +56,7 @@ class Mutator(val project: Project) {
 
     private fun startKotlinMutations() {
         executeMutation(AddRandomDS(), 100)
+        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 100)
         exitProcess(0)
 //        executeMutation(SkeletonEnumeration(), 100)
 //        return

@@ -3,10 +3,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.abi
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.RandomInstancesGenerator
-import com.stepanov.bbf.bugfinder.util.addImport
-import com.stepanov.bbf.bugfinder.util.addToTheEnd
-import com.stepanov.bbf.bugfinder.util.getRandomVariableName
-import com.stepanov.bbf.bugfinder.util.getTrue
+import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.backend.common.serialization.findPackage
 import org.jetbrains.kotlin.fir.lightTree.fir.modifier.ModifierSets
 import org.jetbrains.kotlin.psi.KtCallExpression
@@ -47,16 +44,26 @@ class RandomClassGenerator(
         return listOf(classModifier, visibilityModifier, inheritanceModifier)
     }
 
+    private fun generateModifierForConstructorProperty(haveVararg: Boolean): String =
+        when (Random.nextInt(0, 3)) {
+            1 -> "var "
+            2 -> if (Random.nextBoolean()) "vararg " else ""
+            else -> "val "
+        }
+
     private fun generateConstructor(): List<String> {
         var lb = 0
         val rb = 5
+        var haveVararg = false
         if (gClass.isData()) lb = 1
         var numOfArgs = (lb..rb).random()
         if (gClass.isAnnotation()) {
             lb = 1
             numOfArgs = (lb..rb).random()
             return MutableList(numOfArgs) {
-                "${Random.getRandomVariableName(1)}: ${randomTypeGenerator.generatePrimitive()}"
+                val m = generateModifierForConstructorProperty(haveVararg)
+                if (m == "vararg") haveVararg = true
+                "$m${Random.getRandomVariableName(1)}: ${randomTypeGenerator.generatePrimitive()}"
             }
         }
         val args =
@@ -64,7 +71,9 @@ class RandomClassGenerator(
                 mutableListOf()
             else
                 MutableList(numOfArgs) {
-                    "${Random.getRandomVariableName(2)}: " to randomTypeGenerator.generateRandomTypeWithCtx()
+                    val m = generateModifierForConstructorProperty(haveVararg)
+                    if (m == "vararg") haveVararg = true
+                    "$m${Random.getRandomVariableName(2)}: " to randomTypeGenerator.generateRandomTypeWithCtx()
                 }
         val typeArgs = gClass.typeParams.map { it.substringBefore(':') }
         if (args.any { it.second == null }) return emptyList()
@@ -97,8 +106,8 @@ class RandomClassGenerator(
         }
     }
 
-    private fun delegationSpecifier(): Pair<String, String> {
-        val openClass = randomTypeGenerator.generateOpenClassType()
+    private fun delegationSpecifier(): Pair<String, String>? {
+        val openClass = randomTypeGenerator.generateOpenClassType() ?: return null
         val importPath = openClass.findPackage().fqName.asString()
         var typeParams = openClass.declaredTypeParameters.map { typeParam ->
             val upperBounds = typeParam.upperBounds.let { if (it.isEmpty()) null else it.first() }
@@ -108,7 +117,10 @@ class RandomClassGenerator(
             when {
                 openClass.constructors.any { it.valueParameters.isNotEmpty() && it.visibility.isPublicAPI } -> {
                     val generated = randomInstancesGenerator.generateValueOfType(openClass.defaultType, onlyImpl = true)
-                    if (generated.isEmpty()) println("CANT GENERATE EXPRESSION FROM ${openClass.defaultType}")
+                    if (generated.isEmpty()) {
+                        println("CANT GENERATE EXPRESSION FROM ${openClass.defaultType}")
+                        exitProcess(0)
+                    }
                     val call = Factory.psiFactory.createExpression(generated) as KtCallExpression
                     typeParams = call.typeArguments.map { it.text }
                     val strValueParams = generated.substringAfter('(').substringBeforeLast(')')
@@ -126,7 +138,7 @@ class RandomClassGenerator(
             listOf()
         else
         //TODO!! Random.nextInt(0, 3)
-            List(Random.nextInt(0, 3)) { delegationSpecifier() }
+            List(Random.nextInt(0, 3)) { delegationSpecifier() }.filterNotNull()
         gClass.imports.addAll(
             specifiers
                 .filter { it.second.trim().isNotEmpty() }
@@ -155,12 +167,17 @@ class RandomClassGenerator(
     override fun generate(): PsiElement? {
 //        repeat(25) { ind ->
         val modifiers = generateModifiers()
+        //TODO!!!
+        //gClass.modifiers = listOf("enum")
         gClass.modifiers = modifiers
         val specifiers = generateDelegationSpecifiers()
         val genTypeParams = generateTypeParams()
         val genTypeArgsWObounds = genTypeParams.map { it.substringBefore(':') }
         gClass.typeParams = genTypeParams
-        val c = generateConstructor().joinToString(prefix = "(", postfix = ")") { "val $it" }
+        val c = generateConstructor().let {
+            gClass.constructor = it
+            it.joinToString(prefix = "(", postfix = ")")
+        }
         val sta = if (genTypeParams.isEmpty()) "" else genTypeParams.joinToString(prefix = "<", postfix = "> ")
         //TMP!! TODO
         //gClass.delegationSpecifiers = listOf("ABC<Int>")
@@ -169,7 +186,7 @@ class RandomClassGenerator(
         })
         val psiBody = Factory.psiFactory.createBlock(body)
         //val imports = gClass.imports.joinToString("\n"){ "import $it "}
-        val kl = "${modifiers.joinToString(" ")} class ${'A' + depth}$sta$c$specifiers${psiBody.text}"
+        val kl = "${modifiers.joinToString(" ")} class AAA${'A' + depth}$sta$c$specifiers${psiBody.text}"
         try {
             Factory.psiFactory.createClass(kl)
         } catch (e: Exception) {

@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtEnumEntry
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
+import kotlin.system.exitProcess
 
 class SingleFileBugFinder(dir: String) : BugFinder(dir) {
 
@@ -46,6 +47,11 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
             log.debug("Start to mutate")
             log.debug("BEFORE = ${project.files.first().text}")
             //ProjectPreprocessor.preprocess(project, null)
+            val checker = MutationChecker(listOf(JVMCompiler(""), JVMCompiler("-Xuse-ir")), project, project.files.first())
+            if (!checker.checkCompiling()) {
+                log.debug("=(")
+                exitProcess(0)
+            }
             mutate(project, project.files.first(), listOf(::noBoxFunModifying))
 //            //Save mutated file
 //            if (CompilerArgs.shouldSaveMutatedFiles) {

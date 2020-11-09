@@ -44,7 +44,8 @@ object RandomTypeGenerator {
         return type
     }
 
-    fun generateOpenClassType(): ClassDescriptor {
+    //TODO uncomment
+    fun generateOpenClassType(onlyFromFile: Boolean = false): ClassDescriptor? {
         val fromSrc = run {
             val randomClass = file.getAllPSIChildrenOfType<KtClass>().firstOrNull() ?: return@run null
             val typeParams = randomClass.typeParameters.let { if (it.isEmpty()) "" else randomClass.typeParameterList?.text }
@@ -54,7 +55,9 @@ object RandomTypeGenerator {
             scope.filter { it.modality == Modality.OPEN || it.modality == Modality.ABSTRACT }.randomOrNull()
         }
         //TODO!! Remove
-        if (/*Random.nextBoolean() &&*/ fromSrc != null) return fromSrc
+        if (onlyFromFile) return fromSrc
+        return fromSrc
+        //if (/*Random.nextBoolean() &&*/ fromSrc != null) return fromSrc
         return UsageSamplesGeneratorWithStLibrary.generateOpenClassType()
     }
 

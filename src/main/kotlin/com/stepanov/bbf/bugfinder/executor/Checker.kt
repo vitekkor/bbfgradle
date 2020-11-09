@@ -63,6 +63,7 @@ open class Checker(compilers: List<CommonCompiler>, private val withTracesCheck:
     }
 
     fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null): Boolean {
+        log.debug("Compilation checking started")
         val allTexts = project.files.map { it.psiFile.text }.joinToString()
         checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
         //Checking syntax correction
@@ -85,6 +86,7 @@ open class Checker(compilers: List<CommonCompiler>, private val withTracesCheck:
                                 BugType.DIFFABI
                             )
                         )
+                        return false
                     }
                 }
 //                if (withTracesCheck && CompilerArgs.isMiscompilationMode) {

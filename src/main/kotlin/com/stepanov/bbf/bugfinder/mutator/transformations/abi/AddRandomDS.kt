@@ -19,12 +19,6 @@ class AddRandomDS : Transformation() {
     private val randomFunGenerator = RandomFunctionGenerator(file as KtFile, ctx)
     private val randomClassGenerator = RandomClassGenerator(file as KtFile, ctx)
 
-    private fun generateRandomClass(): KtClass {
-        val modifiers = mutableListOf<String>()
-        if (Random.getTrue(10)) modifiers.add("inline")
-        return psiFactory.createClass("class k")
-    }
-
     override fun transform() {
         repeat(1) {
             randomClassGenerator.generateAndAddToFile()

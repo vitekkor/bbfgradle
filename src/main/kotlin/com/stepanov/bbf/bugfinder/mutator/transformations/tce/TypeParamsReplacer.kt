@@ -87,9 +87,18 @@ object TypeParamsReplacer {
         oldToRealTypeParams: Map<String, String>
     ) =
         valueParameters.joinToString { param ->
-            val paramType = if (param.isVararg) param.varargElementType!! else param.type
+            val paramType =
+                if (param.isVararg)
+                    param.varargElementType.toString()
+                else
+                    param.toString()
+                        .substringAfter(':')
+                        .substringBefore("defined")
+                        .substringBefore('=')
+                        .substringAfter(']')
             param.name.asString() + ": " +
-                    paramType.toString().splitWithoutRemoving(Regex("""[<>,]|in |out """))
+                    paramType
+                        .splitWithoutRemoving(Regex("""[<>,]|in |out """))
                         .flatMap { it.splitWithoutRemoving(Regex("""\[.*\]""")) }
                         .map { it.trim() }
                         .filter { it.isNotEmpty() && !it.startsWith('[') }

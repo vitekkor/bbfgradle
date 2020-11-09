@@ -180,6 +180,7 @@ class RandomInstancesGenerator(private val file: KtFile) {
         val listOfParams = klass.allConstructors.map { it.valueParameters }
         val res = mutableListOf<String>()
         ctx = PSICreator.analyze(file)!!
+        var withName = false
         for (param in /*listOfParams.random()*/ listOfParams[0]) {
             require(param.typeReference != null)
             var realType = param.typeReference!!.getAbbreviatedTypeOrType(ctx) ?: return null
@@ -189,7 +190,13 @@ class RandomInstancesGenerator(private val file: KtFile) {
             if (realType.constructor.declarationDescriptor!!.name.asString() == kl.name) return null
             //if (realType.toString().contains("${klass.name}")) return null
             val instance = generateValueOfType(realType, depth + 1)
-            res.add(instance)
+            if (param.isVarArg) {
+                withName = true
+                res.add(instance)
+                continue
+            }
+            if (withName) res.add("${param.name} = $instance")
+            else res.add(instance)
         }
         val constructor =
             if (klass.typeParameters.size == 0)
@@ -303,10 +310,11 @@ class RandomInstancesGenerator(private val file: KtFile) {
         var funcs = UsageSamplesGeneratorWithStLibrary.searchForFunWithRetType(type.makeNotNullable())
         if (type.getAllTypeArgs().any { it.type.isInterface() })
             funcs = funcs.filter { it.valueParameters.all { !it.type.isTypeParameter() } }
-        funcs = if (Random.getTrue(75))
-            funcs.filter { it.extensionReceiverParameter == null }
-        else
-            funcs.filter { it.extensionReceiverParameter?.value?.type?.arguments?.isEmpty() ?: true } //TODO
+        funcs = funcs.filter { it.extensionReceiverParameter == null }
+//        funcs = if (Random.getTrue(75))
+//            funcs.filter { it.extensionReceiverParameter == null }
+//        else
+//            funcs.filter { it.extensionReceiverParameter?.value?.type?.arguments?.isEmpty() ?: true } //TODO
         val implementations = UsageSamplesGeneratorWithStLibrary.findImplementationOf(type.makeNotNullable())
         val prob = if (funcs.size > implementations.size) 75 else 25
         val el =
@@ -328,7 +336,9 @@ class RandomInstancesGenerator(private val file: KtFile) {
         val generatedExtension = extTypeRec?.let { generateValueOfType(it) + "." } ?: ""
         generateTopLevelFunctionCall(psi, typeParamsToRealTypes, false, depth + 1)?.let {
             return "$generatedExtension${it.first.text}"
-        } ?: return ""
+        }
+        log.debug("Cant generate call of ${psi.text}")
+        return ""
     }
 
     private fun getTypeNameWithoutError(type: KotlinType): String? =
