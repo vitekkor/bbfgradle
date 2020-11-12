@@ -52,7 +52,7 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
                 log.debug("=(")
                 exitProcess(0)
             }
-            mutate(project, project.files.first(), listOf(::noBoxFunModifying))
+            mutate(project, project.files.first(), listOf(/*::noBoxFunModifying*/))
 //            //Save mutated file
 //            if (CompilerArgs.shouldSaveMutatedFiles) {
 //                val pathToNewTests = CompilerArgs.dirForNewTests

@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 
-import com.stepanov.bbf.bugfinder.util.RandomTypeGenerator.generateRandomType
+import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGenerator.generateRandomType
 import com.stepanov.bbf.bugfinder.util.getType
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.KtProperty

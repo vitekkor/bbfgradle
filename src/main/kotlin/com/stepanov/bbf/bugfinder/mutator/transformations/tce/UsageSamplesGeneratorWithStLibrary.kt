@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.descriptors.impl.EnumEntrySyntheticClassDescriptor
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
+import org.jetbrains.kotlin.resolve.descriptorUtil.classId
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.resolve.scopes.computeAllNames
@@ -23,6 +24,7 @@ import org.jetbrains.kotlin.serialization.deserialization.descriptors.Deserializ
 import org.jetbrains.kotlin.types.isNullable
 import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
+import kotlin.system.exitProcess
 
 object UsageSamplesGeneratorWithStLibrary {
 
@@ -52,12 +54,13 @@ object UsageSamplesGeneratorWithStLibrary {
         return klassDescriptor?.containingDeclaration?.findPackage()
     }
 
-    fun generateOpenClassType(): ClassDescriptor {
+    fun generateOpenClassType(onlyInterfaces: Boolean): ClassDescriptor {
         val openKlasses =
             klasses
                 .filter { it.visibility.isPublicAPI && it.modality != Modality.FINAL }
                 .filterNot { it.containingDeclaration.findPackage().toString().contains("js") }
                 .filter { it.constructors.isEmpty() || it.constructors.any { it.visibility.isPublicAPI } }
+                .filter { it.constructors.isEmpty() || !onlyInterfaces }
         return openKlasses.random()
     }
 
@@ -177,7 +180,7 @@ object UsageSamplesGeneratorWithStLibrary {
         return res
     }
 
-    fun getMemberFields(type: KotlinType): List<DeclarationDescriptor> =
+    private fun getMemberFields(type: KotlinType): List<DeclarationDescriptor> =
         type.memberScope.getDescriptorsFiltered { true }
             .filter { !it.toString().contains("private") }
 
@@ -284,6 +287,16 @@ object UsageSamplesGeneratorWithStLibrary {
                 } else true
             }
             .toList()
+
+    fun calcImports(file: KtFile): List<String> {
+        val klassesForImport =
+            klasses.filter { it.classId?.packageFqName?.asString() != "kotlin" }
+        val types = file.getAllPSIChildrenOfType<KtTypeReference>().map { it.text.trim() }.toSet()
+        return types.mapNotNull { t ->
+            klassesForImport.find { it.name.asString() == t.substringBefore('<') }.classId?.asString()
+                ?.replace('/', '.')
+        }
+    }
 
     fun findImplementationFromFile(type: KotlinType, withoutInterfaces: Boolean = true): List<ClassDescriptor> =
         type.constructor.declarationDescriptor!!

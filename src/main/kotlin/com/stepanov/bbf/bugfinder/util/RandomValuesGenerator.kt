@@ -5,7 +5,7 @@ package com.stepanov.bbf.bugfinder.util
 import ru.spbstu.kotlin.generate.combinators.KCheck
 import ru.spbstu.kotlin.generate.util.*
 import java.util.*
-import com.stepanov.bbf.bugfinder.util.RandomTypeGenerator.generateRandomType
+import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGenerator.generateRandomType
 
 const val LINE_SIZE = 5
 const val RANDOM_CONST = 5

@@ -4,6 +4,7 @@ import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.bugfinder.util.KotlinTypeCreator.recreateType
+import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.apache.log4j.Logger
@@ -22,9 +23,8 @@ import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.*
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
-class RandomInstancesGenerator(private val file: KtFile) {
+open class RandomInstancesGenerator(private val file: KtFile) {
 
     fun generateTopLevelFunctionCall(
         function: KtNamedFunction,
@@ -92,9 +92,8 @@ class RandomInstancesGenerator(private val file: KtFile) {
         depth: Int = 0
     ): PsiElement? {
         log.debug("generating klass ${klOrObj.name} text = ${klOrObj.text}")
-        if (klOrObj.name == null || klOrObj.isAnnotation() ||
-            klOrObj.isLocal || klOrObj.isPrivate() ||
-            klOrObj.primaryConstructor?.isPrivate() == true
+        if (klOrObj.name == null || klOrObj.isLocal || klOrObj.isPrivate()
+            || klOrObj.primaryConstructor?.isPrivate() == true
         ) return null
         if (klOrObj.parents.any { it is KtClassOrObject }) return null
         if (klOrObj is KtObjectDeclaration) {
@@ -292,6 +291,7 @@ class RandomInstancesGenerator(private val file: KtFile) {
             ?: ""
         if (type.isPrimitiveTypeOrNullablePrimitiveTypeOrString())
             generateDefValuesAsString(type.toString()).let { if (it.isNotEmpty()) return it }
+        if (type.isKType()) return RandomReflectionInstanceGenerator(file, ctx, type).generateReflection()
         if (type.isFunctionType) {
             if (type.arguments.isEmpty()) return ""
             val args =
@@ -299,7 +299,7 @@ class RandomInstancesGenerator(private val file: KtFile) {
                 else type.arguments.getAllWithoutLast()
             val prefix = if (args.isEmpty()) ""
             else args
-                .mapIndexed { i, t -> "${'a' + i}: ${t.type}" }
+                .mapIndexed { i, t -> "${'a' + i}: ${t.type.toString().substringAfter("] ")}" }
                 .joinToString() + " ->"
             return "{$prefix ${generateValueOfType(type.arguments.last().type, depth + 1)}}"
         }

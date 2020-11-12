@@ -2,8 +2,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
-import com.stepanov.bbf.bugfinder.util.RandomTypeGenerator
+import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.util.getTrue
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.descriptors.CallableDescriptor

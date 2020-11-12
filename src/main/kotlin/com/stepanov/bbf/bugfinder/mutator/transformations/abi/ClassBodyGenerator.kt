@@ -1,8 +1,8 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.abi
 
-import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.RandomInstancesGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
+import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.RandomPropertyGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import com.stepanov.bbf.bugfinder.util.getTrue
@@ -14,7 +14,6 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 open class ClassBodyGenerator(
     private val file: KtFile,
@@ -23,11 +22,13 @@ open class ClassBodyGenerator(
     private val depth: Int = 0
 ) : DSGenerator(file, ctx) {
 
-    private val randomInstancesGenerator = RandomInstancesGenerator(file)
+//    private val randomInstancesGenerator = RandomInstancesGenerator(file)
+    private val randomFunGenerator = RandomFunctionGenerator(file, ctx)
 
     private fun generatePropertyOverriding(isVar: Boolean, name: String, returnType: String): String {
         val varOrVal = if (isVar) "var" else "val"
         val res = StringBuilder()
+        if (gClass.isInterface()) return "\noverride $varOrVal $name: $returnType"
         res.append(
             "\noverride $varOrVal $name: $returnType\n" +
                     "    get() = TODO()\n"
@@ -41,7 +42,7 @@ open class ClassBodyGenerator(
         for (specifier in specifiers) {
             val membersToOverride = UsageSamplesGeneratorWithStLibrary.getMembersToOverride(specifier)
             val filteredMembers =
-                if (gClass.modifiers.let { it.contains("interface") || it.contains("abstract") })
+                if (gClass.let { it.isInterface() || it.isAbstract() })
                     membersToOverride.filter { Random.getTrue(30) }
                 else
                     membersToOverride.filterNot { it is FunctionDescriptor && it.modality == Modality.OPEN && Random.nextBoolean() }
@@ -61,7 +62,7 @@ open class ClassBodyGenerator(
 
     private fun generateEnumFields() =
         with(StringBuilder()) {
-            val constructorTypes = gClass.constructor.map {
+            val constructorTypes = gClass.constructorArgs.map {
                 it.split(":").let { randomTypeGenerator.generateType(it.last()) } ?: return ""
             }
             val isVar = Random.nextBoolean()
@@ -86,35 +87,52 @@ open class ClassBodyGenerator(
 
 
     private fun generatePropWithAnonObj(): String {
-        val openKlass = randomTypeGenerator.generateOpenClassType(true) ?: return ""
-        val instance =
-            if (openKlass.constructors.isEmpty() || openKlass.modality != Modality.OPEN)
-                null
-            else
-                randomInstancesGenerator.generateValueOfType(openKlass.defaultType)
-        val genTypeParams =
-            if (instance == null) {
-                openKlass.declaredTypeParameters.map { randomTypeGenerator.generateRandomTypeWithCtx().toString() }
+        val res = StringBuilder()
+        var withInheritance = false
+        val lhv =
+            if (Random.nextBoolean()) {
+                (if (Random.nextBoolean()) "val" else "var") + " ${Random.getRandomVariableName()}"
             } else {
-                (Factory.psiFactory.createExpression(instance) as KtCallExpression).typeArguments.map { it.text }
+                randomFunGenerator.generate()?.text?.substringBeforeLast(':')
             }
-        val tp = if (genTypeParams.isEmpty()) "" else genTypeParams.joinToString(prefix = " <", postfix = ">")
-        val c = instance?.let { "(${it.substringAfter('(')}" } ?: ""
-        val def = "object: ${openKlass.name}$tp$c"
-        val gClass = GClass()
-        val overrides = generateOverrides(gClass, listOf(openKlass.defaultType))
-        println("$def{\n$overrides}\n")
-        exitProcess(0)
-        return ""
+        res.append(lhv)
+        if (Random.nextBoolean()) {
+            withInheritance = true
+            val openKlass = randomTypeGenerator.generateOpenClassType(true) ?: return ""
+            val instance =
+                if (openKlass.constructors.isEmpty() || openKlass.modality != Modality.OPEN)
+                    null
+                else
+                    randomInstancesGenerator.generateValueOfType(openKlass.defaultType)
+            val genTypeParams =
+                if (instance == null) {
+                    openKlass.declaredTypeParameters.map { randomTypeGenerator.generateRandomTypeWithCtx().toString() }
+                } else {
+                    (Factory.psiFactory.createExpression(instance) as KtCallExpression).typeArguments.map { it.text }
+                }
+            val tp = if (genTypeParams.isEmpty()) "" else genTypeParams.joinToString(prefix = " <", postfix = ">")
+            val c = instance?.let { "(${it.substringAfter('(')}" } ?: ""
+            val def = "object: ${openKlass.name}$tp$c"
+            val typeWOTypeParams = randomTypeGenerator.generateType("${openKlass.name}$tp$c") ?: return ""
+            val gClass = GClass()
+            val overrides = generateOverrides(gClass, listOf(typeWOTypeParams))
+            res.append(": ${openKlass.name}$tp")
+            res.append(" = $def {")
+            res.append(overrides)
+        }
+        if (!withInheritance) res.append(" = object {")
+        val propsAndFuncs = generateFields(depth = Int.MAX_VALUE)
+        res.append(propsAndFuncs)
+        res.append("}")
+        return res.toString()
     }
 
-    private fun generateFields(): String {
+    private fun generateFields(depth: Int = 0): String {
         if (gClass.isAnnotation()) return ""
         if (gClass.isEnum()) return generateEnumFields()
         val res = StringBuilder()
-        val randomFunGenerator = RandomFunctionGenerator(file, ctx)
         with(res) {
-            append(generatePropWithAnonObj())
+            if (depth < MAX_DEPTH && Random.nextBoolean()) append(generatePropWithAnonObj())
             //TODO Random.nextInt(0, 5)
             repeat(Random.nextInt(0, 2)) {
                 append("\n")
@@ -122,9 +140,10 @@ open class ClassBodyGenerator(
                 append("\n")
             }
             //TODO PROPERTY GENERATOR
-            repeat(Random.nextInt(1, 2)) {
+            repeat(Random.nextInt(1, 3)) {
                 append("\n")
-                append("val ${Random.getRandomVariableName(5)}: ${randomTypeGenerator.generateRandomTypeWithCtx()} = TODO()")
+                append(RandomPropertyGenerator(file, gClass, ctx).generateRandomProperty())
+                //append("val ${Random.getRandomVariableName(5)}: ${randomTypeGenerator.generateRandomTypeWithCtx()} = TODO()")
                 append("\n")
             }
         }
@@ -132,22 +151,25 @@ open class ClassBodyGenerator(
     }
 
     private fun generateInnerClass(): String {
+        if (gClass.isAnnotation()) return ""
         val klassGenerator = RandomClassGenerator(file, ctx, depth + 1)
         val kl = klassGenerator.generate()
         return kl?.text ?: ""
     }
 
 
-    fun generate(specifiers: List<KotlinType>) =
-        with(StringBuilder()) {
-            //append(generateOverrides(gClass, specifiers))
+    fun generateBodyAsString(): String {
+        val kTypeSpecifiers = gClass.supertypes.map {
+            randomTypeGenerator.generateType(it.substringBefore('(')) ?: return ""
+        }
+        return with(StringBuilder()) {
+            append(generateOverrides(gClass, kTypeSpecifiers))
             append(generateFields())
-            append(if (depth <= MAX_DEPTH && Random.nextBoolean()) generateInnerClass() else "")
+            append(
+                if (depth <= MAX_DEPTH && !gClass.isInterface() && Random.nextBoolean())
+                    generateInnerClass()
+                else "")
         }.toString()
-
-
-    override fun generate(): PsiElement? {
-        TODO("Not yet implemented")
     }
 
 }

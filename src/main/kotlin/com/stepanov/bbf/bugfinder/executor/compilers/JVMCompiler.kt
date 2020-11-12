@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.jar.JarInputStream
 import java.util.jar.JarOutputStream
+import kotlin.system.exitProcess
 
 open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
     override val compilerInfo: String
@@ -87,6 +88,7 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
                 .toSet().toList()
                 .joinToString(":")
         projectArgs.jvmTarget = "1.8"
+        projectArgs.optIn = arrayOf("kotlin.ExperimentalStdlibApi")
         if (project.configuration.jvmDefault.isNotEmpty())
             projectArgs.jvmDefault = project.configuration.jvmDefault.substringAfter(Directives.jvmDefault)
         return projectArgs

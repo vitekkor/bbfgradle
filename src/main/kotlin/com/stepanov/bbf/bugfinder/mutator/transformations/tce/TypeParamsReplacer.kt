@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.util.RandomTypeGenerator
+import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.util.splitWithoutRemoving
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor

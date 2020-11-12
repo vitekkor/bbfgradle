@@ -2,28 +2,27 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.abi
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.util.*
+import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGeneratorForAnClass
 import org.jetbrains.kotlin.backend.common.serialization.findPackage
 import org.jetbrains.kotlin.fir.lightTree.fir.modifier.ModifierSets
 import org.jetbrains.kotlin.psi.KtCallExpression
-import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.types.typeUtil.isInterface
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
-class RandomClassGenerator(
-    private val file: KtFile,
-    private val ctx: BindingContext,
-    private val depth: Int = 0
-) : DSGenerator(file, ctx) {
+open class RandomClassGenerator(
+    override val file: KtFile,
+    override val ctx: BindingContext,
+    override val depth: Int = 0
+) : ClassGenerator(file, ctx, depth) {
 
-    private val gClass: GClass = GClass()
-    private val randomInstancesGenerator = RandomInstancesGenerator(file)
-    private var resClass: KtClass? = null
+    override val classWord: String
+        get() = "class"
 
-    private fun generateModifiers(): List<String> {
+    override fun generateModifiers(): List<String> {
         val classModifiers =
             ModifierSets.CLASS_MODIFIER.types.toList()
                 .map { it.toString() }
@@ -31,27 +30,32 @@ class RandomClassGenerator(
                 .let {
                     if (depth == 0) it.filter { it != "inner" } else it
                 }
-        val classModifier = if (Random.getTrue(70)) "" else classModifiers.random()
+        //TODO!!!
+        //val classModifier = if (Random.getTrue(70)) "" else classModifiers.random()
+        val classModifier = ""
         val visibilityModifiers =
             ModifierSets.VISIBILITY_MODIFIER.types.toList().map { it.toString() }.filter { it != "protected" }
         val visibilityModifier = if (Random.getTrue(20)) "" else visibilityModifiers.random()
         val inheritanceModifiers = ModifierSets.INHERITANCE_MODIFIER.types.toList().map { it.toString() }
-        val inheritanceModifier =
-            if (Random.getTrue(20) || classModifier.isNotEmpty())
-                ""
-            else
-                inheritanceModifiers.random().let { if (it == "inner" && classModifier.isNotEmpty()) "" else it }
+        //TODO!!!
+//        val inheritanceModifier =
+//            if (Random.getTrue(20) || classModifier.isNotEmpty())
+//                ""
+//            else
+//                inheritanceModifiers.random().let { if (it == "inner" && classModifier.isNotEmpty()) "" else it }
+        val inheritanceModifier = "open"
         return listOf(classModifier, visibilityModifier, inheritanceModifier)
     }
 
     private fun generateModifierForConstructorProperty(haveVararg: Boolean): String =
-        when (Random.nextInt(0, 3)) {
+        if (gClass.isData()) if (Random.nextBoolean()) "var " else "val "
+        else when (Random.nextInt(0, 3)) {
             1 -> "var "
             2 -> if (Random.nextBoolean()) "vararg " else ""
             else -> "val "
         }
 
-    private fun generateConstructor(): List<String> {
+    override fun generateConstructor(): List<String> {
         var lb = 0
         val rb = 5
         var haveVararg = false
@@ -61,9 +65,7 @@ class RandomClassGenerator(
             lb = 1
             numOfArgs = (lb..rb).random()
             return MutableList(numOfArgs) {
-                val m = generateModifierForConstructorProperty(haveVararg)
-                if (m == "vararg") haveVararg = true
-                "$m${Random.getRandomVariableName(1)}: ${randomTypeGenerator.generatePrimitive()}"
+                "val ${Random.getRandomVariableName(3)}: ${RandomTypeGeneratorForAnClass.generateTypeForAnnotationClass()}"
             }
         }
         val args =
@@ -73,7 +75,7 @@ class RandomClassGenerator(
                 MutableList(numOfArgs) {
                     val m = generateModifierForConstructorProperty(haveVararg)
                     if (m == "vararg") haveVararg = true
-                    "$m${Random.getRandomVariableName(2)}: " to randomTypeGenerator.generateRandomTypeWithCtx()
+                    "$m${Random.getRandomVariableName(3)}: " to randomTypeGenerator.generateRandomTypeWithCtx()
                 }
         val typeArgs = gClass.typeParams.map { it.substringBefore(':') }
         if (args.any { it.second == null }) return emptyList()
@@ -85,8 +87,7 @@ class RandomClassGenerator(
                             if (it.trim().isNotEmpty()) " = $it"
                             else ""
                         }
-                    }
-                    else ""
+                    } else ""
                 "${it.first}${it.second.toString()}$defaultValue"
             }
         return args.map { arg ->
@@ -99,14 +100,14 @@ class RandomClassGenerator(
                     }
                 } else arg.second.toString()
             val defaultValue =
-                if (finalType == arg.second.toString() && Random.getTrue(30) && arg.second != null)
+                if (finalType == arg.second.toString() && Random.getTrue(30) && arg.second != null && !type.isInterface())
                     " = ${randomInstancesGenerator.generateValueOfType(arg.second!!)}"
                 else ""
             if (Random.getTrue(30)) "${arg.first}${typeArgs.random()}" else "${arg.first}$finalType$defaultValue"
         }
     }
 
-    private fun delegationSpecifier(): Pair<String, String>? {
+    private fun generateSupertypes1(): Pair<String, String>? {
         val openClass = randomTypeGenerator.generateOpenClassType() ?: return null
         val importPath = openClass.findPackage().fqName.asString()
         var typeParams = openClass.declaredTypeParameters.map { typeParam ->
@@ -133,12 +134,14 @@ class RandomClassGenerator(
         return "${openClass.name}$strTP$valueParams" to importPath
     }
 
-    private fun generateDelegationSpecifiers(): String {
-        val specifiers = if (gClass.isEnum() || gClass.isAnnotation())
-            listOf()
-        else
-        //TODO!! Random.nextInt(0, 3)
-            List(Random.nextInt(0, 3)) { delegationSpecifier() }.filterNotNull()
+    override fun generateSupertypes(): List<String> {
+        val specifiers =
+            if (gClass.isEnum() || gClass.isAnnotation())
+                listOf()
+            else if (Random.nextBoolean())
+                listOf()
+            else
+                List(Random.nextInt(1, 3)) { generateSupertypes1() }.filterNotNull()
         gClass.imports.addAll(
             specifiers
                 .filter { it.second.trim().isNotEmpty() }
@@ -148,45 +151,41 @@ class RandomClassGenerator(
                     }"
                 }
         )
-        gClass.delegationSpecifiers = specifiers.map { it.first }
-        return specifiers.map { it.first }.let { if (it.isEmpty()) "" else it.joinToString(prefix = ": ") }
+        gClass.supertypes = specifiers.map { it.first }
+        return specifiers.map { it.first }
     }
 
     override fun generateTypeParams(): List<String> {
-        if (gClass.isEnum()) return listOf()
+        if (gClass.isEnum() || gClass.isAnnotation()) return listOf()
         return super.generateTypeParams()
-    }
-
-    fun generateAndAddToFile(): Boolean {
-        generate()?.let {
-            file.addToTheEnd(it)
-        } ?: return false
-        return true
     }
 
     override fun generate(): PsiElement? {
 //        repeat(25) { ind ->
         val modifiers = generateModifiers()
-        //TODO!!!
-        //gClass.modifiers = listOf("enum")
         gClass.modifiers = modifiers
-        val specifiers = generateDelegationSpecifiers()
+        val specifiers = generateSupertypes().let { if (it.isEmpty()) "" else it.joinToString(prefix = ": ") }
         val genTypeParams = generateTypeParams()
         val genTypeArgsWObounds = genTypeParams.map { it.substringBefore(':') }
         gClass.typeParams = genTypeParams
         val c = generateConstructor().let {
-            gClass.constructor = it
+            gClass.constructorArgs = it
             it.joinToString(prefix = "(", postfix = ")")
         }
         val sta = if (genTypeParams.isEmpty()) "" else genTypeParams.joinToString(prefix = "<", postfix = "> ")
         //TMP!! TODO
         //gClass.delegationSpecifiers = listOf("ABC<Int>")
-        val body = ClassBodyGenerator(file, ctx, gClass, depth + 1).generate(gClass.delegationSpecifiers.map {
-            randomTypeGenerator.generateType(it.substringBefore('(')) ?: throw Exception("Cant generate type $it")
-        })
+        val body = ClassBodyGenerator(file, ctx, gClass, depth + 1).generateBodyAsString()
         val psiBody = Factory.psiFactory.createBlock(body)
         //val imports = gClass.imports.joinToString("\n"){ "import $it "}
-        val kl = "${modifiers.joinToString(" ")} class AAA${'A' + depth}$sta$c$specifiers${psiBody.text}"
+        val a =
+            if (gClass.isAnnotation())
+                "@Retention(AnnotationRetention.RUNTIME)\n"
+            else
+                ""
+        val kl = "$a${modifiers.joinToString(" ")} class ${
+            Random.getRandomVariableName(3).capitalize()
+        }$sta$c$specifiers${psiBody.text}"
         try {
             Factory.psiFactory.createClass(kl)
         } catch (e: Exception) {
@@ -204,24 +203,4 @@ class RandomClassGenerator(
 //        TODO("Not yet implemented")
     }
 
-}
-
-data class GClass(
-    var imports: MutableList<String> = mutableListOf(),
-    var modifiers: List<String> = listOf(),
-    var classWord: String = "",
-    var name: String = "",
-    var typeParams: List<String> = listOf(),
-    var constructor: List<String> = listOf(),
-    var delegationSpecifiers: List<String> = listOf(),
-    var typeConstrains: List<String> = listOf()
-) {
-    fun toPsi(): PsiElement {
-        val m = modifiers.let { if (it.all { it.isEmpty() }) "" else it.joinToString(" ") }
-        return Factory.psiFactory.createClass("$m class $name()")
-    }
-
-    fun isAnnotation() = modifiers.contains("annotation")
-    fun isEnum() = modifiers.contains("enum")
-    fun isData() = modifiers.contains("data")
 }

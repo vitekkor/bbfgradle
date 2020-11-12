@@ -559,4 +559,10 @@ inline fun <reified T : Any> List<Any>.flatten(): List<T> = this.flatten(T::clas
 
 fun PsiFile.contains(cond: (PsiElement) -> Boolean) = this.getAllChildren().any { cond(it) }
 
-fun KotlinType.getAllTypeArgs(): List<TypeProjection> = this.arguments + this.arguments.flatMap { it.type.getAllTypeArgs() }
+fun KotlinType.getAllTypeArgs(): List<TypeProjection> =
+    this.arguments + this.arguments.flatMap { it.type.getAllTypeArgs() }
+
+fun KotlinType.isKType(): Boolean =
+    constructor.declarationDescriptor?.name?.asString()
+        ?.let { it == "KClass" || it.startsWith("KProperty") || it.startsWith("KFunction") }
+        ?: false
