@@ -9,6 +9,7 @@ import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.builtins.isExtensionFunctionType
+import org.jetbrains.kotlin.builtins.isFunctionOrSuspendFunctionType
 import org.jetbrains.kotlin.builtins.isFunctionType
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
@@ -292,7 +293,7 @@ open class RandomInstancesGenerator(private val file: KtFile) {
         if (type.isPrimitiveTypeOrNullablePrimitiveTypeOrString())
             generateDefValuesAsString(type.toString()).let { if (it.isNotEmpty()) return it }
         if (type.isKType()) return RandomReflectionInstanceGenerator(file, ctx, type).generateReflection()
-        if (type.isFunctionType) {
+        if (type.isFunctionOrSuspendFunctionType) {
             if (type.arguments.isEmpty()) return ""
             val args =
                 if (type.isExtensionFunctionType) type.arguments.getAllWithout(0).getAllWithoutLast()
@@ -311,6 +312,7 @@ open class RandomInstancesGenerator(private val file: KtFile) {
         if (type.getAllTypeArgs().any { it.type.isInterface() })
             funcs = funcs.filter { it.valueParameters.all { !it.type.isTypeParameter() } }
         funcs = funcs.filter { it.extensionReceiverParameter == null }
+            .filterNot { it.annotations.any { it.fqName?.asString()?.contains("Deprecated") ?: false } }
 //        funcs = if (Random.getTrue(75))
 //            funcs.filter { it.extensionReceiverParameter == null }
 //        else

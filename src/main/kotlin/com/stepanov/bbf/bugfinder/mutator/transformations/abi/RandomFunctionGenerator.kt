@@ -2,10 +2,12 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.abi
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GFunction
 import com.stepanov.bbf.bugfinder.util.getAllWithoutLast
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import com.stepanov.bbf.bugfinder.util.getTrue
+import com.stepanov.bbf.bugfinder.util.replaceTypeOrRandomSubtypeOnTypeParam
 import org.jetbrains.kotlin.fir.lightTree.fir.modifier.ModifierSets
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
@@ -15,7 +17,8 @@ import kotlin.system.exitProcess
 
 class RandomFunctionGenerator(
     file: KtFile,
-    ctx: BindingContext
+    ctx: BindingContext,
+    val gClass: GClass? = null
 ) : DSGenerator(file, ctx) {
 
     private val gFunc = GFunction()
@@ -95,7 +98,8 @@ class RandomFunctionGenerator(
                 else -> return getNumOfArgsAndRTVForOperator(gFunc.name).second
             }
         }
-        return randomTypeGenerator.generateRandomTypeWithCtx().toString()
+        val randomType = randomTypeGenerator.generateRandomTypeWithCtx() ?: return ""
+        return gClass?.let { randomType.replaceTypeOrRandomSubtypeOnTypeParam(it.typeParams) } ?: "$randomType"
     }
 
 

@@ -197,6 +197,6 @@ fun main(args: Array<String>) {
 //    val files2 = File(CompilerArgs.baseDir).listFiles().filter { f -> f.isFile && (cond.any { it.invoke(f) }) }
 ////    System.exit(0)
 //    val file = (files + files2).random()
-    SingleFileBugFinder("tmp/test.kt").findBugsInFile()
+    SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 }

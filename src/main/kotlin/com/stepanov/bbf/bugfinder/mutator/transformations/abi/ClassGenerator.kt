@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.abi
 
 import com.intellij.psi.PsiElement
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
 import com.stepanov.bbf.bugfinder.util.addImport
@@ -25,37 +26,28 @@ abstract class ClassGenerator(
     abstract fun generateModifiers(): List<String>
     abstract fun generateConstructor(): List<String>
     abstract fun generateSupertypes(): List<String>
+    abstract fun generateAnnotations(): List<String>
 
     fun calcImports(): List<String> = UsageSamplesGeneratorWithStLibrary.calcImports(file)
 
     open fun generate(): PsiElement? {
-        val gkl = GClass.fromPsi(file.getAllPSIChildrenOfType<KtClassOrObject>()[1])
-        val newBody = ClassBodyGenerator(file, ctx, gkl, depth + 1).generateBodyAsString()
-        println("newBody = $newBody")
-        exitProcess(0)
-        for (kl in file.getAllPSIChildrenOfType<KtClassOrObject>()) {
-            val gClass1 = GClass.fromPsi(kl)
-            println(gClass1)
-        }
-        exitProcess(0)
         gClass.classWord = classWord
+        gClass.annotations = generateAnnotations()
         gClass.modifiers = generateModifiers()
         gClass.name = Random.getRandomVariableName(3).capitalize()
         gClass.typeParams = generateTypeParams()
         gClass.constructorArgs = generateConstructor()
         gClass.supertypes = generateSupertypes()
         gClass.body = ClassBodyGenerator(file, ctx, gClass, depth + 1).generateBodyAsString()
-        println(gClass)
-        exitProcess(0)
-        return null
+        return gClass.toPsi()
     }
 
-    fun generateAndAddToFile(): Boolean {
+    fun generateAndAddToFile(): PsiElement? {
         generate()?.let {
-            file.addToTheEnd(it)
+            val added = file.addToTheEnd(it)
             calcImports().forEach { file.addImport(it.substringBeforeLast('.'), true) }
-        } ?: return false
-        return true
+            return added
+        } ?: return null
     }
 
 }

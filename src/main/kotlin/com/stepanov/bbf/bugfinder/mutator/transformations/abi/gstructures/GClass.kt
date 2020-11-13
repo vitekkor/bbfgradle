@@ -7,7 +7,7 @@ import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtObjectDeclaration
 
 data class GClass(
-    var annotations: MutableList<String> = mutableListOf(),
+    var annotations: List<String> = listOf(),
     var imports: MutableList<String> = mutableListOf(),
     var modifiers: List<String> = listOf(),
     var classWord: String = "",
@@ -64,10 +64,12 @@ data class GClass(
         }
     }
 
-    fun toPsi(): PsiElement {
-        val m = modifiers.let { if (it.all { it.isEmpty() }) "" else it.joinToString(" ") }
-        return Factory.psiFactory.createClass("$m class $name()")
-    }
+    fun toPsi(): PsiElement? =
+        try {
+            Factory.psiFactory.createClass(toString())
+        } catch (e: Exception) {
+            null
+        }
 
     fun isAnnotation() = modifiers.contains("annotation")
     fun isEnum() = modifiers.contains("enum")

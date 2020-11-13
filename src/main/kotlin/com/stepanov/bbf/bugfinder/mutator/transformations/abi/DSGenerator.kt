@@ -22,7 +22,8 @@ abstract class DSGenerator(
 
     open fun generateTypeParams(): List<String> {
         val typeArgs =
-            if (Random.getTrue(30)) List(Random.nextInt(1, 3)) { 'T' - it }.toMutableList() else mutableListOf()
+            if (Random.getTrue(30)) List(Random.nextInt(1, 3)) { 'T' - it }.toMutableList()
+            else mutableListOf()
         if (typeArgs.isEmpty()) return listOf()
         return typeArgs.map {
             if (Random.getTrue(20)) {

@@ -2,10 +2,10 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.abi
 
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
-import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.RandomPropertyGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import com.stepanov.bbf.bugfinder.util.getTrue
+import com.stepanov.bbf.bugfinder.util.removeDuplicatesBy
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
@@ -14,6 +14,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 open class ClassBodyGenerator(
     private val file: KtFile,
@@ -23,7 +24,7 @@ open class ClassBodyGenerator(
 ) : DSGenerator(file, ctx) {
 
 //    private val randomInstancesGenerator = RandomInstancesGenerator(file)
-    private val randomFunGenerator = RandomFunctionGenerator(file, ctx)
+    private val randomFunGenerator = RandomFunctionGenerator(file, ctx, gClass)
 
     private fun generatePropertyOverriding(isVar: Boolean, name: String, returnType: String): String {
         val varOrVal = if (isVar) "var" else "val"
@@ -39,22 +40,24 @@ open class ClassBodyGenerator(
 
     private fun generateOverrides(gClass: GClass, specifiers: List<KotlinType>): String {
         val res = StringBuilder()
-        for (specifier in specifiers) {
+        val filteredMembers = specifiers.flatMap { specifier ->
             val membersToOverride = UsageSamplesGeneratorWithStLibrary.getMembersToOverride(specifier)
-            val filteredMembers =
-                if (gClass.let { it.isInterface() || it.isAbstract() })
-                    membersToOverride.filter { Random.getTrue(30) }
-                else
-                    membersToOverride.filterNot { it is FunctionDescriptor && it.modality == Modality.OPEN && Random.nextBoolean() }
-            for (member in filteredMembers) {
-                val rtv = member.toString().substringAfterLast(":").substringBefore(" defined")
-                if (member is PropertyDescriptor) {
-                    res.append(generatePropertyOverriding(member.isVar, member.name.asString(), rtv))
-                } else if (member is FunctionDescriptor) {
-                    val f = member.toString().substringAfter("fun").substringBefore(" defined").split(" = ...")
-                        .joinToString(" ")
-                    res.append("\noverride fun$f = TODO()\n")
-                }
+            if (gClass.let { it.isInterface() || it.isAbstract() })
+                membersToOverride.filter { Random.getTrue(30) }
+            else
+                membersToOverride.filterNot { it is FunctionDescriptor && it.modality == Modality.OPEN && Random.nextBoolean() }
+        }.removeDuplicatesBy {
+            if (it is FunctionDescriptor) "${it.name}${it.valueParameters.map { it.name.asString() + it.returnType.toString() }}"
+            else (it as PropertyDescriptor).name.asString()
+        }
+        for (member in filteredMembers) {
+            val rtv = member.toString().substringAfterLast(":").substringBefore(" defined")
+            if (member is PropertyDescriptor) {
+                res.append(generatePropertyOverriding(member.isVar, member.name.asString(), rtv))
+            } else if (member is FunctionDescriptor) {
+                val f = member.toString().substringAfter("fun").substringBefore(" defined").split(" = ...")
+                    .joinToString(" ")
+                res.append("\noverride fun$f = TODO()\n")
             }
         }
         return res.toString()
@@ -81,7 +84,7 @@ open class ClassBodyGenerator(
                 append(",\n")
             }
             replace(length - 2, length, ";\n")
-            fieldToOverride?.let { append("abstract $varOrVal $fieldToOverrideName: $it") }
+            fieldToOverride?.let { append("abstract $varOrVal $fieldToOverrideName: $it\n") }
             this
         }.toString()
 
@@ -100,12 +103,14 @@ open class ClassBodyGenerator(
             withInheritance = true
             val openKlass = randomTypeGenerator.generateOpenClassType(true) ?: return ""
             val instance =
-                if (openKlass.constructors.isEmpty() || openKlass.modality != Modality.OPEN)
+                if (openKlass.modality == Modality.ABSTRACT)
+                    ")"
+                else if (openKlass.constructors.isEmpty() || openKlass.modality != Modality.OPEN)
                     null
                 else
                     randomInstancesGenerator.generateValueOfType(openKlass.defaultType)
             val genTypeParams =
-                if (instance == null) {
+                if (instance == null || instance == ")") {
                     openKlass.declaredTypeParameters.map { randomTypeGenerator.generateRandomTypeWithCtx().toString() }
                 } else {
                     (Factory.psiFactory.createExpression(instance) as KtCallExpression).typeArguments.map { it.text }
@@ -132,7 +137,7 @@ open class ClassBodyGenerator(
         if (gClass.isEnum()) return generateEnumFields()
         val res = StringBuilder()
         with(res) {
-            if (depth < MAX_DEPTH && Random.nextBoolean()) append(generatePropWithAnonObj())
+            if (depth < MAX_DEPTH && Random.getTrue(20) && !gClass.isInterface()) append(generatePropWithAnonObj())
             //TODO Random.nextInt(0, 5)
             repeat(Random.nextInt(0, 2)) {
                 append("\n")
@@ -140,7 +145,7 @@ open class ClassBodyGenerator(
                 append("\n")
             }
             //TODO PROPERTY GENERATOR
-            repeat(Random.nextInt(1, 3)) {
+            repeat(Random.nextInt(5, 10)) {
                 append("\n")
                 append(RandomPropertyGenerator(file, gClass, ctx).generateRandomProperty())
                 //append("val ${Random.getRandomVariableName(5)}: ${randomTypeGenerator.generateRandomTypeWithCtx()} = TODO()")

@@ -17,6 +17,7 @@ import com.stepanov.bbf.reduktor.util.getAllChildrenOfCurLevel
 import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.js.descriptorUtils.nameIfStandardType
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.FqName
@@ -24,6 +25,7 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.resolve.ImportPath
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
+import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.isPrimitiveNumberType
 import org.jetbrains.kotlin.types.typeUtil.isUnsignedNumberType
@@ -566,3 +568,17 @@ fun KotlinType.isKType(): Boolean =
     constructor.declarationDescriptor?.name?.asString()
         ?.let { it == "KClass" || it.startsWith("KProperty") || it.startsWith("KFunction") }
         ?: false
+
+fun KotlinType.isAbstractClass(): Boolean =
+    (this.constructor.declarationDescriptor as? DeserializedClassDescriptor)?.modality == Modality.ABSTRACT
+
+fun KotlinType.replaceTypeOrRandomSubtypeOnTypeParam(typeParams: List<String>): String {
+    if (typeParams.isEmpty()) return "$this"
+    val typeParamsWithoutBounds = typeParams.map { it.substringBefore(':') }
+    if (kotlin.random.Random.getTrue(20)) return typeParamsWithoutBounds.random()
+    return if (this.arguments.isNotEmpty()) {
+        this.toString().substringBefore('<') + this.arguments.joinToString(prefix = "<", postfix = ">") {
+            if (kotlin.random.Random.getTrue(40)) typeParamsWithoutBounds.random() else it.toString()
+        }
+    } else this.toString()
+}

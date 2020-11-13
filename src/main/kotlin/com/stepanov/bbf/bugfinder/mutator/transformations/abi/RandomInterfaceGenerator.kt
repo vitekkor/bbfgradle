@@ -37,4 +37,6 @@ class RandomInterfaceGenerator(file: KtFile, ctx: BindingContext, depth: Int = 0
 //        return listOf()
     }
 
+    override fun generateAnnotations(): List<String> = listOf()
+
 }

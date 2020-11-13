@@ -138,19 +138,22 @@ object UsageSamplesGeneratorWithStLibrary {
         kl.memberScope.computeAllNames()
         return kl.memberScope.getDescriptorsFiltered { true }.toList() +
                 kl.supertypesWithoutAny().flatMap { getMembersToOverride1(it) }
+
+
     }
 
     fun getMembersToOverride(kl: KotlinType): List<DeclarationDescriptor> {
-        val fields = getMembersToOverride1(kl).filter {
+        val fields = getMembersToOverride1(kl)
+            .removeDuplicatesBy {
+                if (it is FunctionDescriptor) "${it.name}${it.valueParameters.map { it.name.asString() + it.returnType.toString() }}"
+                else it.name.asString()
+            }
+            .filter {
             it.toString().let { !it.contains("equals") && !it.contains("hashCode") && !it.contains("toString") } &&
                     checkVisibilityAndModality(it)
         }
         return fields
             .filter { it is PropertyDescriptor || it is FunctionDescriptor }
-            .removeDuplicatesBy {
-                if (it is FunctionDescriptor) "${it.name}${it.valueParameters.map { it.name.asString() + it.returnType.toString() }}"
-                else it.name.asString()
-            }
     }
 
     private fun KotlinType.replaceTypeArgsToTypes(map: Map<String, String>): String {

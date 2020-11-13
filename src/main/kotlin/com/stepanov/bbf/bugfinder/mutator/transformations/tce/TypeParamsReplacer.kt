@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.types.KotlinType
 import com.stepanov.bbf.bugfinder.util.flatMap
 import org.jetbrains.kotlin.resolve.calls.components.isVararg
+import kotlin.system.exitProcess
 
 object TypeParamsReplacer {
 
@@ -98,7 +99,7 @@ object TypeParamsReplacer {
                         .substringAfter(']')
             param.name.asString() + ": " +
                     paramType
-                        .splitWithoutRemoving(Regex("""[<>,]|in |out """))
+                        .splitWithoutRemoving(Regex("""[<>,()]|in |out """))
                         .flatMap { it.splitWithoutRemoving(Regex("""\[.*\]""")) }
                         .map { it.trim() }
                         .filter { it.isNotEmpty() && !it.startsWith('[') }
