@@ -25,13 +25,14 @@ class RandomPropertyGenerator(
     private val ctx: BindingContext
 ) : DSGenerator(file, ctx) {
 
+    //Get classes which are supertypes of us
+    private val klasses: List<ClassDescriptor> = file.getAllPSIChildrenOfType<KtTypeReference>()
+        .mapNotNull { it.getAbbreviatedTypeOrType(ctx)?.constructor?.declarationDescriptor?.findPackage() }
+        .first { it.fqName == file.packageFqName }
+        .getMemberScope().getDescriptorsFiltered { true }
+        .filterIsInstance<ClassDescriptor>()
+
     fun generateInterestingProperty(): PsiElement? {
-        //Get classes which are supertypes of us
-        val klasses = file.getAllPSIChildrenOfType<KtTypeReference>()
-            .mapNotNull { it.getAbbreviatedTypeOrType(ctx)?.constructor?.declarationDescriptor?.findPackage() }
-            .first { it.fqName == file.packageFqName }
-            .getMemberScope().getDescriptorsFiltered { true }
-            .filterIsInstance<ClassDescriptor>()
         val children =
             klasses.filter {
                 it.name.asString() != gClass.name &&

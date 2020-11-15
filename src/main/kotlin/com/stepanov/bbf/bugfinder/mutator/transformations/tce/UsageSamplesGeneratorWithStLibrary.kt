@@ -61,6 +61,8 @@ object UsageSamplesGeneratorWithStLibrary {
                 .filterNot { it.containingDeclaration.findPackage().toString().contains("js") }
                 .filter { it.constructors.isEmpty() || it.constructors.any { it.visibility.isPublicAPI } }
                 .filter { it.constructors.isEmpty() || !onlyInterfaces }
+        //TODO!!! remove this
+                .filter { it.name.asString().let { !it.contains("Map") && !it.contains("List") } }
         return openKlasses.random()
     }
 
