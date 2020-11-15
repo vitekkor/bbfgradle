@@ -20,7 +20,7 @@ class AddPropertiesToClass: Transformation() {
     override fun transform() {
         repeat(RAND_CONST) {
             val ctx = PSICreator.analyze(file) ?: return
-            val randomKlass = file.getAllPSIChildrenOfType<KtClass>()[0] ?: return
+            val randomKlass = file.getAllPSIChildrenOfType<KtClass>().randomOrNull() ?: return
             val gClass = GClass.fromPsi(randomKlass)
             val genProp = RandomPropertyGenerator(file as KtFile, gClass, ctx).generateInterestingProperty() ?: return@repeat
             var r = randomKlass.addPsiToBody(genProp) ?: return@repeat
