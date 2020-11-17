@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.abi
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
+import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import com.stepanov.bbf.bugfinder.util.getTrue
 import com.stepanov.bbf.bugfinder.util.removeDuplicatesBy
@@ -10,6 +11,7 @@ import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.psi.KtCallExpression
+import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.types.KotlinType
@@ -23,7 +25,7 @@ open class ClassBodyGenerator(
     private val depth: Int = 0
 ) : DSGenerator(file, ctx) {
 
-//    private val randomInstancesGenerator = RandomInstancesGenerator(file)
+    //    private val randomInstancesGenerator = RandomInstancesGenerator(file)
     private val randomFunGenerator = RandomFunctionGenerator(file, ctx, gClass)
 
     private fun generatePropertyOverriding(isVar: Boolean, name: String, returnType: String): String {
@@ -89,7 +91,7 @@ open class ClassBodyGenerator(
         }.toString()
 
 
-    private fun generatePropWithAnonObj(): String {
+    private fun generatePropWithAnonObj(fromObject: Boolean): String {
         val res = StringBuilder()
         var withInheritance = false
         val lhv =
@@ -113,7 +115,8 @@ open class ClassBodyGenerator(
                 if (instance == null || instance == ")") {
                     openKlass.declaredTypeParameters.map { randomTypeGenerator.generateRandomTypeWithCtx().toString() }
                 } else {
-                    (Factory.psiFactory.createExpression(instance) as KtCallExpression).typeArguments.map { it.text }
+                    (Factory.psiFactory.createExpression(instance) as? KtCallExpression)?.typeArguments?.map { it.text }
+                        ?: return ""
                 }
             val tp = if (genTypeParams.isEmpty()) "" else genTypeParams.joinToString(prefix = " <", postfix = ">")
             val c = instance?.let { "(${it.substringAfter('(')}" } ?: ""
@@ -126,28 +129,30 @@ open class ClassBodyGenerator(
             res.append(overrides)
         }
         if (!withInheritance) res.append(" = object {")
-        val propsAndFuncs = generateFields(depth = Int.MAX_VALUE)
+        val propsAndFuncs = generateFieldsForRegularClass(depth = Int.MAX_VALUE, true)
         res.append(propsAndFuncs)
         res.append("}")
         return res.toString()
     }
 
-    private fun generateFields(depth: Int = 0): String {
-        if (gClass.isAnnotation()) return ""
-        if (gClass.isEnum()) return generateEnumFields()
+    private fun generateFieldsForRegularClass(depth: Int = 0, fromObject: Boolean = false): String {
         val res = StringBuilder()
+        if (gClass.isFunInterface()) {
+            val f = randomFunGenerator.generate()?.text?.substringBeforeLast('=') ?: ""
+            return "\nabstract ${f}\n"
+        }
         with(res) {
-            if (depth < MAX_DEPTH && Random.getTrue(20) && !gClass.isInterface()) append(generatePropWithAnonObj())
+            if (depth < MAX_DEPTH && Random.getTrue(20) && !gClass.isInterface()) append(generatePropWithAnonObj(fromObject))
             //TODO Random.nextInt(0, 5)
             repeat(Random.nextInt(0, 2)) {
                 append("\n")
                 append(randomFunGenerator.generate()?.text)
                 append("\n")
             }
-            //TODO PROPERTY GENERATOR
-            repeat(Random.nextInt(5, 10)) {
+            //TODO Random.nextInt(1, 5)
+            repeat(Random.nextInt(0, 2)) {
                 append("\n")
-                append(RandomPropertyGenerator(file, gClass, ctx).generateRandomProperty())
+                append(RandomPropertyGenerator(file, gClass, ctx).generateRandomProperty(fromObject))
                 //append("val ${Random.getRandomVariableName(5)}: ${randomTypeGenerator.generateRandomTypeWithCtx()} = TODO()")
                 append("\n")
             }
@@ -155,13 +160,43 @@ open class ClassBodyGenerator(
         return res.toString()
     }
 
+    private fun generateFields(depth: Int = 0): String {
+        if (gClass.isAnnotation()) return ""
+        if (gClass.isEnum()) return generateEnumFields()
+        return generateFieldsForRegularClass(depth)
+    }
+
+    private fun generateSecondaryConstructor(): String {
+        if (Random.getTrue(50)) return ""
+        if (gClass.constructorArgs.isEmpty()) return ""
+        if (gClass.classWord != "class" || gClass.isAnnotation() || gClass.isAbstract()) return ""
+        val newConstructor =
+            RandomClassGenerator(file, ctx).also { it.gClass = gClass }.generateConstructor()
+                .joinToString { it.substringAfter(' ') }
+        val valueParams = gClass.constructorArgs
+            .map { randomTypeGenerator.generateType(it.substringAfter(": ")) }
+            .map { it ?: return "" }
+            .map { randomInstancesGenerator.generateValueOfType(it).let { if (it.isEmpty()) return "" else it } }
+            .joinToString(prefix = "(", postfix = ")")
+        return "constructor($newConstructor):this$valueParams\n"
+    }
+
+    private fun generateCompanionObject(): String {
+        if (gClass.isInner() || Random.getTrue(50)) return ""
+        if (gClass.classWord != "class" || gClass.isAnnotation()) return ""
+        val tp = gClass.typeParams
+        gClass.typeParams = listOf()
+        val body = generateFieldsForRegularClass(depth, true)
+        gClass.typeParams = tp
+        return "companion object {\n$body\n}\n"
+    }
+
     private fun generateInnerClass(): String {
         if (gClass.isAnnotation()) return ""
-        val klassGenerator = RandomClassGenerator(file, ctx, depth + 1)
+        val klassGenerator = RandomClassGenerator(file, ctx, depth + 1, gClass)
         val kl = klassGenerator.generate()
         return kl?.text ?: ""
     }
-
 
     fun generateBodyAsString(): String {
         val kTypeSpecifiers = gClass.supertypes.map {
@@ -170,10 +205,13 @@ open class ClassBodyGenerator(
         return with(StringBuilder()) {
             append(generateOverrides(gClass, kTypeSpecifiers))
             append(generateFields())
+            append(generateSecondaryConstructor())
+            append(generateCompanionObject())
             append(
                 if (depth <= MAX_DEPTH && !gClass.isInterface() && Random.nextBoolean())
                     generateInnerClass()
-                else "")
+                else ""
+            )
         }.toString()
     }
 

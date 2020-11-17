@@ -3,11 +3,8 @@ package com.stepanov.bbf.bugfinder.util.typeGenerators
 import com.stepanov.bbf.bugfinder.generator.constructor.util.StandardLibraryInheritanceTree
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary.getDeclDescriptorOf
+import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.bugfinder.util.KotlinTypeCreator.createType
-import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
-import com.stepanov.bbf.bugfinder.util.getNameWithoutError
-import com.stepanov.bbf.bugfinder.util.isErrorType
-import com.stepanov.bbf.bugfinder.util.isPrimitiveTypeOrNullablePrimitiveTypeOrString
 import org.jetbrains.kotlin.builtins.PrimitiveType
 import org.jetbrains.kotlin.builtins.UnsignedType
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
@@ -26,6 +23,7 @@ import org.jetbrains.kotlin.types.replace
 import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
 import org.jetbrains.kotlin.types.typeUtil.substitute
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 object RandomTypeGenerator {
 
@@ -41,12 +39,26 @@ object RandomTypeGenerator {
         if (upperBounds != null && !upperBounds.isAnyOrNullableAny()) return generateWithUpperBounds(
             upperBounds
         )
+        if (Random.getTrue(10)) {
+            return generateType(generateFunType())
+        }
         val type = when (Random.nextInt(0, 10)) {
             in 0..(3 + depth) -> generateType(primitives.random())
             in (4 + depth)..(6 + depth) -> getTypeFromFile(depth = depth)
             else -> generateType(generateContainer1(depth))
         }
+        if (Random.getTrue(20) && type != null) return generateType("$type?")
         return type
+    }
+
+    private fun generateFunType(): String {
+        val default = "() -> ${generatePrimitive()}"
+        val valueParams =
+            List(Random.nextInt(1, 3)) {
+                generateRandomTypeWithCtx() ?: return default
+            }.joinToString()
+        val rtv = generateRandomTypeWithCtx()
+        return "($valueParams) -> $rtv"
     }
 
     fun generateOpenClassType(onlyFromFile: Boolean = false, onlyInterfaces: Boolean = false): ClassDescriptor? {
@@ -56,7 +68,8 @@ object RandomTypeGenerator {
                     .filter { it.isInterface() || it.modalityModifierType()?.value?.trim() == "open" }
                     .filter { it.isInterface() || !onlyInterfaces }
                     .randomOrNull() ?: return@run null
-            val typeParams = randomClass.typeParameters.let { if (it.isEmpty()) "" else randomClass.typeParameterList?.text }
+            val typeParams =
+                randomClass.typeParameters.let { if (it.isEmpty()) "" else randomClass.typeParameterList?.text }
             val fromFile = generateType("${randomClass.name}$typeParams")!!
             val p = fromFile.constructor.declarationDescriptor!!.containingDeclaration as LazyPackageDescriptor
             val scope = p.getMemberScope().getDescriptorsFiltered { true }.filterIsInstance<ClassDescriptor>().toList()
@@ -64,7 +77,8 @@ object RandomTypeGenerator {
         }
         if (onlyFromFile) return fromSrc
         if (Random.nextBoolean() && fromSrc != null) return fromSrc
-        return UsageSamplesGeneratorWithStLibrary.generateOpenClassType(onlyInterfaces)
+        return null
+        //return UsageSamplesGeneratorWithStLibrary.generateOpenClassType(onlyInterfaces)
     }
 
     private fun generateWithUpperBounds(upperBounds: KotlinType, depth: Int = 0): KotlinType? {
@@ -102,7 +116,8 @@ object RandomTypeGenerator {
                     .randomOrNull() ?: return generateType(primitives.random())
             else
                 file.getAllPSIChildrenOfType<KtClassOrObject>().find { it.name == name } ?: return generateType(
-                    primitives.random())
+                    primitives.random()
+                )
         val typeParamToType = mutableMapOf<String, KotlinType>()
         val sortedTypeParams =
             randomClass.typeParameters

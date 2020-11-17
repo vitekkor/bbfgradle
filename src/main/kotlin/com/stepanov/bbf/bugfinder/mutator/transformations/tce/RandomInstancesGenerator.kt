@@ -268,7 +268,9 @@ open class RandomInstancesGenerator(private val file: KtFile) {
             .joinToString(".", postfix = ".") { (it as KtClassOrObject).name!! }
             .let { if (it == ".") "" else it }
 
-    fun generateValueOfType(type: KotlinType, depth: Int = 0, onlyImpl: Boolean = false): String {
+    fun generateValueOfType(t: KotlinType, depth: Int = 0, onlyImpl: Boolean = false): String {
+        if (t.isNullable() && Random.getTrue(5)) return "null"
+        val type = t.makeNotNullable()
         log.debug("generating value of type = $type ${type.isPrimitiveTypeOrNullablePrimitiveTypeOrString()} depth = $depth")
         if (depth > MAGIC_CONST) return ""
         //TODO deal with Any KReflection

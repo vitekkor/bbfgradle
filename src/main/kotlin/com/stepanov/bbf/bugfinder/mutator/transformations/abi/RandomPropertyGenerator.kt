@@ -3,10 +3,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.abi
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
-import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
-import com.stepanov.bbf.bugfinder.util.getRandomVariableName
-import com.stepanov.bbf.bugfinder.util.getTrue
-import com.stepanov.bbf.bugfinder.util.replaceTypeOrRandomSubtypeOnTypeParam
+import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.backend.common.serialization.findPackage
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.psi.KtFile
@@ -16,12 +13,14 @@ import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
+import org.jetbrains.kotlin.types.isNullable
+import org.jetbrains.kotlin.types.typeUtil.makeNotNullable
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
 class RandomPropertyGenerator(
     private val file: KtFile,
-    private val gClass: GClass,
+    private val gClass: GClass = GClass(),
     private val ctx: BindingContext
 ) : DSGenerator(file, ctx) {
 
@@ -81,26 +80,45 @@ class RandomPropertyGenerator(
             if (!prop.contains('=')) "TODO()"
             else prop.substringAfter('=').let { if (it.trim().isEmpty()) "TODO()" else it }
         val getter = "get() = $body"
-        val setter = if (isVar) "set(value) = TODO()" else ""
         val valOrVar = if (isVar) "var" else "val"
-        return "$valOrVar $rec.${prop.substringBefore('=')}\n$getter\n$setter"
+        return "$valOrVar $rec.${prop.substringBefore('=')}\n$getter\n"
     }
 
-    fun generateRandomProperty(): String {
+    fun generateRandomProperty(fromObject: Boolean): String {
         val randomType = randomTypeGenerator.generateRandomTypeWithCtx() ?: return ""
         val withTypeParams = randomType.replaceTypeOrRandomSubtypeOnTypeParam(gClass.typeParams)
-        var modifier = if (gClass.isAbstract() && Random.nextBoolean()) "abstract " else ""
+        if (Random.getTrue(20) && !randomType.isPrimitiveTypeOrNullablePrimitiveTypeOrString() && !randomType.isNullable())
+            return "lateinit var ${Random.getRandomVariableName(4)}: $withTypeParams"
+        var modifier = if (gClass.isAbstract() && !fromObject && Random.getTrue(60)) "abstract " else ""
         modifier += if (Random.nextBoolean()) "val" else "var"
+        val isVar = modifier.contains("var")
+        if (modifier.contains("abstract")) return "$modifier ${Random.getRandomVariableName(4)}: $withTypeParams"
         val defaultValue =
             if (gClass.isInterface()) ""
             else if (Random.nextBoolean() || withTypeParams != randomType.toString()) "= TODO()"
             else {
-                val v = randomInstancesGenerator.generateValueOfType(randomType)
+                val v = randomInstancesGenerator.generateValueOfType(randomType.makeNotNullable())
                 if (v.isEmpty()) "= TODO()" else "= $v"
             }
-        //println("$modifier ${Random.getRandomVariableName(4)}: $randomType $defaultValue")
-        val p = "${Random.getRandomVariableName(4)}: $withTypeParams $defaultValue"
-        return if (Random.getTrue(30)) makePropExtension(p, modifier.contains("var"))
+        val definition = "${Random.getRandomVariableName(4)}: $withTypeParams "
+        val p = "$definition $defaultValue"
+        if (Random.nextBoolean()) {
+            val getter = "get() $defaultValue"
+            val setter =
+                if (isVar) {
+                    if (fromObject || defaultValue.contains("TODO()") || Random.getTrue(30)) {
+                        "set(value) = TODO()\n"
+                    } else {
+                        "private set\n"
+                    }
+                } else ""
+            val d =
+                if (setter.contains("private set")) {
+                    defaultValue
+                } else ""
+            return "$modifier $definition $d\n$getter\n$setter"
+        }
+        return if (Random.getTrue(30) && !isVar) makePropExtension(p, modifier.contains("var"))
         else "$modifier $p"
     }
 }

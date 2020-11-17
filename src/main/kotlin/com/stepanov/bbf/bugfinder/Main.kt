@@ -16,7 +16,9 @@ import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.jetbrains.kotlin.abicmp.MySummaryReport
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtSuperTypeList
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -37,30 +39,32 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
-//    File("/home/stepanov/Kotlin/bbfgradle/tmp/results/diffABI/for_report/").listFiles().filter { it.absolutePath.endsWith("kt") }.sortedBy { it.absolutePath }.forEach { f1 ->
-//        //if (!f1.readText().contains("FILE")) return@forEach
-//        //if (f1.name != "suspend.kt") return@forEach
-//        println(f1.absolutePath)
-//        val proj = Project.createFromCode(f1.readText())
-//        //if (proj.files.size == 1) return@forEach
-//        //if (proj.language != LANGUAGE.KJAVA) return@forEach
-//        //Change package directive
-//        for (psi in proj.files.map { it.psiFile }) {
-//            if (psi is KtFile) {
-//                val packageDir = Factory.psiFactory.createPackageDirective(FqName(f1.name.substringBefore('_')))
-//                //println(packageDir.text)
-//                if (psi.packageDirective?.text?.trim()?.isEmpty() == true) {
-//                    psi.addToTheTop(packageDir)
-//                } else psi.packageDirective!!.replaceThis(packageDir)
-//            } else {
-//                //val packageDirective = psi.getAllChildren()
+//    File("/home/stepanov/Kotlin/bbfgradle/tmp/results/diffABI/for_report/").listFiles()
+//        .filter { it.absolutePath.endsWith("kt") }.sortedBy { it.absolutePath }.forEach { f1 ->
+//            //if (!f1.readText().contains("FILE")) return@forEach
+//            //if (f1.name != "suspend.kt") return@forEach
+//            println(f1.absolutePath)
+//            val proj = Project.createFromCode(f1.readText())
+//            val f2 = proj.files[0].psiFile as KtFile
+//            //if (proj.files.size == 1) return@forEach
+//            //if (proj.language != LANGUAGE.KJAVA) return@forEach
+//            //Change package directive
+//            for (psi in proj.files.map { it.psiFile }) {
+//                if (psi is KtFile) {
+//                    val packageDir = Factory.psiFactory.createPackageDirective(FqName(f1.name.substringBefore('_')))
+//                    //println(packageDir.text)
+//                    if (psi.packageDirective?.text?.trim()?.isEmpty() == true) {
+//                        psi.addToTheTop(packageDir)
+//                    } else psi.packageDirective!!.replaceThis(packageDir)
+//                } else {
+//                    //val packageDirective = psi.getAllChildren()
+//                }
 //            }
+//            Kostyl.name = f1.name.substringBefore(".kt")
+//            val checker = MutationChecker(JVMCompiler(), proj)
+//            checker.checkCompiling()
+//            MySummaryReport.writeSummary()
 //        }
-//        Kostyl.name = f1.name.substringBefore(".kt")
-//        val checker = MutationChecker(JVMCompiler(), proj)
-//        checker.checkCompiling()
-//        MySummaryReport.writeSummary()
-//    }
 //    exitProcess(0)
 //    val checkerConfiguration = checkerConfiguration {}
 ////    println("Checkers:")
@@ -197,6 +201,6 @@ fun main(args: Array<String>) {
 //    val files2 = File(CompilerArgs.baseDir).listFiles().filter { f -> f.isFile && (cond.any { it.invoke(f) }) }
 ////    System.exit(0)
 //    val file = (files + files2).random()
-    SingleFileBugFinder(file.absolutePath).findBugsInFile()
+    SingleFileBugFinder("tmp/test.kt").findBugsInFile()
     exitProcess(0)
 }

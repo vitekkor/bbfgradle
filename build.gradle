@@ -1,6 +1,6 @@
 buildscript {
     //Do not forget to update intellij core
-    ext.kotlin_version = '1.4.255-20201113.070558-735'
+    ext.kotlin_version = '1.4.255-20201117.075455-764'
     ext.kotlin_plugin_version = '1.4.10'
     repositories {
         maven() {

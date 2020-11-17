@@ -30,11 +30,11 @@ class AddRandomAnnotation : Transformation() {
     private val RANDOM_CONST = 50
 
     private fun insert(t: PsiElement, type: KotlinType?, kl: KtClass?) {
-        println("trying to insert ${type ?: kl!!.name}")
+        //println("trying to insert ${type ?: kl!!.name}")
         val instance =
             type?.let { randomInstancesGenerator.generateValueOfType(type) }
                 ?: randomInstancesGenerator.generateRandomInstanceOfClass(kl!!)?.text
-        println("instance = $instance")
+        //println("instance = $instance")
         if (instance == null || instance.isEmpty()) return
         val newNode: PsiElement
         if (t == file) {

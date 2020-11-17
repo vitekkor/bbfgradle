@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.abi
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGeneratorForAnClass
 import org.jetbrains.kotlin.backend.common.serialization.findPackage
@@ -18,7 +19,8 @@ import kotlin.system.exitProcess
 open class RandomClassGenerator(
     override val file: KtFile,
     override val ctx: BindingContext,
-    override val depth: Int = 0
+    override val depth: Int = 0,
+    val parentClass: GClass? = null
 ) : ClassGenerator(file, ctx, depth) {
 
     override val classWord: String
@@ -32,13 +34,15 @@ open class RandomClassGenerator(
                 .let {
                     if (depth == 0) it.filter { it != "inner" } else it
                 }
-        //TODO!!!
-        val classModifier = if (Random.getTrue(70)) "" else classModifiers.random()
+        val classModifier =
+            if (Random.getTrue(70)) {
+                if (depth != 0 && Random.getTrue(50) && parentClass?.let { !it.isObject() } == true) "inner"
+                else ""
+            } else classModifiers.random()
         val visibilityModifiers =
             ModifierSets.VISIBILITY_MODIFIER.types.toList().map { it.toString() }.filter { it != "protected" }
         val visibilityModifier = if (Random.getTrue(20)) "" else visibilityModifiers.random()
         val inheritanceModifiers = ModifierSets.INHERITANCE_MODIFIER.types.toList().map { it.toString() }
-        //TODO!!!
         val inheritanceModifier =
             if (Random.getTrue(20) || classModifier.isNotEmpty())
                 ""
@@ -156,52 +160,9 @@ open class RandomClassGenerator(
         if (gClass.isAnnotation()) listOf("@Retention(AnnotationRetention.RUNTIME)")
         else listOf()
 
-    override fun generateTypeParams(): List<String> {
+    override fun generateTypeParams(withModifiers: Boolean): List<String> {
         if (gClass.isEnum() || gClass.isAnnotation()) return listOf()
-        return super.generateTypeParams()
+        return super.generateTypeParams(true)
     }
-
-//    override fun generate(): PsiElement? {
-////        repeat(25) { ind ->
-//        val modifiers = generateModifiers()
-//        gClass.modifiers = modifiers
-//        val specifiers = generateSupertypes().let { if (it.isEmpty()) "" else it.joinToString(prefix = ": ") }
-//        val genTypeParams = generateTypeParams()
-//        val genTypeArgsWObounds = genTypeParams.map { it.substringBefore(':') }
-//        gClass.typeParams = genTypeParams
-//        val c = generateConstructor().let {
-//            gClass.constructorArgs = it
-//            it.joinToString(prefix = "(", postfix = ")")
-//        }
-//        val sta = if (genTypeParams.isEmpty()) "" else genTypeParams.joinToString(prefix = "<", postfix = "> ")
-//        //TMP!! TODO
-//        //gClass.delegationSpecifiers = listOf("ABC<Int>")
-//        val body = ClassBodyGenerator(file, ctx, gClass, depth + 1).generateBodyAsString()
-//        val psiBody = Factory.psiFactory.createBlock(body)
-//        //val imports = gClass.imports.joinToString("\n"){ "import $it "}
-//        val a =
-//            if (gClass.isAnnotation())
-//                "@Retention(AnnotationRetention.RUNTIME)\n"
-//            else
-//                ""
-//        val kl = "$a${modifiers.joinToString(" ")} class ${
-//            Random.getRandomVariableName(3).capitalize()
-//        }$sta$c$specifiers${psiBody.text}"
-//        try {
-//            Factory.psiFactory.createClass(kl)
-//        } catch (e: Exception) {
-//            println("cant create class $kl")
-//            exitProcess(0)
-//        }
-//        val psi = Factory.psiFactory.createClass(kl)
-//        //Kostyl'
-//        gClass.imports.forEach { file.addImport(it, false) }
-//        return psi
-////            println("${modifiers.joinToString(" ")} class ${'A' + ind}$sta$c$specifiers${psiBody.text}")
-////            exitProcess(0)
-////        }
-////        exitProcess(0)
-////        TODO("Not yet implemented")
-//    }
 
 }

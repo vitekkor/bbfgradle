@@ -20,7 +20,7 @@ abstract class ClassGenerator(
     open val depth: Int = 0
 ) : DSGenerator(file, ctx) {
 
-    val gClass: GClass = GClass()
+    var gClass: GClass = GClass()
     abstract val classWord: String
 
     abstract fun generateModifiers(): List<String>
@@ -35,7 +35,7 @@ abstract class ClassGenerator(
         gClass.annotations = generateAnnotations()
         gClass.modifiers = generateModifiers()
         gClass.name = Random.getRandomVariableName(3).capitalize()
-        gClass.typeParams = generateTypeParams()
+        gClass.typeParams = generateTypeParams(true)
         gClass.constructorArgs = generateConstructor()
         gClass.supertypes = generateSupertypes()
         gClass.body = ClassBodyGenerator(file, ctx, gClass, depth + 1).generateBodyAsString()

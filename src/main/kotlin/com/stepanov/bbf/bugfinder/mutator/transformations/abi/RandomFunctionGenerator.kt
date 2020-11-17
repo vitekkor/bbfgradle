@@ -32,6 +32,10 @@ class RandomFunctionGenerator(
                 ""
             )).random()
         ).let { list ->
+            if (gClass?.isFunInterface() == true) {
+                if (list[1].trim().let { it != "infix" || it != "operator" } ) list[1] = ""
+                list[2] = ""
+            }
             if (list[1] == "external") list[0] = ""
             list
         }
@@ -104,7 +108,7 @@ class RandomFunctionGenerator(
 
 
     fun generate(): PsiElement? {
-        val genTypeArgs = generateTypeParams()
+        val genTypeArgs = if (gClass?.isFunInterface() == true) listOf() else generateTypeParams(false)
         val genTypeArgsWObounds = genTypeArgs.map { it.substringBefore(':') }
         with(gFunc) {
             modifiers = generateModifiers()

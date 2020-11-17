@@ -3,15 +3,12 @@ package com.stepanov.bbf.bugfinder.util
 import com.intellij.lang.ASTNode
 import com.intellij.lang.FileASTNode
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
-import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllChildrenOfCurLevel
 import org.jetbrains.kotlin.KtNodeTypes
@@ -24,10 +21,8 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.resolve.ImportPath
-import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.*
-import org.jetbrains.kotlin.types.typeUtil.isPrimitiveNumberType
 import org.jetbrains.kotlin.types.typeUtil.isUnsignedNumberType
 import org.jetbrains.kotlin.types.typeUtil.supertypes
 import ru.spbstu.kotlin.generate.util.asCharSequence
@@ -41,7 +36,6 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
 import java.util.function.BiPredicate
-import kotlin.Comparator
 import kotlin.reflect.KClass
 
 
@@ -501,12 +495,17 @@ fun KotlinType.isAbstractClass(): Boolean =
     (this.constructor.declarationDescriptor as? DeserializedClassDescriptor)?.modality == Modality.ABSTRACT
 
 fun KotlinType.replaceTypeOrRandomSubtypeOnTypeParam(typeParams: List<String>): String {
-    if (typeParams.isEmpty()) return "$this"
-    val typeParamsWithoutBounds = typeParams.map { it.substringBefore(':') }
-    if (kotlin.random.Random.getTrue(20)) return typeParamsWithoutBounds.random()
+    val withVariantTypeParams = typeParams.filter { it.contains("in ") || it.contains("out ") }
+    if (kotlin.random.Random.getTrue(30) && withVariantTypeParams.isNotEmpty())
+        return withVariantTypeParams.random().substringAfter("in ").substringAfter("out ")
+    val withoutVariantTypeParams = typeParams.filter { !it.contains("in ") && !it.contains("out ") }
+    if (withoutVariantTypeParams.isEmpty()) return "$this"
+    val typeParamsWithoutBoundsAndModifiers =
+        withoutVariantTypeParams.map { it.substringBefore(':').substringAfter("in ").substringAfter("out ") }
+    if (kotlin.random.Random.getTrue(20)) return typeParamsWithoutBoundsAndModifiers.random()
     return if (this.arguments.isNotEmpty()) {
         this.toString().substringBefore('<') + this.arguments.joinToString(prefix = "<", postfix = ">") {
-            if (kotlin.random.Random.getTrue(40)) typeParamsWithoutBounds.random() else it.toString()
+            if (kotlin.random.Random.getTrue(40)) typeParamsWithoutBoundsAndModifiers.random() else it.toString()
         }
     } else this.toString()
 }

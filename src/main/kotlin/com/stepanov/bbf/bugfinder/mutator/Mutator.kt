@@ -57,6 +57,9 @@ class Mutator(val project: Project) {
     private fun startKotlinMutations() {
         executeMutation(AddRandomDS(), 100)
         executeMutation(AddPropertiesToClass(), 100)
+        executeMutation(AddSameFunctions(), 100)
+        exitProcess(0)
+        executeMutation(AddPropertiesToClass(), 100)
         executeMutation(AddRandomAnnotation(), 100)
 //        executeMutation(AddRandomDS(), 100)
 //        executeMutation(AddRandomDS(), 100)

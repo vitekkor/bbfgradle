@@ -20,18 +20,26 @@ abstract class DSGenerator(
         randomInstancesGenerator = RandomInstancesGenerator(file)
     }
 
-    open fun generateTypeParams(): List<String> {
+    open fun generateTypeParams(withModifiers: Boolean): List<String> {
+        val modifier =
+            if (withModifiers) when (Random.nextInt(0, 5)) {
+                0 -> "in "
+                1 -> "out "
+                else -> ""
+            } else ""
         val typeArgs =
             if (Random.getTrue(30)) List(Random.nextInt(1, 3)) { 'T' - it }.toMutableList()
             else mutableListOf()
         if (typeArgs.isEmpty()) return listOf()
         return typeArgs.map {
-            if (Random.getTrue(20)) {
-                val upperBounds = randomTypeGenerator.generateRandomTypeWithCtx()
-                if (upperBounds == null || upperBounds.toString().startsWith("Array")) "$it"
-                else "$it: $upperBounds"
-            }
-            else "$it"
+            "$modifier$it"
+            //TODO!!! UNCOMMENT
+//            if (Random.getTrue(20)) {
+//                val upperBounds = randomTypeGenerator.generateRandomTypeWithCtx()
+//                if (upperBounds == null || upperBounds.toString().startsWith("Array")) "$it"
+//                else "$it: $upperBounds"
+//            }
+//            else "$it"
         }
     }
 

@@ -66,11 +66,15 @@ data class GClass(
 
     fun toPsi(): PsiElement? =
         try {
-            Factory.psiFactory.createClass(toString())
+            if (isObject()) Factory.psiFactory.createObject(toString())
+            else Factory.psiFactory.createClass(toString())
         } catch (e: Exception) {
             null
         }
 
+    fun isObject() = classWord == "object"
+    fun isFunInterface() = isInterface() && modifiers.contains("fun")
+    fun isInner() = modifiers.contains("inner")
     fun isAnnotation() = modifiers.contains("annotation")
     fun isEnum() = modifiers.contains("enum")
     fun isData() = modifiers.contains("data")

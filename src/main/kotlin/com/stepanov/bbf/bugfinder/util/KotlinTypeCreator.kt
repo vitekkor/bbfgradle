@@ -11,6 +11,8 @@ import org.jetbrains.kotlin.types.KotlinType
 import kotlin.system.exitProcess
 
 object KotlinTypeCreator {
+
+    //TODO FIX THIS! (a: UByte) -> Boolean
     fun createType(file: KtFile, type: String): KotlinType? {
         if (type.contains("??") || type.contains("ERROR")) return null
         val fileCopy = file.copy() as KtFile

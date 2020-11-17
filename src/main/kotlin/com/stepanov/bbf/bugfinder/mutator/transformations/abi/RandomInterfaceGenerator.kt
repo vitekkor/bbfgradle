@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.abi
 
 import com.intellij.psi.PsiElement
+import com.stepanov.bbf.bugfinder.util.getTrue
 import org.jetbrains.kotlin.fir.lightTree.fir.modifier.ModifierSets
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
@@ -14,16 +15,18 @@ class RandomInterfaceGenerator(file: KtFile, ctx: BindingContext, depth: Int = 0
 
     override fun generateModifiers(): List<String> =
         listOf(ModifierSets.VISIBILITY_MODIFIER.types.toList().map { it.toString() }.filter { it != "protected" }
-            .random())
+            .random()).let {
+            if (Random.getTrue(20)) it + listOf("fun") else it
+        }
 
     override fun generateConstructor(): List<String> {
         return listOf()
     }
 
     override fun generateSupertypes(): List<String> {
-        //if (Random.nextBoolean()) return listOf()
+        if (gClass.isFunInterface()) return listOf()
         val res = mutableListOf<String>()
-        for (i in 0..Random.nextInt(1, 3)) {
+        for (i in 0..Random.nextInt(0, 3)) {
             val openClass = randomTypeGenerator.generateOpenClassType(onlyInterfaces = true) ?: return listOf()
             val typeParams = openClass.declaredTypeParameters.map { typeParam ->
                 val upperBounds = typeParam.upperBounds.let { if (it.isEmpty()) null else it.first() }
