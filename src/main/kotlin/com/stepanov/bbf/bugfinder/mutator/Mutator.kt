@@ -56,8 +56,6 @@ class Mutator(val project: Project) {
 
     private fun startKotlinMutations() {
         executeMutation(AddRandomDS(), 100)
-        println("RES = ${checker.curFile}")
-        exitProcess(0)
         executeMutation(AddPropertiesToClass(), 100)
         executeMutation(AddSameFunctions(), 100)
         executeMutation(AddRandomAnnotation(), 100)
