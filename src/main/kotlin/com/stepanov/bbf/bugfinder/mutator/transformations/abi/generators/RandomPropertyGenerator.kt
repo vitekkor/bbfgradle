@@ -103,7 +103,9 @@ class RandomPropertyGenerator(
         val definition = "${Random.getRandomVariableName(4)}: $withTypeParams "
         val p = "$definition $defaultValue"
         if (Random.nextBoolean()) {
-            val getter = "get() $defaultValue"
+            val getter =
+                if (gClass.isInterface()) ""
+                else "get() $defaultValue"
             val setter =
                 if (isVar) {
                     if (fromObject || defaultValue.contains("TODO()") || Random.getTrue(30)) {

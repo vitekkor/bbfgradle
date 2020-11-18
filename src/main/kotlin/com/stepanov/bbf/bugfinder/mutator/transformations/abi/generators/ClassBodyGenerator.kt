@@ -143,15 +143,16 @@ open class ClassBodyGenerator(
             return "\nabstract ${f}\n"
         }
         with(res) {
-            if (depth < MAX_DEPTH && Random.getTrue(20) && !gClass.isInterface()) append(generatePropWithAnonObj(fromObject))
+            if (depth < MAX_DEPTH && Random.getTrue(20) && !gClass.isInterface())
+                append(generatePropWithAnonObj(fromObject))
             //TODO Random.nextInt(0, 5)
-            repeat(Random.nextInt(0, 2)) {
+            repeat(Random.nextInt(0, 4)) {
                 append("\n")
                 append(randomFunGenerator.generate()?.text)
                 append("\n")
             }
             //TODO Random.nextInt(1, 5)
-            repeat(Random.nextInt(0, 2)) {
+            repeat(Random.nextInt(0, 4)) {
                 append("\n")
                 append(RandomPropertyGenerator(file, gClass, ctx).generateRandomProperty(fromObject))
                 //append("val ${Random.getRandomVariableName(5)}: ${randomTypeGenerator.generateRandomTypeWithCtx()} = TODO()")
@@ -170,7 +171,7 @@ open class ClassBodyGenerator(
     private fun generateSecondaryConstructor(): String {
         if (Random.getTrue(50)) return ""
         if (gClass.constructorArgs.isEmpty()) return ""
-        if (gClass.classWord != "class" || gClass.isAnnotation() || gClass.isAbstract()) return ""
+        if (gClass.classWord != "class" || gClass.isAnnotation() || gClass.isAbstract() || gClass.isSealed()) return ""
         val newConstructor =
             RandomClassGenerator(file, ctx).also { it.gClass = gClass }.generateConstructor()
                 .joinToString { it.substringAfter(' ') }
@@ -193,7 +194,8 @@ open class ClassBodyGenerator(
     }
 
     private fun generateInnerClass(): String {
-        if (gClass.isAnnotation()) return ""
+        if (depth <= MAX_DEPTH && !gClass.isInterface() && Random.nextBoolean()) return ""
+        if (gClass.isAnnotation() || gClass.isObject()) return ""
         val klassGenerator = RandomClassGenerator(file, ctx, depth + 1, gClass)
         val kl = klassGenerator.generate()
         return kl?.text ?: ""
@@ -205,14 +207,15 @@ open class ClassBodyGenerator(
         }
         return with(StringBuilder()) {
             append(generateOverrides(gClass, kTypeSpecifiers))
+            append("\n")
             append(generateFields())
+            append("\n")
             append(generateSecondaryConstructor())
+            append("\n")
             append(generateCompanionObject())
-            append(
-                if (depth <= MAX_DEPTH && !gClass.isInterface() && Random.nextBoolean())
-                    generateInnerClass()
-                else ""
-            )
+            append("\n")
+            append(generateInnerClass())
+            append("\n")
         }.toString()
     }
 

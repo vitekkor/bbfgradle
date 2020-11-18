@@ -24,17 +24,17 @@ abstract class DSGenerator(
     }
 
     open fun generateTypeParams(withModifiers: Boolean): List<String> {
-        val modifier =
-            if (withModifiers) when (Random.nextInt(0, 5)) {
-                0 -> "in "
-                1 -> "out "
-                else -> ""
-            } else ""
         val typeArgs =
-            if (Random.getTrue(30)) List(Random.nextInt(1, 3)) { 'T' - it }.toMutableList()
+            if (Random.getTrue(40)) List(Random.nextInt(1, 3)) { 'T' - it }.toMutableList()
             else mutableListOf()
         if (typeArgs.isEmpty()) return listOf()
         return typeArgs.map {
+            val modifier =
+                if (withModifiers) when (Random.nextInt(0, 5)) {
+                    0 -> "in "
+                    1 -> "out "
+                    else -> ""
+                } else ""
             "$modifier$it"
             //TODO!!! UNCOMMENT
 //            if (Random.getTrue(20)) {

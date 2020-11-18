@@ -80,4 +80,5 @@ data class GClass(
     fun isData() = modifiers.contains("data")
     fun isInterface() = classWord == "interface"
     fun isAbstract() = modifiers.contains("abstract")
+    fun isSealed() = modifiers.contains("sealed")
 }

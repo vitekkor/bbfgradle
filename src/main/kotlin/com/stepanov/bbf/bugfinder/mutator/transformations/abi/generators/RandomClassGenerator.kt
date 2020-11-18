@@ -82,6 +82,7 @@ open class RandomClassGenerator(
                     if (m.trim() == "vararg") haveVararg = true
                     "$m${Random.getRandomVariableName(3)}: " to randomTypeGenerator.generateRandomTypeWithCtx()
                 }
+        println("ARGS = $args")
         val typeArgs = gClass.typeParams.map { it.substringBefore(':') }
         if (args.any { it.second == null }) return emptyList()
         if (typeArgs.isEmpty())
@@ -117,18 +118,17 @@ open class RandomClassGenerator(
         }
         val valueParams =
             when {
-                openClass.constructors.any {
-                    it.valueParameters.isNotEmpty() && it.visibility.isPublicAPI &&
-                            it.containingDeclaration.modality != Modality.ABSTRACT } -> {
+                openClass.constructors.any { it.valueParameters.isNotEmpty() && it.visibility.isPublicAPI } -> {
                     val generated = randomInstancesGenerator.generateValueOfType(openClass.defaultType, onlyImpl = true)
                     if (generated.isEmpty()) {
                         println("CANT GENERATE EXPRESSION FROM ${openClass.defaultType}")
-                        return null
+                        "()"
+                    } else {
+                        val call = Factory.psiFactory.createExpression(generated) as KtCallExpression
+                        typeParams = call.typeArguments.map { it.text }
+                        val strValueParams = generated.substringAfter('(').substringBeforeLast(')')
+                        "(${strValueParams})"
                     }
-                    val call = Factory.psiFactory.createExpression(generated) as KtCallExpression
-                    typeParams = call.typeArguments.map { it.text }
-                    val strValueParams = generated.substringAfter('(').substringBeforeLast(')')
-                    "(${strValueParams})"
                 }
                 openClass.constructors.firstOrNull()?.valueParameters?.isEmpty() == true -> "()"
                 else -> ""

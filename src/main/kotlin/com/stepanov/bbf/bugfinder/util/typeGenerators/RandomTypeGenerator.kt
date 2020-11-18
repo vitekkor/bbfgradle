@@ -39,7 +39,7 @@ object RandomTypeGenerator {
         if (upperBounds != null && !upperBounds.isAnyOrNullableAny()) return generateWithUpperBounds(
             upperBounds
         )
-        if (Random.getTrue(10)) {
+        if (Random.getTrue(5)) {
             return generateType(generateFunType())
         }
         val type = when (Random.nextInt(0, 10)) {
