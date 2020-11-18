@@ -1,4 +1,4 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.abi
+package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
@@ -28,9 +28,7 @@ abstract class ClassGenerator(
     abstract fun generateSupertypes(): List<String>
     abstract fun generateAnnotations(): List<String>
 
-    fun calcImports(): List<String> = UsageSamplesGeneratorWithStLibrary.calcImports(file)
-
-    open fun generate(): PsiElement? {
+    override fun generate(): PsiElement? {
         gClass.classWord = classWord
         gClass.annotations = generateAnnotations()
         gClass.modifiers = generateModifiers()
@@ -42,12 +40,12 @@ abstract class ClassGenerator(
         return gClass.toPsi()
     }
 
-    fun generateAndAddToFile(): PsiElement? {
-        generate()?.let {
-            val added = file.addToTheEnd(it)
-            calcImports().forEach { file.addImport(it.substringBeforeLast('.'), true) }
-            return added
-        } ?: return null
-    }
+//    fun generateAndAddToFile(): PsiElement? {
+//        generate()?.let {
+//            val added = file.addToTheEnd(it)
+//            calcImports().forEach { file.addImport(it.substringBeforeLast('.'), true) }
+//            return added
+//        } ?: return null
+//    }
 
 }

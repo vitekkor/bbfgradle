@@ -1,6 +1,6 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import com.stepanov.bbf.bugfinder.mutator.transformations.abi.RandomPropertyGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators.RandomPropertyGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.parser.PSICreator

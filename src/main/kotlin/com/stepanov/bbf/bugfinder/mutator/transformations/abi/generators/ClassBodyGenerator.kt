@@ -1,5 +1,6 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.abi
+package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
+import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
@@ -112,7 +113,7 @@ open class ClassBodyGenerator(
                 else
                     randomInstancesGenerator.generateValueOfType(openKlass.defaultType)
             val genTypeParams =
-                if (instance == null || instance == ")") {
+                if (instance == null || instance == ")" || instance.isEmpty()) {
                     openKlass.declaredTypeParameters.map { randomTypeGenerator.generateRandomTypeWithCtx().toString() }
                 } else {
                     (Factory.psiFactory.createExpression(instance) as? KtCallExpression)?.typeArguments?.map { it.text }
@@ -214,6 +215,14 @@ open class ClassBodyGenerator(
             )
         }.toString()
     }
+
+    override fun generate(): PsiElement? =
+        try {
+            Factory.psiFactory.createBlock(generateBodyAsString())
+        } catch (e: Exception) {
+            null
+        }
+
 
 }
 

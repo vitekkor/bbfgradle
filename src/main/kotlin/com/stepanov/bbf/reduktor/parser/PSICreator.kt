@@ -187,7 +187,12 @@ class PSICreator(var projectDir: String) {
         configuration.put(
             JSConfigurationKeys.LIBRARIES, listOf(
                 CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
-                CompilerArgs.getStdLibPath("kotlin-test-js")
+                CompilerArgs.getStdLibPath("kotlin-test-js"),
+                CompilerArgs.getStdLibPath("kotlin-test"),
+                CompilerArgs.getStdLibPath("kotlin-test-common"),
+                CompilerArgs.getStdLibPath("kotlin-test-annotations-common"),
+                CompilerArgs.getStdLibPath("kotlin-test-junit"),
+                CompilerArgs.getStdLibPath("kotlin-reflect")
             )
         )
 
@@ -219,7 +224,12 @@ class PSICreator(var projectDir: String) {
                 configuration.put(
                     JSConfigurationKeys.LIBRARIES, listOf(
                         CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
-                        CompilerArgs.getStdLibPath("kotlin-test-js")
+                        CompilerArgs.getStdLibPath("kotlin-test-js"),
+                        CompilerArgs.getStdLibPath("kotlin-test"),
+                        CompilerArgs.getStdLibPath("kotlin-test-common"),
+                        CompilerArgs.getStdLibPath("kotlin-test-annotations-common"),
+                        CompilerArgs.getStdLibPath("kotlin-test-junit"),
+                        CompilerArgs.getStdLibPath("kotlin-reflect")
                     )
                 )
 //                val sourcesOnly = TopDownAnalyzerFacadeForJVM.newModuleSearchScope(psiFile.project, listOf(psiFile as KtFile))

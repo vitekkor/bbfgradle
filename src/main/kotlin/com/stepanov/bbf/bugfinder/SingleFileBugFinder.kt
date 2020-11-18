@@ -6,7 +6,6 @@ import com.stepanov.bbf.bugfinder.executor.checkers.TracesChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.mutator.transformations.abi.ProjectPreprocessor
 import com.stepanov.bbf.bugfinder.tracer.Tracer
 import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.psi.KtClassOrObject

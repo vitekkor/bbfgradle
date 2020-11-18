@@ -79,7 +79,7 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
 //        }
 //    }
 
-    fun compileJava(path: String, pathToLib: String, pathToDir: String): Boolean {
+    private fun compileJava(path: String, pathToLib: String, pathToDir: String): Boolean {
         val javaFiles = path.split(" ").filter { it.endsWith(".java") }.map { File(it) }
         if (javaFiles.isEmpty()) return true
         val compiler = ToolProvider.getSystemJavaCompiler()

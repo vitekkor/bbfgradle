@@ -1,24 +1,18 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.util.FalsePositivesDeleter
+import com.stepanov.bbf.bugfinder.util.NodeCollector
+import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
-import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
-import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
-import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.mutator.transformations.abi.ProjectPreprocessor
-import com.stepanov.bbf.bugfinder.util.*
-import com.stepanov.bbf.reduktor.util.getAllChildren
-import org.jetbrains.kotlin.abicmp.MySummaryReport
-import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.psi.KtClass
-import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtSuperTypeList
+import org.jetbrains.kotlin.psi.KtTypeReference
+import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -39,6 +33,11 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     //Init log4j
     PropertyConfigurator.configure("src/main/resources/bbfLog4j.properties")
+//    val p = Project.createFromCode(File("tmp/test.kt").readText())
+//    val ktFile = p.files.first().psiFile
+//    val ctx = PSICreator.analyze(ktFile)!!
+//    println(ktFile.getAllPSIChildrenOfType<KtTypeReference>().mapNotNull { it.getAbbreviatedTypeOrType(ctx) })
+//    exitProcess(0)
 //    File("/home/stepanov/Kotlin/bbfgradle/tmp/results/diffABI/for_report/").listFiles()
 //        .filter { it.absolutePath.endsWith("kt") }.sortedBy { it.absolutePath }.forEach { f1 ->
 //            //if (!f1.readText().contains("FILE")) return@forEach
@@ -201,6 +200,6 @@ fun main(args: Array<String>) {
 //    val files2 = File(CompilerArgs.baseDir).listFiles().filter { f -> f.isFile && (cond.any { it.invoke(f) }) }
 ////    System.exit(0)
 //    val file = (files + files2).random()
-    SingleFileBugFinder("tmp/test.kt").findBugsInFile()
+    SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 }

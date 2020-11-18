@@ -1,4 +1,4 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.abi
+package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
@@ -7,6 +7,7 @@ import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGeneratorForAnClass
 import org.jetbrains.kotlin.backend.common.serialization.findPackage
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.fir.lightTree.fir.modifier.ModifierSets
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtFile
@@ -20,7 +21,7 @@ open class RandomClassGenerator(
     override val file: KtFile,
     override val ctx: BindingContext,
     override val depth: Int = 0,
-    val parentClass: GClass? = null
+    private val parentClass: GClass? = null
 ) : ClassGenerator(file, ctx, depth) {
 
     override val classWord: String
@@ -116,11 +117,13 @@ open class RandomClassGenerator(
         }
         val valueParams =
             when {
-                openClass.constructors.any { it.valueParameters.isNotEmpty() && it.visibility.isPublicAPI } -> {
+                openClass.constructors.any {
+                    it.valueParameters.isNotEmpty() && it.visibility.isPublicAPI &&
+                            it.containingDeclaration.modality != Modality.ABSTRACT } -> {
                     val generated = randomInstancesGenerator.generateValueOfType(openClass.defaultType, onlyImpl = true)
                     if (generated.isEmpty()) {
                         println("CANT GENERATE EXPRESSION FROM ${openClass.defaultType}")
-                        exitProcess(0)
+                        return null
                     }
                     val call = Factory.psiFactory.createExpression(generated) as KtCallExpression
                     typeParams = call.typeArguments.map { it.text }

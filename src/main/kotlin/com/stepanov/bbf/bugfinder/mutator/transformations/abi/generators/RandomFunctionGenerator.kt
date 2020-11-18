@@ -1,4 +1,4 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.abi
+package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
@@ -107,7 +107,7 @@ class RandomFunctionGenerator(
     }
 
 
-    fun generate(): PsiElement? {
+    override fun generate(): PsiElement? {
         val genTypeArgs = if (gClass?.isFunInterface() == true) listOf() else generateTypeParams(false)
         val genTypeArgsWObounds = genTypeArgs.map { it.substringBefore(':') }
         with(gFunc) {

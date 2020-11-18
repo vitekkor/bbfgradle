@@ -1,4 +1,4 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.abi
+package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
@@ -121,4 +121,11 @@ class RandomPropertyGenerator(
         return if (Random.getTrue(30) && !isVar) makePropExtension(p, modifier.contains("var"))
         else "$modifier $p"
     }
+
+    override fun generate(): PsiElement? =
+        try {
+            Factory.psiFactory.createProperty(generateRandomProperty(false))
+        } catch (e: Exception) {
+            null
+        }
 }

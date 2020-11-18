@@ -1,4 +1,4 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.abi
+package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.util.getTrue

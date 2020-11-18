@@ -2,7 +2,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.stepanov.bbf.bugfinder.mutator.transformations.abi.RandomPropertyGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators.RandomPropertyGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.util.addToTheEnd
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType

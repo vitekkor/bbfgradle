@@ -1,11 +1,10 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.abi
+package com.stepanov.bbf.bugfinder.mutator.projectTransformations
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.replaceThis
 import org.jetbrains.kotlin.psi.KtNamedFunction
@@ -74,13 +73,13 @@ object ProjectPreprocessor {
             if (proj.files.size != 1) continue
             val c1 = comp.checkCompiling(proj)
             println("c1 = $c1")
-            ProjectPreprocessor.preprocess(proj, null)
+            preprocess(proj, null)
             val c2 = comp.checkCompiling(proj)
             println("c2 = $c2")
             if (!c2 && c1) {
                 val proj1 = Project.createFromCode(f.readText())
                 val checker = MutationChecker(JVMCompiler(), proj1)
-                ProjectPreprocessor.preprocess(proj1, checker)
+                preprocess(proj1, checker)
                 if (!comp.checkCompiling(proj1)) {
                     println(proj1)
                     exitProcess(0)

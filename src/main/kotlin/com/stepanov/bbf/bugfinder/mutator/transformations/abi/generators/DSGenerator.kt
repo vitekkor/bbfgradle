@@ -1,7 +1,10 @@
-package com.stepanov.bbf.bugfinder.mutator.transformations.abi
+package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.RandomInstancesGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
+import com.stepanov.bbf.bugfinder.util.addImport
+import com.stepanov.bbf.bugfinder.util.addToTheEnd
 import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.util.getTrue
 import org.jetbrains.kotlin.psi.KtFile
@@ -9,7 +12,7 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.random.Random
 
 abstract class DSGenerator(
-    file: KtFile,
+    private val file: KtFile,
     ctx: BindingContext
 ) {
     val randomTypeGenerator: RandomTypeGenerator = RandomTypeGenerator
@@ -43,5 +46,15 @@ abstract class DSGenerator(
         }
     }
 
+    fun calcImports(): List<String> = UsageSamplesGeneratorWithStLibrary.calcImports(file)
 
+    abstract fun generate(): PsiElement?
+
+    fun generateAndAddToFile(): PsiElement? {
+        generate()?.let {
+            val added = file.addToTheEnd(it)
+            calcImports().forEach { file.addImport(it.substringBeforeLast('.'), true) }
+            return added
+        } ?: return null
+    }
 }
