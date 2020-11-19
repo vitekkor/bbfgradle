@@ -81,4 +81,13 @@ data class GClass(
     fun isInterface() = classWord == "interface"
     fun isAbstract() = modifiers.contains("abstract")
     fun isSealed() = modifiers.contains("sealed")
+    fun isInline() = modifiers.contains("inline")
+
+    fun getVisibility() =
+        when {
+            modifiers.contains("public") -> "public"
+            modifiers.contains("private") -> "private"
+            modifiers.contains("internal") -> "internal"
+            else -> ""
+        }
 }

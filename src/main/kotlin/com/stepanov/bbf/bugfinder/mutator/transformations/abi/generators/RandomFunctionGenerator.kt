@@ -32,9 +32,11 @@ class RandomFunctionGenerator(
                 ""
             )).random()
         ).let { list ->
-            if (gClass?.isFunInterface() == true) {
-                if (list[1].trim().let { it != "infix" || it != "operator" } ) list[1] = ""
-                list[2] = ""
+            if (gClass?.isInterface() == true) {
+                if (list[1].let { it == "external" || it == "tailrec" }) list[1] = ""
+                if (list[1].trim().let { it != "infix" || it != "operator" }) list[1] = ""
+                list[2] = if (Random.getTrue(80)) "" else "private"
+                if (list[0] == "inline") list[2] = "private"
             }
             if (list[1] == "external") list[0] = ""
             list
@@ -106,6 +108,14 @@ class RandomFunctionGenerator(
         return gClass?.let { randomType.replaceTypeOrRandomSubtypeOnTypeParam(it.typeParams) } ?: "$randomType"
     }
 
+    private fun generateBody(): String =
+        when {
+            gFunc.modifiers.contains("external") -> ""
+            gFunc.isPrivate() -> "= TODO()"
+            gClass?.isInterface() == true -> if (Random.nextBoolean()) "" else "= TODO()"
+            else -> "= TODO()"
+        }
+
 
     override fun generate(): PsiElement? {
         val genTypeArgs = if (gClass?.isFunInterface() == true) listOf() else generateTypeParams(false)
@@ -117,6 +127,7 @@ class RandomFunctionGenerator(
             name = generateName()
             args = generateArgs(genTypeArgsWObounds)
             rtvType = generateRtv()
+            body = generateBody()
         }
         return gFunc.toPsi()
     }

@@ -30,7 +30,7 @@ open class RandomClassGenerator(
     override fun generateModifiers(): List<String> {
         val classModifiers =
             ModifierSets.CLASS_MODIFIER.types.toList()
-                .map { it.toString() }
+                .map { it.toString() } + listOf("inline")
                 .filter { it != "fun" && it != "companion" }
                 .let {
                     if (depth == 0) it.filter { it != "inner" } else it
@@ -45,7 +45,8 @@ open class RandomClassGenerator(
         val visibilityModifier = if (Random.getTrue(20)) "" else visibilityModifiers.random()
         val inheritanceModifiers = ModifierSets.INHERITANCE_MODIFIER.types.toList().map { it.toString() }
         val inheritanceModifier =
-            if (Random.getTrue(20) || classModifier.isNotEmpty())
+            if (classModifier == "inline") "final"
+            else if (Random.getTrue(20) || classModifier.isNotEmpty())
                 ""
             else
                 inheritanceModifiers.random().let { if (it == "inner" && classModifier.isNotEmpty()) "" else it }
@@ -66,6 +67,7 @@ open class RandomClassGenerator(
         var haveVararg = false
         if (gClass.isData()) lb = 1
         var numOfArgs = (lb..rb).random()
+        if (gClass.isInline()) numOfArgs = 1
         if (gClass.isAnnotation()) {
             lb = 1
             numOfArgs = (lb..rb).random()
@@ -78,14 +80,14 @@ open class RandomClassGenerator(
                 mutableListOf()
             else
                 MutableList(numOfArgs) {
-                    val m = generateModifierForConstructorProperty(haveVararg)
+                    var m = generateModifierForConstructorProperty(haveVararg)
                     if (m.trim() == "vararg") haveVararg = true
+                    if (gClass.isInline()) m = "val "
                     "$m${Random.getRandomVariableName(3)}: " to randomTypeGenerator.generateRandomTypeWithCtx()
                 }
-        println("ARGS = $args")
         val typeArgs = gClass.typeParams.map { it.substringBefore(':') }
         if (args.any { it.second == null }) return emptyList()
-        if (typeArgs.isEmpty())
+        if (typeArgs.isEmpty() || gClass.isInline())
             return args.map {
                 val defaultValue =
                     if (Random.getTrue(30) && !it.first.contains("vararg")) {
@@ -138,6 +140,7 @@ open class RandomClassGenerator(
     }
 
     override fun generateSupertypes(): List<String> {
+        if (gClass.isInline()) return listOf()
         var hasClassAsSuperType = false
         val specifiers =
             if (gClass.isEnum() || gClass.isAnnotation())

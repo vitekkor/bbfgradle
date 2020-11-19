@@ -11,10 +11,15 @@ import com.stepanov.bbf.bugfinder.util.removeDuplicatesBy
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
+import org.jetbrains.kotlin.descriptors.SourceElement
+import org.jetbrains.kotlin.load.kotlin.toSourceElement
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.source.PsiSourceElement
+import org.jetbrains.kotlin.resolve.source.getPsi
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.random.Random
 import kotlin.system.exitProcess
@@ -42,6 +47,7 @@ open class ClassBodyGenerator(
     }
 
     private fun generateOverrides(gClass: GClass, specifiers: List<KotlinType>): String {
+        if (specifiers.isEmpty()) return ""
         val res = StringBuilder()
         val filteredMembers = specifiers.flatMap { specifier ->
             val membersToOverride = UsageSamplesGeneratorWithStLibrary.getMembersToOverride(specifier)
@@ -93,6 +99,7 @@ open class ClassBodyGenerator(
 
 
     private fun generatePropWithAnonObj(fromObject: Boolean): String {
+        if (depth < MAX_DEPTH || Random.getTrue(20) || !gClass.isInterface() || gClass.isInline()) return ""
         val res = StringBuilder()
         var withInheritance = false
         val lhv =
@@ -143,15 +150,12 @@ open class ClassBodyGenerator(
             return "\nabstract ${f}\n"
         }
         with(res) {
-            if (depth < MAX_DEPTH && Random.getTrue(20) && !gClass.isInterface())
-                append(generatePropWithAnonObj(fromObject))
-            //TODO Random.nextInt(0, 5)
+            append(generatePropWithAnonObj(fromObject))
             repeat(Random.nextInt(0, 4)) {
                 append("\n")
                 append(randomFunGenerator.generate()?.text)
                 append("\n")
             }
-            //TODO Random.nextInt(1, 5)
             repeat(Random.nextInt(0, 4)) {
                 append("\n")
                 append(RandomPropertyGenerator(file, gClass, ctx).generateRandomProperty(fromObject))
@@ -184,7 +188,7 @@ open class ClassBodyGenerator(
     }
 
     private fun generateCompanionObject(): String {
-        if (gClass.isInner() || Random.getTrue(50)) return ""
+        if (gClass.isInner() || Random.getTrue(70)) return ""
         if (gClass.classWord != "class" || gClass.isAnnotation()) return ""
         val tp = gClass.typeParams
         gClass.typeParams = listOf()
@@ -194,7 +198,7 @@ open class ClassBodyGenerator(
     }
 
     private fun generateInnerClass(): String {
-        if (depth <= MAX_DEPTH && !gClass.isInterface() && Random.nextBoolean()) return ""
+        if (depth <= MAX_DEPTH || gClass.isInterface() || Random.nextBoolean()) return ""
         if (gClass.isAnnotation() || gClass.isObject()) return ""
         val klassGenerator = RandomClassGenerator(file, ctx, depth + 1, gClass)
         val kl = klassGenerator.generate()

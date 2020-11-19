@@ -10,6 +10,7 @@ import com.stepanov.bbf.bugfinder.util.getTrue
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 abstract class DSGenerator(
     private val file: KtFile,

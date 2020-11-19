@@ -73,11 +73,12 @@ object RandomTypeGenerator {
             val fromFile = generateType("${randomClass.name}$typeParams")!!
             val p = fromFile.constructor.declarationDescriptor!!.containingDeclaration as LazyPackageDescriptor
             val scope = p.getMemberScope().getDescriptorsFiltered { true }.filterIsInstance<ClassDescriptor>().toList()
-            scope.filter { it.modality == Modality.OPEN || it.modality == Modality.ABSTRACT }.randomOrNull()
+            scope.find { it.name == randomClass.nameAsName }
         }
         if (onlyFromFile) return fromSrc
-        if (Random.nextBoolean() && fromSrc != null) return fromSrc
-        return null
+        return fromSrc
+        //TODO!!!
+        //if (Random.nextBoolean() && fromSrc != null) return fromSrc
         //return UsageSamplesGeneratorWithStLibrary.generateOpenClassType(onlyInterfaces)
     }
 

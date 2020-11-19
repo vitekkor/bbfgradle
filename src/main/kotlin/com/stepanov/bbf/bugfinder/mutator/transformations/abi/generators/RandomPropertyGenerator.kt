@@ -87,7 +87,8 @@ class RandomPropertyGenerator(
     fun generateRandomProperty(fromObject: Boolean): String {
         val randomType = randomTypeGenerator.generateRandomTypeWithCtx() ?: return ""
         val withTypeParams = randomType.replaceTypeOrRandomSubtypeOnTypeParam(gClass.typeParams)
-        if (Random.getTrue(20) && !randomType.isPrimitiveTypeOrNullablePrimitiveTypeOrString() && !randomType.isNullable())
+        if (Random.getTrue(20) && !randomType.isPrimitiveTypeOrNullablePrimitiveTypeOrString() && !randomType.isNullable()
+            && !gClass.isInterface())
             return "lateinit var ${Random.getRandomVariableName(4)}: $withTypeParams"
         var modifier = if (gClass.isAbstract() && !fromObject && Random.getTrue(60)) "abstract " else ""
         modifier += if (Random.nextBoolean()) "val" else "var"
@@ -102,12 +103,12 @@ class RandomPropertyGenerator(
             }
         val definition = "${Random.getRandomVariableName(4)}: $withTypeParams "
         val p = "$definition $defaultValue"
-        if (Random.nextBoolean()) {
+        if (Random.getTrue(70) || gClass.isInline()) {
             val getter =
                 if (gClass.isInterface()) ""
                 else "get() $defaultValue"
             val setter =
-                if (isVar) {
+                if (isVar && !gClass.isInterface()) {
                     if (fromObject || defaultValue.contains("TODO()") || Random.getTrue(30)) {
                         "set(value) = TODO()\n"
                     } else {
