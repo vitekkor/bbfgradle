@@ -9,6 +9,7 @@ import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import com.stepanov.bbf.bugfinder.util.getTrue
 import com.stepanov.bbf.bugfinder.util.replaceTypeOrRandomSubtypeOnTypeParam
 import org.jetbrains.kotlin.fir.lightTree.fir.modifier.ModifierSets
+import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.types.expressions.OperatorConventions
@@ -32,10 +33,28 @@ class RandomFunctionGenerator(
                 ""
             )).random()
         ).let { list ->
+            if (gClass != null) {
+                val inMod =
+                    (ModifierSets.INHERITANCE_MODIFIER.types.toList()
+                        .filter { it != KtTokens.SEALED_KEYWORD }
+                        .map { it.toString() } + listOf("", "", "")).random()
+                list.add(inMod)
+                if (gClass.isFunInterface()) list[3] = "abstract"
+                if (!gClass.isInterface() && !gClass.isAbstract() && !gClass.isFunInterface() && inMod == "abstract") {
+                    list[3] = ""
+                }
+                if (list[3] == "open" && list[2] == "private") list[3] = ""
+                if (list[3] == "abstract") {
+                    list[0] = ""
+                    if (list[2] == "private" || list[2] == "internal") list[2] = ""
+                }
+                if (list[0] == "inline" && list[3] == "open") list[3] = "final"
+            }
             if (gClass?.isInterface() == true) {
+                if (list[3] == "final") list[3] = ""
                 if (list[1].let { it == "external" || it == "tailrec" }) list[1] = ""
                 if (list[1].trim().let { it != "infix" || it != "operator" }) list[1] = ""
-                list[2] = if (Random.getTrue(80)) "" else "private"
+                list[2] = if (Random.getTrue(80) || list[3] == "abstract") "" else "private"
                 if (list[0] == "inline") list[2] = "private"
             }
             if (list[1] == "external") list[0] = ""
@@ -110,7 +129,7 @@ class RandomFunctionGenerator(
 
     private fun generateBody(): String =
         when {
-            gFunc.modifiers.contains("external") -> ""
+            gFunc.modifiers.contains("external") || gFunc.isAbstract() -> ""
             gFunc.isPrivate() -> "= TODO()"
             gClass?.isInterface() == true -> if (Random.nextBoolean()) "" else "= TODO()"
             else -> "= TODO()"

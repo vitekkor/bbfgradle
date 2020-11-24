@@ -29,8 +29,8 @@ open class RandomClassGenerator(
 
     override fun generateModifiers(): List<String> {
         val classModifiers =
-            ModifierSets.CLASS_MODIFIER.types.toList()
-                .map { it.toString() } + listOf("inline")
+            (ModifierSets.CLASS_MODIFIER.types.toList()
+                .map { it.toString() } + listOf("inline"))
                 .filter { it != "fun" && it != "companion" }
                 .let {
                     if (depth == 0) it.filter { it != "inner" } else it
@@ -158,7 +158,7 @@ open class RandomClassGenerator(
                             gType.first
                         } else null
                     } else null
-                }.filterNotNull()
+                }.filterNotNull().toSet().toList()
         return specifiers
     }
 

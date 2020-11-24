@@ -21,7 +21,8 @@ object GeneratorFactory {
 
     fun getRandomGenerator(): DSGenerator =
         when (Random.nextInt(0, 10)) {
-            0 -> RandomPropertyGenerator(file, ctx = ctx)
+            //TODO temporary filter because of noise
+            //0 -> RandomPropertyGenerator(file, ctx = ctx)
             1 -> RandomFunctionGenerator(file, ctx)
             2, 3 -> RandomInterfaceGenerator(file, ctx)
             4, 5 -> RandomObjectGenerator(file, ctx)

@@ -34,12 +34,18 @@ open class ClassBodyGenerator(
     //    private val randomInstancesGenerator = RandomInstancesGenerator(file)
     private val randomFunGenerator = RandomFunctionGenerator(file, ctx, gClass)
 
-    private fun generatePropertyOverriding(isVar: Boolean, name: String, returnType: String): String {
+    private fun generatePropertyOverriding(
+        isVar: Boolean,
+        name: String,
+        returnType: String,
+        extReceiver: String?
+    ): String {
+        val ext = extReceiver?.let { "$extReceiver." } ?: ""
         val varOrVal = if (isVar) "var" else "val"
         val res = StringBuilder()
         if (gClass.isInterface()) return "\noverride $varOrVal $name: $returnType"
         res.append(
-            "\noverride $varOrVal $name: $returnType\n" +
+            "\noverride $varOrVal $ext$name: $returnType\n" +
                     "    get() = TODO()\n"
         )
         if (isVar) res.append("    set(value) {}\n")
@@ -62,7 +68,14 @@ open class ClassBodyGenerator(
         for (member in filteredMembers) {
             val rtv = member.toString().substringAfterLast(":").substringBefore(" defined")
             if (member is PropertyDescriptor) {
-                res.append(generatePropertyOverriding(member.isVar, member.name.asString(), rtv))
+                res.append(
+                    generatePropertyOverriding(
+                        member.isVar,
+                        member.name.asString(),
+                        rtv,
+                        member.extensionReceiverParameter?.value?.type?.toString()
+                    )
+                )
             } else if (member is FunctionDescriptor) {
                 val f = member.toString().substringAfter("fun").substringBefore(" defined").split(" = ...")
                     .joinToString(" ")
@@ -87,7 +100,7 @@ open class ClassBodyGenerator(
                 append("$name(${values.joinToString()})")
                 fieldToOverride?.let {
                     append('{')
-                    append(generatePropertyOverriding(isVar, fieldToOverrideName, fieldToOverride.toString()))
+                    append(generatePropertyOverriding(isVar, fieldToOverrideName, fieldToOverride.toString(), null))
                     append('}')
                 }
                 append(",\n")
@@ -147,7 +160,7 @@ open class ClassBodyGenerator(
         val res = StringBuilder()
         if (gClass.isFunInterface()) {
             val f = randomFunGenerator.generate()?.text?.substringBeforeLast('=') ?: ""
-            return "\nabstract ${f}\n"
+            return "\n${f}\n"
         }
         with(res) {
             append(generatePropWithAnonObj(fromObject))

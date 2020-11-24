@@ -3,6 +3,8 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.abi
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators.*
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.RandomInstancesGenerator
+import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.replaceThis
 import org.jetbrains.kotlin.psi.KtFile
@@ -12,7 +14,7 @@ class AddRandomDS : Transformation() {
 
     private var ctx = PSICreator.analyze(file)!!
     var tries = 15
-    var enoughClasses = 5
+    var enoughClasses = 10
 
     private fun update() {
         ctx = PSICreator.analyze(file)!!

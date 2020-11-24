@@ -498,10 +498,11 @@ fun KotlinType.isAbstractClass(): Boolean =
     (this.constructor.declarationDescriptor as? DeserializedClassDescriptor)?.modality == Modality.ABSTRACT
 
 fun KotlinType.replaceTypeOrRandomSubtypeOnTypeParam(typeParams: List<String>): String {
-    val withVariantTypeParams = typeParams.filter { it.contains("in ") || it.contains("out ") }
+    val typeParamsWithoutBounds = typeParams.map { it.substringBefore(':') }
+    val withVariantTypeParams = typeParamsWithoutBounds.filter { it.contains("in ") || it.contains("out ") }
     if (kotlin.random.Random.getTrue(30) && withVariantTypeParams.isNotEmpty())
         return withVariantTypeParams.random().substringAfter("in ").substringAfter("out ")
-    val withoutVariantTypeParams = typeParams.filter { !it.contains("in ") && !it.contains("out ") }
+    val withoutVariantTypeParams = typeParamsWithoutBounds.filter { !it.contains("in ") && !it.contains("out ") }
     if (withoutVariantTypeParams.isEmpty()) return "$this"
     val typeParamsWithoutBoundsAndModifiers =
         withoutVariantTypeParams.map { it.substringBefore(':').substringAfter("in ").substringAfter("out ") }

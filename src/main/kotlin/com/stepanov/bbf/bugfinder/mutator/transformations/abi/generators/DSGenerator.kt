@@ -31,19 +31,37 @@ abstract class DSGenerator(
         if (typeArgs.isEmpty()) return listOf()
         return typeArgs.map {
             val modifier =
-                if (withModifiers) when (Random.nextInt(0, 5)) {
+                if (withModifiers) when (Random.nextInt(0, 8)) {
                     0 -> "in "
                     1 -> "out "
                     else -> ""
                 } else ""
-            "$modifier$it"
-            //TODO!!! UNCOMMENT
-//            if (Random.getTrue(20)) {
-//                val upperBounds = randomTypeGenerator.generateRandomTypeWithCtx()
-//                if (upperBounds == null || upperBounds.toString().startsWith("Array")) "$it"
-//                else "$it: $upperBounds"
-//            }
-//            else "$it"
+
+            if (Random.getTrue(50)) {
+                var upperBoundsClass =
+                    if (Random.nextBoolean())
+                        UsageSamplesGeneratorWithStLibrary.generateOpenClassType(false)
+                    else
+                        randomTypeGenerator.generateOpenClassType()
+                //TODO!! BUG WITH INLINE CLASS AS TYPE BOUND
+                if (upperBoundsClass?.isInline == true) upperBoundsClass = null
+                val typeParams =
+                    upperBoundsClass?.declaredTypeParameters
+                        ?.map { randomTypeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull()) }
+                        ?.let {
+                            if (it.isEmpty() || it.any { it == null })
+                                ""
+                            else
+                                it.joinToString(
+                                    prefix = "<",
+                                    postfix = ">"
+                                )
+                        }
+                        ?: ""
+                val upperBounds = "${upperBoundsClass?.name}$typeParams"
+                if (upperBoundsClass == null || upperBoundsClass.toString().startsWith("Array")) "$modifier$it"
+                else "$modifier$it: $upperBounds"
+            } else "$modifier$it"
         }
     }
 

@@ -320,6 +320,8 @@ open class RandomInstancesGenerator(private val file: KtFile) {
 //        else
 //            funcs.filter { it.extensionReceiverParameter?.value?.type?.arguments?.isEmpty() ?: true } //TODO
         val implementations = UsageSamplesGeneratorWithStLibrary.findImplementationOf(type.makeNotNullable())
+        //TODO fix this
+        if (type.toString().startsWith("Sequence")) funcs = listOf(funcs[1], funcs.last())
         val prob = if (funcs.size > implementations.size) 75 else 25
         val el =
             if (onlyImpl) implementations.randomOrNull()

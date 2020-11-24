@@ -88,7 +88,7 @@ class RandomPropertyGenerator(
         val randomType = randomTypeGenerator.generateRandomTypeWithCtx() ?: return ""
         val withTypeParams = randomType.replaceTypeOrRandomSubtypeOnTypeParam(gClass.typeParams)
         if (Random.getTrue(20) && !randomType.isPrimitiveTypeOrNullablePrimitiveTypeOrString() && !randomType.isNullable()
-            && !gClass.isInterface())
+            && !gClass.isInterface() && !gClass.isInline())
             return "lateinit var ${Random.getRandomVariableName(4)}: $withTypeParams"
         var modifier = if (gClass.isAbstract() && !fromObject && Random.getTrue(60)) "abstract " else ""
         modifier += if (Random.nextBoolean()) "val" else "var"
@@ -96,7 +96,7 @@ class RandomPropertyGenerator(
         if (modifier.contains("abstract")) return "$modifier ${Random.getRandomVariableName(4)}: $withTypeParams"
         val defaultValue =
             if (gClass.isInterface()) ""
-            else if (Random.nextBoolean() || withTypeParams != randomType.toString()) "= TODO()"
+            else if (gClass.isInline() || Random.nextBoolean() || withTypeParams != randomType.toString()) "= TODO()"
             else {
                 val v = randomInstancesGenerator.generateValueOfType(randomType.makeNotNullable())
                 if (v.isEmpty()) "= TODO()" else "= $v"
@@ -109,7 +109,7 @@ class RandomPropertyGenerator(
                 else "get() $defaultValue"
             val setter =
                 if (isVar && !gClass.isInterface()) {
-                    if (fromObject || defaultValue.contains("TODO()") || Random.getTrue(30)) {
+                    if (fromObject || defaultValue.contains("TODO()") || Random.getTrue(30) || gClass.isInline()) {
                         "set(value) = TODO()\n"
                     } else {
                         "private set\n"

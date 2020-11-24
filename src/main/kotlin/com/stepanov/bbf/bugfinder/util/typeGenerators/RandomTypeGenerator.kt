@@ -5,10 +5,12 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGenera
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary.getDeclDescriptorOf
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.bugfinder.util.KotlinTypeCreator.createType
+import org.jetbrains.kotlin.backend.common.serialization.findPackage
 import org.jetbrains.kotlin.builtins.PrimitiveType
 import org.jetbrains.kotlin.builtins.UnsignedType
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.modalityModifierType
 import org.jetbrains.kotlin.psi.psiUtil.parents
@@ -67,11 +69,12 @@ object RandomTypeGenerator {
                 file.getAllPSIChildrenOfType<KtClass>()
                     .filter { it.isInterface() || it.modalityModifierType()?.value?.trim() == "open" }
                     .filter { it.isInterface() || !onlyInterfaces }
+                    .filter { !it.hasModifier(KtTokens.PRIVATE_KEYWORD) }
                     .randomOrNull() ?: return@run null
             val typeParams =
                 randomClass.typeParameters.let { if (it.isEmpty()) "" else randomClass.typeParameterList?.text }
             val fromFile = generateType("${randomClass.name}$typeParams")!!
-            val p = fromFile.constructor.declarationDescriptor!!.containingDeclaration as LazyPackageDescriptor
+            val p = fromFile.constructor.declarationDescriptor!!.findPackage() as LazyPackageDescriptor
             val scope = p.getMemberScope().getDescriptorsFiltered { true }.filterIsInstance<ClassDescriptor>().toList()
             scope.find { it.name == randomClass.nameAsName }
         }
@@ -169,7 +172,14 @@ object RandomTypeGenerator {
 
     fun generateType(name: String): KotlinType? {
         if (!RandomTypeGenerator::file.isInitialized || !RandomTypeGenerator::ctx.isInitialized) return null
-        return generateType(file, ctx, name)
+        generateType(file, ctx, name).let {
+            if (it == null) {
+                println("CANT GENERATE TYPE $name")
+//                println(file.text)
+//                exitProcess(0)
+            }
+            return it
+        }
     }
 
     fun generateType(file: KtFile, ctx: BindingContext, name: String): KotlinType? {

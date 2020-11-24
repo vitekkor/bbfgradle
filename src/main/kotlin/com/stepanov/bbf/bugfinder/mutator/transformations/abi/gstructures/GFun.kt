@@ -23,4 +23,5 @@ data class GFunction(
     }
 
     fun isPrivate() = modifiers.contains("private")
+    fun isAbstract() = modifiers.contains("abstract")
 }
