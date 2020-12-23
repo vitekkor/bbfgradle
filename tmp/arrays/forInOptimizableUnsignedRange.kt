@@ -1,4 +1,4 @@
-// IGNORE_BACKEND: JVM_IR
+// WITH_RUNTIME
 
 fun testUIntRangeLiteral(a: UInt, b: UInt): Int {
     var s = 0
@@ -51,3 +51,10 @@ fun testULongDownTo(a: ULong, b: ULong): Int {
 // 0 iterator
 // 0 hasNext
 // 0 next
+// 0 getStart
+// 0 getEnd
+// 0 getFirst
+// 0 getLast
+// 0 getStep
+// 0 INVOKESTATIC kotlin/U(Int|Long).constructor-impl
+// 0 INVOKE\w+ kotlin/U(Int|Long).(un)?box-impl

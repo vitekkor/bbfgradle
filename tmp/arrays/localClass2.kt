@@ -1,23 +1,12 @@
-// FILE: JavaClass.java
-
-class JavaClass {
-    private Runnable r;
-
-    public JavaClass(Runnable r) {
-        this.r = r;
-    }
-
-    public void run() {
-        r.run();
+class A {
+    fun a () : String {
+        class B() {
+            fun s() : String = "OK"
+        }
+        return B().s()
     }
 }
 
-// FILE: 1.kt
-
-var status: String = "fail"  // global property to avoid issues with accessing closure from local class (KT-4174)
-
-fun box(): String {
-    class C() : JavaClass({status = "OK"}) {}
-    C().run()
-    return status
+fun box() : String {
+    return A().a()
 }

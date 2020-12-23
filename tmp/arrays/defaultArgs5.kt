@@ -1,17 +1,24 @@
-// !JVM_DEFAULT_MODE: enable
+// !JVM_DEFAULT_MODE: all
 // TARGET_BACKEND: JVM
 // JVM_TARGET: 1.8
 // WITH_RUNTIME
+// FULL_JDK
 
-interface Z {
-    @JvmDefault
-    fun test(s: String = "OK"): String {
+interface Test {
+    fun test(s: String ="OK"): String {
         return s
     }
 }
 
-class Test: Z
+class TestClass : Test {
+
+}
 
 fun box(): String {
-    return Test().test()
+    try {
+        val defaultImpls = java.lang.Class.forName(Test::class.java.canonicalName + "\$DefaultImpls")
+    } catch (e: ClassNotFoundException) {
+        return "OK"
+    }
+    return "fail: DefaultImpls shouldn't be generated"
 }

@@ -1,18 +1,21 @@
-// FILE: A.java
+// FILE: JavaClass.java
 
-class A {
-    public A() {}
+class JavaClass {
+    private Runnable r;
 
-    public A(String x) {}
+    public JavaClass(Runnable r) {
+        this.r = r;
+    }
 
-    public A(long l, double z) {}
+    public void run() {
+        r.run();
+    }
 }
 
 // FILE: 1.kt
 
 fun box(): String {
-    A()
-    A("")
-    A(0.toLong(), 0.0)
-    return "OK"
+    var v = "FAIL"
+    JavaClass { v = "OK" }.run()
+    return v
 }

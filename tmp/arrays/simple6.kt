@@ -1,24 +1,5 @@
-// IGNORE_BACKEND_FIR: JVM_IR
-// SKIP_JDK6
-// TARGET_BACKEND: JVM
-// FILE: Base.java
+data class A(val x: String, val y: String)
 
-public interface Base {
-    String getValue();
+fun foo(a: A, block: (A) -> String): String = block(a)
 
-    default String test() {
-        return getValue();
-    }
-}
-
-// FILE: main.kt
-class Fail : Base {
-    override fun getValue() = "Fail"
-}
-
-fun box(): String {
-    val z = object : Base by Fail() {
-        override fun getValue() = "OK"
-    }
-    return z.test()
-}
+fun box() = foo(A("O", "K")) { (x, y) -> x + y }

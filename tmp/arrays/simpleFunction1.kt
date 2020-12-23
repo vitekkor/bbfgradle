@@ -1,5 +1,32 @@
-// IGNORE_BACKEND_FIR: JVM_IR
+// !JVM_DEFAULT_MODE: all
+// TARGET_BACKEND: JVM
+// FILE: Simple.java
+
+public interface Simple extends KInterface {
+    default String test() {
+        return test2();
+    }
+}
+
+// FILE: Foo.java
+public class Foo implements Simple {
+
+}
+
+// FILE: main.kt
+// JVM_TARGET: 1.8
+// WITH_RUNTIME
+
+interface KInterface  {
+    fun test2(): String {
+        return "OK"
+    }
+}
+
+
 fun box(): String {
-    val f = "KOTLIN"::get
-    return "${f(1)}${f(0)}"
+    val result = Foo().test()
+    if (result != "OK") return "fail 1: ${result}"
+
+    return Foo().test2()
 }

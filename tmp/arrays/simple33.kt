@@ -1,19 +1,46 @@
 // TARGET_BACKEND: JVM
+
 // WITH_RUNTIME
-// FILE: 1.kt
 
-@file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
-@file:JvmPackageName("baz.foo.quux.bar")
-package foo.bar
+object A {
 
-fun f(): String = "O"
+    val b: String = "OK"
 
-val g: String? get() = "K"
+    @JvmStatic val c: String = "OK"
 
-inline fun <T> i(block: () -> T): T = block()
+    @JvmStatic fun test1() : String {
+        return b
+    }
 
-// FILE: 2.kt
+    @JvmStatic fun test2() : String {
+        return test1()
+    }
 
-import foo.bar.*
+    fun test3(): String {
+        return "1".test5()
+    }
 
-fun box(): String = i { f() + g }
+    @JvmStatic fun test4(): String {
+        return "1".test5()
+    }
+
+    @JvmStatic fun String.test5() : String {
+        return this + b
+    }
+}
+
+fun box(): String {
+    if (A.test1() != "OK") return "fail 1"
+
+    if (A.test2() != "OK") return "fail 2"
+
+    if (A.test3() != "1OK") return "fail 3"
+
+    if (A.test4() != "1OK") return "fail 4"
+
+    if (with(A) {"1".test5()} != "1OK") return "fail 5"
+
+    if (A.c != "OK") return "fail 6"
+
+    return "OK"
+}

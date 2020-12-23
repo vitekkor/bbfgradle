@@ -1,61 +1,56 @@
+
 // FILE: 1.kt
+// SKIP_INLINE_CHECK_IN: inlineFun$default
+
 
 package test
-
-public inline fun <R> doCall(block: ()-> R) : R {
-    return block()
+inline fun inlineFun(capturedParam: String, lambda: () -> String = { capturedParam }): String {
+    return lambda()
 }
 
 // FILE: 2.kt
 
 import test.*
 
-fun test1(local: Int, nonLocal: String, doNonLocal: Boolean): String {
-
-    val localResult = doCall {
-        if (doNonLocal) {
-            return nonLocal
-        }
-        local
-    }
-
-    if (localResult == 11) {
-        return "OK_LOCAL"
-    }
-    else {
-        return "LOCAL_FAILED"
-    }
-}
-
-fun test2(local: Int, nonLocal: String, doNonLocal: Boolean): String {
-
-    val localResult = doCall {
-        if (doNonLocal) {
-            return@test2 nonLocal
-        }
-        local
-    }
-
-    if (localResult == 11) {
-        return "OK_LOCAL"
-    }
-    else {
-        return "LOCAL_FAILED"
-    }
-}
-
 fun box(): String {
-    var test1 = test1(11, "fail", false)
-    if (test1 != "OK_LOCAL") return "test1: ${test1}"
-
-    test1 = test1(-1, "OK_NONLOCAL", true)
-    if (test1 != "OK_NONLOCAL") return "test2: ${test1}"
-
-    var test2 = test2(11, "fail", false)
-    if (test2 != "OK_LOCAL") return "test1: ${test2}"
-
-    test2 = test2(-1, "OK_NONLOCAL", true)
-    if (test2 != "OK_NONLOCAL") return "test2: ${test2}"
-
-    return "OK"
+    return inlineFun("OK")
 }
+
+// FILE: 1.smap
+SMAP
+1.kt
+Kotlin
+*S Kotlin
+*F
++ 1 1.kt
+test/_1Kt$inlineFun$1
+*L
+1#1,11:1
+*E
+
+// FILE: 2.smap
+
+SMAP
+2.kt
+Kotlin
+*S Kotlin
+*F
++ 1 2.kt
+_2Kt
++ 2 1.kt
+test/_1Kt
++ 3 1.kt
+test/_1Kt$inlineFun$1
+*L
+1#1,9:1
+7#2,2:10
+7#3:12
+*E
+*S KotlinDebug
+*F
++ 1 2.kt
+_2Kt
+*L
+6#1,2:10
+6#1:12
+*E

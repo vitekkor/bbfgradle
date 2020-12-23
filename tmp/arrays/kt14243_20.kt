@@ -1,11 +1,9 @@
-// !JVM_DEFAULT_MODE: enable
-// IGNORE_BACKEND_FIR: JVM_IR
+// !JVM_DEFAULT_MODE: all
 // TARGET_BACKEND: JVM
 // JVM_TARGET: 1.8
 // WITH_RUNTIME
 
 interface Z<T> {
-    @JvmDefault
     fun test(p: T): T {
         return p
     }

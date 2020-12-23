@@ -1,16 +1,3 @@
-// MODULE: lib
-// FILE: lib.kt
-class A {
+class Test(val ok: String)
 
-    @PublishedApi
-    internal fun published() = "OK"
-
-    inline fun test() = published()
-
-}
-
-// MODULE: main(lib)
-// FILE: main.kt
-fun box(): String {
-    return A().test()
-}
+fun box() = Test("OK").ok

@@ -1,25 +1,30 @@
+// NO_CHECK_LAMBDA_INLINING
 // FILE: 1.kt
+
 package test
 
-var value: Int = 0
-
-inline var z: Int
-    get() = ++value
-    set(p: Int) { value = p }
+inline fun test(a: String, b: String, c: () -> String): String {
+    return a + b + c();
+}
 
 // FILE: 2.kt
+
 import test.*
 
 fun box(): String {
-    val v = z
-    if (value != 1) return "fail 1: $value"
+    var res = "";
+    var call = test(b = {res += "K"; "K"}(), a = {res+="O"; "O"}(), c = {res += "L"; "L"})
+    if (res != "KOL" || call != "OKL") return "fail 1: $res != KOL or $call != OKL"
 
-    z = v + 2
+    res = "";
+    call = test(b = {res += "K"; "K"}(), c = {res += "L"; "L"}, a = {res+="O"; "O"}())
+    if (res != "KOL" || call != "OKL") return "fail 2: $res != KOL or $call != OKL"
 
-    if (value != 3) return "fail 2: $value"
-    var p = z
 
-    if (value != 4)  return "fail 3: $value"
+    res = "";
+    call = test(c = {res += "L"; "L"}, b = {res += "K"; "K"}(), a = {res+="O"; "O"}())
+    if (res != "KOL" || call != "OKL") return "fail 3: $res != KOL or $call != OKL"
 
     return "OK"
+
 }

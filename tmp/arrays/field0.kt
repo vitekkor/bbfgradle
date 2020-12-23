@@ -1,10 +1,18 @@
-var my: String = ""
-    get() = field + "K"
-    set(arg) {
-        field = arg
-    }
+// WITH_RUNTIME
 
-fun box(): String {
-    my = "O"
-    return my
+interface Result
+
+interface Foo {
+    val Result.value: Any
+        get() = TODO()
+}
+
+fun use(c: suspend Foo.() -> Unit) {}
+
+fun generate(): Result = TODO()
+
+fun test() {
+    use {
+        val value = generate().value
+    }
 }

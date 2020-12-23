@@ -1,80 +1,34 @@
+// TARGET_BACKEND: JVM
 
-// FILE: 1.kt
+// WITH_RUNTIME
 
-package builders
+import java.lang.reflect.Method
+import kotlin.test.assertEquals
 
-inline fun call(crossinline init: () -> Unit) {
-    return {
-        init()
-    }()
-}
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class Ann(val x: String)
 
-// FILE: 2.kt
+fun foo0(block: () -> Unit) = block.javaClass
 
-import builders.*
+fun testMethod(method: Method, name: String) {
+    assertEquals("OK", method.getAnnotation(Ann::class.java).x, "On method of test named `$name`")
 
-//NO_CHECK_LAMBDA_INLINING
-fun test(): String {
-    var res = "Fail"
-
-    call {
-        res = "OK"
+    for ((index, annotations) in method.getParameterAnnotations().withIndex()) {
+        val ann = annotations.filterIsInstance<Ann>().single()
+        assertEquals("OK$index", ann.x, "On parameter $index of test named `$name`")
     }
-
-    return res
 }
 
+fun testClass(clazz: Class<*>, name: String) {
+    val invokes = clazz.getDeclaredMethods().single() { !it.isBridge() }
+    testMethod(invokes, name)
+}
 
 fun box(): String {
-    return test()
+    testClass(foo0(@Ann("OK") { }), "1")
+    testClass(foo0( @Ann("OK") { }), "2")
+
+    testClass(foo0() @Ann("OK") { }, "3")
+    return "OK"
 }
-
-// FILE: 1.smap
-
-SMAP
-1.kt
-Kotlin
-*S Kotlin
-*F
-+ 1 1.kt
-builders/_1Kt$call$1
-*L
-1#1,12:1
-*E
-
-// FILE: 2.smap
-
-SMAP
-2.kt
-Kotlin
-*S Kotlin
-*F
-+ 1 2.kt
-_2Kt
-+ 2 1.kt
-builders/_1Kt
-*L
-1#1,21:1
-7#2:22
-*E
-*S KotlinDebug
-*F
-+ 1 2.kt
-_2Kt
-*L
-9#1:22
-*E
-
-SMAP
-1.kt
-Kotlin
-*S Kotlin
-*F
-+ 1 1.kt
-builders/_1Kt$call$1
-+ 2 2.kt
-_2Kt
-*L
-1#1,12:1
-10#2,2:13
-*E

@@ -1,11 +1,8 @@
-fun z() {}
-
-fun foo(x: Int) {
-    when {
-        x == 21 -> z()
-        x == 42 -> z()
-        else -> {}
+fun foo() {
+    val p = 1
+    when (p) {
+        0 -> System.out?.println()
+        else -> System.out?.println()
     }
 }
-
-// 0 GETSTATIC
+// 1 LINENUMBER 3

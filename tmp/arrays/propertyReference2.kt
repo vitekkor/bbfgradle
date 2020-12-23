@@ -1,11 +1,11 @@
 // FILE: 1.kt
-
+// SKIP_INLINE_CHECK_IN: inlineFun$default
 package test
 
-class Foo(val a: String)
+val ok = "OK"
 
-inline fun <T> test(receiver: T, selector: (T) -> String): String {
-    return selector(receiver)
+inline fun inlineFun(lambda: () -> String = ::ok): String {
+    return lambda()
 }
 
 // FILE: 2.kt
@@ -13,5 +13,5 @@ inline fun <T> test(receiver: T, selector: (T) -> String): String {
 import test.*
 
 fun box(): String {
-    return test(Foo("OK"), Foo::a)
+    return inlineFun()
 }

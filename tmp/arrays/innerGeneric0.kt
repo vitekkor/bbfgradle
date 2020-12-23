@@ -1,32 +1,26 @@
-// IGNORE_BACKEND_FIR: JVM_IR
-// IGNORE_BACKEND: JS_IR
-// TODO: muted automatically, investigate should it be ran for JS or not
-// IGNORE_BACKEND: JS, NATIVE
+// !USE_EXPERIMENTAL: kotlin.ExperimentalStdlibApi
+// TARGET_BACKEND: JVM
+// WITH_RUNTIME
 
-// WITH_REFLECT
 package test
 
-import kotlin.reflect.full.createType
-import kotlin.reflect.KClass
-import kotlin.reflect.KTypeProjection
+import kotlin.reflect.KTypeParameter
+import kotlin.reflect.typeOf
 import kotlin.test.assertEquals
 
-class A<T1> {
-    inner class B<T2, T3> {
-        inner class C<T4>
+class Container<T>
+
+class C<X> {
+    inner class D<Y : X> {
+        fun <Z : Y> createZ(): KTypeParameter =
+            typeOf<Container<Z>>().arguments.single().type!!.classifier as KTypeParameter
     }
-    class D
 }
 
-fun foo(): A<Int>.B<Double, Float>.C<Long> = null!!
-
 fun box(): String {
-    fun KClass<*>.inv() = KTypeProjection.invariant(this.createType())
-
-    val type = A.B.C::class.createType(listOf(Long::class.inv(), Double::class.inv(), Float::class.inv(), Int::class.inv()))
-    assertEquals("test.A<kotlin.Int>.B<kotlin.Double, kotlin.Float>.C<kotlin.Long>", type.toString())
-
-    assertEquals("test.A.D", A.D::class.createType().toString())
-
+    val z = C<Any>().D<Any>().createZ<Any>()
+    assertEquals("Y (Kotlin reflection is not available)", z.upperBounds.joinToString())
+    val y = z.upperBounds.single().classifier as KTypeParameter
+    assertEquals("X (Kotlin reflection is not available)", y.upperBounds.joinToString())
     return "OK"
 }

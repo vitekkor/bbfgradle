@@ -1,5 +1,4 @@
-// !JVM_DEFAULT_MODE: compatibility
-// IGNORE_BACKEND_FIR: JVM_IR
+// !JVM_DEFAULT_MODE: all-compatibility
 // TARGET_BACKEND: JVM
 // FILE: Simple.java
 
@@ -11,9 +10,7 @@ public interface Simple extends KInterface2 {
 
 // FILE: Foo.java
 public class Foo implements Simple {
-    public String getBar() {
-        return "fail";
-    }
+
 }
 
 // FILE: main.kt
@@ -24,18 +21,21 @@ interface KInterface<T>  {
 
     val foo: T
 
-    @JvmDefault
     val bar: T
         get() = foo
 }
 
 interface KInterface2 : KInterface<String> {
-    @JvmDefault
     override val foo: String
         get() = "OK"
 }
 
 
 fun box(): String {
-    return Foo().test()
+
+    val result = Foo().test()
+    if (result != "OK") return "fail 1: ${result}"
+
+    return Foo().bar
+
 }

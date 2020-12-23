@@ -21,11 +21,11 @@ class Inline(val res: Int) {
     }
 
     fun doWork(l : InlineX) : Int {
-        return l.calcInt({ a: Int, b: Int -> a + b})
+        return l.calcInt(fun (a: Int, b: Int) = a + b)
     }
 
     fun doWorkWithDouble(s : Double) : Double {
-        return s.calcDouble({ a: Int, b: Double -> a + b})
+        return s.calcDouble(fun (a: Int, b: Double) = a + b)
     }
 
 }
@@ -34,7 +34,7 @@ class Inline(val res: Int) {
 
 fun test1(): Int {
     val inlineX = Inline(9)
-    return inlineX.calcExt({ z: Int -> z}, 25)
+    return inlineX.calcExt(fun(z: Int) = z, 25)
 }
 
 fun test2(): Int {
@@ -55,7 +55,7 @@ fun test4(): Double {
 fun test5(): Double {
     val inlineX = Inline(9)
     with(inlineX) {
-        11.0.calcDouble{ a: Int, b: Double -> a + b}
+        11.0.calcDouble(fun (a: Int, b: Double) = a + b)
     }
     return inlineX.doWorkWithDouble(11.0)
 }

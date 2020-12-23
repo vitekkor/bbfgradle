@@ -1,5 +1,3 @@
-// IGNORE_BACKEND_FIR: JVM_IR
-// SKIP_JDK6
 // TARGET_BACKEND: JVM
 // FILE: Test.java
 
@@ -13,6 +11,7 @@ interface Test<T> {
 }
 
 // FILE: main.kt
+// JVM_TARGET: 1.8
 
 class Child : Test<String> {
     override fun call() : String {

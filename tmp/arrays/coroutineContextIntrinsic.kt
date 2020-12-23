@@ -1,8 +1,6 @@
-// IGNORE_BACKEND: JVM_IR
 // WITH_RUNTIME
-// COMMON_COROUTINES_TEST
-import COROUTINES_PACKAGE.*
-import COROUTINES_PACKAGE.intrinsics.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 
 suspend fun suspendHere(ctx: CoroutineContext) = suspendCoroutineUninterceptedOrReturn<String> { x ->
     if (x.context == ctx) x.resume("OK") else x.resume("FAIL")

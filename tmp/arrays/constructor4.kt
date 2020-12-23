@@ -1,21 +1,22 @@
-// FILE: JavaClass.java
+// !LANGUAGE: +MultiPlatformProjects
+// IGNORE_BACKEND_FIR: JVM_IR
+// WITH_RUNTIME
+// FILE: common.kt
 
-class JavaClass {
-    private Runnable r;
+expect class Foo(a: String, b: Int = 0, c: Double? = null)
 
-    public JavaClass(Runnable r) {
-        this.r = r;
-    }
+// FILE: jvm.kt
 
-    public void run() {
-        r.run();
-    }
+import kotlin.test.assertEquals
+
+actual class Foo actual constructor(a: String, b: Int, c: Double?) {
+    val result: String = a + "," + b + "," + c
 }
 
-// FILE: 1.kt
-
 fun box(): String {
-    var v = "FAIL"
-    JavaClass { v = "OK" }.run()
-    return v
+    assertEquals("OK,0,null", Foo("OK").result)
+    assertEquals("OK,42,null", Foo("OK", 42).result)
+    assertEquals("OK,42,3.14", Foo("OK", 42, 3.14).result)
+
+    return "OK"
 }
