@@ -1,7 +1,7 @@
 buildscript {
     //Do not forget to update intellij core
-    ext.kotlin_version = '1.4.255-20201117.075455-764'
-    ext.kotlin_plugin_version = '1.4.10'
+    ext.kotlin_version = '1.5.0-dev-309'
+    ext.kotlin_plugin_version = '1.4.20'
     repositories {
         maven() {
             url "https://dl.bintray.com/kotlin/kotlin-eap/"
@@ -28,7 +28,6 @@ buildscript {
 
 plugins {
     id 'java'
-//    id 'org.jetbrains.kotlin.jvm'
     id 'org.jetbrains.kotlin.jvm' version "$kotlin_plugin_version"
     id 'application'
 }
@@ -78,6 +77,8 @@ ext {
 }
 
 dependencies {
+    //Intellij core
+    compile group: 'com.android.tools.external.com-intellij', name: 'intellij-core', version: '27.3.0-alpha01'
 
     //Log
     compile "log4j:log4j:1.2.17"
@@ -97,7 +98,6 @@ dependencies {
 
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlin_version}"
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${kotlin_version}"
-    compile group: 'com.android.tools.external.com-intellij', name: 'intellij-core', version: '27.1.0'
     //compile "org.jetbrains.kotlin:kotlin-compiler:1.4.255-20201110.102611-685"
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: "${kotlin_version}"
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-common', version: "${kotlin_version}"
