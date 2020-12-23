@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.stepanov.bbf.bugfinder.executor.checkers
 
 import com.intellij.lang.ASTNode

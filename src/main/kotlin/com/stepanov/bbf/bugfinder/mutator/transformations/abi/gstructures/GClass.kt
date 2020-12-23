@@ -5,18 +5,20 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtObjectDeclaration
+import org.jetbrains.kotlin.psi.psiUtil.isPrivate
 
 data class GClass(
     var annotations: List<String> = listOf(),
     var imports: MutableList<String> = mutableListOf(),
-    var modifiers: List<String> = listOf(),
+    override var modifiers: MutableList<String> = mutableListOf(),
     var classWord: String = "",
     var name: String = "",
     var typeParams: List<String> = listOf(),
+    var constructorWord: String = "",
     var constructorArgs: List<String> = listOf(),
     var supertypes: List<String> = listOf(),
     var body: String = ""
-) {
+): GStructure() {
 
     override fun toString(): String {
         val a = annotations.joinToString("\n", postfix = "\n")
@@ -33,7 +35,7 @@ data class GClass(
         val b =
             if (body.isEmpty()) ""
             else Factory.psiFactory.createBlock(body).text
-        return "$a$m $classWord $name $g$c$i$b"
+        return "$a$m $classWord $name $g $constructorWord$c$i$b"
     }
 
     companion object {
@@ -47,8 +49,10 @@ data class GClass(
             gClass.annotations = klass.annotations.let {
                 if (it.isEmpty()) listOf() else it.map { it.text }
             }.toMutableList()
-            gClass.modifiers = klass.modifierList?.text?.split(" ") ?: listOf()
+            gClass.modifiers = klass.modifierList?.text?.split(" ")?.toMutableList() ?: mutableListOf()
             gClass.typeParams = klass.typeParameters.let { if (it.isEmpty()) listOf() else it.map { it.text } }
+            gClass.constructorWord =
+                klass.primaryConstructor?.let { if (it.isPrivate()) "private constructor" else "" } ?: ""
             gClass.constructorArgs = klass.primaryConstructor?.valueParameters
                 ?.let { if (it.isEmpty()) listOf() else it.map { it.text } } ?: listOf()
             gClass.supertypes = klass.superTypeListEntries.let {
@@ -79,15 +83,6 @@ data class GClass(
     fun isEnum() = modifiers.contains("enum")
     fun isData() = modifiers.contains("data")
     fun isInterface() = classWord == "interface"
-    fun isAbstract() = modifiers.contains("abstract")
     fun isSealed() = modifiers.contains("sealed")
-    fun isInline() = modifiers.contains("inline")
-
-    fun getVisibility() =
-        when {
-            modifiers.contains("public") -> "public"
-            modifiers.contains("private") -> "private"
-            modifiers.contains("internal") -> "internal"
-            else -> ""
-        }
+    fun hasPrivateConstructor() = constructorWord.contains("private")
 }

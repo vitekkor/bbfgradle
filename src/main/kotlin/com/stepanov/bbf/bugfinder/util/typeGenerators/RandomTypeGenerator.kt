@@ -9,7 +9,6 @@ import org.jetbrains.kotlin.backend.common.serialization.findPackage
 import org.jetbrains.kotlin.builtins.PrimitiveType
 import org.jetbrains.kotlin.builtins.UnsignedType
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
-import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.modalityModifierType
@@ -21,16 +20,17 @@ import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyPackageDescriptor
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.types.isNullable
 import org.jetbrains.kotlin.types.replace
 import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
 import org.jetbrains.kotlin.types.typeUtil.substitute
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 object RandomTypeGenerator {
 
     lateinit var file: KtFile
     lateinit var ctx: BindingContext
+    var minVisibility = "public"
 
     fun setFileAndContext(file: KtFile, ctx: BindingContext) {
         RandomTypeGenerator.file = file
@@ -38,19 +38,34 @@ object RandomTypeGenerator {
     }
 
     fun generateRandomTypeWithCtx(upperBounds: KotlinType? = null, depth: Int = 0): KotlinType? {
-        if (upperBounds != null && !upperBounds.isAnyOrNullableAny()) return generateWithUpperBounds(
-            upperBounds
-        )
-        if (Random.getTrue(5)) {
-            return generateType(generateFunType())
+        val resRandomType: KotlinType?
+        when {
+            upperBounds != null && !upperBounds.isAnyOrNullableAny() -> {
+                resRandomType = generateWithUpperBounds(upperBounds)
+            }
+            Random.getTrue(5) -> {
+                resRandomType = generateType(generateFunType())
+            }
+            else -> {
+                val type = when (Random.nextInt(0, 10)) {
+                    in 0..(3 + depth) -> generateType(primitives.random())
+                    in (4 + depth)..(6 + depth) -> getTypeFromFile(depth = depth)
+                    else -> generateType(generateContainer1(depth))
+                }
+                resRandomType =
+                    if (upperBounds?.isNullable() == false)
+                        type
+                    else if (Random.getTrue(20) && type != null)
+                        generateType("$type?")
+                    else
+                        type
+            }
         }
-        val type = when (Random.nextInt(0, 10)) {
-            in 0..(3 + depth) -> generateType(primitives.random())
-            in (4 + depth)..(6 + depth) -> getTypeFromFile(depth = depth)
-            else -> generateType(generateContainer1(depth))
-        }
-        if (Random.getTrue(20) && type != null) return generateType("$type?")
-        return type
+        minVisibility = resRandomType?.getMinModifier()?.let {
+            if (compareDescriptorVisibilitiesAsStrings(minVisibility, it) == -1) it
+            else minVisibility
+        } ?: minVisibility
+        return resRandomType
     }
 
     private fun generateFunType(): String {
@@ -63,38 +78,16 @@ object RandomTypeGenerator {
         return "($valueParams) -> $rtv"
     }
 
-    fun generateOpenClassType(onlyFromFile: Boolean = false, onlyInterfaces: Boolean = false): ClassDescriptor? {
-        val fromSrc = run {
-            val randomClass =
-                file.getAllPSIChildrenOfType<KtClass>()
-                    .filter { it.isInterface() || it.modalityModifierType()?.value?.trim() == "open" }
-                    .filter { it.isInterface() || !onlyInterfaces }
-                    .filter { !it.hasModifier(KtTokens.PRIVATE_KEYWORD) }
-                    .randomOrNull() ?: return@run null
-            val typeParams =
-                randomClass.typeParameters.let { if (it.isEmpty()) "" else randomClass.typeParameterList?.text }
-            val fromFile = generateType("${randomClass.name}$typeParams")!!
-            val p = fromFile.constructor.declarationDescriptor!!.findPackage() as LazyPackageDescriptor
-            val scope = p.getMemberScope().getDescriptorsFiltered { true }.filterIsInstance<ClassDescriptor>().toList()
-            scope.find { it.name == randomClass.nameAsName }
-        }
-        if (onlyFromFile) return fromSrc
-        return fromSrc
-        //TODO!!!
-        //if (Random.nextBoolean() && fromSrc != null) return fromSrc
-        //return UsageSamplesGeneratorWithStLibrary.generateOpenClassType(onlyInterfaces)
-    }
-
     private fun generateWithUpperBounds(upperBounds: KotlinType, depth: Int = 0): KotlinType? {
         var fromFile = false
         val impls =
-            if (file.getAllPSIChildrenOfType<KtClassOrObject>().any { it.name == upperBounds.toString() }) {
+            if (file.getAllPSIChildrenOfType<KtClassOrObject>().any { it.name == "$upperBounds".substringBefore('<') }) {
                 fromFile = true
                 UsageSamplesGeneratorWithStLibrary.findImplementationFromFile(upperBounds, false)
             } else {
                 UsageSamplesGeneratorWithStLibrary.findImplementationOf(upperBounds, false)
             }
-        if (impls.isEmpty()) return upperBounds
+        if (impls.isEmpty() || Random.getTrue(50)) return upperBounds
         val implsTypes = impls.map { it.defaultType }
         val randomImpl =
             implsTypes.shuffled().find { it.isPrimitiveTypeOrNullablePrimitiveTypeOrString() } ?: implsTypes.random()
@@ -172,7 +165,7 @@ object RandomTypeGenerator {
 
     fun generateType(name: String): KotlinType? {
         if (!RandomTypeGenerator::file.isInitialized || !RandomTypeGenerator::ctx.isInitialized) return null
-        generateType(file, ctx, name).let {
+        generateType(file, ctx, name.trim()).let {
             if (it == null) {
                 println("CANT GENERATE TYPE $name")
 //                println(file.text)
@@ -224,6 +217,29 @@ object RandomTypeGenerator {
         }.joinToString(prefix = "<", postfix = ">")
         return "$container$typeParams"
     }
+
+    fun generateOpenClassType(onlyFromFile: Boolean = false, onlyInterfaces: Boolean = false): ClassDescriptor? {
+        val fromSrc = run {
+            val randomClass =
+                file.getAllPSIChildrenOfType<KtClass>()
+                    .filter { it.isInterface() || it.modalityModifierType()?.value?.trim() == "open" }
+                    .filter { it.isInterface() || !onlyInterfaces }
+                    .filter { !it.hasModifier(KtTokens.PRIVATE_KEYWORD) }
+                    .randomOrNull() ?: return@run null
+            val typeParams =
+                randomClass.typeParameters.let { if (it.isEmpty()) "" else randomClass.typeParameterList?.text }
+            val fromFile = generateType("${randomClass.name}$typeParams")!!
+            val p = fromFile.constructor.declarationDescriptor!!.findPackage() as LazyPackageDescriptor
+            val scope = p.getMemberScope().getDescriptorsFiltered { true }.filterIsInstance<ClassDescriptor>().toList()
+            scope.find { it.name == randomClass.nameAsName }
+        }
+        if (onlyFromFile) return fromSrc
+        return fromSrc
+        //TODO!!!
+        //if (Random.nextBoolean() && fromSrc != null) return fromSrc
+        //return UsageSamplesGeneratorWithStLibrary.generateOpenClassType(onlyInterfaces)
+    }
+
 
     fun generatePrimitive(): String = primitives.random()
 

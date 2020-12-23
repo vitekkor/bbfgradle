@@ -88,7 +88,7 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
                 .toSet().toList()
                 .joinToString(":")
         projectArgs.jvmTarget = "1.8"
-        projectArgs.optIn = arrayOf("kotlin.ExperimentalStdlibApi")
+        projectArgs.optIn = arrayOf("kotlin.ExperimentalStdlibApi", "kotlin.contracts.ExperimentalContracts")
         if (project.configuration.jvmDefault.isNotEmpty())
             projectArgs.jvmDefault = project.configuration.jvmDefault.substringAfter(Directives.jvmDefault)
         return projectArgs

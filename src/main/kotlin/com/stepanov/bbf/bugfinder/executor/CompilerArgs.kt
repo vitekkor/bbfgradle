@@ -37,10 +37,22 @@ object CompilerArgs {
         val gradleDir = "${System.getProperty("user.home")}/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/"
         var dir =
             File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path ?: ""
+        //TODO fix this
+        if (dir.trim().isEmpty()) {
+            ver = (ver.last() - '0').let { ver.dropLast(1) + (it - 1) }
+            dir = File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path
+                ?: ""
+        }
+        if (dir.trim().isEmpty()) {
+            ver = (ver.last() - '0').let { ver.dropLast(1) + (it + 1) }
+            dir = File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path
+                ?: ""
+        }
         var pathToLib = File(dir).walkTopDown().find { it.name == "$libToSearch-$ver.jar" }?.absolutePath ?: ""
         if (pathToLib.isEmpty()) {
-            ver = "1.4.255-SNAPSHOT"
-            dir = File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path ?: ""
+            ver = "1.5.255-SNAPSHOT"
+            dir = File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path
+                ?: ""
             pathToLib = File(dir).walkTopDown().find { it.name == "$libToSearch-$ver.jar" }?.absolutePath ?: ""
         }
         require(pathToLib.isNotEmpty())

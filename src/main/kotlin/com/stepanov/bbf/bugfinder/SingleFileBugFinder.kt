@@ -67,7 +67,7 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
             }
             return
         } catch (e: Error) {
-            log.debug("ERROR: $e")
+            log.debug("ERROR: ${e.localizedMessage}\n${e.stackTrace.map { it.toString() + "\n" }}")
             return
             //System.exit(0)
         }

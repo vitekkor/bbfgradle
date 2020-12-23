@@ -1,6 +1,8 @@
 package com.stepanov.bbf.bugfinder.preprocessor
 
 import com.stepanov.bbf.bugfinder.executor.Checker
+import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.apache.log4j.Logger
@@ -14,7 +16,7 @@ import kotlin.random.Random
 object KtProjectPreprocessor {
 
     //Returns null if we cant compile
-    fun preprocess(project: List<String>, checker: Checker): List<KtFile>? = TODO()
+    fun preprocess(project: Project, checker: Checker): List<KtFile>? = TODO()
 //    {
 //        var psiFiles = buildPsiForProject(project)
 //        renameBoxFun(psiFiles)
@@ -148,7 +150,8 @@ object KtProjectPreprocessor {
         boxFuncs.forEachIndexed { index, f -> f.replaceThis(copyOfBox[index]) }
     }
 
-    private fun createRandomPackageDirectives(num: Int, factory: KtPsiFactory): List<KtPackageDirective> {
+    fun createRandomPackageDirectives(num: Int): List<KtPackageDirective> {
+        val factory = Factory.psiFactory
         val result = mutableListOf<KtPackageDirective>()
         result.add(factory.createPackageDirective(FqName("a")))
         for (i in 1 until num) {

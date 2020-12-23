@@ -11,11 +11,11 @@ class RandomObjectGenerator(file: KtFile, ctx: BindingContext, depth: Int = 0)
 
     override val classWord: String = "object"
 
-    override fun generateModifiers(): List<String> {
+    override fun generateModifiers(): MutableList<String> {
         val visibilityModifiers =
             ModifierSets.VISIBILITY_MODIFIER.types.toList().map { it.toString() }.filter { it != "protected" }
         val visibilityModifier = if (Random.getTrue(20)) "" else visibilityModifiers.random()
-        return listOf(visibilityModifier)
+        return mutableListOf(visibilityModifier)
     }
 
     override fun generateTypeParams(withModifiers: Boolean): List<String> = listOf()

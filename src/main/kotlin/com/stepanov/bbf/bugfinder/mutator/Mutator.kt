@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.mutator
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
+import com.stepanov.bbf.bugfinder.mutator.projectTransformations.ProjectSplitter
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.AddRandomDS
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.AddNodesFromAnotherFiles
@@ -55,30 +56,18 @@ class Mutator(val project: Project) {
     }
 
     private fun startKotlinMutations() {
+        executeMutation(AddRandomNode(), 100)
         executeMutation(AddRandomDS(), 100)
-        executeMutation(AddPropertiesToClass(), 100)
-        executeMutation(AddRandomAnnotation(), 100)
-        exitProcess(0)
-        executeMutation(AddPropertiesToClass(), 100)
-        executeMutation(AddRandomAnnotation(), 100)
-//        executeMutation(AddRandomDS(), 100)
-//        executeMutation(AddRandomDS(), 100)
-        exitProcess(0)
-//        executeMutation(AddRandomDS(), 100)
+        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 100)
+//        exitProcess(0)
+//        executeMutation(ChangeRandomASTNodes(), 50)
+//        executeMutation(AddPropertiesToClass(), 100)
 //        exitProcess(0)
 //        executeMutation(AddRandomAnnotation(), 100)
-//        println(checker.curFile)
-//        executeMutation(AddRandomDS(), 100)
-//        executeMutation(AddRandomDS(), 100)
 //        exitProcess(0)
-//        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 100)
-//        executeMutation(SkeletonEnumeration(), 100)
-//        return
-//        executeMutation(AddNodesFromAnotherFiles(), 100)
-//        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 25)
-        for (i in 0 until Random.nextInt(1, 3)) {
-            transformations.shuffled().forEach { executeMutation(it.first, it.second) }
-        }
+//        for (i in 0 until Random.nextInt(1, 3)) {
+//            transformations.shuffled().forEach { executeMutation(it.first, it.second) }
+//        }
 //        //Set of transformations over PSI
 //        executeMutation(AddNullabilityTransformer())
 //        executeMutation(AddPossibleModifiers())
@@ -121,10 +110,8 @@ class Mutator(val project: Project) {
         }
         return res
     }
-    //private fun verify(): String = "${compilers.checkCompilingForAllBackends(Transformation.file)}"
-    //private fun verify(): String = Transformation.checker.isCompilationSuccessful()
 
-    private val transformations = listOf(AddNullabilityTransformer() to 50,
+    private val mutations = listOf(AddNullabilityTransformer() to 50,
         AddPossibleModifiers() to 50,
         AddReifiedToType() to 50,
         ChangeSmthToExtension() to 50,

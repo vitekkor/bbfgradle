@@ -15,10 +15,10 @@ class AddFieldsToClass: Transformation() {
         val ctx = PSICreator.analyze(file) ?: return
         val rk = randomKlass.first()
         val gClass = GClass.fromPsi(rk)
-        val rpg = RandomPropertyGenerator(file as KtFile, gClass, ctx)
+        val rpg = RandomPropertyGenerator(file as KtFile, ctx, gClass)
         val newInterestingProperty = rpg.generateInterestingProperty()
         //Add override modifier
-        println(newInterestingProperty?.text)
+        println(newInterestingProperty?.first?.text)
         exitProcess(0)
     }
 }

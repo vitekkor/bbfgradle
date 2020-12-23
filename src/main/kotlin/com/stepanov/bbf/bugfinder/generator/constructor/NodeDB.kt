@@ -2,13 +2,10 @@ package com.stepanov.bbf.bugfinder.generator.constructor
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.tree.IElementType
-import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.BindingContext
@@ -22,13 +19,13 @@ import kotlin.streams.toList
 object NodeDB {
 
     // DataStructure to using examples
-    fun getRandomDataStructures(checker: Checker, ind: Int): Map<ASTNode, List<UsingExample>?> {
+    fun getRandomDataStructures(ind: Int): Map<ASTNode, List<UsingExample>?> {
         val resMap = mutableMapOf<ASTNode, List<UsingExample>?>()
-        val type =
-            when (Random.nextInt(0, 10)) {
-                0 -> KtNodeTypes.OBJECT_DECLARATION
-                else -> KtNodeTypes.CLASS
-            }
+//        val type =
+//            when (Random.nextInt(0, 10)) {
+//                0 -> KtNodeTypes.OBJECT_DECLARATION
+//                else -> KtNodeTypes.CLASS
+//            }
         //val psiWithNeededNodes = getRandomFileWithNodesOfType(type)
         val psiWithNeededNodes = listOf("boxNullableInt.kt", "kt2399.kt", "classifierIsClass.kt")
             .map { Factory.psiFactory.createFile(File("${CompilerArgs.baseDir}/$it").readText()) }[ind]

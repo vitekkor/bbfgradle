@@ -4,13 +4,9 @@ import com.stepanov.bbf.bugfinder.util.decompiler.copyContentTo
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.CompilingResult
 import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.manager.Bug
-import com.stepanov.bbf.bugfinder.manager.BugManager
-import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.util.Stream
 import java.io.File
 import java.io.FileOutputStream
-import java.io.OutputStream
 import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -36,7 +32,7 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
         val path = projectWithMain.saveOrRemoveToTmp(true)
         val kotlinJar = ZipFile(kotlinCompiled.pathToCompiled, Charset.forName("CP866"))
         kotlinJar.copyContentTo(pathToTmpDir)
-        val javaRes = compileJava(path, kotlinCompiled.pathToCompiled, pathToTmpDir)
+        val javaRes = compileJava(path, pathToTmpDir)
         File(kotlinCompiled.pathToCompiled).let { if (it.exists()) it.delete() }
         projectWithMain.saveOrRemoveToTmp(false)
         return if (javaRes) {
@@ -79,7 +75,7 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
 //        }
 //    }
 
-    private fun compileJava(path: String, pathToLib: String, pathToDir: String): Boolean {
+    private fun compileJava(path: String, pathToDir: String): Boolean {
         val javaFiles = path.split(" ").filter { it.endsWith(".java") }.map { File(it) }
         if (javaFiles.isEmpty()) return true
         val compiler = ToolProvider.getSystemJavaCompiler()

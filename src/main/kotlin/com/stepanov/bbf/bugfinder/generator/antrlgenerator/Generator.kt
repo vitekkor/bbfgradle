@@ -20,7 +20,7 @@ class Generator() {
     }
 
     fun generate(): String {
-        val (lexer, parser) = loadGrammar(
+        val (lexer, _) = loadGrammar(
             lexerGrammarPath = "tmp/grammar/KotlinLexer.g4",
             parserGrammarPath = "tmp/grammar/KotlinParser.g4"
         )

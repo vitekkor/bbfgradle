@@ -10,6 +10,7 @@ import com.stepanov.bbf.reduktor.util.getAllWithout
 
 import org.apache.log4j.Logger
 
+@Suppress("DEPRECATION")
 class HierarchicalDeltaDebugger: SimplificationPass() {
 
     override fun simplify() {

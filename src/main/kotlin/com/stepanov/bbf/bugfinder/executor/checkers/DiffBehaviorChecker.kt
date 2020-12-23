@@ -36,6 +36,7 @@ class DiffBehaviorChecker(
         return results
     }
 
+    @Suppress("DEPRECATION")
     @Deprecated("")
     override fun checkTest(text: String): Boolean {
         val tmpProject = Project.createFromCode(text)
@@ -48,6 +49,7 @@ class DiffBehaviorChecker(
         return res
     }
 
+    @Suppress("DEPRECATION")
     private fun isSameDiffBehavior(): Boolean = isSameDiffBehavior(project)
 
     @Deprecated("")

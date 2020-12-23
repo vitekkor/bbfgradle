@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
 import com.intellij.psi.PsiElement
+import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GStructure
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
 import com.stepanov.bbf.bugfinder.util.addImport
@@ -24,7 +25,7 @@ abstract class DSGenerator(
         randomInstancesGenerator = RandomInstancesGenerator(file)
     }
 
-    open fun generateTypeParams(withModifiers: Boolean): List<String> {
+    protected open fun generateTypeParams(withModifiers: Boolean): List<String> {
         val typeArgs =
             if (Random.getTrue(40)) List(Random.nextInt(1, 3)) { 'T' - it }.toMutableList()
             else mutableListOf()
@@ -67,7 +68,24 @@ abstract class DSGenerator(
 
     fun calcImports(): List<String> = UsageSamplesGeneratorWithStLibrary.calcImports(file)
 
-    abstract fun generate(): PsiElement?
+    protected abstract fun simpleGeneration(): PsiElement?
+    protected abstract fun partialGeneration(initialStructure: GStructure): PsiElement?
+    abstract fun afterGeneration(psi: PsiElement)
+    abstract fun beforeGeneration()
+
+    fun generate(): PsiElement? {
+        beforeGeneration()
+        val r = simpleGeneration() ?: return null
+        afterGeneration(r)
+        return r
+    }
+
+    fun finishGeneration(initialStructure: GStructure): PsiElement? {
+        beforeGeneration()
+        val r = partialGeneration(initialStructure) ?: return null
+        afterGeneration(r)
+        return r
+    }
 
     fun generateAndAddToFile(): PsiElement? {
         generate()?.let {

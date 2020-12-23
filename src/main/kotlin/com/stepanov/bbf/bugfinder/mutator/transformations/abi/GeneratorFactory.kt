@@ -11,7 +11,7 @@ object GeneratorFactory {
 
     fun createTopLevelGenerators(): List<DSGenerator> =
         with(mutableListOf<DSGenerator>()) {
-            add(RandomPropertyGenerator(file, ctx = ctx))
+            add(RandomPropertyGenerator(file, ctx))
             add(RandomFunctionGenerator(file, ctx))
             add(RandomClassGenerator(file, ctx))
             add(RandomInterfaceGenerator(file, ctx))
@@ -19,6 +19,12 @@ object GeneratorFactory {
             this
         }
 
+//    fun getRandomGenerator(): DSGenerator =
+//        when (Random.nextInt(0, 3)) {
+//            0 -> RandomObjectGenerator(file, ctx)
+//            1 -> RandomInterfaceGenerator(file, ctx)
+//            else -> RandomClassGenerator(file, ctx)
+//        }
     fun getRandomGenerator(): DSGenerator =
         when (Random.nextInt(0, 10)) {
             //TODO temporary filter because of noise

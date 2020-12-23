@@ -21,23 +21,40 @@ object KotlinTypeCreator {
         fileCopy.importList?.delete()
         val classDef =
             splitTypeByCommas(type)
-                .mapIndexed { index, s -> if (!s.contains(':')) "AUX$index: $s" else s }
+                .mapIndexed { index, s ->
+                    val twb = s.substringBefore(":").trim()
+                    when {
+                        file.getAllPSIChildrenOfType<KtClassOrObject>().all { it.name != twb } -> s
+                        UsageSamplesGeneratorWithStLibrary.findPackageForType(twb) != null -> s
+                        !s.contains(':') -> "AUX$index: $s"
+                        else -> s
+                    }
+                }
                 .joinToString(prefix = "${type.substringBefore('<')}<", postfix = ">")
         val klass =
             try {
-                Factory.psiFactory.createClass("class $classDef")
+                val kl = Factory.psiFactory.createClass("class $classDef")
+                if (kl.text != "class $classDef") null else kl
             } catch (e: Exception) {
                 null
             }
         var typeParams = ""
         var typeParamsWithoutBounds = ""
-        if (klass == null || klass.name == null) {
+        if (!type.contains("<")) {
+            typeParams = ""
+            val t = type.substringBeforeLast('?').trim()
+            if (file.getAllPSIChildrenOfType<KtClass>().all { it.name != t } &&
+                UsageSamplesGeneratorWithStLibrary.findPackageForType(t) == null) {
+                typeParams = "<$t>"
+            }
+            if (klass?.name == null) typeParamsWithoutBounds = type
+        } else if (klass == null || klass.name == null) {
             val typeReference = Factory.psiFactory.createTypeIfPossible(type) ?: return null
             typeParams =
                 typeReference.getAllChildren()
                     .filter { it is KtUserType && !it.text.contains('<') }
-                    .map { it.text }
-                    .filter { ta -> file.getAllPSIChildrenOfType<KtClass>().all { it.name != ta } }
+                    .map { it.text.trim() }
+                    .filter { ta -> file.getAllPSIChildrenOfType<KtClassOrObject>().all { it.name != ta } }
                     .filter { ta -> UsageSamplesGeneratorWithStLibrary.findPackageForType(ta) == null }
                     .let { if (it.isEmpty()) "" else it.joinToString(prefix = "<", postfix = ">") }
             typeParamsWithoutBounds = type
@@ -46,7 +63,7 @@ object KotlinTypeCreator {
                 klass.typeParameterList?.parameters
                     ?.filter { it.text.trim().isNotEmpty() }
                     ?.filterNot { it.name?.contains("AUX") == true }
-                    ?.filter { ta -> file.getAllPSIChildrenOfType<KtClass>().all { it.name != ta.name } }
+                    ?.filter { ta -> file.getAllPSIChildrenOfType<KtClassOrObject>().all { it.name != ta.name } }
                     ?.filter { ta -> UsageSamplesGeneratorWithStLibrary.findPackageForType(ta.text) == null }
                     ?.let { if (it.isEmpty()) "" else it.joinToString(prefix = "<", postfix = ">") { it.text } } ?: ""
             typeParamsWithoutBounds =
@@ -54,12 +71,12 @@ object KotlinTypeCreator {
                     ?.let {
                         if (it.isEmpty()) ""
                         else it.joinToString(prefix = "<", postfix = ">") {
-                            if (it.text.contains("AUX")) it.text.substringAfter(':')
-                            else it.text.substringBefore(':')
+                            if (it.text.contains("AUX")) it.text.substringAfter(':').trim()
+                            else it.text.substringBefore(':').trim()
                         }
                     }
                     ?: ""
-            if (typeParams.trim().isEmpty()) typeParams = typeParamsWithoutBounds
+            //if (typeParams.trim().isEmpty()) typeParams = typeParamsWithoutBounds
         }
         val n = klass?.name ?: ""
         val func = "fun $typeParams abcq(a: $n$typeParamsWithoutBounds){}"

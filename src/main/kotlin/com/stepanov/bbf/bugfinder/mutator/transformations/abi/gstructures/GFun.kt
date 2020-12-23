@@ -6,14 +6,14 @@ import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import kotlin.random.Random
 
 data class GFunction(
-    var modifiers: List<String> = listOf(),
+    override var modifiers: MutableList<String> = mutableListOf(),
     var typeArgs: List<String> = listOf(),
     var extensionReceiver: String = "",
     var name: String = Random.getRandomVariableName(5),
     var args: List<String> = listOf(),
     var rtvType: String = "",
     var body: String = ""
-) {
+): GStructure() {
     fun toPsi(): PsiElement {
         val m = modifiers.let { if (it.all { it.isEmpty() }) "" else it.joinToString(" ") }
         val e = if (extensionReceiver.isEmpty()) "" else " $extensionReceiver."
@@ -21,7 +21,4 @@ data class GFunction(
         val strArgs = args.joinToString()
         return Factory.psiFactory.createFunction("$m fun $sta $e$name($strArgs): $rtvType $body")
     }
-
-    fun isPrivate() = modifiers.contains("private")
-    fun isAbstract() = modifiers.contains("abstract")
 }

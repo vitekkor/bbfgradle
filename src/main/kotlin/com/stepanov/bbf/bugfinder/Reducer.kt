@@ -1,7 +1,6 @@
 package com.stepanov.bbf.bugfinder
 
 import com.intellij.psi.PsiFile
-import com.stepanov.bbf.bugfinder.executor.checkers.DiffBehaviorChecker
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.executor.checkers.DiffCompileChecker
 import com.stepanov.bbf.bugfinder.executor.checkers.MultiCompilerCrashChecker
@@ -14,7 +13,7 @@ import java.io.File
 
 object Reducer {
 
-    fun reduce(bug: Bug, shouldSave: Boolean = false): Project {
+    fun reduce(bug: Bug): Project {
         if (bug.crashedProject.files.size > 1) {
             //return bug.crashedProject
             if (bug.type != BugType.BACKEND && bug.type != BugType.FRONTEND) return bug.crashedProject

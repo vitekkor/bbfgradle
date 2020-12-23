@@ -4,7 +4,6 @@ import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
-import com.stepanov.bbf.bugfinder.util.getAllChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.replaceThis
 import org.jetbrains.kotlin.KtNodeTypes
@@ -27,7 +26,7 @@ class ProgramConstructor(private val checker: Checker) {
 
     private fun addDataStructures() {
         for (i in 0 until 3) {
-            val ds = NodeDB.getRandomDataStructures(checker, i)
+            val ds = NodeDB.getRandomDataStructures(i)
             ds.forEach {
                 constructionContext.classesAndUsages[it.key] = it.value
                 if (!it.key.psi.isTopLevelKtOrJavaMember()) return@forEach

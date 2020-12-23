@@ -166,10 +166,10 @@ class AddNodesFromAnotherFiles : Transformation() {
                     if (it.typeReference != null) Triple(it, it.text, it.typeReference!!.getAbbreviatedTypeOrType(ctx))
                     else Triple(it, it.text, it.initializer?.getType(ctx))
                 }
-                .filter { it.third != null && !it.third!!.isError } ?: listOf()
+                .filter { it.third != null && !it.third!!.isError }
         val destrDecl = boxFuncs.getAllPSIChildrenOfType<KtDestructuringDeclaration>()
             .map { Triple(it, it.text, it.initializer?.getType(ctx)) }
-            .filter { it.third != null && !it.third!!.isError } ?: listOf()
+            .filter { it.third != null && !it.third!!.isError }
         val exprs = boxFuncs.getAllPSIChildrenOfType<KtExpression>()
             .filter { it !is KtProperty }
             .removeDuplicatesBy { it.text }

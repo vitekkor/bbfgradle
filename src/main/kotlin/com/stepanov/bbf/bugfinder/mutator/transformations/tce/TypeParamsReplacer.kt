@@ -1,5 +1,6 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.util.splitWithoutRemoving
@@ -10,6 +11,7 @@ import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.types.KotlinType
 import com.stepanov.bbf.bugfinder.util.flatMap
+import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.resolve.calls.components.isVararg
 import kotlin.system.exitProcess
 
@@ -20,7 +22,13 @@ object TypeParamsReplacer {
         toType: ClassDescriptor,
         typeGenerator: RandomTypeGenerator
     ): Pair<KtNamedFunction, Map<String, String>> {
-        val implConstr = toType.constructors.filter { it.visibility.isPublicAPI }.random()
+        val implConstr =
+            if (CompilerArgs.isABICheckMode)
+                toType.constructors
+                    .filter { it.visibility.isPublicAPI }
+                    .minByOrNull { it.valueParameters.size }!!
+            else
+                toType.constructors.filter { it.visibility.isPublicAPI }.random()
         val implSupertype =
             toType.getAllSuperClassifiers()
                 .find { it.name.asString() == fromType.constructor.toString() } as? ClassDescriptor
@@ -28,7 +36,9 @@ object TypeParamsReplacer {
         val implSupertypeTypeParams = implSupertype!!.declaredTypeParameters.map { it.name }
         val typeParams = toType.declaredTypeParameters.map {
             val name = it.name
-            val index = implSupertypeTypeParams.indexOf(name)
+            val index = implSupertypeTypeParams
+                .indexOf(name)
+                .let { if (it == -1) implSupertypeTypeParams.indexOf("$name?") else it }
             if (index != -1)
                 realTypeParams[index].toString()
             else typeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull()).toString()
@@ -49,7 +59,7 @@ object TypeParamsReplacer {
 
     fun throwTypeParams(
         fromType: KotlinType,
-        toType: SimpleFunctionDescriptor,
+        toType: FunctionDescriptor,
         typeGenerator: RandomTypeGenerator
     ): Pair<KtNamedFunction, Map<String, String>> {
         val retType = toType.returnType!!
@@ -57,7 +67,9 @@ object TypeParamsReplacer {
         val implSupertypeTypeParams = retType.arguments.map { it.type.toString() }
         val typeParams = toType.typeParameters.map {
             val name = it.name.asString()
-            val index = implSupertypeTypeParams.indexOf(name)
+            val index = implSupertypeTypeParams
+                .indexOf(name)
+                .let { if (it == -1) implSupertypeTypeParams.indexOf("$name?") else it }
             if (index != -1) {
                 realTypeParams[index].toString()
             } else {

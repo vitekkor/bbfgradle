@@ -13,17 +13,13 @@ import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllChildrenOfCurLevel
 import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
-import org.jetbrains.kotlin.descriptors.ClassDescriptor
-import org.jetbrains.kotlin.descriptors.DescriptorVisibility
-import org.jetbrains.kotlin.descriptors.Modality
-import org.jetbrains.kotlin.descriptors.SourceElement
+import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.js.descriptorUtils.nameIfStandardType
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.resolve.ImportPath
-import org.jetbrains.kotlin.resolve.source.PsiSourceElement
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.isUnsignedNumberType
@@ -409,6 +405,19 @@ fun PsiFile.addToTheEnd(psiElement: PsiElement): PsiElement {
     }
 }
 
+//Triple(el, whitespace, whitespace)
+fun PsiElement.addAfterWithWhitespace(psiElement: PsiElement): Triple<PsiElement, PsiElement?, PsiElement?> {
+    try {
+        val placeToInsert = this.allChildren.lastOrNull() ?: return Triple(this, null, null)
+        val wh1 = placeToInsert.add(Factory.psiFactory.createWhiteSpace("\n"))
+        val res = placeToInsert.add(psiElement)
+        val wh2 = placeToInsert.add(Factory.psiFactory.createWhiteSpace("\n"))
+        return Triple(res, wh1, wh2)
+    } catch (e: Exception) {
+        return Triple(this, null, null)
+    }
+}
+
 fun PsiFile.addToTheTop(psiElement: PsiElement): PsiElement {
     val firstChild = this.allChildren.first!!
     firstChild.add(Factory.psiFactory.createWhiteSpace("\n"))
@@ -422,11 +431,11 @@ fun KtFile.addImport(import: String, isAllUnder: Boolean) {
     this.addImport(importDirective)
 }
 
-fun KtFile.addImport(import: KtImportDirective) {
-    if (this.importDirectives.any { it.text == import.text }) return
-    this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
-    this.importList?.add(import)
-    this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
+fun KtFile.addImport(importDir: KtImportDirective) {
+    if (this.importDirectives.any { it.text == importDir.text }) return
+        this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
+        this.importList?.add(importDir)
+        this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
 }
 
 fun String.getFileLanguageIfExist(): LANGUAGE? {
@@ -513,3 +522,42 @@ fun KotlinType.replaceTypeOrRandomSubtypeOnTypeParam(typeParams: List<String>): 
         }
     } else this.toString()
 }
+
+fun KotlinType.getMinModifier() =
+    this
+        .let { listOf(it) + it.getAllTypeArgs().map { it.type } }
+        .map { it.constructor.declarationDescriptor }
+        .mapNotNull { (it as? ClassDescriptor)?.visibility }
+        .minWithOrNull { t: DescriptorVisibility, t2: DescriptorVisibility -> t.compareTo(t2) ?: 0 }
+        ?.name ?: "public"
+
+
+fun compareDescriptorVisibilitiesAsStrings(v1: String, v2: String): Int {
+    return when {
+        v1 == v2 -> 0
+        v1 == "public" -> -1
+        v2 == "public" -> 1
+        v1 == "" -> -1
+        v2 == "" -> 1
+        v1 == "internal" -> -1
+        v2 == "internal" -> 1
+        else -> 0
+    }
+}
+
+fun generateVisibilityModifier(minModifier: String)=
+    when (minModifier) {
+        "public" -> listOf("internal", "private", "public").random()
+        "internal" -> listOf("internal", "private").random()
+        "private" -> "private"
+        else -> listOf("internal", "private", "public").random()
+    }
+
+fun KtProperty.getVisibility() =
+        when {
+            this.text.contains("public") -> "public"
+            this.text.contains("private") -> "private"
+            this.text.contains("internal") -> "internal"
+            this.text.contains("protected") -> "protected"
+            else -> "public"
+        }

@@ -53,7 +53,7 @@ class SkeletonEnumeration : Transformation() {
     }
 
     private fun shuffle(): Boolean {
-        val (key1, value1) = programInfo.entries.randomOrNull() ?: return false
+        val (_, value1) = programInfo.entries.randomOrNull() ?: return false
         val randomValue = value1.third.randomOrNull() ?: return false
         val rvDepth = getDepth(randomValue)
 //        if (!checkBinExp(key1, randomValue)) return false

@@ -58,8 +58,8 @@ class Project(
         StringBuilder().apply {
             append(configuration.toString());
             if (configuration.isWithCoroutines())
-                files.getAllWithoutLast().forEach { appendln(it.toString()) }
-            else files.forEach { appendln(it.toString()) }
+                files.getAllWithoutLast().forEach { appendLine(it.toString()) }
+            else files.forEach { appendLine(it.toString()) }
         }.toString()
 
     fun saveInOneFile(pathToSave: String) {

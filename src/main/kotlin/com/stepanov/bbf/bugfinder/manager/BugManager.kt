@@ -3,9 +3,6 @@ package com.stepanov.bbf.bugfinder.manager
 import com.stepanov.bbf.bugfinder.Reducer
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.executor.*
-import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
-import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
-import com.stepanov.bbf.bugfinder.executor.project.moveAllCodeInOneFile
 import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
 import com.stepanov.bbf.bugfinder.util.StatisticCollector
 import org.apache.log4j.Logger
@@ -129,7 +126,7 @@ object BugManager {
             //Check if bug is real project bug
             val newBug = bug//checkIfBugIsProject(bug)
             log.debug("Start to reduce ${newBug.crashedProject}")
-            val reduced = Reducer.reduce(newBug, false)
+            val reduced = Reducer.reduce(newBug)
             val reducedBug = Bug(newBug.compilers, newBug.msg, reduced, newBug.type)
             log.debug("Reduced: ${reducedBug.crashedProject}")
             val newestBug = reducedBug//checkIfBugIsProject(reducedBug)
@@ -157,21 +154,22 @@ object BugManager {
 
     fun haveDuplicates(bug: Bug): Boolean {
         val dirWithSameBugs = bug.getDirWithSameTypeBugs()
-        when (bug.type) {
-            BugType.DIFFCOMPILE -> return FilterDuplcatesCompilerErrors.haveSameDiffCompileErrors(
+        return when (bug.type) {
+            BugType.DIFFCOMPILE -> FilterDuplcatesCompilerErrors.haveSameDiffCompileErrors(
                 bug.crashedProject,
                 dirWithSameBugs,
                 bug.compilers,
                 true
             )
-            BugType.FRONTEND, BugType.BACKEND -> return FilterDuplcatesCompilerErrors.simpleHaveDuplicatesErrors(
+            BugType.FRONTEND, BugType.BACKEND -> FilterDuplcatesCompilerErrors.simpleHaveDuplicatesErrors(
                 bug.crashedProject,
                 dirWithSameBugs,
                 bug.compilers.first()
             )
-            BugType.DIFFABI -> return FilterDuplcatesCompilerErrors.haveSameDiffABIErrors(bug)
+            BugType.DIFFABI -> FilterDuplcatesCompilerErrors.haveSameDiffABIErrors(bug)
+            BugType.DIFFBEHAVIOR -> false
+            BugType.UNKNOWN -> false
         }
-        return false
     }
 
     private fun parseTypeOfBugByMsg(msg: String): BugType =

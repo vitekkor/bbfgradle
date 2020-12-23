@@ -1,33 +1,31 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
-import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGeneratorForAnClass
-import org.jetbrains.kotlin.backend.common.serialization.findPackage
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
-import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.fir.lightTree.fir.modifier.ModifierSets
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.isInterface
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 open class RandomClassGenerator(
     override val file: KtFile,
     override val ctx: BindingContext,
     override val depth: Int = 0,
     private val parentClass: GClass? = null
-) : ClassGenerator(file, ctx, depth) {
+) : AbstractClassGenerator(file, ctx, depth) {
+
+    private val inheritanceGenProb = 50
 
     override val classWord: String
         get() = "class"
 
-    override fun generateModifiers(): List<String> {
+    override fun generateModifiers(): MutableList<String> {
         val classModifiers =
             (ModifierSets.CLASS_MODIFIER.types.toList()
                 .map { it.toString() } + listOf("inline"))
@@ -35,11 +33,10 @@ open class RandomClassGenerator(
                 .let {
                     if (depth == 0) it.filter { it != "inner" } else it
                 }
-        val classModifier =
-            if (Random.getTrue(70)) {
-                if (depth != 0 && Random.getTrue(50) && parentClass?.let { !it.isObject() } == true) "inner"
-                else ""
-            } else classModifiers.random()
+        val classModifier = if (Random.getTrue(70)) {
+            if (depth != 0 && Random.getTrue(50) && parentClass?.let { !it.isObject() } == true) "inner"
+            else ""
+        } else classModifiers.random()
         val visibilityModifiers =
             ModifierSets.VISIBILITY_MODIFIER.types.toList().map { it.toString() }.filter { it != "protected" }
         val visibilityModifier = if (Random.getTrue(20)) "" else visibilityModifiers.random()
@@ -50,7 +47,7 @@ open class RandomClassGenerator(
                 ""
             else
                 inheritanceModifiers.random().let { if (it == "inner" && classModifier.isNotEmpty()) "" else it }
-        return listOf(classModifier, visibilityModifier, inheritanceModifier)
+        return mutableListOf(classModifier, visibilityModifier, inheritanceModifier)
     }
 
     private fun generateModifierForConstructorProperty(haveVararg: Boolean): String =
@@ -67,6 +64,8 @@ open class RandomClassGenerator(
         var haveVararg = false
         if (gClass.isData()) lb = 1
         var numOfArgs = (lb..rb).random()
+        if (numOfArgs != 0 && !gClass.isAnnotation() && Random.getTrue(15) && !gClass.isInline())
+            gClass.constructorWord = "private constructor"
         if (gClass.isInline()) numOfArgs = 1
         if (gClass.isAnnotation()) {
             lb = 1
@@ -105,9 +104,10 @@ open class RandomClassGenerator(
                 if (finalType == arg.second.toString() && Random.getTrue(30)
                     && arg.second != null && !type.isInterface() && !type.isAbstractClass()
                     && !arg.first.contains("vararg")
-                )
-                    " = ${randomInstancesGenerator.generateValueOfType(arg.second!!)}"
-                else ""
+                ) {
+                    val genValue = randomInstancesGenerator.generateValueOfType(arg.second!!)
+                    if (genValue.trim().isNotEmpty()) " = $genValue" else ""
+                } else ""
             "${arg.first}$finalType$defaultValue"
         }
     }
@@ -136,7 +136,17 @@ open class RandomClassGenerator(
                 else -> ""
             }
         val strTP = if (typeParams.isEmpty()) "" else typeParams.joinToString(prefix = " <", postfix = ">")
-        return "${openClass.name}$strTP$valueParams" to openClass
+        val delegate =
+            gClass.constructorArgs
+                .filter { !it.startsWith("vararg") }
+                .map {
+                    val n = it.substringAfter("val").substringAfter("var").substringBefore(':').trim()
+                    val t = it.substringAfter(":").substringBefore('=').trim()
+                    n to t
+                }
+                .find { it.second == openClass.name.asString() }
+        return if (openClass.kind == ClassKind.INTERFACE && delegate != null) "${openClass.name} by ${delegate.first}" to openClass
+        else "${openClass.name}$strTP$valueParams" to openClass
     }
 
     override fun generateSupertypes(): List<String> {
@@ -145,10 +155,10 @@ open class RandomClassGenerator(
         val specifiers =
             if (gClass.isEnum() || gClass.isAnnotation())
                 listOf()
-            else if (Random.nextBoolean())
+            else if (Random.getTrue(100 - inheritanceGenProb))
                 listOf()
             else
-                List(Random.nextInt(1, 3)) {
+                List(Random.nextInt(1, 4)) {
                     val gType = generateSupertypes1()
                     if (gType != null) {
                         val isInterface = gType.second.defaultType.isInterface()
@@ -158,7 +168,7 @@ open class RandomClassGenerator(
                             gType.first
                         } else null
                     } else null
-                }.filterNotNull().toSet().toList()
+                }.filterNotNull().removeDuplicatesBy { it.substringBefore('<') }
         return specifiers
     }
 

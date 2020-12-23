@@ -287,26 +287,6 @@ class TransformationManager(val checker: CompilerTestChecker) {
 
         var tokensSum: Long = 0
 
-        fun doTransformations(
-            checker: CompilerTestChecker,
-            isProject: Boolean = false,
-            projectDir: String = ""
-        ): Nothing = TODO()
-//    {
-//        println("Size = ${psiFiles.size}")
-//        for (file in psiFiles) {
-//            doTransformationsForFile(file as KtFile, checker, isProject, projectDir)
-////            //Saving
-////            val pathToSave = StringBuilder(file.name)
-////            pathToSave.insert(pathToSave.indexOfLast { it == '/' }, "/minimized")
-////            File(pathToSave.substring(0, pathToSave.indexOfLast { it == '/' })).mkdirs()
-////            val writer = PrintWriter(pathToSave.toString())
-////            writer.print(reducedFile.text)
-////            writer.close()
-//        }
-//    }
-
-
 //    fun doForParallelSimpleTransformations(
 //        isProject: Boolean = false,
 //        projectDir: String = "",

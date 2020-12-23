@@ -32,6 +32,7 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import java.io.File
 
 
+@Suppress("DEPRECATION")
 class PSICreator(var projectDir: String) {
 
     fun getPSI(): List<KtFile> {
@@ -40,6 +41,7 @@ class PSICreator(var projectDir: String) {
         val cmd = opt.parse(new_args)
         cfg = setupMyCfg(cmd)
         env = setupMyEnv(cfg)
+
 
         if (!Extensions.getRootArea().hasExtensionPoint(TreeCopyHandler.EP_NAME.name)) {
             Extensions.getRootArea().registerExtensionPoint(
@@ -74,15 +76,19 @@ class PSICreator(var projectDir: String) {
             cfg,
             EnvironmentConfigFiles.JVM_CONFIG_FILES
         )
+        val project = env.project as MockProject
+        project.registerService(
+            TreeAspect::class.java,
+            TreeAspect()
+        )
 
         class MyPomModelImpl(env: KotlinCoreEnvironment) : PomModelImpl(env.project) {
             override fun runTransaction(pt: PomTransaction) = pt.run()
         }
 
-        val pomModel = MyPomModelImpl(env)
-        TreeAspect(pomModel)
 
-        val project = env.project as MockProject
+        val pomModel = MyPomModelImpl(env)
+
         project.registerService(
             PomModel::class.java,
             pomModel
