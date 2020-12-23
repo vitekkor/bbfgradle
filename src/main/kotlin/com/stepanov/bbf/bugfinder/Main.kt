@@ -72,6 +72,6 @@ fun main(args: Array<String>) {
         exitProcess(0)
     }
     val file = File(CompilerArgs.baseDir).listFiles()?.random() ?: exitProcess(0)
-    SingleFileBugFinder("tmp/test.kt").findBugsInFile()
+    SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 }
