@@ -5,8 +5,8 @@ import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*
 
 
-class SimplifyControlExpression(private val file: KtFile, private val checker: CompilerTestChecker) {
-    fun transform() {
+class SimplifyControlExpression : SimplificationPass() {
+    override fun simplify() {
         val conExp = file.getAllPSIChildrenOfType<KtExpression>().filter { it.javaClass.simpleName in controlExpressions }
         val expToCond =
                 conExp.map { exp ->
@@ -20,7 +20,7 @@ class SimplifyControlExpression(private val file: KtFile, private val checker: C
                             }
                 }
                         .filter { it.second != null }
-        expToCond.forEach { checker.replaceNodeIfPossible(file, it.first, it.second!!) }
+        expToCond.forEach { checker.replaceNodeIfPossible(it.first, it.second!!) }
     }
 
 

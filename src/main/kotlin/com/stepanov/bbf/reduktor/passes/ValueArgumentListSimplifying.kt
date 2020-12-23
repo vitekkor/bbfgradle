@@ -2,12 +2,13 @@ package com.stepanov.bbf.reduktor.passes
 
 import com.stepanov.bbf.bugfinder.util.debugPrint
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
+import com.stepanov.bbf.bugfinder.util.replaceThis
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import org.jetbrains.kotlin.psi.*
 
-class ValueArgumentListSimplifying(private val file: KtFile, private val checker: CompilerTestChecker) {
+class ValueArgumentListSimplifying : SimplificationPass() {
 
-    fun transform() {
+    override fun simplify() {
         file.getAllPSIChildrenOfType<KtValueArgumentList>().reversed().forEach { argList ->
             if (argList.arguments.size == 0) return@forEach
             var i = 0
@@ -15,17 +16,17 @@ class ValueArgumentListSimplifying(private val file: KtFile, private val checker
                 val cur = argList.arguments[i].copy() as KtValueArgument
                 val next = argList.arguments[i + 1]
                 argList.removeArgument(i)
-                if (!checker.checkTest(file.text)) {
+                if (!checker.checkTest()) {
                     ++i
                     argList.addArgumentBefore(cur, next)
                 }
             }
             //Handle last arg
             val last = argList.arguments.last()
-            val lastCopy = argList.arguments.last().copy() as KtValueArgument
+            val argListCopy = argList.copy() as KtValueArgumentList
             argList.removeArgument(last)
-            if (!checker.checkTest(file.text)) {
-                argList.addArgument(lastCopy)
+            if (!checker.checkTest()) {
+                argList.replaceThis(argListCopy)
             }
         }
     }

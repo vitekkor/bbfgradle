@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 
 
 import java.util.*
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 class ChangeRandomLines : Transformation() {
 
@@ -15,7 +16,8 @@ class ChangeRandomLines : Transformation() {
                 Collections.swap(text, numLine, insLine)
             }
         }
-        file = psiFactory.createFile(getText(text))
+        checker.curFile.changePsiFile(psiFactory.createFile(getText(text)))
+        //file = psiFactory.createFile(getText(text))
     }
 
     private fun getText(text: MutableList<String>) = text.joinToString(separator = "\n")

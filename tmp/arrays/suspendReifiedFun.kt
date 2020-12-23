@@ -1,5 +1,3 @@
-// IGNORE_BACKEND: JVM_IR
-// COMMON_COROUTINES_TEST
 // WITH_RUNTIME
 
 open class AbstractStuff() {

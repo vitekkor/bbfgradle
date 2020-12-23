@@ -1,16 +1,8 @@
-// IGNORE_BACKEND_FIR: JVM_IR
-// TARGET_BACKEND: JVM
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: STDLIB_STRING_BUILDER
+// KJS_WITH_FULL_RUNTIME
+fun StringBuilder.first() = this.get(0)
 
-// WITH_RUNTIME
+fun foo() = StringBuilder("foo").first()
 
-class C {
-    @kotlin.jvm.JvmOverloads public fun foo(s: String = "OK"): String {
-        return s
-    }
-}
-
-fun box(): String {
-    val c = C()
-    val m = c.javaClass.getMethod("foo")
-    return m.invoke(c) as String
-}
+fun box() = if (foo() == 'f') "OK" else "Fail ${foo()}"

@@ -6,8 +6,8 @@ import org.jetbrains.kotlin.psi.KtBlockExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.psiUtil.parents
 
-class SimplifyBlockExpression(private val file: KtFile, private val checker: CompilerTestChecker) {
-    fun transform() {
+class SimplifyBlockExpression : SimplificationPass() {
+    override fun simplify() {
         file.getAllPSIChildrenOfType<KtBlockExpression>().forEach { block ->
             val newBlock = block.copy() as KtBlockExpression
             if (newBlock.lBrace != null)
@@ -15,7 +15,7 @@ class SimplifyBlockExpression(private val file: KtFile, private val checker: Com
             if (newBlock.rBrace != null)
                 newBlock.node.removeChild(newBlock.rBrace!!.node)
             for (p in block.parents.toList().reversed()) {
-                if (checker.replaceNodeIfPossible(file, p, newBlock))
+                if (checker.replaceNodeIfPossible(p, newBlock))
                     break
             }
         }

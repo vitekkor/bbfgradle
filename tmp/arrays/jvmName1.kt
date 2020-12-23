@@ -1,36 +1,30 @@
-// FILE: test.kt
-// COMMON_COROUTINES_TEST
-// WITH_RUNTIME
-// WITH_COROUTINES
-// NO_CHECK_LAMBDA_INLINING
 // TARGET_BACKEND: JVM
 
-import COROUTINES_PACKAGE.*
-import helpers.*
+// WITH_REFLECT
 
-class Result<T>(val x: T)
+package test
 
-@JvmName("foo") // + foo$$forInline
-suspend inline fun test(c: Result<Int>) = c.x
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.reflect.jvm.jvmName
 
-@JvmName("bar") // + bar$$forInline
-suspend inline fun test(c: Result<String>) = c.x
-
-// FILE: box.kt
-// COMMON_COROUTINES_TEST
-
-import COROUTINES_PACKAGE.*
-import COROUTINES_PACKAGE.intrinsics.*
-import helpers.*
-
-fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(EmptyContinuation)
+class Klass {
+    class Nested
+    companion object
 }
 
-fun box() : String {
-    var res = "FAIL"
-    builder {
-        res = test(Result("OK"))
-    }
-    return res
+fun box(): String {
+    assertEquals("test.Klass", Klass::class.jvmName)
+    assertEquals("test.Klass\$Nested", Klass.Nested::class.jvmName)
+    assertEquals("test.Klass\$Companion", Klass.Companion::class.jvmName)
+
+    class Local
+    val l = Local::class.jvmName
+    assertTrue(l != null && l.startsWith("test.JvmNameKt\$") && "\$box\$" in l && l.endsWith("\$Local"))
+
+    val obj = object {}
+    val o = obj.javaClass.kotlin.jvmName
+    assertTrue(o != null && o.startsWith("test.JvmNameKt\$") && "\$box\$" in o && o.endsWith("\$1"))
+
+    return "OK"
 }

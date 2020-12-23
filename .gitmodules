@@ -1,0 +1,3 @@
+[submodule "AbiComparator"]
+	path = AbiComparator
+	url = https://github.com/dnpetrov/AbiComparator/

@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.lexer.KtTokens
 import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
 import com.stepanov.bbf.bugfinder.util.getRandomBoolean
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 import java.util.*
 
 class ChangeOperators : Transformation() {
@@ -55,7 +56,7 @@ class ChangeOperators : Transformation() {
                     else
                         psiFactory.createExpression(replacement)
 
-            checker.replacePSINodeIfPossible(file, replace.psi, replacementNode)
+            checker.replacePSINodeIfPossible(replace.psi, replacementNode)
         }
     }
 

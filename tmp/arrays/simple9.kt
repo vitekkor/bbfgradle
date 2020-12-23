@@ -1,17 +1,22 @@
-// IGNORE_BACKEND_FIR: JVM_IR
+// TARGET_BACKEND: JVM
+// FULL_JDK
 // WITH_RUNTIME
 // WITH_COROUTINES
-// COMMON_COROUTINES_TEST
+// CHECK_TAIL_CALL_OPTIMIZATION
 import helpers.*
-import COROUTINES_PACKAGE.*
-import COROUTINES_PACKAGE.intrinsics.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 
-class Controller {
-    suspend fun suspendHere() = "OK"
+suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
+    TailCallOptimizationChecker.saveStackTrace(x)
+    x.resume(v)
+    COROUTINE_SUSPENDED
 }
 
-fun builder(c: suspend Controller.() -> Unit) {
-    c.startCoroutine(Controller(), EmptyContinuation)
+suspend fun suspendHere(): String = suspendThere("OK")
+
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
 }
 
 fun box(): String {
@@ -20,6 +25,7 @@ fun box(): String {
     builder {
         result = suspendHere()
     }
+    TailCallOptimizationChecker.checkNoStateMachineIn("suspendHere")
 
     return result
 }

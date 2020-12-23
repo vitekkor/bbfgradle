@@ -1,7 +1,9 @@
 package com.stepanov.bbf.reduktor.passes
 
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
+import com.stepanov.bbf.reduktor.util.debugPrint
 import com.stepanov.bbf.reduktor.util.generateDefValuesAsString
+import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getValueParameters
@@ -9,26 +11,28 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 
 //
-class MinorSimplifyings(
-    private val file: KtFile, private val checker: CompilerTestChecker,
-    private val ctx: BindingContext
-) {
-
-    fun transform() {
+class MinorSimplifyings : SimplificationPass() {
+    override fun simplify() {
+        if (ctx == null) return
         //Replace variable on constant if we can get type
         try {
             file.getAllPSIChildrenOfType<KtExpression>()
-                    //TODO DO SMTH WITH THAT
-                .filter { it !is KtConstantExpression &&
-                        (it is KtReferenceExpression || it is KtOperationExpression || it is KtCallExpression) }
+                //TODO DO SMTH WITH THAT
+                .filter {
+                    it !is KtConstantExpression &&
+                            (it is KtReferenceExpression || it is KtOperationExpression || it is KtCallExpression ||
+                                    it is KtDotQualifiedExpression)
+                }
                 .forEach {
+                    if (!file.getAllChildren().contains(it)) return@forEach
                     it.getType(ctx)?.let { type ->
                         val defValue =
                             customStructures.find { it.second == "$type" }?.let { getDefValueForCustomClass(it.first) }
                                 ?: generateDefValuesAsString("$type")
+                        if (defValue.isEmpty()) return@forEach
                         val exp = KtPsiFactory(file.project).createExpression(defValue)
                         if (it.text.length < exp.text.length) return@forEach
-                        checker.replaceNodeIfPossible(file, it, exp)
+                        checker.replaceNodeIfPossible(it, exp)
                     }
                 }
         } catch (e: Exception) {
@@ -56,6 +60,8 @@ class MinorSimplifyings(
         return null
     }
 
+    val ctx = checker.curFile.ctx
     val customStructures = file.getAllPSIChildrenOfType<KtClassOrObject>().map { it to it.name }
-
 }
+
+

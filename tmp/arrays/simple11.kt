@@ -1,20 +1,11 @@
-// IGNORE_BACKEND_FIR: JVM_IR
-// TARGET_BACKEND: JVM
-// FULL_JDK
 // WITH_RUNTIME
 // WITH_COROUTINES
-
 import helpers.*
 import kotlin.coroutines.*
 
-var c: Continuation<*>? = null
-
-suspend fun <T> tx(lambda: () -> T): T = suspendCoroutine { c = it; lambda() }
-
-object Dummy
-
-suspend fun suspect() {
-    tx { Dummy }
+suspend fun callLocal(): String {
+    suspend fun local() = "OK"
+    return local()
 }
 
 fun builder(c: suspend () -> Unit) {
@@ -22,12 +13,9 @@ fun builder(c: suspend () -> Unit) {
 }
 
 fun box(): String {
-    var res: Any? = null
+    var res = "FAIL"
     builder {
-        res = suspect()
+        res = callLocal()
     }
-
-    (c as? Continuation<Dummy>)?.resume(Dummy)
-
-    return if (res != Unit) "$res" else "OK"
+    return res
 }

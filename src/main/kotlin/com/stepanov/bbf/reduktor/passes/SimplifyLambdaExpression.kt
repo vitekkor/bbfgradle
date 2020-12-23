@@ -3,9 +3,9 @@ package com.stepanov.bbf.reduktor.passes
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import org.jetbrains.kotlin.psi.*
 
-class SimplifyLambdaExpression(private val file: KtFile, private val checker: CompilerTestChecker) {
+class SimplifyLambdaExpression() {
 
-//    fun transform() {
+//    override fun simplify() {
 //        val lambdas = file.getAllPSIChildrenOfType<KtLambdaExpression>()
 //        lambdas
 //                .filter { it.getAllPSIChildrenOfType<KtBlockExpression>().isNotEmpty() }

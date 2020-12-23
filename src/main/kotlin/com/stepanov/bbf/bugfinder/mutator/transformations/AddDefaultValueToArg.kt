@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.psi.KtNamedFunction
 import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getRandomBoolean
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 
 class AddDefaultValueToArg : Transformation() {
@@ -26,7 +27,7 @@ class AddDefaultValueToArg : Transformation() {
                         generateDefValuesAsString(typeText)
                     }
                     val newParam = psiFactory.createParameter("${par.name}: $typeText = $defaultValue")
-                    checker.replacePSINodeIfPossible(file, par, newParam)
+                    checker.replacePSINodeIfPossible(par, newParam)
                 }
     }
 

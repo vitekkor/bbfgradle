@@ -1,6 +1,6 @@
 package com.stepanov.bbf.reduktor.passes
 
-import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.replaceThis
@@ -14,18 +14,17 @@ import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.psi.psiUtil.getCallNameExpression
 
-class RemoveParameterFromDeclaration(private val file: KtFile, private val checker: CompilerTestChecker,
-                                     private val projectFiles: List<KtFile> = listOf(file)) {
-    fun transform() {
+class RemoveParameterFromDeclaration: SimplificationPass() {
+    override fun simplify() {
         val functions = file.node.getAllChildrenNodes()
                 .filter { it.elementType == KtNodeTypes.FUN }
                 .map { it.psi as KtNamedFunction }
         while (true)
-            if (!functionProcessing(file, functions))
+            if (!functionProcessing(functions))
                 break
     }
 
-    private fun functionProcessing(file: KtFile, functions: List<KtNamedFunction>): Boolean {
+    private fun functionProcessing(functions: List<KtNamedFunction>): Boolean {
         var oneMoreProcessing = false
         for (f in functions) {
             val body = f.bodyExpression ?: continue
@@ -44,13 +43,13 @@ class RemoveParameterFromDeclaration(private val file: KtFile, private val check
                         invocationsCopies.add(i.copy() as KtCallExpression)
                         if (index >= i.valueArgumentList?.arguments?.size ?: continue) {
                             val newIndex = i.valueArgumentList!!.arguments.size - index
-                            i.lambdaArguments.removeAt(newIndex)
+                            i.lambdaArguments.get(newIndex).replaceThis(Factory.psiFactory.createWhiteSpace("\n"))
                         } else {
                             i.valueArgumentList?.removeArgument(index)
                         }
                     }
                     f.valueParameterList?.removeParameter(index)
-                    val res = checker.checkTest(file.text, file.name)
+                    val res = checker.checkTest()
                     if (!res) {
                         if (nextArg != null) {
                             f.valueParameterList?.addParameterBefore(pCopy, nextArg)
@@ -74,7 +73,7 @@ class RemoveParameterFromDeclaration(private val file: KtFile, private val check
 
     private fun getAllInvocations(func: KtNamedFunction): List<KtCallExpression> {
         val res = mutableListOf<KtCallExpression>()
-        projectFiles.forEach { f ->
+        checker.project.files.map { it.psiFile }.forEach { f ->
             f.getAllPSIChildrenOfType<KtCallExpression>()
                     .filter {
                           it.getCallNameExpression()?.getReferencedName() == func.name &&
@@ -85,5 +84,6 @@ class RemoveParameterFromDeclaration(private val file: KtFile, private val check
         return res
     }
 
+    val file = checker.curFile.psiFile as KtFile
     private val log = Logger.getLogger("transformationManagerLog")
 }

@@ -9,9 +9,9 @@ import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtReturnExpression
 
-class ReturnValueToConstant(private val file: KtFile, private val checker: CompilerTestChecker) {
+class ReturnValueToConstant : SimplificationPass() {
 
-    fun transform() {
+    override fun simplify() {
         val functions = file.getAllPSIChildrenOfType<KtNamedFunction>()
         for (f in functions) {
             if (typeConstants.containsKey(f.typeReference?.text)) {
@@ -22,7 +22,7 @@ class ReturnValueToConstant(private val file: KtFile, private val checker: Compi
                     val type = f.typeReference!!.text
                     val replace = KtPsiFactory(file.project).createExpression(typeConstants[type]!!)
                     if (r.returnedExpression != null)
-                        checker.replaceNodeIfPossible(file, r.returnedExpression!!.node, replace.node)
+                        checker.replaceNodeIfPossible(r.returnedExpression!!.node, replace.node)
                 }
             }
         }

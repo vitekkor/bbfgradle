@@ -35,10 +35,9 @@ class AddPossibleModifiers : Transformation() {
                     }
                 val num = Random().nextInt(curWorkingList.size)
                 val keyword = KtTokens.MODIFIER_KEYWORDS_ARRAY.find { it.value == curWorkingList[num] } ?: return@forEach
-                if (MODIFIERS_TO_REPLACE[keyword]?.any { el.hasModifier(it) } == true) return@forEach
                 if (el.hasModifier(keyword)) return@forEach
                 el.addModifier(keyword)
-                if (!checker.checkCompiling(file))
+                if (!checker.checkCompilingWithBugSaving(file))
                     el.removeModifier(keyword)
             }
         }
@@ -53,20 +52,5 @@ class AddPossibleModifiers : Transformation() {
     private val possibleFunctionModifiers = listOf("tailrec", "operator", "infix", "external") //"suspend"
 
     private val randomConstant = 25
-
-    val MODIFIERS_TO_REPLACE = mapOf(
-        KtTokens.OVERRIDE_KEYWORD to listOf(KtTokens.OPEN_KEYWORD),
-        KtTokens.ABSTRACT_KEYWORD to listOf(KtTokens.OPEN_KEYWORD, KtTokens.FINAL_KEYWORD),
-        KtTokens.OPEN_KEYWORD to listOf(KtTokens.FINAL_KEYWORD, KtTokens.ABSTRACT_KEYWORD),
-        KtTokens.FINAL_KEYWORD to listOf(KtTokens.ABSTRACT_KEYWORD, KtTokens.OPEN_KEYWORD),
-        KtTokens.PUBLIC_KEYWORD to listOf(KtTokens.PROTECTED_KEYWORD, KtTokens.PRIVATE_KEYWORD, KtTokens.INTERNAL_KEYWORD),
-        KtTokens.PROTECTED_KEYWORD to listOf(KtTokens.PUBLIC_KEYWORD, KtTokens.PRIVATE_KEYWORD, KtTokens.INTERNAL_KEYWORD),
-        KtTokens.PRIVATE_KEYWORD to listOf(KtTokens.PUBLIC_KEYWORD, KtTokens.PROTECTED_KEYWORD, KtTokens.INTERNAL_KEYWORD),
-        KtTokens.INTERNAL_KEYWORD to listOf(KtTokens.PUBLIC_KEYWORD, KtTokens.PROTECTED_KEYWORD, KtTokens.PRIVATE_KEYWORD),
-        KtTokens.HEADER_KEYWORD to listOf(KtTokens.IMPL_KEYWORD, KtTokens.ACTUAL_KEYWORD, KtTokens.EXPECT_KEYWORD),
-        KtTokens.IMPL_KEYWORD to listOf(KtTokens.HEADER_KEYWORD, KtTokens.EXPECT_KEYWORD, KtTokens.ACTUAL_KEYWORD),
-        KtTokens.EXPECT_KEYWORD to listOf(KtTokens.IMPL_KEYWORD, KtTokens.ACTUAL_KEYWORD, KtTokens.HEADER_KEYWORD),
-        KtTokens.ACTUAL_KEYWORD to listOf(KtTokens.HEADER_KEYWORD, KtTokens.EXPECT_KEYWORD, KtTokens.IMPL_KEYWORD)
-    )
 
 }

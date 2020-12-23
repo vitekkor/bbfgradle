@@ -6,8 +6,8 @@ import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtFile
 
-class SimplifyBinaryExpression(private val file: KtFile, private val checker: CompilerTestChecker) {
-    fun transform() {
+class SimplifyBinaryExpression : SimplificationPass() {
+    override fun simplify() {
         file.getAllPSIChildrenOfType<KtBinaryExpression>().reversed().forEach { binExp ->
             tryToReplace(binExp, true)
         }
@@ -19,7 +19,7 @@ class SimplifyBinaryExpression(private val file: KtFile, private val checker: Co
     //leftOrRight = true if left
     private fun tryToReplace(binExp: KtBinaryExpression, leftOrRight: Boolean): Boolean {
         val replacement = if (leftOrRight) binExp.left else binExp.right
-        replacement?.let { return checker.replaceNodeIfPossible(file, binExp, it) }
+        replacement?.let { return checker.replaceNodeIfPossible(binExp, it) }
         return false
     }
 }

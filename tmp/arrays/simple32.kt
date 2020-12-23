@@ -1,8 +1,14 @@
-// IGNORE_BACKEND_FIR: JVM_IR
-typealias S = String
+// WITH_RUNTIME
 
-typealias SF<T> = (T) -> S
+import kotlin.test.assertEquals
 
-val f: SF<S> = { it }
+inline fun <R> foo(x : R, block : (R) -> R) : R {
+    return block(x)
+}
 
-fun box(): S = f("OK")
+fun box() : String {
+    val result = foo(1) { x -> x + 1 }
+    assertEquals(2, result)
+
+    return "OK"
+}

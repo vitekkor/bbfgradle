@@ -1,6 +1,11 @@
-enum class Foo(val a: Int = 1) {
-    A()
+enum class A(val a: Int = 1) {
+  FIRST(),
+  SECOND(2)
 }
 
-// CLASS: Foo
-// HAS_DEFAULT_CONSTRUCTOR: false
+fun box(): String {
+   if (A.FIRST.a == 1 && A.SECOND.a == 2) {
+      return "OK"
+   }
+   return "fail"
+}

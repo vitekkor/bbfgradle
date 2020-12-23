@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.psi.KtExpression
 
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getRandomBoolean
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 class AddNotNullAssertions : Transformation() {
 
@@ -17,7 +18,7 @@ class AddNotNullAssertions : Transformation() {
     private fun tryToAddNotNullAssertion(exp: KtExpression) {
         try {
             val newExp = psiFactory.createExpressionIfPossible("${exp.text}!!") ?: return
-            checker.replacePSINodeIfPossible(file, exp, newExp)
+            checker.replacePSINodeIfPossible(exp, newExp)
         } catch (e: Exception) {
             return
         }

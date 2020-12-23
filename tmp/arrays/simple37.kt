@@ -1,56 +1,36 @@
 // FILE: 1.kt
-// WITH_RUNTIME
+
 package test
 
-class A
-class B
+fun calc() = "OK"
 
-inline fun <reified T> Any?.foo(): T = this as T
+/*open modifier for method handle check in default method*/
+open class A {
+    inline fun test(p: String = calc()): String {
+        return p
+    }
+
+    inline fun String.testExt(p: String = "K"): String {
+        return this + p
+    }
+
+    fun callExt(): String {
+        return "O".testExt()
+    }
+
+    fun callExt(arg: String): String {
+        return "O".testExt(arg)
+    }
+}
 
 // FILE: 2.kt
 
 import test.*
 
-fun box(): String {
-    failNPE { null.foo<Any>(); return "Fail 1" }
-    if (null.foo<Any?>() != null) return "Fail 2"
+fun box() : String {
+    if (A().callExt() != "OK") return "fail 1: ${A().callExt()}"
+    if (A().callExt("O") != "OO") return "fail 2: ${A().callExt("O")}"
+    if (A().test("KK") != "KK") return "fail 3: ${A().test("KK")}"
 
-    failNPE { null.foo<A>(); return "Fail 3" }
-    if  (null.foo<A?>() != null) return "Fail 4"
-
-    val a = A()
-
-    if (a.foo<Any>() != a) return "Fail 5"
-    if (a.foo<Any?>() != a) return "Fail 6"
-
-    if (a.foo<A>() != a) return "Fail 7"
-    if (a.foo<A?>() != a) return "Fail 8"
-
-    val b = B()
-
-    failClassCast { b.foo<A>(); return "Fail 9" }
-    failClassCast { b.foo<A?>(); return "Fail 10" }
-
-    return "OK"
-}
-
-inline fun failNPE(s: () -> Unit) {
-    try {
-        s()
-    }
-    catch (e: NullPointerException) {
-        // OK
-    }
-}
-
-inline fun failClassCast(s: () -> Unit) {
-    try {
-        s()
-    }
-    catch (e: TypeCastException) {
-        throw e
-    }
-    catch (e: ClassCastException) {
-        // OK
-    }
+    return A().test()
 }

@@ -1,6 +1,6 @@
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: IGNORED_IN_JS
 // !LANGUAGE: +NewInference +FunctionReferenceWithDefaultValueAsOtherType
-// IGNORE_BACKEND_FIR: JVM_IR
-// IGNORE_BACKEND: JS
 // WITH_RUNTIME
 
 import kotlin.test.assertEquals
@@ -44,5 +44,6 @@ fun box(): String {
     test(C(42)::extensionVararg, 42)
     test(C(42)::extensionDefault, 42)
     test(C(42)::extensionBoth, 42)
+
     return "OK"
 }

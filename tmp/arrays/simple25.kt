@@ -1,19 +1,33 @@
+// !JVM_DEFAULT_MODE: all-compatibility
+// IGNORE_BACKEND_FIR: JVM_IR
 // TARGET_BACKEND: JVM
-
+// JVM_TARGET: 1.8
 // WITH_RUNTIME
-// FILE: Bar.java
 
-public class Bar {
-    public static String bar() {
-        return Foo.foo();
+interface Test {
+    @JvmDefault
+    fun test(): String {
+        return "O"
+    }
+
+    fun delegatedTest(): String {
+        return "fail"
     }
 }
 
-// FILE: foo.kt
+class Delegate : Test {
+    override fun test(): String {
+        return "Fail"
+    }
 
-@file:JvmName("Foo")
-public fun foo(): String = "OK"
+    override fun delegatedTest(): String {
+        return "K"
+    }
+}
 
-// FILE: simple.kt
+class TestClass(val foo: Test) : Test by foo
 
-fun box(): String = Bar.bar()
+fun box(): String {
+    val testClass = TestClass(Delegate())
+    return testClass.test() + testClass.delegatedTest()
+}

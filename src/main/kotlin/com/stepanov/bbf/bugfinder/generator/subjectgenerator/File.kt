@@ -12,9 +12,6 @@ class File: Expression() {
 
     fun generateFile(): KtFile {
         val resFile = StringBuilder()
-        val numOfClasses = 3
-
-
         return factory.createFile(resFile.toString())
     }
 }

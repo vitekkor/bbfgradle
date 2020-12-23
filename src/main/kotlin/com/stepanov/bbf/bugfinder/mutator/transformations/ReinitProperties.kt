@@ -3,12 +3,13 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.resolve.BindingContext
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 
 //TODO Add for map!!
-class ReinitProperties(private val context: BindingContext?) : Transformation() {
+class ReinitProperties : Transformation() {
     override fun transform() {
         file.getAllPSIChildrenOfType<KtProperty>().forEach {
             val type =
@@ -22,7 +23,7 @@ class ReinitProperties(private val context: BindingContext?) : Transformation() 
             if (newValue.isEmpty()) return@forEach
             val newProp = it.copy() as KtProperty
             newProp.initializer = psiFactory.createExpression(newValue)
-            checker.replacePSINodeIfPossible(file, it, newProp)
+            checker.replacePSINodeIfPossible(it, newProp)
         }
     }
 
@@ -50,4 +51,5 @@ class ReinitProperties(private val context: BindingContext?) : Transformation() 
     private val constructorsToTypes = mapOf("arrayListOf" to "ArrayList", "listOf" to "List",
             "setOf" to "Set", "arrayOf" to "Array")
 
+    private val context = checker.curFile.ctx
 }

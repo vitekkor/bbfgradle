@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtUnaryExpression
 import com.stepanov.bbf.bugfinder.util.getAllPSIDFSChildrenOfType
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 import java.util.*
 
 class ChangeOperatorsToFunInvocations : Transformation() {
@@ -47,7 +48,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
             return
         val params = exp.indexExpressions.joinToString(separator = ",") { it.text }
         val newCall = createCall(base.text, "get", params)
-        checker.replacePSINodeIfPossible(file, exp, newCall)
+        checker.replacePSINodeIfPossible(exp, newCall)
         //exp.replaceThis(newCall)
     }
 
@@ -63,7 +64,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
         }
         exp.baseExpression?.let {
             //exp.replaceThis(createCall(it.text, newCall))
-            checker.replacePSINodeIfPossible(file, exp, createCall(it.text, newCall))
+            checker.replacePSINodeIfPossible(exp, createCall(it.text, newCall))
         }
     }
 
@@ -72,7 +73,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
         val right = exp.right ?: return
         if (exp.operationToken == KtTokens.EQEQ) {
             val newExp = psiFactory.createExpression("(${left.text})?.equals(${right.text}) ?: (${right.text} === null)")
-            checker.replacePSINodeIfPossible(file, exp, newExp)
+            checker.replacePSINodeIfPossible(exp, newExp)
             //exp.replaceThis(newExp)
             return
         } else if (exp.operationToken in allowedEqs) {
@@ -81,7 +82,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
                 val params = "${left.indexExpressions.joinToString(separator = ",") { it.text }}, ${right.text}"
                 val newCall = createCall(arrayExp.text, "set", params)
                 //exp.replaceThis(newCall)
-                checker.replacePSINodeIfPossible(file, exp, newCall)
+                checker.replacePSINodeIfPossible(exp, newCall)
                 return
             }
         }
@@ -99,7 +100,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
 //            KtTokens.DIVEQ -> "divAssign"
             else -> return
         }
-        checker.replacePSINodeIfPossible(file, exp, createCallWithBraces(left.text, newCall, right.text))
+        checker.replacePSINodeIfPossible(exp, createCallWithBraces(left.text, newCall, right.text))
         //exp.replaceThis(createCallWithBraces(left.text, newCall, right.text))
     }
 

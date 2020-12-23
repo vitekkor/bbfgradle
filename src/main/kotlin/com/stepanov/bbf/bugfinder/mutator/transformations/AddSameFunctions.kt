@@ -6,20 +6,22 @@ import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.resolve.BindingContext
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 import java.util.*
 
-class AddSameFunctions(private val ctx: BindingContext) : Transformation() {
+class AddSameFunctions() : Transformation() {
 
     override fun transform() {
+        if (context == null) return
         val functions = file.getAllPSIChildrenOfType<KtNamedFunction>()//.filter { Random().nextBoolean() }
-        for (func in functions) {
-            val retType = func.typeReference?.text ?: func.getType(ctx).toString()
+        for (func in functions.filter { Random().nextBoolean() }) {
+            val retType = func.typeReference?.text ?: func.getType(context).toString()
             val newRtv = generateDefValuesAsString(retType)
             if (newRtv.isEmpty()) continue
             val allParams = mutableListOf<List<Pair<KtParameter, Int>>>()
             //Adding to not create duplicates to function
             allParams.add(func.valueParameters.withIndex().map { it.value to it.index }.toList())
-            for (i in 0 until 25/*Random.nextInt(10)*/) {
+            for (i in 0 until Random().nextInt(10)) {
                 val tmpParam = mutableListOf<Pair<KtParameter, Int>>()
                 for ((index, par) in func.valueParameters.withIndex()) {
                     val type = par?.typeReference ?: continue
@@ -49,7 +51,7 @@ class AddSameFunctions(private val ctx: BindingContext) : Transformation() {
                 val newBlockFragment = psiFactory.createBlock(newFunc.text)
                 newBlockFragment.lBrace?.delete()
                 newBlockFragment.rBrace?.delete()
-                checker.addNodeIfPossible(file, func, newBlockFragment, true)
+                checker.addNodeIfPossible(func, newBlockFragment, true)
             }
         }
     }
@@ -92,4 +94,5 @@ class AddSameFunctions(private val ctx: BindingContext) : Transformation() {
     private val containers = listOf("List" to 1, "ArrayList" to 1, "Array" to 1, "Set" to 1, "Map" to 2,
             "Pair" to 2, "HashMap" to 2, "HashSet" to 1)
 
+    private val context = checker.curFile.ctx
 }

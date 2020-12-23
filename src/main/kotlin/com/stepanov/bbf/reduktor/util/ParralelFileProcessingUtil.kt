@@ -104,34 +104,35 @@ private fun saveFile(file: KtFile, projPath: String) {
 
 
 private class ParallelTransform(private val fileToReduce: KtFile, private val path: String, private val checker: CompilerTestChecker) : Callable<KtFile> {
-    override fun call(): KtFile {
-        val manager = TransformationManager(listOf(fileToReduce))
-        val newFile = manager.doForParallelSimpleTransformations(true, path, checker)
-        return newFile!!
-    }
+    override fun call(): KtFile = TODO()
+//    {
+//        val manager = TransformationManager(listOf(fileToReduce to fileToReduce.name))
+//        val newFile = manager.doForParallelSimpleTransformations(true, path, checker)
+//        return newFile!!
+//    }
 }
 
 private class ParallelFuncSimplifier(private val fileToReduce: KtFile, val path: String, private val checker: CompilerTestChecker) : Callable<KtFile> {
     override fun call(): KtFile {
-        log.debug("HANDLE FILE {${fileToReduce.name}")
-        checker.pathToFile = fileToReduce.name
-        checker.init(path, KtPsiFactory(fileToReduce))
-        checker.refreshAlreadyCheckedConfigurations()
-        checker.pathToFile = fileToReduce.name
-        log.debug("ERROR = ${checker.getErrorInfo()}")
-        val allFuncs = fileToReduce.getAllPSIChildrenOfType<KtNamedFunction>()
-        val funcCopies = allFuncs.map { it.copy() }
-        allFuncs
-                .sortedByDescending { it.textLength }
-                .filter { it.hasBlockBody() }
-                .forEach { it.initBodyByTODO(KtPsiFactory(fileToReduce.project)) }
-        val res = checker.checkTest(fileToReduce.text, fileToReduce.name)
-        log.debug("RES = $res")
-        if (!res) {
-            for ((i, func) in allFuncs.withIndex()) {
-                func.replaceThis(funcCopies[i])
-            }
-        }
+//        log.debug("HANDLE FILE {${fileToReduce.name}")
+//        checker.pathToFile = fileToReduce.name
+//        checker.init(path, KtPsiFactory(fileToReduce))
+//        checker.refreshAlreadyCheckedConfigurations()
+//        checker.pathToFile = fileToReduce.name
+//        log.debug("ERROR = ${checker.getErrorInfo()}")
+//        val allFuncs = fileToReduce.getAllPSIChildrenOfType<KtNamedFunction>()
+//        val funcCopies = allFuncs.map { it.copy() }
+//        allFuncs
+//                .sortedByDescending { it.textLength }
+//                .filter { it.hasBlockBody() }
+//                .forEach { it.initBodyByTODO(KtPsiFactory(fileToReduce.project)) }
+//        val res = checker.checkTest(fileToReduce.text, fileToReduce.name)
+//        log.debug("RES = $res")
+//        if (!res) {
+//            for ((i, func) in allFuncs.withIndex()) {
+//                func.replaceThis(funcCopies[i])
+//            }
+//        }
         return fileToReduce
     }
 

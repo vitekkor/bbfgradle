@@ -1,17 +1,30 @@
-// !JVM_DEFAULT_MODE: enable
+// !JVM_DEFAULT_MODE: all
+// IGNORE_BACKEND_FIR: JVM_IR
 // TARGET_BACKEND: JVM
 // JVM_TARGET: 1.8
 // WITH_RUNTIME
 
-interface Z {
+interface Test {
     @JvmDefault
-    val z: String
-        get() = "OK"
+    val test: String
+        get() = "O"
+
+    val testDelegated: String
+        get() = "fail"
+
 }
 
+class Delegate : Test {
+    override val test: String
+        get() = "fail"
 
-class Test : Z
+    override val testDelegated: String
+        get() = "K"
+}
 
-fun box() : String {
-    return Test().z
+class TestClass(val foo: Test) : Test by foo
+
+fun box(): String {
+    val testClass = TestClass(Delegate())
+    return testClass.test + testClass.testDelegated
 }

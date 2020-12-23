@@ -1,8 +1,7 @@
-// IGNORE_BACKEND: JVM_IR
+// TODO: KT-37010 KT-37085
 // WITH_RUNTIME
-// COMMON_COROUTINES_TEST
-import COROUTINES_PACKAGE.*
-import COROUTINES_PACKAGE.intrinsics.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 class Controller {
     suspend fun suspendHere() = suspendCoroutineUninterceptedOrReturn<String> { x ->
         x.resume("OK")

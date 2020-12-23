@@ -1,11 +1,14 @@
+fun blackhole(vararg a: Any?) {}
 
-inline fun foo(x : Int, block : (Int) -> Int) : Int {
-    return block(x)
+suspend fun dummy() {}
+
+suspend fun test() {
+    val a = ""
+    dummy()
+    blackhole(a)
+    // a is dead, cleanup
+    dummy()
 }
 
-fun bar() {
-    foo(1) { x -> x + 1 }
-}
-
-// 1 java/lang/Integer.valueOf
-// 1 intValue
+// 1 ACONST_NULL
+// 2 PUTFIELD .*L\$0 : Ljava/lang/Object;

@@ -1,4 +1,4 @@
-// !JVM_DEFAULT_MODE: compatibility
+// !JVM_DEFAULT_MODE: all-compatibility
 // TARGET_BACKEND: JVM
 // FILE: Simple.java
 
@@ -10,9 +10,7 @@ public interface Simple extends KInterface2 {
 
 // FILE: Foo.java
 public class Foo implements Simple {
-    public String test2(String p) {
-        return "fail";
-    }
+
 }
 
 // FILE: main.kt
@@ -20,7 +18,6 @@ public class Foo implements Simple {
 // WITH_RUNTIME
 
 interface KInterface<T>  {
-    @JvmDefault
     fun test2(p: T): T {
         return p
     }
@@ -32,5 +29,9 @@ interface KInterface2 : KInterface<String> {
 
 
 fun box(): String {
-    return Foo().test()
+
+    val result = Foo().test()
+    if (result != "OK") return "fail 1: ${result}"
+
+    return Foo().test2("OK")
 }

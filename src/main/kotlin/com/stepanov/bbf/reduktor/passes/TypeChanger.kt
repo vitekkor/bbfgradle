@@ -7,14 +7,14 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtTypeReference
 
-class TypeChanger(private val file: KtFile, private val checker: CompilerTestChecker) {
+class TypeChanger : SimplificationPass() {
 
-    fun transform() {
+    override fun simplify() {
         val types = file.getAllPSIChildrenOfType<KtTypeReference>()
         types.forEach { type ->
             if (standardTypes.any { type.text.contains(it) }) return@forEach
             for (standardType in standardTypes) {
-                if (checker.replaceNodeIfPossible(file, type, KtPsiFactory(file.project).createType(standardType))) break
+                if (checker.replaceNodeIfPossible(type, KtPsiFactory(file.project).createType(standardType))) break
             }
         }
     }

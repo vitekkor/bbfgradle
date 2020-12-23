@@ -1,17 +1,30 @@
-// FILE: Base.java
+// !JVM_DEFAULT_MODE: all-compatibility
+// IGNORE_BACKEND_FIR: JVM_IR
+// TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// WITH_RUNTIME
 
-public class Base {
-    protected static final String protectedProperty = "OK";
+interface Test {
+    @JvmDefault
+    val test: String
+        get() = "O"
+
+    val testDelegated: String
+        get() = "fail"
+
 }
 
-// FILE: 1.kt
+class Delegate : Test {
+    override val test: String
+        get() = "fail"
 
-class Derived : Base() {
-    fun test(): String {
-        return Base.protectedProperty!!
-    }
+    override val testDelegated: String
+        get() = "K"
 }
+
+class TestClass(val foo: Test) : Test by foo
 
 fun box(): String {
-    return Derived().test()
+    val testClass = TestClass(Delegate())
+    return testClass.test + testClass.testDelegated
 }

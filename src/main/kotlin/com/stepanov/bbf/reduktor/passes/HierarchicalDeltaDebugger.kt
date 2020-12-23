@@ -2,15 +2,20 @@ package com.stepanov.bbf.reduktor.passes
 
 import com.intellij.lang.ASTNode
 import com.intellij.lang.FileASTNode
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
-import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.util.getAllChildrenOfCurLevel
 import com.stepanov.bbf.reduktor.util.getAllChildrenOfTheLevel
 import com.stepanov.bbf.reduktor.util.getAllWithout
 
 import org.apache.log4j.Logger
 
-class HierarchicalDeltaDebugger(private val tree: FileASTNode, private val checker: CompilerTestChecker) {
+@Suppress("DEPRECATION")
+class HierarchicalDeltaDebugger: SimplificationPass() {
+
+    override fun simplify() {
+        hdd()
+    }
 
     fun hdd(maxLevel: Int = Int.MAX_VALUE) {
         log.debug("Starting to reduce ${tree.text}")
@@ -26,6 +31,7 @@ class HierarchicalDeltaDebugger(private val tree: FileASTNode, private val check
             nodes = tree.getAllChildrenOfTheLevel(level)
             log.debug("RES after level $level: ${tree.text}")
         }
+        checker.curFile.changePsiFile(tree.text, false)
         log.debug("Result: ${tree.text}")
     }
 
@@ -124,6 +130,7 @@ class HierarchicalDeltaDebugger(private val tree: FileASTNode, private val check
     }
 
     var level = 1
+    val tree = (checker.curFile.psiFile.copy() as PsiFile).node
 
     private val log = Logger.getLogger("reducerLogger")
 }

@@ -1,0 +1,3 @@
+Bugs: 10
+Time: 217
+Bugs per minute: 0.04608294930875576 

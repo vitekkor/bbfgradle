@@ -1,11 +1,10 @@
 package com.stepanov.bbf.reduktor.passes
 
-import org.apache.log4j.Logger
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.util.PeepholeRegexes
 import java.util.*
 
-class PeepholePasses(private val text: String, private val checker: CompilerTestChecker, private val isShort: Boolean) {
+class PeepholePasses(private val isShort: Boolean = false) : SimplificationPass() {
 
     enum class Parentheses(val opening: Char, val closing: Char) {
         CURLY('{', '}'),
@@ -14,18 +13,21 @@ class PeepholePasses(private val text: String, private val checker: CompilerTest
         TRIANGLE('<', '>')
     }
 
-    fun transform(): String {
-        var res = text
+    override fun simplify() {
+        val text = simplifyText()
+        checker.curFile.changePsiFile(text, false)
+    }
+
+    fun simplifyText(): String {
+        var res = file.text
 
         for (p in Parentheses.values()) {
-            log.debug(p)
             res = deleteInsideParentheses(res, p)
             if (isShort)
                 return res
         }
 
         for (p in Parentheses.values()) {
-            log.debug(p)
             res = deleteParenthneses(res, p)
         }
 
@@ -100,9 +102,7 @@ class PeepholePasses(private val text: String, private val checker: CompilerTest
         var res = text
         var i = 0
         var num = numOfParentheses(res, p)
-        log.debug("num = $num")
         while (i < num) {
-            log.debug(i)
             val withoutPar = balancedParentheses(res, p, i)
             if (res != withoutPar && checker.checkTest(withoutPar)) {
                 res = withoutPar
@@ -152,6 +152,4 @@ class PeepholePasses(private val text: String, private val checker: CompilerTest
         }
         return res
     }
-
-    private val log = Logger.getLogger("reducerLogger")
 }

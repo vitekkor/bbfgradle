@@ -4,9 +4,9 @@ import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*
 
-class EqualityMapper(private val file: KtFile, private val checker: CompilerTestChecker) {
+class EqualityMapper: SimplificationPass() {
 
-    fun transform() {
+    override fun simplify() {
         val table = file.getAllPSIChildrenOfType<KtProperty>()
                 .map { it.nameIdentifier to it.initializer }
                 .filter { it.first != null && it.second != null }
@@ -19,7 +19,7 @@ class EqualityMapper(private val file: KtFile, private val checker: CompilerTest
                 //Avoid recursion
                 if (exp.text.trim() == replacement.first.text.trim()) continue
                 val copyOfReplacement = ktFactory.createExpression(replacement.second.text)
-                checker.replaceNodeIfPossible(file, exp, copyOfReplacement)
+                checker.replaceNodeIfPossible(exp, copyOfReplacement)
             }
         }
     }

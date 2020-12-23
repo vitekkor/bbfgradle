@@ -1,40 +1,49 @@
 package com.stepanov.bbf.bugfinder.mutator
 
-import com.intellij.psi.PsiFile
-import com.stepanov.bbf.bugfinder.executor.LANGUAGE
-import com.stepanov.bbf.bugfinder.mutator.javaTransformations.ChangeRandomJavaASTNodesFromAnotherTrees
-import com.stepanov.bbf.bugfinder.mutator.projectTransformations.ShuffleNodes
+import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
+import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
+import com.stepanov.bbf.bugfinder.mutator.projectTransformations.ProjectSplitter
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
-import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
-import com.stepanov.bbf.reduktor.parser.PSICreator
+import com.stepanov.bbf.bugfinder.mutator.transformations.abi.AddRandomDS
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.AddNodesFromAnotherFiles
 import org.apache.log4j.Logger
-import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
-class Mutator(val file: PsiFile, val context: BindingContext?) {
+class Mutator(val project: Project) {
 
     private fun executeMutation(t: Transformation, probPercentage: Int = 50) {
         if (Random.nextInt(0, 100) < probPercentage) {
-            try {
+            log.debug("Cur transformation ${t::class.simpleName}")
+//            try {
                 t.transform()
-                Transformation.file = PSICreator("").getPSIForText(Transformation.file.text)
-            } catch (e: Exception) {
-                log.debug("Exception ${e.localizedMessage}")
-            }
+                //log.debug("After ${t::class.simpleName} = ${Transformation.checker.curFile.text}")
+                //log.debug("Verify = ${verify()}")
+                //Update ctx and file
+                checker.curFile.changePsiFile(checker.curFile.text)
+                //val newFile = Project.createFromCode(Transformation.checker.curFile.text).files.first()
+                //Transformation.checker.curFile = newFile
+//            } catch (e: Exception) {
+//                log.debug("Exception ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
+//                System.exit(1)
+//            } catch (e: Error) {
+//                log.debug("Error ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
+//            }
         }
     }
 
 
     fun startMutate() {
-        //Init file
-        Factory.file = file
-        Transformation.file = file.copy() as PsiFile
-        log.debug("Mutation started")
-        when (file.text.getFileLanguageIfExist()) {
-            LANGUAGE.JAVA -> startJavaMutations()
-            else -> startKotlinMutations()
+        for (bbfFile in project.files) {
+            log.debug("Mutation of ${bbfFile.name} started")
+            Transformation.checker.curFile = bbfFile
+            when (bbfFile.getLanguage()) {
+                LANGUAGE.JAVA -> startJavaMutations()
+                else -> startKotlinMutations()
+            }
+            log.debug("End")
         }
-        log.debug("End")
     }
 
     //Stub
@@ -47,104 +56,87 @@ class Mutator(val file: PsiFile, val context: BindingContext?) {
     }
 
     private fun startKotlinMutations() {
-        //Set of transformations over PSI
-        log.debug("File = ${file.name}")
-        executeMutation(AddNullabilityTransformer())
-        //AddNullabilityTransformer().transform()
-        log.debug("After AddNullabilityTransformer = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(AddPossibleModifiers())
-        //AddPossibleModifiers().transform()
-        log.debug("After AddPossibleModifiers = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(AddReifiedToType())
-        //AddReifiedToType().transform()
-        log.debug("After AddReifiedToType = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(ChangeSmthToExtension())
-        //ChangeSmthToExtension().transform()
-        log.debug("After ChangeSmthToExtension = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(AddDefaultValueToArg())
-        //AddDefaultValueToArg().transform()
-        log.debug("After AddDefaultValueToArg = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(ChangeArgToAnotherValue())
-        //ChangeArgToAnotherValue().transform()
-        log.debug("After ChangeArgToAnotherValue = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        if (context != null)
-            executeMutation(ReinitProperties(context))
-        //ReinitProperties(context).transform()
-        log.debug("After ReinitProperties = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(AddNotNullAssertions())
-        //AddNotNullAssertions().transform()
-        log.debug("After AddNotNullAssertions = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(AddBlockToExpression())
-        //AddBlockToExpression().transform()
-        log.debug("After AddBlockToExpression = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(ChangeOperators())
-        //ChangeOperators().transform()
-        log.debug("After ChangeOperators = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(ChangeConstants())
-        //ChangeConstants().transform()
-        log.debug("After ChangeConstants = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        if (context != null)
-            executeMutation(ChangeTypes(context))
-        //ChangeConstants().transform()
-        log.debug("After ChangeTypes = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(ChangeReturnValueToConstant())
-        //ChangeReturnValueToConstant().transform()
-        log.debug("After ChangeReturnValueToConstant = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        //has the meaning?
-        //ChangeVarToNull().transform()
-        executeMutation(ChangeRandomLines())
-        //ChangeRandomLines().transform()
-        log.debug("After ChangeRandomLines = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(RemoveRandomLines())
-        //RemoveRandomLines().transform()
-        log.debug("After RemoveRandomLines = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(AddBracketsToExpression())
-        //AddBracketsToExpression().transform()
-        log.debug("After AddBrackets = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(ChangeModifiers())
-        //ChangeModifiers().transform()
-        log.debug("After ChangeModifiers = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        if (context != null)
-            executeMutation(AddSameFunctions(context))
-        //AddSameFunctions(context!!).transform()
-        log.debug("After AddSameFunctions = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(ChangeOperatorsToFunInvocations())
-        //ChangeOperatorsToFunInvocations().transform()
-        log.debug("After ChangeOperatorsToFunInvocations = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        if (Transformation.checker.otherFiles != null) {
-            executeMutation(ShuffleNodes(), 75)
-        } else {
-            executeMutation(ChangeRandomASTNodes(), 75)
+        //executeMutation(AddRandomNode(), 100)
+//        executeMutation(AddRandomDS(), 100)
+//        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 100)
+//        exitProcess(0)
+//        executeMutation(ChangeRandomASTNodes(), 50)
+//        executeMutation(AddPropertiesToClass(), 100)
+//        exitProcess(0)
+//        executeMutation(AddRandomAnnotation(), 100)
+//        exitProcess(0)
+        for (i in 0 until Random.nextInt(1, 3)) {
+            mutations.shuffled().forEach { executeMutation(it.first, it.second) }
         }
-        log.debug("After ChangeRandomASTNodes = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
-        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 75)
-        log.debug("After ChangeRandomASTNodesFromAnotherTrees = ${Transformation.file.text}")
-        log.debug("Verify = ${verify()}")
+//        //Set of transformations over PSI
+//        executeMutation(AddNullabilityTransformer())
+//        executeMutation(AddPossibleModifiers())
+//        executeMutation(AddReifiedToType())
+//        executeMutation(ChangeSmthToExtension())
+//        executeMutation(AddDefaultValueToArg())
+//        executeMutation(ChangeArgToAnotherValue())
+//        executeMutation(ReinitProperties())
+//        executeMutation(AddNotNullAssertions())
+//        executeMutation(AddBlockToExpression())
+//        executeMutation(ChangeOperators())
+//        executeMutation(ChangeConstants())
+//        executeMutation(ChangeTypes(), 75)
+//        executeMutation(ChangeReturnValueToConstant())
+//        //executeMutation(RemoveRandomLines())
+//        executeMutation(AddBracketsToExpression())
+//        executeMutation(ChangeModifiers())
+//        executeMutation(AddSameFunctions())
+//        executeMutation(ChangeOperatorsToFunInvocations())
+//        if (project.files.size > 1) {
+//            executeMutation(ShuffleNodes(), 75)
+//        } else {
+//            executeMutation(ChangeRandomASTNodes(), 75)
+//        }
+//        executeMutation(AddNodesFromAnotherFiles(), 75)
+//        executeMutation(AddFunInvocations(), 75)
+//        executeMutation(ChangeRandomLines())
+//        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 75)
+//        executeMutation(AddTryExpression())
     }
 
-    private fun verify() = Transformation.checker.checkCompiling(Transformation.file, Transformation.checker.otherFiles)
-    //private fun verify(): String = "${compilers.checkCompilingForAllBackends(Transformation.file)}"
-    //private fun verify(): String = Transformation.checker.isCompilationSuccessful()
 
-    private val log = Logger.getLogger("mutatorLogger")
+    private fun isProject() = project.files.size > 1
+
+    private fun verify(): Boolean {
+        val res = Transformation.checker.checkCompiling(project)
+        if (!res) {
+            log.debug("Cant compile project ${project}")
+            System.exit(1)
+        }
+        return res
+    }
+
+    private val mutations = listOf(AddNullabilityTransformer() to 50,
+        AddPossibleModifiers() to 50,
+        AddReifiedToType() to 50,
+        ChangeSmthToExtension() to 50,
+        AddDefaultValueToArg() to 50,
+        ChangeArgToAnotherValue() to 50,
+        ReinitProperties() to 50,
+        AddNotNullAssertions() to 50,
+        AddBlockToExpression() to 50,
+        ChangeOperators() to 50,
+        ChangeConstants() to 50,
+        ChangeTypes() to 75,
+        ChangeReturnValueToConstant() to 50,
+        AddBracketsToExpression() to 50,
+        ChangeModifiers() to 50,
+        AddSameFunctions() to 50,
+        ChangeOperatorsToFunInvocations() to 50,
+        ChangeRandomASTNodes() to 75,
+        AddFunInvocations() to 75,
+        ChangeRandomLines() to 50,
+        ChangeRandomASTNodesFromAnotherTrees() to 100,
+        AddTryExpression() to 50,
+        AddNodesFromAnotherFiles() to 50
+    )
+    private val log = Logger.getLogger("bugFinderLogger")
+    private val checker
+        get() = Transformation.checker
+
 }

@@ -6,6 +6,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.util.replaceReturnValueTypeOnUnit
 import com.stepanov.bbf.reduktor.util.replaceThis
 import org.jetbrains.kotlin.cli.jvm.compiler.CompileEnvironmentException
@@ -18,6 +20,7 @@ import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.utils.PathUtil.kotlinPathsForCompiler
 import java.io.*
+import java.lang.Exception
 import java.util.jar.JarInputStream
 import java.util.jar.JarOutputStream
 
@@ -84,11 +87,10 @@ fun KtNamedFunction.initBodyByValue(psiFactory: KtPsiFactory, value: String) {
 fun PsiElement.find(el: PsiElement): PsiElement? = this.node.getAllChildrenNodes().find { it.psi == el }?.psi
 
 //Returns true if all compilers compiling
-fun List<CommonCompiler>.checkCompilingForAllBackends(psiFile: PsiFile): Boolean =
-    this.map { it.checkCompilingText(psiFile.text) }.all { it }
+fun List<CommonCompiler>.checkCompilingForAllBackends(project: Project): Boolean =
+    this.map { it.checkCompiling(project) }.all { it }
 
 
-@Throws(IOException::class)
 fun writeRuntimeToJar(lib: String, stream: JarOutputStream) {
     val stdlibPath = File(lib)
     if (!stdlibPath.exists()) {
@@ -97,14 +99,17 @@ fun writeRuntimeToJar(lib: String, stream: JarOutputStream) {
     copyJarImpl(stream, stdlibPath)
 }
 
-@Throws(IOException::class)
 fun copyJarImpl(stream: JarOutputStream, jarPath: File) {
     JarInputStream(FileInputStream(jarPath)).use { jis ->
         while (true) {
             val e = jis.nextJarEntry ?: break
             if (FileUtilRt.extensionEquals(e.name, "class")) {
-                stream.putNextEntry(e)
-                FileUtil.copy(jis, stream)
+                try {
+                    stream.putNextEntry(e)
+                    FileUtil.copy(jis, stream)
+                } catch (e: Exception) {
+                    continue
+                }
             }
         }
     }

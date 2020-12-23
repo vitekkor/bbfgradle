@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.psi.KtModifierList
 import org.jetbrains.kotlin.psi.KtProperty
 import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
+import org.jetbrains.kotlin.psi.addRemoveModifier.setModifierList
 import java.util.*
 
 class ChangeModifiers : Transformation() {
@@ -36,11 +37,11 @@ class ChangeModifiers : Transformation() {
                     val keyword = KtTokens.MODIFIER_KEYWORDS_ARRAY.find { it.value == workingList[newModIndex] }
                             ?: continue
                     val oldKeyword = KtTokens.MODIFIER_KEYWORDS_ARRAY.find { it.value == m.text } ?: continue
+                    val oldModList = parent.modifierList!!.copy() as KtModifierList
                     parent.removeModifier(oldKeyword)
                     parent.addModifier(keyword)
-                    if (!checker.checkCompiling(file)) {
-                        parent.removeModifier(keyword)
-                        parent.addModifier(oldKeyword)
+                    if (!checker.checkCompilingWithBugSaving(file)) {
+                        parent.setModifierList(oldModList)
                     }
                 }
             }
@@ -56,5 +57,5 @@ class ChangeModifiers : Transformation() {
     private val possibleFunctionModifiers = listOf("tailrec", "operator", "infix", "external", "lateinit",
             "override", "open", "final", "abstract", "private", "public", "protected", "internal", "const")
 
-    val RANDOM_CONST = 5
+    val RANDOM_CONST = 10
 }

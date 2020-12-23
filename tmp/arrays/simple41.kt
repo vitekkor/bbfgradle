@@ -1,34 +1,15 @@
-// !LANGUAGE: +ReleaseCoroutines
-// NO_CHECK_LAMBDA_INLINING
-// FILE: test.kt
+// FILE: 1.kt
 
-inline suspend fun foo(x: suspend () -> String) = x()
+package test
 
-// FILE: box.kt
-// WITH_RUNTIME
-// WITH_COROUTINES
+inline fun foo(x: String) = x
 
-import helpers.ContinuationAdapter
-import kotlin.coroutines.*
-import kotlin.coroutines.intrinsics.*
+inline fun processRecords(block: (String) -> String) = block(foo("O"))
 
-fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(object: ContinuationAdapter<Unit>() {
-        override fun resume(value: Unit) {
-        }
+// FILE: 2.kt
 
-        override fun resumeWithException(exception: Throwable) {
-            throw exception
-        }
-    })
-}
-
-suspend fun String.id() = this
+import test.*
 
 fun box(): String {
-    var res = ""
-    builder {
-        res = foo("OK"::id)
-    }
-    return res
+    return processRecords { ext -> ext + "K" }
 }

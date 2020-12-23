@@ -2,14 +2,12 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiFile
-import com.stepanov.bbf.bugfinder.executor.Project
-
-import org.jetbrains.kotlin.psi.psiUtil.parents
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory
 import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
 import com.stepanov.bbf.bugfinder.util.replaceThis
-import kotlin.random.Random
-import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
+import org.jetbrains.kotlin.psi.psiUtil.parents
+import kotlin.random.Random
 
 class ChangeRandomASTNodes : Transformation() {
 
@@ -41,7 +39,10 @@ class ChangeRandomASTNodes : Transformation() {
             }
             log.debug("SWAPING ${randomNode1} and ${randomNode2}")
             val new = swap(randomNode1, randomNode2, psiFactory)
-            val res = files?.let { checker.saveAndCheckCompiling(Project(null, it)) } ?: checker.checkTextCompiling(file.text)
+            val res = files?.let {
+                TODO()
+                //checker.checkCompiling(Project.createFromCode(it))
+            } ?: checker.checkTextCompiling(file.text)
             if (!res) swap(new.first, new.second, psiFactory)
         }
 

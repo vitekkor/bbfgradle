@@ -1,5 +1,8 @@
 package com.stepanov.bbf.bugfinder.executor
 
+import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.util.BBFProperties
 import org.apache.commons.io.IOUtils
 import java.io.File
 import java.util.*
@@ -30,11 +33,28 @@ object CompilerArgs {
         val kotlinVersion =
             File("build.gradle").readText().lines().firstOrNull { it.trim().contains("kotlin_version") }
                 ?: throw Exception("Dont see kotlinVersion parameter in build.gradle file")
-        val ver = kotlinVersion.split("=").last().trim().filter { it != '\'' }
+        var ver = kotlinVersion.split("=").last().trim().filter { it != '\'' }
         val gradleDir = "${System.getProperty("user.home")}/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/"
-        val dir =
+        var dir =
             File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path ?: ""
-        val pathToLib = File(dir).walkTopDown().find { it.name == "$libToSearch-$ver.jar" }?.absolutePath ?: ""
+        //TODO fix this
+        if (dir.trim().isEmpty()) {
+            ver = (ver.last() - '0').let { ver.dropLast(1) + (it - 1) }
+            dir = File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path
+                ?: ""
+        }
+        if (dir.trim().isEmpty()) {
+            ver = (ver.last() - '0').let { ver.dropLast(1) + (it + 1) }
+            dir = File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path
+                ?: ""
+        }
+        var pathToLib = File(dir).walkTopDown().find { it.name == "$libToSearch-$ver.jar" }?.absolutePath ?: ""
+        if (pathToLib.isEmpty()) {
+            ver = "1.5.255-SNAPSHOT"
+            dir = File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path
+                ?: ""
+            pathToLib = File(dir).walkTopDown().find { it.name == "$libToSearch-$ver.jar" }?.absolutePath ?: ""
+        }
         require(pathToLib.isNotEmpty())
         return pathToLib
     }
@@ -64,6 +84,27 @@ object CompilerArgs {
         return "${System.getProperty("user.dir")}/tmp/lib/"
     }
 
+    fun getCompilersList(): List<CommonCompiler> {
+        val compilers = mutableListOf<CommonCompiler>()
+        //Init compilers
+        val compilersConf = BBFProperties.getStringGroupWithoutQuotes("BACKENDS")
+        compilersConf.filter { it.key.contains("JVM") }.forEach {
+            compilers.add(
+                JVMCompiler(
+                    it.value
+                )
+            )
+        }
+        compilersConf.filter { it.key.contains("JS") }.forEach {
+            compilers.add(
+                JSCompiler(
+                    it.value
+                )
+            )
+        }
+        return compilers
+    }
+
     val baseDir = getPropValueWithoutQuotes("MUTATING_DIR")
     val javaBaseDir = getPropValueWithoutQuotes("JAVA_FILES_DIR")
     val dirForNewTests = "$baseDir/newTests"
@@ -71,9 +112,18 @@ object CompilerArgs {
     //PATHS TO COMPILERS
     val pathToJsKotlinLib = createJSLib()
     val pathToTmpFile = getPropValueWithoutQuotes("TMPFILE")
+    val pathToTmpDir = pathToTmpFile.substringBeforeLast("/")
 
     //RESULT
     val resultsDir = getPropValueWithoutQuotes("RESULTS")
+
+    //MODE
+    val isMiscompilationMode = getPropAsBoolean("MISCOMPILATION_MODE")
+    val isStrictMode = getPropAsBoolean("STRICT_MODE")
+
+    //ABI
+    val isABICheckMode = getPropAsBoolean("ABI_CHECK_MODE")
+    val ignoreMissingClosureConvertedMethod = getPropAsBoolean("IGNORE_MISSING_CLOSURE_CONVERTED_METHOD")
 
     //ORACLE
     val useJavaAsOracle = getPropAsBoolean("USE_JAVA_AS_ORACLE")
@@ -102,11 +152,14 @@ object CompilerArgs {
     //STDLIB
     val jvmStdLibPaths = listOf(
         getStdLibPath("kotlin-stdlib"), getStdLibPath("kotlin-stdlib-common"),
-        getStdLibPath("kotlin-test"), getStdLibPath("kotlin-test-common"), getStdLibPath("kotlin-reflect")
+        getStdLibPath("kotlin-test"), getStdLibPath("kotlin-test-common"), getStdLibPath("kotlin-reflect"),
+        getStdLibPath("kotlin-script-runtime"), getStdLibPath("kotlin-test-junit")
+        //getStdLibPath("kotlin-stdlib-jdk8"), getStdLibPath("kotlin-stdlib-jdk7")
     )
 
     val jsStdLibPaths = listOf(
-        getStdLibPath("kotlin-stdlib-js"), getStdLibPath("kotlin-stdlib-common")
-        //,getStdLibPath("kotlin-test-js"), getStdLibPath("kotlin-test-common"), getStdLibPath("kotlin-reflect")
+        getStdLibPath("kotlin-stdlib-js"), getStdLibPath("kotlin-stdlib-common"),
+        getStdLibPath("kotlin-test-common"), getStdLibPath("kotlin-test-js"), getStdLibPath("kotlin-reflect")
     )
+    val pathToStdLibScheme = "tmp/lib/standardLibraryTree.txt"
 }

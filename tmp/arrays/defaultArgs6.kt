@@ -1,19 +1,17 @@
-// !JVM_DEFAULT_MODE: compatibility
+// !JVM_DEFAULT_MODE: enable
+// TARGET_BACKEND: JVM
 // JVM_TARGET: 1.8
-// FULL_JDK
+// WITH_RUNTIME
 
-interface KInterface {
+interface Z {
     @JvmDefault
-    fun test(s: String ="OK"): String {
+    fun test(s: String = "OK"): String {
         return s
     }
 }
 
-// 1 INVOKESTATIC KInterface.access\$test\$jd
-// 1 INVOKESTATIC KInterface.test\$default
+class Test: Z
 
-// from $default
-// 1 INVOKEINTERFACE KInterface.test
-
-//from $jd
-// 1 INVOKESPECIAL KInterface.test
+fun box(): String {
+    return Test().test()
+}

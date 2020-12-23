@@ -1,25 +1,28 @@
-// IGNORE_BACKEND_FIR: JVM_IR
-// SKIP_JDK6
-// TARGET_BACKEND: JVM
-// WITH_RUNTIME
-// FULL_JDK
-// KOTLIN_CONFIGURATION_FLAGS: +JVM.PARAMETERS_METADATA
-
-enum class A(val OK: String) {
-
+interface A<T> {
+    open fun foo(t: T) = "A"
 }
 
+interface B : A<String>
+
+enum class Z(val aname: String) : B {
+    Z1("Z1"),
+    Z2("Z2");
+    override fun foo(t: String) = aname
+}
+
+
 fun box(): String {
-    val clazz = A::class.java
-    val constructor = clazz.getDeclaredConstructor(String::class.java, Int::class.java, String::class.java)
-    val parameters = constructor.getParameters()
-
-    if (parameters[0].name != "\$enum\$name") return "wrong entry name: ${parameters[0].name}"
-    if (!parameters[0].isSynthetic() || parameters[0].isImplicit()) return "wrong name flags: ${parameters[0].modifiers}"
-
-    if (parameters[1].name != "\$enum\$ordinal") return "wrong ordinal name: ${parameters[1].name}"
-    if (!parameters[1].isSynthetic() || parameters[1].isImplicit()) return "wrong ordinal flags: ${parameters[1].modifiers}"
-
-    if (parameters[2].modifiers != 0) return "wrong modifier on value parameter: ${parameters[2].modifiers}"
-    return parameters[2].name
+    val z1b: B = Z.Z1
+    val z2b: B = Z.Z2
+    val z1a: A<String> = Z.Z1
+    val z2a: A<String> = Z.Z2
+    return when {
+        Z.Z1.foo("") != "Z1" -> "Fail #1"
+        Z.Z2.foo("") != "Z2" -> "Fail #2"
+        z1b.foo("")  != "Z1" -> "Fail #3"
+        z2b.foo("")  != "Z2" -> "Fail #4"
+        z1a.foo("")  != "Z1" -> "Fail #5"
+        z2a.foo("")  != "Z2" -> "Fail #6"
+        else -> "OK"
+    }
 }

@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtWhenExpression
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getRandomBoolean
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 class AddBracketsToExpression : Transformation() {
 
@@ -15,7 +16,7 @@ class AddBracketsToExpression : Transformation() {
                 if (it is KtWhenExpression) return@forEach
                 try {
                     val newExpr = psiFactory.createExpression("(${it.text})")
-                    checker.replacePSINodeIfPossible(file, it, newExpr)
+                    checker.replacePSINodeIfPossible(it, newExpr)
                 } catch (e: Exception) {
                     return@forEach
                 }

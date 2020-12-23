@@ -8,14 +8,14 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtImportDirective
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 
-class RemoveUnusedImports(private val file: KtFile, private val checker: CompilerTestChecker) {
-    fun transform() {
+class RemoveUnusedImports : SimplificationPass() {
+    override fun simplify() {
         file.importList?.let { importList ->
             for (im in importList.allChildren.toList()) {
                 if (im !is KtImportDirective)
                     continue
                 //Deleting
-                checker.removeNodeIfPossible(file, im.node)
+                checker.removeNodeIfPossible(im.node)
             }
         }
         filterPsiWhitespaces(file)
@@ -29,4 +29,6 @@ class RemoveUnusedImports(private val file: KtFile, private val checker: Compile
             }
         }
     }
+
+    private val file = checker.curFile.psiFile as KtFile
 }

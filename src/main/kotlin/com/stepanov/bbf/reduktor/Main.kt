@@ -89,17 +89,17 @@ fun main(args: Array<String>) {
         //CompilerArgs.classpath = RemoveSourcesFromJar.transform(targetFiles, classpath).name
         CompilerArgs.classpath = classpath
     }
-    val manager = TransformationManager(targetFiles)
-    val backendProperty = ReduKtorProperties.getStringGroup("BACKEND_FOR_REDUCE").entries.first()
-    val backend = when (backendProperty.key) {
-        "JVM" -> JVMBackend(backendProperty.value)
-        "JS" -> JSBackend(backendProperty.value)
-        else -> throw IllegalArgumentException("Illegal backend")
-    }
-    if (isProject) {
-        manager.doProjectTransformations(targetFiles, creator, CommonCompilerCrashTestChecker(backend))
-    } else {
-        manager.doTransformations(CommonCompilerCrashTestChecker(backend))
-    }
+//    val manager = TransformationManager(targetFiles.map { it to it.name })
+//    val backendProperty = ReduKtorProperties.getStringGroup("BACKEND_FOR_REDUCE").entries.first()
+//    val backend = when (backendProperty.key) {
+//        "JVM" -> JVMBackend(backendProperty.value)
+//        "JS" -> JSBackend(backendProperty.value)
+//        else -> throw IllegalArgumentException("Illegal backend")
+//    }
+//    if (isProject) {
+//        manager.doProjectTransformations(targetFiles.map { it to it.name }, creator, CommonCompilerCrashTestChecker(backend))
+//    } else {
+//        manager.doTransformations(CommonCompilerCrashTestChecker(backend))
+//    }
     System.exit(0)
 }

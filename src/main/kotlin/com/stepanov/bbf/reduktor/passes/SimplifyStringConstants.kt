@@ -6,9 +6,9 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
-class SimplifyStringConstants(private val file: KtFile, private val checker: CompilerTestChecker) {
-    fun transform() {
+class SimplifyStringConstants : SimplificationPass() {
+    override fun simplify() {
         val stringConsts = file.getAllPSIChildrenOfType<KtStringTemplateExpression>()
-        stringConsts.forEach { checker.replaceNodeIfPossible(file, it, KtPsiFactory(file.project).createStringTemplate("")) }
+        stringConsts.forEach { checker.replaceNodeIfPossible(it, KtPsiFactory(file.project).createStringTemplate("")) }
     }
 }

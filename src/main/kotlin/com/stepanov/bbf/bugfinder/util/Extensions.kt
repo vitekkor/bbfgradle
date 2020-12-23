@@ -3,22 +3,29 @@ package com.stepanov.bbf.bugfinder.util
 import com.intellij.lang.ASTNode
 import com.intellij.lang.FileASTNode
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiErrorElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
-import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.LANGUAGE
-import com.stepanov.bbf.bugfinder.executor.Project
-import com.stepanov.bbf.reduktor.parser.PSICreator
+import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllChildrenOfCurLevel
 import org.jetbrains.kotlin.KtNodeTypes
+import org.jetbrains.kotlin.builtins.KotlinBuiltIns
+import org.jetbrains.kotlin.descriptors.*
+import org.jetbrains.kotlin.js.descriptorUtils.nameIfStandardType
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.resolve.ImportPath
+import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
+import org.jetbrains.kotlin.types.*
+import org.jetbrains.kotlin.types.typeUtil.isUnsignedNumberType
+import org.jetbrains.kotlin.types.typeUtil.supertypes
 import ru.spbstu.kotlin.generate.util.asCharSequence
+import ru.spbstu.kotlin.generate.util.nextInRange
 import ru.spbstu.kotlin.generate.util.nextString
 import java.io.BufferedReader
 import java.io.File
@@ -28,17 +35,20 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
 import java.util.function.BiPredicate
+import kotlin.reflect.KClass
 
 
 fun KtProperty.getLeft(): List<PsiElement> =
-    if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList().takeWhile { it.node.elementType.index.toInt() != 179 }
+    if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList()
+        .takeWhile { it.node.elementType.index.toInt() != 179 }
     else listOf()
 
 fun KtProperty.getLeftIdentifier(): PsiElement? =
     this.allChildren.toList().first { it.node.elementType.index.toInt() == 141 }
 
 fun KtProperty.getRight(): List<PsiElement> =
-    if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList().takeLastWhile { it.node.elementType.index.toInt() != 179 }
+    if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList()
+        .takeLastWhile { it.node.elementType.index.toInt() != 179 }
     else listOf()
 
 fun PsiElement.getAllChildrenOfCurLevel(): List<PsiElement> = this.node.getAllChildrenOfCurLevel().map { it.psi }
@@ -90,13 +100,10 @@ fun <T> Iterable<T>.getAllWithout(index: Int): List<T> {
     return list
 }
 
-fun <T> Iterable<T>.getAllWithoutLast(index: Int): List<T> {
-    val list: ArrayList<T> = arrayListOf<T>()
-    var count = 0
-    for (item in this) {
-        if (count++ != index) list.add(item)
-    }
-    return list
+fun <T> Iterable<T>.getAllWithoutLast(): List<T> {
+    var size = 0
+    for (e in this.iterator()) size++
+    return getAllWithout(size - 1)
 }
 
 fun <ASTNode> List<ASTNode>.filterRowPsiWhiteSpaces(): List<ASTNode> {
@@ -245,14 +252,53 @@ fun ASTNode.getAllDFSChildren(): List<ASTNode> {
     return res
 }
 
+fun ASTNode.getAllDFSChildrenWithoutItSelf(): List<ASTNode> {
+    val res = mutableListOf<ASTNode>()
+    for (child in this.getChildren(TokenSet.ANY)) {
+        child.getAllDFSChildrenWithoutItSelf1().forEach { res.add(it) }
+    }
+    return res
+}
+
+private fun ASTNode.getAllDFSChildrenWithoutItSelf1(): List<ASTNode> {
+    val res = mutableListOf(this)
+    for (child in this.getChildren(TokenSet.ANY)) {
+        child.getAllDFSChildrenWithoutItSelf1().forEach { res.add(it) }
+    }
+    return res
+}
+
+fun PsiElement.getAllChildrenOfType(type: IElementType): List<ASTNode> =
+    this.node.getAllChildrenNodes().filter { it.elementType == type }
+
 inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfType(): List<T> =
     this.node.getAllChildrenNodes().asSequence().filter { it.psi is T }.map { it.psi as T }.toList()
+
+inline fun <reified T : PsiElement, reified U : PsiElement> PsiElement.getAllPSIChildrenOfTwoTypes(): List<PsiElement> =
+    this.node.getAllChildrenNodes().asSequence().filter { it.psi is T || it.psi is U }.map { it.psi }.toList()
+
+inline fun <reified T : PsiElement, reified U : PsiElement, reified S : PsiElement>
+        PsiElement.getAllPSIChildrenOfThreeTypes(): List<PsiElement> =
+    this.node.getAllChildrenNodes().asSequence().filter { it.psi is T || it.psi is U || it.psi is S }.map { it.psi }
+        .toList()
+
+inline fun <reified T : PsiElement, reified U : PsiElement>
+        PsiElement.getAllPSIChildrenOfTwoTypes(crossinline filterFun: (PsiElement) -> Boolean): List<PsiElement> =
+    this.node.getAllChildrenNodes().asSequence().filter { it.psi is T || it.psi is U }.map { it.psi }
+        .filter { filterFun(it) }.toList()
+
+inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfType(crossinline filterFun: (T) -> Boolean): List<T> =
+    this.node.getAllChildrenNodes().asSequence().filter { it.psi is T }.map { it.psi as T }.filter { filterFun(it) }
+        .toList()
 
 inline fun <reified T : PsiElement> PsiElement.getAllPSIChildrenOfTypeOfFirstLevel(): List<T> =
     this.node.getAllChildrenOfCurLevel().asSequence().filter { it.psi is T }.map { it.psi as T }.toList()
 
 inline fun <reified T : PsiElement> PsiElement.getAllPSIDFSChildrenOfType(): List<T> =
     this.node.getAllDFSChildren().asSequence().filter { it.psi is T }.map { it.psi as T }.toList()
+
+inline fun <reified T : PsiElement> PsiElement.getAllPSIDFSChildrenOfTypeWithoutItself(): List<T> =
+    this.node.getAllDFSChildrenWithoutItSelf().asSequence().filter { it.psi is T }.map { it.psi as T }.toList()
 
 inline fun <reified T : PsiElement> PsiElement.getFirstParentOfType(): T? =
     this.node.getAllParentsWithoutNode().map { it.psi }.filter { it is T }.firstOrNull() as T?
@@ -287,6 +333,9 @@ fun getTrueWithProbability(probability: Int): Boolean = Random().nextInt(100) in
 
 fun Random.getRandomVariableName(length: Int = 5): String =
     this.nextString(('a'..'z').asCharSequence(), length, length + 1)
+
+fun kotlin.random.Random.getRandomVariableName(length: Int = 5): String =
+    Random().nextString(('a'..'z').asCharSequence(), length, length + 1)
 
 fun String.isSubstringOf(other: String): Boolean {
     val m = this.length
@@ -325,67 +374,68 @@ fun removeMainFromFiles(dir: String) {
     }
 }
 
-fun Project.saveOrRemoveToTmp(save: Boolean): String {
-    val texts = this.texts
-    val textToTmpPath = texts.mapIndexed { index, s -> s to generateTmpPath(index) }
-    val commonTmpName = textToTmpPath.joinToString(" ") { it.second }
-    if (save) textToTmpPath.forEach { File(it.second.substringBeforeLast('/')).mkdirs(); File(it.second).writeText(it.first) }
-    else textToTmpPath.forEach { File(it.second).delete() }
-    return commonTmpName
+fun <T, R : Comparable<R>> List<T>.removeDuplicatesBy(f: (T) -> R): List<T> {
+    val list1 = this.zip(this.map(f))
+    val res = mutableListOf<Pair<T, R>>()
+    for (i in 0 until size) {
+        val item = list1[i].second
+        if (res.all { it.second != item }) res.add(list1[i])
+    }
+    return res.map { it.first }
 }
 
-fun Project.generateCommonName(): String {
-    val texts = this.texts
-    val textToTmpPath = texts.mapIndexed { index, s -> s to generateTmpPath(index) }
-    val commonTmpName = textToTmpPath.joinToString(" ") { it.second }
-    return commonTmpName
+fun KtBlockExpression.addProperty(prop: KtProperty): PsiElement? {
+    val factory = KtPsiFactory(this.project)
+    val firstStatement = this.firstStatement ?: this.rBrace ?: return null
+    addBefore(factory.createWhiteSpace("\n"), firstStatement)
+    val res = addBefore(prop, firstStatement)
+    addBefore(factory.createWhiteSpace("\n"), firstStatement)
+    return res
 }
 
-fun Project.moveAllCodeInOneFile(): Project {
-    //Create factory
-    val factory = KtPsiFactory(PSICreator("").getPSIForText(""))
-    val code = factory.createFile(this.getCommonTextWithDefaultPath())
-    //fun box renaming
-    val boxFuncs = code.getAllPSIChildrenOfType<KtNamedFunction>().filter { it.name?.startsWith("box") ?: false }
-    boxFuncs.forEachIndexed { i, f -> f.setName("box$i") }
+fun KtFile.getBoxFuncs(): List<KtNamedFunction>? =
+    this.getAllPSIChildrenOfType { it.text.contains(Regex("""fun box\d*\(""")) }
 
-    val allNeededImports =
-        code.importDirectives.map { it.importPath.toString() }.toSet().filter { it.contains("kotlin") }
-    code.getAllPSIChildrenOfType<KtPackageDirective>().forEach { it.delete() }
-    code.getAllPSIChildrenOfType<PsiErrorElement>().forEach { it.delete() }
-    code.getAllPSIChildrenOfType<KtImportDirective>().forEach { it.delete() }
-    allNeededImports
-        .map {
-            if (it.contains('*'))
-                factory.createImportDirective(ImportPath(FqName(it.takeWhile { it != '*' }), true))
-            else
-                factory.createImportDirective(ImportPath(FqName(it), false))
-        }.forEach { code.addImport(it) }
-    return Project(code.text)
-}
-
-fun Project.split(): Project {
-    if (this.texts.size != 1) return this
-    val files =
-        this.getCommonTextWithDefaultPath().split(Regex("""//File.*\s"""))
-            .filter { it.trim().contains("package") }
-    return Project(files)
-}
-
-private fun Project.generateTmpPath(idx: Int): String {
-    if (this.language == LANGUAGE.KOTLIN) {
-        return "${CompilerArgs.pathToTmpFile.substringBefore(".kt")}$idx.kt"
-    } else {
-        val text = this.texts[idx]
-        val name = text.split("\n").first().trim().takeLastWhile { it != ' ' }
-        return "${CompilerArgs.pathToTmpFile.substringBefore(".kt")}/$name"
+fun PsiFile.addToTheEnd(psiElement: PsiElement): PsiElement {
+    return this.getAllPSIDFSChildrenOfType<PsiElement>().last().parent.let {
+        it.add(Factory.psiFactory.createWhiteSpace("\n\n"))
+        val res = it.add(psiElement)
+        it.add(Factory.psiFactory.createWhiteSpace("\n\n"))
+        res
     }
 }
 
-fun KtFile.addImport(import: KtImportDirective) {
-    this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
-    this.importList?.add(import)
-    this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
+//Triple(el, whitespace, whitespace)
+fun PsiElement.addAfterWithWhitespace(psiElement: PsiElement): Triple<PsiElement, PsiElement?, PsiElement?> {
+    try {
+        val placeToInsert = this.allChildren.lastOrNull() ?: return Triple(this, null, null)
+        val wh1 = placeToInsert.add(Factory.psiFactory.createWhiteSpace("\n"))
+        val res = placeToInsert.add(psiElement)
+        val wh2 = placeToInsert.add(Factory.psiFactory.createWhiteSpace("\n"))
+        return Triple(res, wh1, wh2)
+    } catch (e: Exception) {
+        return Triple(this, null, null)
+    }
+}
+
+fun PsiFile.addToTheTop(psiElement: PsiElement): PsiElement {
+    val firstChild = this.allChildren.first!!
+    firstChild.add(Factory.psiFactory.createWhiteSpace("\n"))
+    val res = firstChild.add(psiElement)
+    firstChild.add(Factory.psiFactory.createWhiteSpace("\n"))
+    return res
+}
+
+fun KtFile.addImport(import: String, isAllUnder: Boolean) {
+    val importDirective = Factory.psiFactory.createImportDirective(ImportPath(FqName(import), isAllUnder))
+    this.addImport(importDirective)
+}
+
+fun KtFile.addImport(importDir: KtImportDirective) {
+    if (this.importDirectives.any { it.text == importDir.text }) return
+        this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
+        this.importList?.add(importDir)
+        this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
 }
 
 fun String.getFileLanguageIfExist(): LANGUAGE? {
@@ -394,3 +444,120 @@ fun String.getFileLanguageIfExist(): LANGUAGE? {
     if (name.endsWith(".java")) return LANGUAGE.JAVA
     return null
 }
+
+fun String.filterLines(cond: (String) -> Boolean): String =
+    this.lines().filter { cond(it) }.joinToString("\n")
+
+fun String.filterNotLines(cond: (String) -> Boolean): String =
+    this.lines().filterNot { cond(it) }.joinToString("\n")
+
+fun kotlin.random.Random.getTrue(prop: Int) = Random().nextInRange(0, 100) < prop
+
+fun KtFile.findFunByName(name: String): KtNamedFunction? =
+    this.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name == name }
+
+fun KotlinType.isPrimitiveTypeOrNullablePrimitiveTypeOrString(): Boolean {
+    val descriptor = this.constructor.declarationDescriptor
+    return descriptor is ClassDescriptor &&
+            (KotlinBuiltIns.isPrimitiveClass((descriptor as ClassDescriptor?)!!)
+                    || this.isUnsignedNumberType()
+                    || this.nameIfStandardType?.asString() == "String")
+}
+
+fun KotlinType.isErrorType(): Boolean = this.isError || this.arguments.any { it.type.isErrorType() }
+
+fun KotlinType.getNameWithoutError(): String {
+    val thisName =
+        when (this) {
+            is ErrorType -> this.presentableName
+            is UnresolvedType -> this.presentableName
+            else -> "${this.constructor}"
+        }
+    val argsName =
+        if (arguments.isNotEmpty()) "<${this.arguments.joinToString { it.type.getNameWithoutError() }}>"
+        else ""
+    return thisName + argsName
+}
+
+fun KotlinType.supertypesWithoutAny(): Collection<KotlinType> = this.supertypes().getAllWithoutLast()
+
+@Deprecated("")
+fun <T : Any> List<Any>.flatten(type: KClass<T>): List<T> {
+    val res = mutableListOf<T>()
+    this.forEach { el ->
+        if (type.isInstance(el)) res.add(el as T)
+        if (el is List<*>) (el as List<Any>).flatten(type).forEach { res.add(it) }
+    }
+    return res
+}
+
+inline fun <reified T : Any> List<Any>.flatten(): List<T> = this.flatten(T::class)
+
+fun PsiFile.contains(cond: (PsiElement) -> Boolean) = this.getAllChildren().any { cond(it) }
+
+fun KotlinType.getAllTypeArgs(): List<TypeProjection> =
+    this.arguments + this.arguments.flatMap { it.type.getAllTypeArgs() }
+
+fun KotlinType.isKType(): Boolean =
+    constructor.declarationDescriptor?.name?.asString()
+        ?.let { it == "KClass" || it.startsWith("KProperty") || it.startsWith("KFunction") }
+        ?: false
+
+fun KotlinType.isAbstractClass(): Boolean =
+    (this.constructor.declarationDescriptor as? DeserializedClassDescriptor)?.modality == Modality.ABSTRACT
+
+fun KotlinType.replaceTypeOrRandomSubtypeOnTypeParam(typeParams: List<String>): String {
+    val typeParamsWithoutBounds = typeParams.map { it.substringBefore(':') }
+    val withVariantTypeParams = typeParamsWithoutBounds.filter { it.contains("in ") || it.contains("out ") }
+    if (kotlin.random.Random.getTrue(30) && withVariantTypeParams.isNotEmpty())
+        return withVariantTypeParams.random().substringAfter("in ").substringAfter("out ")
+    val withoutVariantTypeParams = typeParamsWithoutBounds.filter { !it.contains("in ") && !it.contains("out ") }
+    if (withoutVariantTypeParams.isEmpty()) return "$this"
+    val typeParamsWithoutBoundsAndModifiers =
+        withoutVariantTypeParams.map { it.substringBefore(':').substringAfter("in ").substringAfter("out ") }
+    if (kotlin.random.Random.getTrue(20)) return typeParamsWithoutBoundsAndModifiers.random()
+    return if (this.arguments.isNotEmpty()) {
+        this.toString().substringBefore('<') + this.arguments.joinToString(prefix = "<", postfix = ">") {
+            if (kotlin.random.Random.getTrue(40)) typeParamsWithoutBoundsAndModifiers.random() else it.toString()
+        }
+    } else this.toString()
+}
+
+fun KotlinType.getMinModifier() =
+    this
+        .let { listOf(it) + it.getAllTypeArgs().map { it.type } }
+        .map { it.constructor.declarationDescriptor }
+        .mapNotNull { (it as? ClassDescriptor)?.visibility }
+        .minWithOrNull { t: DescriptorVisibility, t2: DescriptorVisibility -> t.compareTo(t2) ?: 0 }
+        ?.name ?: "public"
+
+
+fun compareDescriptorVisibilitiesAsStrings(v1: String, v2: String): Int {
+    return when {
+        v1 == v2 -> 0
+        v1 == "public" -> -1
+        v2 == "public" -> 1
+        v1 == "" -> -1
+        v2 == "" -> 1
+        v1 == "internal" -> -1
+        v2 == "internal" -> 1
+        else -> 0
+    }
+}
+
+fun generateVisibilityModifier(minModifier: String)=
+    when (minModifier) {
+        "public" -> listOf("internal", "private", "public").random()
+        "internal" -> listOf("internal", "private").random()
+        "private" -> "private"
+        else -> listOf("internal", "private", "public").random()
+    }
+
+fun KtProperty.getVisibility() =
+        when {
+            this.text.contains("public") -> "public"
+            this.text.contains("private") -> "private"
+            this.text.contains("internal") -> "internal"
+            this.text.contains("protected") -> "protected"
+            else -> "public"
+        }

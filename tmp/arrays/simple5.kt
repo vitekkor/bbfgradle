@@ -1,7 +1,24 @@
-// IGNORE_BACKEND_FIR: JVM_IR
+// TARGET_BACKEND: JVM
+// FILE: Base.java
+
+public interface Base {
+    String getValue();
+
+    default String test() {
+        return getValue();
+    }
+}
+
+// FILE: main.kt
+// JVM_TARGET: 1.8
+
+class Fail : Base {
+    override fun getValue() = "Fail"
+}
 
 fun box(): String {
-    val x: CharSequence = ""
-    val klass = x::class
-    return if (klass == String::class) "OK" else "Fail: $klass"
+    val z = object : Base by Fail() {
+        override fun getValue() = "OK"
+    }
+    return z.test()
 }

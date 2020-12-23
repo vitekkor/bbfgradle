@@ -3,9 +3,10 @@ package com.stepanov.bbf.bugfinder.executor.compilers
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.CompilingResult
+import com.stepanov.bbf.bugfinder.executor.project.Directives
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.bugfinder.util.copyFullJarImpl
-import com.stepanov.bbf.bugfinder.util.copyJarImpl
 import com.stepanov.bbf.bugfinder.util.writeRuntimeToJar
 import com.stepanov.bbf.reduktor.executor.KotlincInvokeStatus
 import com.stepanov.bbf.reduktor.util.MsgCollector
@@ -13,103 +14,46 @@ import org.apache.commons.io.FileUtils
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
+import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
-import org.jetbrains.kotlin.config.IncrementalCompilation
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.Services
-import org.jetbrains.kotlin.utils.PathUtil
 import java.io.File
-import java.io.FileOutputStream
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.jar.JarInputStream
 import java.util.jar.JarOutputStream
+import kotlin.system.exitProcess
 
 open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
     override val compilerInfo: String
         get() = "JVM $arguments"
 
-    override val pathToCompiled: String
-        get() = "tmp/tmp.jar"
+    override var pathToCompiled: String = "tmp/tmp.jar"
+        //get() =
 
 
-    override fun checkCompiling(pathToFile: String): Boolean {
-        val status = tryToCompile(pathToFile)
+    override fun checkCompiling(project: Project): Boolean {
+        val status = tryToCompile(project)
         return !MsgCollector.hasCompileError && !status.hasTimeout && !MsgCollector.hasException
     }
 
-    override fun getErrorMessageWithLocation(pathToFile: String): Pair<String, List<CompilerMessageLocation>> {
-        val status = tryToCompile(pathToFile)
+    override fun getErrorMessageWithLocation(project: Project): Pair<String, List<CompilerMessageSourceLocation>> {
+        val status = tryToCompile(project)
         return status.combinedOutput to status.locations
     }
 
-    override fun isCompilerBug(pathToFile: String): Boolean =
-        tryToCompile(pathToFile).hasException
+    override fun isCompilerBug(project: Project): Boolean =
+        tryToCompile(project).hasException
 
-//    override fun compile(path: String): CompilingResult {
-//        val kotlinc = CompilerArgs.pathToKotlinc
-//        val command =
-//            if (arguments.isEmpty())
-//                "$kotlinc $path -include-runtime -d $pathToCompiled"
-//            else
-//                "$kotlinc $path -include-runtime $arguments -d $pathToCompiled"
-//        val status: String
-//        try {
-//            status = commonExec(command, Stream.BOTH)
-//        } catch (e: Exception) {
-//            return CompilingResult(-1, "")
-//        }
-//        return if (analyzeErrorMessage(status)) CompilingResult(
-//            0,
-//            pathToCompiled
-//        ) else CompilingResult(-1, "")
-//    }
-
-
-    override fun compile(path: String, includeRuntime: Boolean): CompilingResult {
-        val threadPool = Executors.newCachedThreadPool()
+    override fun compile(project: Project, includeRuntime: Boolean): CompilingResult {
+        val projectWithMainFun = project.addMain()
+        val path = projectWithMainFun.saveOrRemoveToTmp(true)
         val tmpJar = "$pathToCompiled.jar"
-
-        val args = if (arguments.isEmpty())
-            "$path -d $tmpJar"
-        else
-            "$path $arguments -d $tmpJar"
-        val compiler = K2JVMCompiler()
-        val compilerArgs =
-            K2JVMCompilerArguments().apply { K2JVMCompiler().parseArguments(args.split(" ").toTypedArray(), this) }
-        if (CompilerArgs.classpath.isNotEmpty())
-            compilerArgs.classpath = CompilerArgs.classpath
-        else
-            compilerArgs.classpath =
-                "${CompilerArgs.jvmStdLibPaths.joinToString(
-                    postfix = ":",
-                    separator = ":"
-                )}:${System.getProperty("java.class.path")}"
-
-        compilerArgs.jdkHome = CompilerArgs.jdkHome
-        compilerArgs.jvmTarget = CompilerArgs.jvmTarget
-        IncrementalCompilation.setIsEnabledForJvm(true)
-
-        val services = Services.EMPTY
-        MsgCollector.clear()
-        val futureExitCode = threadPool.submit {
-            compiler.exec(MsgCollector, services, compilerArgs)
-        }
-        var hasTimeout = false
-        try {
-            futureExitCode.get(10L, TimeUnit.SECONDS)
-        } catch (ex: TimeoutException) {
-            hasTimeout = true
-            futureExitCode.cancel(true)
-        }
-
-        val status = KotlincInvokeStatus(
-            MsgCollector.crashMessages.joinToString("\n") +
-                    MsgCollector.compileErrorMessages.joinToString("\n"),
-            !MsgCollector.hasCompileError,
-            MsgCollector.hasException,
-            hasTimeout
-        )
+        val args = prepareArgs(projectWithMainFun, path, tmpJar)
+        val status = executeCompiler(projectWithMainFun, args)
         if (status.hasException || status.hasTimeout || !status.isCompileSuccess) return CompilingResult(-1, "")
         val res = File(pathToCompiled)
         val input = JarInputStream(File(tmpJar).inputStream())
@@ -123,36 +67,40 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
         return CompilingResult(0, pathToCompiled)
     }
 
-    override fun tryToCompile(pathToFile: String): KotlincInvokeStatus {
-        val threadPool = Executors.newCachedThreadPool()
-        val trashDir = "tmp/trash/"
-        //Clean dir
-        if (File(trashDir).exists())
-            FileUtils.cleanDirectory(File(trashDir))
-        val args =
+    private fun prepareArgs(project: Project, path: String, destination: String): K2JVMCompilerArguments {
+        val destFile = File(destination)
+        if (destFile.isFile) destFile.delete()
+        else if (destFile.isDirectory) FileUtils.cleanDirectory(destFile)
+        val projectArgs = project.getProjectSettingsAsCompilerArgs("JVM") as K2JVMCompilerArguments
+        val compilerArgs =
             if (arguments.isEmpty())
-                "$pathToFile -d $trashDir".split(" ")
+                "$path -d $destination".split(" ")
             else
-                "$pathToFile $arguments -d $trashDir".split(" ")
+                "$path $arguments -d $destination".split(" ")
+        projectArgs.apply { K2JVMCompiler().parseArguments(compilerArgs.toTypedArray(), this) }
+        //projectArgs.compileJava = true
+        projectArgs.classpath =
+            "${CompilerArgs.jvmStdLibPaths.joinToString(
+                separator = ":"
+            )}:${System.getProperty("java.class.path")}"
+                .split(":")
+                .filter { it.isNotEmpty() }
+                .toSet().toList()
+                .joinToString(":")
+        projectArgs.jvmTarget = "1.8"
+        projectArgs.optIn = arrayOf("kotlin.ExperimentalStdlibApi", "kotlin.contracts.ExperimentalContracts")
+        if (project.configuration.jvmDefault.isNotEmpty())
+            projectArgs.jvmDefault = project.configuration.jvmDefault.substringAfter(Directives.jvmDefault)
+        return projectArgs
+    }
+
+    private fun executeCompiler(project: Project, args: K2JVMCompilerArguments): KotlincInvokeStatus {
         val compiler = K2JVMCompiler()
-        val compilerArgs = K2JVMCompilerArguments().apply { K2JVMCompiler().parseArguments(args.toTypedArray(), this) }
-        if (CompilerArgs.classpath.isNotEmpty())
-            compilerArgs.classpath = CompilerArgs.classpath
-        else
-            compilerArgs.classpath =
-                "${CompilerArgs.jvmStdLibPaths.joinToString(
-                    postfix = ":",
-                    separator = ":"
-                )}:${System.getProperty("java.class.path")}"
-
-        compilerArgs.jdkHome = CompilerArgs.jdkHome
-        compilerArgs.jvmTarget = CompilerArgs.jvmTarget
-        IncrementalCompilation.setIsEnabledForJvm(true)
-
         val services = Services.EMPTY
         MsgCollector.clear()
+        val threadPool = Executors.newCachedThreadPool()
         val futureExitCode = threadPool.submit {
-            compiler.exec(MsgCollector, services, compilerArgs)
+            compiler.exec(MsgCollector, services, args)
         }
         var hasTimeout = false
         try {
@@ -160,10 +108,12 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
         } catch (ex: TimeoutException) {
             hasTimeout = true
             futureExitCode.cancel(true)
+        } finally {
+            project.saveOrRemoveToTmp(false)
         }
         val status = KotlincInvokeStatus(
             MsgCollector.crashMessages.joinToString("\n") +
-            MsgCollector.compileErrorMessages.joinToString("\n"),
+                    MsgCollector.compileErrorMessages.joinToString("\n"),
             !MsgCollector.hasCompileError,
             MsgCollector.hasException,
             hasTimeout,
@@ -172,7 +122,21 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
         return status
     }
 
-    override fun exec(path: String, streamType: Stream): String = commonExec("java -jar $path", streamType)
+    override fun tryToCompile(project: Project): KotlincInvokeStatus {
+        val path = project.saveOrRemoveToTmp(true)
+        val trashDir = "${CompilerArgs.pathToTmpDir}/trash/"
+        val args = prepareArgs(project, path, trashDir)
+        return executeCompiler(project, args)
+    }
+
+    override fun exec(path: String, streamType: Stream): String {
+        val mainClass = JarInputStream(File(path).inputStream()).manifest.mainAttributes.getValue("Main-class")
+        return commonExec(
+            "java -classpath ${CompilerArgs.jvmStdLibPaths.joinToString(":")}:$path $mainClass",
+            streamType
+        )
+    }
+        //commonExec("java -classpath ${CompilerArgs.jvmStdLibPaths.joinToString(":")} -jar $path", streamType)
 
     private fun analyzeErrorMessage(msg: String): Boolean = !msg.split("\n").any { it.contains(": error:") }
 

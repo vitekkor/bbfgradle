@@ -1,5 +1,3 @@
-// IGNORE_BACKEND_FIR: JVM_IR
-// SKIP_JDK6
 // TARGET_BACKEND: JVM
 // FILE: JavaCall.java
 
@@ -25,7 +23,11 @@ interface Test {
 }
 
 // FILE: sam.kt
+// JVM_TARGET: 1.8
 
 fun box(): String {
+    val lambda = { "X" }
+    if (JavaCall().call(lambda) != "X") return "Fail"
+
     return JavaCall().call {"OK"}
 }

@@ -8,13 +8,14 @@ import org.jetbrains.kotlin.psi.psiUtil.parents
 import com.stepanov.bbf.bugfinder.util.getAllChildrenOfTheLevel
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getRandomBoolean
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 //Change extension to smth?
 class ChangeSmthToExtension : Transformation() {
 
     override fun transform() {
         file.getAllPSIChildrenOfType<KtProperty>()
-                .filter { it.parents.any { p -> p is KtClass } /*&& getRandomBoolean(2)*/ }
+                .filter { it.parents.any { p -> p is KtClass } && getRandomBoolean(2) }
                 .forEach {
                     val kl = it.parents.find { p -> p is KtClass } ?: return@forEach
                     val klass = kl as KtClass
@@ -28,7 +29,7 @@ class ChangeSmthToExtension : Transformation() {
                     //file.node.removeChild(it.node)
                     klass.parent.node.addChild(newProp.node, null)
                     klass.parent.node.addChild(psiFactory.createWhiteSpace("\n").node, null)
-                    if (!checker.checkCompiling(file)) {
+                    if (!checker.checkCompilingWithBugSaving(file)) {
                         children.forEach { it1 -> it.node.addChild(it1, null) }
                         file.node.removeChild(newProp.node)
                     } else {
@@ -55,7 +56,7 @@ class ChangeSmthToExtension : Transformation() {
                     //file.node.removeChild(it.node)
                     klass.parent.node.addChild(newFun.node, null)
                     klass.parent.node.addChild(psiFactory.createWhiteSpace("\n").node, null)
-                    if (!checker.checkCompiling(file)) {
+                    if (!checker.checkCompilingWithBugSaving(file)) {
                         children.forEach { it1 -> it.node.addChild(it1, null) }
                         file.node.removeChild(newFun.node)
                     } else {

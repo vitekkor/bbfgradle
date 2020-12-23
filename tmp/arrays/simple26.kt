@@ -1,7 +1,19 @@
-// IGNORE_BACKEND_FIR: JVM_IR
-// KJS_WITH_FULL_RUNTIME
-fun StringBuilder.first() = this.get(0)
+// TARGET_BACKEND: JVM
 
-fun foo() = StringBuilder("foo").first()
+// WITH_RUNTIME
+// FILE: Bar.java
 
-fun box() = if (foo() == 'f') "OK" else "Fail ${foo()}"
+public class Bar {
+    public static String bar() {
+        return Foo.foo();
+    }
+}
+
+// FILE: foo.kt
+
+@file:JvmName("Foo")
+public fun foo(): String = "OK"
+
+// FILE: simple.kt
+
+fun box(): String = Bar.bar()

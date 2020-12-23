@@ -1,69 +1,34 @@
-// IGNORE_BACKEND_MULTI_MODULE: JVM_IR
-// FILE: 1.kt
-// SKIP_INLINE_CHECK_IN: inlineFun$default
+// !LANGUAGE: +ReleaseCoroutines
+// NO_CHECK_LAMBDA_INLINING
+// FILE: test.kt
 
+inline suspend fun foo(x: suspend () -> String) = x()
 
-package test
-inline fun inlineFun(capturedParam: String, lambda: () -> String = { capturedParam }): String {
-    return lambda()
+// FILE: box.kt
+// WITH_RUNTIME
+// WITH_COROUTINES
+
+import helpers.ContinuationAdapter
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
+
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(object: ContinuationAdapter<Unit>() {
+        override fun resume(value: Unit) {
+        }
+
+        override fun resumeWithException(exception: Throwable) {
+            throw exception
+        }
+    })
 }
 
-// FILE: 2.kt
-
-import test.*
+suspend fun String.id() = this
 
 fun box(): String {
-    return inlineFun("OK")
+    var res = ""
+    builder {
+        res = foo("OK"::id)
+    }
+    return res
 }
-
-// FILE: 1.smap
-//TODO maybe do smth with default method body mapping
-SMAP
-1.kt
-Kotlin
-*S Kotlin
-*F
-+ 1 1.kt
-test/_1Kt
-*L
-1#1,11:1
-8#1:12
-*E
-
-SMAP
-1.kt
-Kotlin
-*S Kotlin
-*F
-+ 1 1.kt
-test/_1Kt$inlineFun$1
-*L
-1#1,11:1
-*E
-
-// FILE: 2.smap
-
-SMAP
-2.kt
-Kotlin
-*S Kotlin
-*F
-+ 1 2.kt
-_2Kt
-+ 2 1.kt
-test/_1Kt
-+ 3 1.kt
-test/_1Kt$inlineFun$1
-*L
-1#1,9:1
-7#2,2:10
-7#3:12
-*E
-*S KotlinDebug
-*F
-+ 1 2.kt
-_2Kt
-*L
-6#1,2:10
-6#1:12
-*E

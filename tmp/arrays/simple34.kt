@@ -1,16 +1,7 @@
-// FILE: 1.kt
-// SKIP_INLINE_CHECK_IN: inlineFun$default
-package test
+typealias S = String
 
-inline fun inlineFun(capturedParam: String, lambda: () -> String = { capturedParam }): String {
-    return lambda()
-}
+typealias SF<T> = (T) -> S
 
-// FILE: 2.kt
-// CHECK_CONTAINS_NO_CALLS: box
+val f: SF<S> = { it }
 
-import test.*
-
-fun box(): String {
-    return inlineFun("OK")
-}
+fun box(): S = f("OK")

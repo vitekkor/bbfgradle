@@ -14,8 +14,9 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.source.tree.TreeCopyHandler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.kootstrap.FooBarCompiler
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyCfg
+import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyEnv
 import com.stepanov.bbf.kootstrap.util.opt
 import com.stepanov.bbf.kootstrap.util.targetRoots
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
@@ -31,6 +32,7 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import java.io.File
 
 
+@Suppress("DEPRECATION")
 class PSICreator(var projectDir: String) {
 
     fun getPSI(): List<KtFile> {
@@ -39,6 +41,7 @@ class PSICreator(var projectDir: String) {
         val cmd = opt.parse(new_args)
         cfg = setupMyCfg(cmd)
         env = setupMyEnv(cfg)
+
 
         if (!Extensions.getRootArea().hasExtensionPoint(TreeCopyHandler.EP_NAME.name)) {
             Extensions.getRootArea().registerExtensionPoint(
@@ -73,15 +76,19 @@ class PSICreator(var projectDir: String) {
             cfg,
             EnvironmentConfigFiles.JVM_CONFIG_FILES
         )
+        val project = env.project as MockProject
+        project.registerService(
+            TreeAspect::class.java,
+            TreeAspect()
+        )
 
         class MyPomModelImpl(env: KotlinCoreEnvironment) : PomModelImpl(env.project) {
             override fun runTransaction(pt: PomTransaction) = pt.run()
         }
 
-        val pomModel = MyPomModelImpl(env)
-        TreeAspect(pomModel)
 
-        val project = env.project as MockProject
+        val pomModel = MyPomModelImpl(env)
+
         project.registerService(
             PomModel::class.java,
             pomModel
@@ -108,7 +115,7 @@ class PSICreator(var projectDir: String) {
         }
     }
 
-    fun getPsiForJava(text: String, proj: Project) =
+    fun getPsiForJava(text: String, proj: Project = Factory.file.project) =
         PsiFileFactory.getInstance(proj).createFileFromText(JavaLanguage.INSTANCE, text)
 
     fun reinit(projectDir: String): List<KtFile> {
@@ -186,19 +193,84 @@ class PSICreator(var projectDir: String) {
         configuration.put(
             JSConfigurationKeys.LIBRARIES, listOf(
                 CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
-                CompilerArgs.getStdLibPath("kotlin-test-js")
+                CompilerArgs.getStdLibPath("kotlin-test-js"),
+                CompilerArgs.getStdLibPath("kotlin-test"),
+                CompilerArgs.getStdLibPath("kotlin-test-common"),
+                CompilerArgs.getStdLibPath("kotlin-test-annotations-common"),
+                CompilerArgs.getStdLibPath("kotlin-test-junit"),
+                CompilerArgs.getStdLibPath("kotlin-reflect")
             )
         )
 
         if (generateCtx) {
             try {
-                ctx = TopDownAnalyzerFacadeForJS.analyzeFiles(listOf(file), JsConfig(env.project, configuration))
-                    .bindingContext
+                val tmpCtx =
+                    TopDownAnalyzerFacadeForJS.analyzeFiles(listOf(file), JsConfig(env.project, configuration)).bindingContext
+                ctx = tmpCtx
             } catch (e: Throwable) {
+                ctx = null
                 return targetFiles.first()
             }
         }
         return targetFiles.first()
+    }
+
+    companion object {
+        fun analyze(psiFile: PsiFile): BindingContext? {
+            try {
+                val cmd = opt.parse(arrayOf())
+
+                val cfg = setupMyCfg(cmd)
+                val env = setupMyEnv(cfg)
+                val configuration = env.configuration.copy()
+
+                configuration.put(JSConfigurationKeys.LIBRARIES, JsConfig.JS_STDLIB)
+                configuration.put(CommonConfigurationKeys.MODULE_NAME, "root")
+
+                configuration.put(
+                    JSConfigurationKeys.LIBRARIES, listOf(
+                        CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
+                        CompilerArgs.getStdLibPath("kotlin-test-js"),
+                        CompilerArgs.getStdLibPath("kotlin-test"),
+                        CompilerArgs.getStdLibPath("kotlin-test-common"),
+                        CompilerArgs.getStdLibPath("kotlin-test-annotations-common"),
+                        CompilerArgs.getStdLibPath("kotlin-test-junit"),
+                        CompilerArgs.getStdLibPath("kotlin-reflect")
+                    )
+                )
+//                val sourcesOnly = TopDownAnalyzerFacadeForJVM.newModuleSearchScope(psiFile.project, listOf(psiFile as KtFile))
+//                return TopDownAnalyzerFacadeForJVM.analyzeFilesWithJavaIntegration(
+//                    psiFile.project,
+//                    listOf(psiFile as KtFile),
+//                    NoScopeRecordCliBindingTrace(),
+//                    env.configuration,
+//                    env::createPackagePartProvider
+//                    //{ scope -> JvmPackagePartProvider(LANGUAGE_FEATURE_SETTINGS, scope) }
+//                ).bindingContext
+                return TopDownAnalyzerFacadeForJS.analyzeFiles(
+                    (listOf(psiFile as KtFile)),
+                    JsConfig(env.project, configuration)
+                ).bindingContext
+            } catch (e: Exception) {
+                return null
+            }
+        }
+    }
+
+    fun updateCtx() {
+        val configuration = env.configuration.copy()
+
+        configuration.put(JSConfigurationKeys.LIBRARIES, JsConfig.JS_STDLIB)
+        configuration.put(CommonConfigurationKeys.MODULE_NAME, "sample")
+
+        configuration.put(
+            JSConfigurationKeys.LIBRARIES, listOf(
+                CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
+                CompilerArgs.getStdLibPath("kotlin-test-js")
+            )
+        )
+        ctx = TopDownAnalyzerFacadeForJS.analyzeFiles(listOf(targetFiles.first()), JsConfig(env.project, configuration))
+            .bindingContext
     }
 
     var targetFiles: List<KtFile> = listOf()
