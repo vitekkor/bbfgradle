@@ -121,6 +121,9 @@ object CompilerArgs {
     val isMiscompilationMode = getPropAsBoolean("MISCOMPILATION_MODE")
     val isStrictMode = getPropAsBoolean("STRICT_MODE")
 
+    //Instrumentation
+    val isInstrumentationMode = getPropAsBoolean("WITH_INSTRUMENTATION")
+
     //ABI
     val isABICheckMode = getPropAsBoolean("ABI_CHECK_MODE")
     val ignoreMissingClosureConvertedMethod = getPropAsBoolean("IGNORE_MISSING_CLOSURE_CONVERTED_METHOD")
