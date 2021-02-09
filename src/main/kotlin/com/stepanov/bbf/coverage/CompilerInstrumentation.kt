@@ -1,8 +1,11 @@
 package com.stepanov.bbf.coverage
 
 import org.objectweb.asm.Opcodes
+import ru.spbstu.wheels.toMap
 import kotlin.IllegalArgumentException
 
+// TODO Create some sort of verification that both CompilerInstrumentation files are identical.
+// (or, alternatively, come up with a solution that doesn't require having two identical source files)
 object CompilerInstrumentation {
 
     enum class CoverageType {

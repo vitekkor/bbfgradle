@@ -4,7 +4,7 @@ import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GStructure
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.Modality
@@ -48,7 +48,7 @@ internal open class ClassBodyGenerator(
         if (specifiers.isEmpty()) return ""
         val res = StringBuilder()
         val filteredMembers = specifiers.flatMap { specifier ->
-            val membersToOverride = UsageSamplesGeneratorWithStLibrary.getMembersToOverride(specifier)
+            val membersToOverride = StdLibraryGenerator.getMembersToOverride(specifier)
             if (gClass.let { it.isInterface() || it.isAbstract() })
                 membersToOverride.filter { Random.getTrue(30) }
             else

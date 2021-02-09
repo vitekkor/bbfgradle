@@ -17,16 +17,31 @@ import kotlin.contracts.contract
 data class BBFFile(val name: String, var psiFile: PsiFile, var ctx: BindingContext? = null) {
 
     fun getLanguage(): LANGUAGE {
-        return if (name.endsWith(".java")) LANGUAGE.JAVA else LANGUAGE.KOTLIN
+        return when {
+            name.endsWith(".java") -> LANGUAGE.JAVA
+            name.endsWith(".kt") -> LANGUAGE.KOTLIN
+            else -> LANGUAGE.UNKNOWN
+        }
     }
 
-    fun changePsiFile(newPsiFile: PsiFile) = changePsiFile(newPsiFile.text)
+    fun changePsiFile(newPsiFile: PsiFile, genCtx: Boolean = false) {
+        if (!genCtx) {
+            this.psiFile = newPsiFile
+            this.ctx = null
+        } else {
+            changePsiFile(newPsiFile.text)
+        }
+    }
 
-    fun changePsiFile(newPsiFileText: String, checkCorrectness: Boolean = true) {
-        val (psiFile, ctx) = createPSI(newPsiFileText)
-        if (checkCorrectness) require(!psiFile.containsChildOfType<PsiErrorElement>())
+    fun changePsiFile(newPsiFileText: String, checkCorrectness: Boolean = true, genCtx: Boolean = false): Boolean {
+        val (psiFile, ctx) = createPSI(newPsiFileText, genCtx)
+        if (checkCorrectness && psiFile.containsChildOfType<PsiErrorElement>()) {
+            println("NOT CORRECT")
+            return false
+        }
         this.psiFile = psiFile
         this.ctx = ctx
+        return true
     }
 
     fun isPsiWrong(): Boolean =
@@ -81,6 +96,8 @@ internal class BBFFileFactory(
                 }
             }
         } catch (e: Throwable) {
+            println(e)
+            println(e.stackTraceToString())
             return null
         }
     }
@@ -130,7 +147,7 @@ internal class BBFFileFactory(
 //        return if (modules.size > 1)
 //            modules
 //        else
-            return splitByFragments(text, Directives.file)
+        return splitByFragments(text, Directives.file)
     }
 
     private fun createKtFileWithCtx(text: String): Pair<PsiFile, BindingContext?> {

@@ -11,7 +11,6 @@ import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.builtins.isExtensionFunctionType
 import org.jetbrains.kotlin.builtins.isFunctionOrSuspendFunctionType
-import org.jetbrains.kotlin.builtins.isFunctionType
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
@@ -26,7 +25,6 @@ import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.*
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 open class RandomInstancesGenerator(private val file: KtFile) {
 
@@ -173,7 +171,7 @@ open class RandomInstancesGenerator(private val file: KtFile) {
             val strRepresentation = klass.name + typeParams
             val kType = KotlinTypeCreator.createType(file, strRepresentation)!!
             val impl =
-                UsageSamplesGeneratorWithStLibrary.findImplementationFromFile(kType, true).randomOrNull()
+                StdLibraryGenerator.findImplementationFromFile(kType, true).randomOrNull()
                     ?: return Factory.psiFactory.createExpression("TODO()")
             val superTypeEntry =
                 impl.typeConstructor.supertypes.find { it.toString().substringBefore('<') == klass.name }
@@ -314,7 +312,7 @@ open class RandomInstancesGenerator(private val file: KtFile) {
             val res = generateRandomInstanceOfClass(it, type.arguments, depth + 1)
             return res?.text ?: ""
         }
-        if (type.isEnum()) return UsageSamplesGeneratorWithStLibrary.findEnumMembers(type).randomOrNull()?.toString()
+        if (type.isEnum()) return StdLibraryGenerator.findEnumMembers(type).randomOrNull()?.toString()
             ?: ""
         if (type.isPrimitiveTypeOrNullablePrimitiveTypeOrString())
             generateDefValuesAsString(type.toString()).let { if (it.isNotEmpty()) return it }
@@ -334,7 +332,7 @@ open class RandomInstancesGenerator(private val file: KtFile) {
     }
 
     private fun searchForImplementation(type: KotlinType, depth: Int, onlyImpl: Boolean = false): String {
-        var funcs = UsageSamplesGeneratorWithStLibrary.searchForFunWithRetType(type.makeNotNullable())
+        var funcs = StdLibraryGenerator.searchForFunWithRetType(type.makeNotNullable())
         if (type.getAllTypeArgs().any { it.type.isInterface() })
             funcs = funcs.filter { it.valueParameters.all { !it.type.isTypeParameter() } }
         funcs = funcs.filter { it.extensionReceiverParameter == null }
@@ -343,25 +341,26 @@ open class RandomInstancesGenerator(private val file: KtFile) {
 //            funcs.filter { it.extensionReceiverParameter == null }
 //        else
 //            funcs.filter { it.extensionReceiverParameter?.value?.type?.arguments?.isEmpty() ?: true } //TODO
-        val implementations = UsageSamplesGeneratorWithStLibrary.findImplementationOf(type.makeNotNullable())
+        val implementations = StdLibraryGenerator.findImplementationOf(type.makeNotNullable())
         //TODO fix this
         if (type.toString().startsWith("Sequence")) funcs = listOf(funcs[1], funcs.last())
         val prob = if (funcs.size > implementations.size) 75 else 25
         //TODO!! only for ABI fuzzing
-        val el = if (CompilerArgs.isABICheckMode) {
-            val sortedFuncs = funcs.sortedBy { it.valueParameters.size }
-            when {
-                onlyImpl -> implementations.randomOrNull()
-                Random.getTrue(prob) -> sortedFuncs.firstOrNull() ?: implementations.randomOrNull()
-                else -> implementations.randomOrNull() ?: sortedFuncs.firstOrNull()
+        val el =
+            if (CompilerArgs.isABICheckMode) {
+                val sortedFuncs = funcs.sortedBy { it.valueParameters.size }
+                when {
+                    onlyImpl -> implementations.randomOrNull()
+                    Random.getTrue(prob) -> sortedFuncs.firstOrNull() ?: implementations.randomOrNull()
+                    else -> implementations.randomOrNull() ?: sortedFuncs.firstOrNull()
+                }
+            } else {
+                when {
+                    onlyImpl -> implementations.randomOrNull()
+                    Random.getTrue(prob) -> funcs.randomOrNull() ?: implementations.randomOrNull()
+                    else -> implementations.randomOrNull() ?: funcs.randomOrNull()
+                }
             }
-        } else {
-            when {
-                onlyImpl -> implementations.randomOrNull()
-                Random.getTrue(prob) -> funcs.randomOrNull() ?: implementations.randomOrNull()
-                else -> implementations.randomOrNull() ?: funcs.randomOrNull()
-            }
-        }
         if (el is ClassDescriptor && el.defaultType.isPrimitiveTypeOrNullablePrimitiveTypeOrString())
             return generateDefValuesAsString(el.name.asString())
         randomTypeGenerator.setFileAndContext(file, ctx)

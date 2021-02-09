@@ -30,7 +30,7 @@ import kotlin.random.Random
 import kotlin.streams.toList
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
-class AddNodesFromAnotherFiles : Transformation() {
+class TCETransformation : Transformation() {
 
     private val blockListOfTypes = listOf("Unit", "Nothing", "Nothing?")
     private val randomConst = 3
@@ -42,19 +42,6 @@ class AddNodesFromAnotherFiles : Transformation() {
         for (i in 0 until randomConst) {
             log.debug("AFTER TRY $i res = ${psi.text}")
             usageExamples = collectUsageCases()
-//            val ctx = PSICreator.analyze(psi)!!
-//            replaceNodesOfFile(
-//                psi.getAllPSIChildrenOfType<KtNamedFunction>()[1].getAllPSIChildrenOfType<KtExpression>(),
-//                ctx
-//            )
-//            println("RES = ${psi.text}")
-//            val ctx777 = PSICreator.analyze(psi)!!
-//            replaceNodesOfFile(
-//                psi.getAllPSIChildrenOfType<KtNamedFunction>()[1].getAllPSIChildrenOfType<KtExpression>(),
-//                ctx777
-//            )
-//            println("RES 2 = ${psi.text}")
-//            System.exit(0)
             log.debug("Try №$i")
             val line = File("database.txt").bufferedReader().lines().toList().find { it.startsWith("FUN") }!!//.random()
             val randomType = line.takeWhile { it != ' ' }

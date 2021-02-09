@@ -7,6 +7,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
+import com.intellij.util.IncorrectOperationException
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.reduktor.util.getAllChildren
@@ -19,6 +20,8 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
+import org.jetbrains.kotlin.psi.psiUtil.parents
+import org.jetbrains.kotlin.psi.psiUtil.siblings
 import org.jetbrains.kotlin.resolve.ImportPath
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.*
@@ -384,6 +387,9 @@ fun <T, R : Comparable<R>> List<T>.removeDuplicatesBy(f: (T) -> R): List<T> {
     return res.map { it.first }
 }
 
+fun <T> List<T>.subList(range: Pair<Int, Int>) = this.subList(range.first, range.second)
+fun <T> List<T>.subList(range: IntRange) = this.subList(range.first, range.last)
+
 fun KtBlockExpression.addProperty(prop: KtProperty): PsiElement? {
     val factory = KtPsiFactory(this.project)
     val firstStatement = this.firstStatement ?: this.rBrace ?: return null
@@ -405,16 +411,15 @@ fun PsiFile.addToTheEnd(psiElement: PsiElement): PsiElement {
     }
 }
 
-//Triple(el, whitespace, whitespace)
-fun PsiElement.addAfterWithWhitespace(psiElement: PsiElement): Triple<PsiElement, PsiElement?, PsiElement?> {
-    try {
-        val placeToInsert = this.allChildren.lastOrNull() ?: return Triple(this, null, null)
-        val wh1 = placeToInsert.add(Factory.psiFactory.createWhiteSpace("\n"))
+fun PsiElement.addAfterWithWhitespace(psiElement: PsiElement, whiteSpace: String): PsiElement {
+    return try {
+        val placeToInsert = this.allChildren.lastOrNull() ?: this
+        placeToInsert.add(Factory.psiFactory.createWhiteSpace(whiteSpace))
         val res = placeToInsert.add(psiElement)
-        val wh2 = placeToInsert.add(Factory.psiFactory.createWhiteSpace("\n"))
-        return Triple(res, wh1, wh2)
-    } catch (e: Exception) {
-        return Triple(this, null, null)
+        placeToInsert.add(Factory.psiFactory.createWhiteSpace(whiteSpace))
+        res
+    } catch (e: IncorrectOperationException) {
+        this
     }
 }
 
@@ -433,9 +438,9 @@ fun KtFile.addImport(import: String, isAllUnder: Boolean) {
 
 fun KtFile.addImport(importDir: KtImportDirective) {
     if (this.importDirectives.any { it.text == importDir.text }) return
-        this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
-        this.importList?.add(importDir)
-        this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
+    this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
+    this.importList?.add(importDir)
+    this.importList?.add(KtPsiFactory(this.project).createWhiteSpace("\n"))
 }
 
 fun String.getFileLanguageIfExist(): LANGUAGE? {
@@ -545,7 +550,7 @@ fun compareDescriptorVisibilitiesAsStrings(v1: String, v2: String): Int {
     }
 }
 
-fun generateVisibilityModifier(minModifier: String)=
+fun generateVisibilityModifier(minModifier: String) =
     when (minModifier) {
         "public" -> listOf("internal", "private", "public").random()
         "internal" -> listOf("internal", "private").random()
@@ -554,10 +559,10 @@ fun generateVisibilityModifier(minModifier: String)=
     }
 
 fun KtProperty.getVisibility() =
-        when {
-            this.text.contains("public") -> "public"
-            this.text.contains("private") -> "private"
-            this.text.contains("internal") -> "internal"
-            this.text.contains("protected") -> "protected"
-            else -> "public"
-        }
+    when {
+        this.text.contains("public") -> "public"
+        this.text.contains("private") -> "private"
+        this.text.contains("internal") -> "internal"
+        this.text.contains("protected") -> "protected"
+        else -> "public"
+    }

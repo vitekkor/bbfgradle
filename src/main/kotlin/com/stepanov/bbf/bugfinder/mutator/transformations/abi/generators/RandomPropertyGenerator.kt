@@ -1,19 +1,15 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
 import com.intellij.psi.PsiElement
-import com.intellij.psi.tree.TokenSet
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GStructure
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.backend.common.serialization.findPackage
 import org.jetbrains.kotlin.descriptors.*
-import org.jetbrains.kotlin.lexer.KtModifierKeywordToken
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.psi.psiUtil.visibilityModifier
-import org.jetbrains.kotlin.psi.psiUtil.visibilityModifierType
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
@@ -23,7 +19,6 @@ import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isNullable
 import org.jetbrains.kotlin.types.typeUtil.makeNotNullable
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 //TODO make generation through GProperty
 class RandomPropertyGenerator(
@@ -68,7 +63,7 @@ class RandomPropertyGenerator(
     fun generateDelegate(): Pair<PsiElement, KotlinType?>? {
         if (gClass.isInline()) return null
         val delegates =
-            UsageSamplesGeneratorWithStLibrary.klasses.find { it.name.asString() == "Delegates" }
+            StdLibraryGenerator.klasses.find { it.name.asString() == "Delegates" }
                 ?.defaultType?.memberScope?.getDescriptorsFiltered { true }
                 ?.filterIsInstance<FunctionDescriptor>()
                 ?.filter { it.kind != CallableMemberDescriptor.Kind.FAKE_OVERRIDE }

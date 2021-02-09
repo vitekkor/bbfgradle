@@ -1,8 +1,12 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
+import com.intellij.util.IncorrectOperationException
 import com.stepanov.bbf.bugfinder.util.*
+import com.stepanov.bbf.reduktor.util.getAllChildren
+import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
+import java.lang.Exception
 import kotlin.random.Random
 import kotlin.streams.toList
 import kotlin.system.exitProcess
@@ -11,30 +15,49 @@ class AddRandomNode : Transformation() {
     override fun transform() {
         val randConst = Random.nextInt(numOfTries.first, numOfTries.second)
         val filteredNodes = file.node.getAllChildrenNodes().filter { it.elementType !in NodeCollector.excludes }
-        val nodes = file.node.getAllChildrenNodes()
         val nodeDB = File("database.txt").bufferedReader().lines().toList()
         log.debug("Trying to add some nodes $randConst times")
+        println("Trying to add some nodes $randConst times")
         //From same file
-        for (i in 0..randConst / 2) {
-            println("I = $i")
-            val randomNode = filteredNodes.randomOrNull()?.psi?.copy() ?: break
-            val placeToInsert = nodes.random().psi
-            println("insert ${randomNode.text} after $placeToInsert ${placeToInsert.text}")
-            placeToInsert.addAfterWithWhitespace(randomNode).let {
+        var i = 0
+        while (i != 3000) {
+            println("i = $i")
+            val randomNode = filteredNodes.randomOrNull()?.psi?.copy() ?: continue
+            val placeToInsert = file.getAllChildren().randomOrNull() ?: continue
+            val whiteSpace = if (Random.nextBoolean()) " " else "\n"
+            val fileBackup = file.copy() as KtFile
+            placeToInsert.addAfterWithWhitespace(randomNode, whiteSpace).let {
                 if (!checker.checkCompiling()) {
-                    it.first.delete()
-                    it.second?.delete()
-                    it.third?.delete()
+                    checker.curFile.changePsiFile(fileBackup, genCtx = false)
                 }
+                ++i
             }
-            //println(file.text)
+//            try {
+//                if (Random.nextBoolean()) {
+//                    val whiteSpace = "\n"
+//                    placeToInsert.addAfterWithWhitespace(randomNode, whiteSpace).let {
+//                        if (!checker.checkCompiling()) {
+//                            it.first.delete()
+//                            //it.second?.delete()
+//                            //it.third?.delete()
+//                        }
+//                    }
+//                } else {
+//                    placeToInsert.add(randomNode).let {
+//                        if (!checker.checkCompiling()) it.delete()
+//                    }
+//                }
+//            } catch (e: Throwable) {
+//                println("EXCEPTION")
+//            }
+//            continue
         }
-        println(file.text)
-        exitProcess(0)
-        for (i in 0..randConst / 2) {
-            val nodeToAdd = nodeDB.random().dropLast(1).takeLastWhile { it != '[' }.split(", ").random()
-        }
-        exitProcess(0)
+//        println("RES = ${file.text}")
+//        exitProcess(0)
+//        for (i in 0..randConst / 2) {
+//            val nodeToAdd = nodeDB.random().dropLast(1).takeLastWhile { it != '[' }.split(", ").random()
+//        }
+//        exitProcess(0)
     }
 
     private val numOfTries = if (checker.project.files.size == 1) 50 to 500 else 1000 to 2000

@@ -1,8 +1,8 @@
 package com.stepanov.bbf.bugfinder.util.typeGenerators
 
 import com.stepanov.bbf.bugfinder.generator.constructor.util.StandardLibraryInheritanceTree
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary.getDeclDescriptorOf
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator.getDeclDescriptorOf
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.bugfinder.util.KotlinTypeCreator.createType
 import org.jetbrains.kotlin.backend.common.serialization.findPackage
@@ -83,9 +83,9 @@ object RandomTypeGenerator {
         val impls =
             if (file.getAllPSIChildrenOfType<KtClassOrObject>().any { it.name == "$upperBounds".substringBefore('<') }) {
                 fromFile = true
-                UsageSamplesGeneratorWithStLibrary.findImplementationFromFile(upperBounds, false)
+                StdLibraryGenerator.findImplementationFromFile(upperBounds, false)
             } else {
-                UsageSamplesGeneratorWithStLibrary.findImplementationOf(upperBounds, false)
+                StdLibraryGenerator.findImplementationOf(upperBounds, false)
             }
         if (impls.isEmpty() || Random.getTrue(50)) return upperBounds
         val implsTypes = impls.map { it.defaultType }

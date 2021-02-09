@@ -89,11 +89,11 @@ open class Checker(compilers: List<CommonCompiler>, private val withTracesCheck:
                         return false
                     }
                 }
-//                if (withTracesCheck && CompilerArgs.isMiscompilationMode) {
-//                    val checkRes = checkTraces(project)
-//                    checkedConfigurations[allTexts] = checkRes
-//                    return checkRes
-//                }
+                if (withTracesCheck && CompilerArgs.isMiscompilationMode) {
+                    val checkRes = checkTraces(project)
+                    checkedConfigurations[allTexts] = checkRes
+                    return checkRes
+                }
                 StatisticCollector.incField("Correct programs")
                 checkedConfigurations[allTexts] = true
                 return true

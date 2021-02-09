@@ -2,7 +2,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.RandomInstancesGenerator
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.addImport
 import com.stepanov.bbf.bugfinder.util.addToTheTop
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfTwoTypes
@@ -20,7 +20,7 @@ class AddRandomAnnotation : Transformation() {
 
     private val randomInstancesGenerator = RandomInstancesGenerator(file as KtFile)
     private val annClassesFromLib =
-        UsageSamplesGeneratorWithStLibrary.klasses
+        StdLibraryGenerator.klasses
             .filter {
                 it.kind == ClassKind.ANNOTATION_CLASS
                         && it.visibility.isPublicAPI

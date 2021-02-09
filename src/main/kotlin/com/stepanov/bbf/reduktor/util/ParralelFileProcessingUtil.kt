@@ -1,15 +1,10 @@
 package com.stepanov.bbf.reduktor.util
 
-import com.stepanov.bbf.reduktor.executor.CommonCompilerCrashTestChecker
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
-import com.stepanov.bbf.reduktor.executor.backends.CommonBackend
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.manager.TransformationManager
 import org.apache.log4j.Logger
 import org.codehaus.plexus.util.FileUtils
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtNamedFunction
-import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors

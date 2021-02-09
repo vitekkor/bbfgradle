@@ -29,7 +29,7 @@ interface ProgramCoverage {
             }
         }
 
-        private fun createFromMethodProbes(): ProgramCoverage {
+        fun createFromMethodProbes(): MethodBasedCoverage {
             return MethodBasedCoverage(CompilerInstrumentation.methodProbes.toMap())
         }
 
@@ -87,4 +87,6 @@ interface ProgramCoverage {
         return x1
     }
 
+    val size: Int
+        get() = entities.size
 }

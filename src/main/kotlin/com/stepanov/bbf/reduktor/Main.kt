@@ -1,12 +1,8 @@
 package com.stepanov.bbf.reduktor
 
-import com.stepanov.bbf.reduktor.executor.CommonCompilerCrashTestChecker
+
 import com.stepanov.bbf.reduktor.executor.CompilerArgs
-import com.stepanov.bbf.reduktor.executor.backends.JSBackend
-import com.stepanov.bbf.reduktor.executor.backends.JVMBackend
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.manager.TransformationManager
-import com.stepanov.bbf.reduktor.util.ReduKtorProperties
 import net.sourceforge.argparse4j.ArgumentParsers
 import org.apache.log4j.PropertyConfigurator
 

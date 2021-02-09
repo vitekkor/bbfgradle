@@ -3,10 +3,8 @@ package com.stepanov.bbf.bugfinder.mutator
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
-import com.stepanov.bbf.bugfinder.mutator.projectTransformations.ProjectSplitter
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
-import com.stepanov.bbf.bugfinder.mutator.transformations.abi.AddRandomDS
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.AddNodesFromAnotherFiles
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.TCETransformation
 import org.apache.log4j.Logger
 import kotlin.random.Random
 import kotlin.system.exitProcess
@@ -56,10 +54,14 @@ class Mutator(val project: Project) {
     }
 
     private fun startKotlinMutations() {
-        executeMutation(AddRandomNode(), 100)
-        executeMutation(AddRandomDS(), 100)
-        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 100)
+        executeMutation(AddTryExpression(), 100)
+//        executeMutation(AddRandomNode(), 100)
+//        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 100)
 //        exitProcess(0)
+//        executeMutation(TCETransformation(), 100)
+//        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 100)
+        //executeMutation(AddRandomNode(), 100)
+        //executeMutation(AddRandomDS(), 100)
 //        executeMutation(ChangeRandomASTNodes(), 50)
 //        executeMutation(AddPropertiesToClass(), 100)
 //        exitProcess(0)

@@ -30,4 +30,24 @@ class MethodBasedCoverage(private val methodProbes: Map<String, Int>) : ProgramC
         return methodProbes.hashCode()
     }
 
+    fun getMethodProbes() = methodProbes
+
+    fun intersection(other: MethodBasedCoverage): MethodBasedCoverage {
+        val keysIntersection = entities.intersect(other.entities).toHashSet()
+        val intersectionOfProbes =
+            methodProbes
+                .filter { it.key in keysIntersection }
+                //.filter { methodProbes[it.key] == other.methodProbes[it.key] }
+        return MethodBasedCoverage(intersectionOfProbes)
+    }
+
+    fun diff(other: MethodBasedCoverage): MethodBasedCoverage {
+        val keysDiff = entities - entities.intersect(other.entities).toHashSet()
+        val diffOfProbes =
+            methodProbes
+                .filter { it.key in keysDiff }
+                //.filter { methodProbes[it.key] == other.methodProbes[it.key] }
+        return MethodBasedCoverage(diffOfProbes)
+    }
+
 }

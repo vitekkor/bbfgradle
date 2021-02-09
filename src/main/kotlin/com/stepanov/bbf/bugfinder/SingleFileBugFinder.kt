@@ -21,18 +21,21 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
             println("Let's go")
             ++counter
             log.debug("Name = $dir")
-            val project = Project.createFromCode(File(dir).readText())
+            var project = Project.createFromCode(File(dir).readText())
             if (project.language != LANGUAGE.KOTLIN) return
-            if (project.files.isEmpty() || project.files.size != 1) {
+            if (project.files.isEmpty()) {
                 log.debug("Cant create project")
                 return
             }
-            if (project.files.first().psiFile.getAllPSIChildrenOfType<KtNamedFunction> { it.isTopLevel }.size < 2) {
-                if (project.files.first().psiFile.getAllPSIChildrenOfTwoTypes<KtClassOrObject, KtEnumEntry>().isEmpty()) {
-                    log.debug("Uninteresting test")
-                    return
-                }
+            if (project.files.size > 1) {
+                project = project.convertToSingleFileProject()
             }
+//            if (project.files.first().psiFile.getAllPSIChildrenOfType<KtNamedFunction> { it.isTopLevel }.size < 2) {
+//                if (project.files.first().psiFile.getAllPSIChildrenOfTwoTypes<KtClassOrObject, KtEnumEntry>().isEmpty()) {
+//                    log.debug("Uninteresting test")
+//                    return
+//                }
+//            }
             val compilersConf = BBFProperties.getStringGroupWithoutQuotes("BACKENDS")
             val filterBackends = compilersConf.map { it.key }
             if (filterBackends.any { project.isBackendIgnores(it) }) {
@@ -51,7 +54,7 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
                 log.debug("=(")
                 exitProcess(0)
             }
-            mutate(project, project.files.first(), listOf(/*::noBoxFunModifying*/))
+            mutate(project, project.files.first(), listOf(::noBoxFunModifying))
 //            //Save mutated file
 //            if (CompilerArgs.shouldSaveMutatedFiles) {
 //                val pathToNewTests = CompilerArgs.dirForNewTests

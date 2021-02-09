@@ -1,16 +1,14 @@
 package com.stepanov.bbf.bugfinder.util.typeGenerators
 
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.backend.common.serialization.findPackage
 import org.jetbrains.kotlin.descriptors.ClassKind
-import org.jetbrains.kotlin.descriptors.isFinalOrEnum
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.descriptorUtil.classId
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 
 object RandomTypeGeneratorForAnClass {
@@ -22,7 +20,7 @@ object RandomTypeGeneratorForAnClass {
         val fromFile =
             file.getAllPSIChildrenOfType<KtClass>().filter { it.isEnum() && it.name != null }.randomOrNull()
         fromFile?.let { return it.name!! }
-        val fromLib = UsageSamplesGeneratorWithStLibrary.klasses
+        val fromLib = StdLibraryGenerator.klasses
             .filter { it.kind == ClassKind.ENUM_CLASS && it.visibility.isPublicAPI }
         return fromLib.random().name.asString()
     }
@@ -31,7 +29,7 @@ object RandomTypeGeneratorForAnClass {
         val fromFile =
             file.getAllPSIChildrenOfType<KtClass>().filter { it.isAnnotation() && it.name != null }.randomOrNull()
         fromFile?.let { return it.name!! }
-        val fromLib = UsageSamplesGeneratorWithStLibrary.klasses
+        val fromLib = StdLibraryGenerator.klasses
             .filter { it.kind == ClassKind.ANNOTATION_CLASS
                     && it.visibility.isPublicAPI
                     && !it.findPackage().toString().contains("js")

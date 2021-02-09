@@ -26,7 +26,7 @@ import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 import kotlin.system.exitProcess
 
-object UsageSamplesGeneratorWithStLibrary {
+object StdLibraryGenerator {
 
     val descriptorDecl: List<DeclarationDescriptor>
     val klasses: List<ClassDescriptor>
@@ -149,9 +149,9 @@ object UsageSamplesGeneratorWithStLibrary {
                 else it.name.asString()
             }
             .filter {
-            it.toString().let { !it.contains("equals") && !it.contains("hashCode") && !it.contains("toString") } &&
-                    checkVisibilityAndModality(it)
-        }
+                it.toString().let { !it.contains("equals") && !it.contains("hashCode") && !it.contains("toString") } &&
+                        checkVisibilityAndModality(it)
+            }
         return fields
             .filter { it is PropertyDescriptor || it is FunctionDescriptor }
     }
@@ -313,6 +313,12 @@ object UsageSamplesGeneratorWithStLibrary {
         (findImplementationFromFile(type) + findImplementationOf(type))
             .find { it.name.asString() == potImpl.constructor.toString() }
             ?.let { return true } ?: return false
+    }
+
+    fun getListOfExceptionsFromStdLibrary(): List<String> {
+        return klasses
+            .filter { it.getAllSuperClassifiers().toList().any { it.name.asString() == "Throwable" } }
+            .map { it.name.asString() }
     }
 
     fun getDeclDescriptorOf(klassName: String): DeclarationDescriptor =

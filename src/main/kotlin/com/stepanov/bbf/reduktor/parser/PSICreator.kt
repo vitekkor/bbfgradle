@@ -154,6 +154,11 @@ class PSICreator(var projectDir: String) {
         return getPSIForFile(path, generateCtx)
     }
 
+    fun getPsiForTextWithName(text: String, fileName: String, generateCtx: Boolean = true): KtFile {
+        val path = "tmp/$fileName"
+        File(path).writeText(text)
+        return getPSIForFile(path, generateCtx)
+    }
 
     fun getPSIForFile(path: String, generateCtx: Boolean = true): KtFile {
         val newArgs = arrayOf("-t", path)
@@ -177,33 +182,26 @@ class PSICreator(var projectDir: String) {
             f
         }
 
-//        println("KtFile = ${ktFiles.map { it.name }}")
-//
-//        targetFiles = ktFiles.filter { f ->
-//            cmd.targetRoots.any { root ->
-//                f.originalFile.virtualFile.path.startsWith(root)
-//            }
-//        }
         val file = targetFiles.first()
-        val configuration = env.configuration.copy()
-
-        configuration.put(JSConfigurationKeys.LIBRARIES, JsConfig.JS_STDLIB)
-        configuration.put(CommonConfigurationKeys.MODULE_NAME, "sample")
-
-        configuration.put(
-            JSConfigurationKeys.LIBRARIES, listOf(
-                CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
-                CompilerArgs.getStdLibPath("kotlin-test-js"),
-                CompilerArgs.getStdLibPath("kotlin-test"),
-                CompilerArgs.getStdLibPath("kotlin-test-common"),
-                CompilerArgs.getStdLibPath("kotlin-test-annotations-common"),
-                CompilerArgs.getStdLibPath("kotlin-test-junit"),
-                CompilerArgs.getStdLibPath("kotlin-reflect")
-            )
-        )
 
         if (generateCtx) {
             try {
+                val configuration = env.configuration.copy()
+
+                configuration.put(JSConfigurationKeys.LIBRARIES, JsConfig.JS_STDLIB)
+                configuration.put(CommonConfigurationKeys.MODULE_NAME, "sample")
+
+                configuration.put(
+                    JSConfigurationKeys.LIBRARIES, listOf(
+                        CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
+                        CompilerArgs.getStdLibPath("kotlin-test-js"),
+                        CompilerArgs.getStdLibPath("kotlin-test"),
+                        CompilerArgs.getStdLibPath("kotlin-test-common"),
+                        CompilerArgs.getStdLibPath("kotlin-test-annotations-common"),
+                        CompilerArgs.getStdLibPath("kotlin-test-junit"),
+                        CompilerArgs.getStdLibPath("kotlin-reflect")
+                    )
+                )
                 val tmpCtx =
                     TopDownAnalyzerFacadeForJS.analyzeFiles(listOf(file), JsConfig(env.project, configuration)).bindingContext
                 ctx = tmpCtx
@@ -252,6 +250,7 @@ class PSICreator(var projectDir: String) {
                     JsConfig(env.project, configuration)
                 ).bindingContext
             } catch (e: Exception) {
+                println(e)
                 return null
             }
         }

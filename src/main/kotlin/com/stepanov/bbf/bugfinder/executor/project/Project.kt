@@ -1,24 +1,19 @@
 package com.stepanov.bbf.bugfinder.executor.project
 
-import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.addMain
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.util.contains
-import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
-import com.stepanov.bbf.bugfinder.util.getAllWithoutLast
-import com.stepanov.bbf.reduktor.util.MsgCollector
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
+import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.util.getAllWithout
 import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.js.K2JSCompiler
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
-import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
-import com.stepanov.bbf.bugfinder.util.flatMap
+import org.jetbrains.kotlin.psi.KtFile
 
 class Project(
     var configuration: Header,
@@ -32,7 +27,12 @@ class Project(
         fun createFromCode(code: String): Project {
             val configuration = Header.createHeader(getCommentSection(code))
             val files = BBFFileFactory(code, configuration).createBBFFiles() ?: return Project(configuration, listOf())
-            val language = if (files.any { it.getLanguage() == LANGUAGE.JAVA }) LANGUAGE.KJAVA else LANGUAGE.KOTLIN
+            val language =
+                when {
+                    files.any { it.getLanguage() == LANGUAGE.UNKNOWN } -> LANGUAGE.UNKNOWN
+                    files.any { it.getLanguage() == LANGUAGE.JAVA } -> LANGUAGE.KJAVA
+                    else -> LANGUAGE.KOTLIN
+                }
             return Project(configuration, files, language)
         }
     }
@@ -61,6 +61,31 @@ class Project(
                 files.getAllWithoutLast().forEach { appendLine(it.toString()) }
             else files.forEach { appendLine(it.toString()) }
         }.toString()
+
+    fun convertToSingleFileProject(): Project {
+        if (this.files.size <= 1) return this.copy()
+        if (this.language != LANGUAGE.KOTLIN) return this.copy()
+        val configuration = this.configuration
+        val language = this.language
+        val projFiles = this.files.map { it.psiFile.copy() as KtFile }
+        val resFile = projFiles.first()
+        resFile.packageDirective?.delete()
+        resFile.importDirectives.forEach { it.delete() }
+        projFiles.getAllWithout(0).forEach {
+            it.packageDirective?.delete()
+            it.importList?.delete()
+            resFile.addToTheEnd(it)
+        }
+        StdLibraryGenerator.calcImports(resFile)
+            .forEach { resFile.addImport(it.substringBeforeLast('.'), true) }
+        if (this.configuration.isWithCoroutines()) {
+            resFile.addImport("kotlin.coroutines.intrinsics", true)
+            resFile.addImport("kotlin.coroutines.jvm.internal.CoroutineStackFrame", false)
+        }
+        val pathToTmp = CompilerArgs.pathToTmpDir
+        val fileName = "$pathToTmp/tmp0.kt"
+        return Project(configuration, BBFFile(fileName, resFile, null), language)
+    }
 
     fun saveInOneFile(pathToSave: String) {
         val text = moveAllCodeInOneFile()
@@ -124,6 +149,6 @@ class Project(
 
     override fun toString(): String = files.joinToString("\n\n") {
         it.name + "\n" +
-        it.psiFile.text
+                it.psiFile.text
     }
 }

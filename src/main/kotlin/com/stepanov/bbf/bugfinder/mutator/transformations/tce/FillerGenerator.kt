@@ -52,7 +52,7 @@ class FillerGenerator(
         val randomType = randomTypeGenerator.generateRandomTypeWithCtx()!!
         log.debug("randomType = $randomType")
         val ins = RandomInstancesGenerator(psi).generateValueOfType(randomType)
-        val variants = UsageSamplesGeneratorWithStLibrary.generateForStandardType(randomType, strNodeType)
+        val variants = StdLibraryGenerator.generateForStandardType(randomType, strNodeType)
         variants.randomOrNull()?.let { variant ->
             val prefix = if (randomType.isNullable())
                 "($ins)?."
@@ -78,7 +78,7 @@ class FillerGenerator(
                 el.third?.toString() == "$nodeType?" -> {
                     localRes.add(el.first)
                 }
-                UsageSamplesGeneratorWithStLibrary.isImplementation(nodeType, el.third) -> {
+                StdLibraryGenerator.isImplementation(nodeType, el.third) -> {
                     localRes.add(el.first)
                 }
                 //commonTypesMap[strNodeType]?.contains(el.third?.toString()) ?: false -> localRes.add(el.first)
@@ -90,7 +90,7 @@ class FillerGenerator(
             log.debug("GETTING ${nodeType} from ${el.third.toString()}")
             if (checkedTypes.contains(el.third!!.toString())) continue
             checkedTypes.add(el.third!!.toString())
-            UsageSamplesGeneratorWithStLibrary.generateForStandardType(el.third!!, strNodeType)
+            StdLibraryGenerator.generateForStandardType(el.third!!, strNodeType)
                 .shuffled()
                 .take(10)
                 .forEach { list ->

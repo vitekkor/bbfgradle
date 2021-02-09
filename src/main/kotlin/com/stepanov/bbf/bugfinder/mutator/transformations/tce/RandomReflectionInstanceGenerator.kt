@@ -51,7 +51,7 @@ class RandomReflectionInstanceGenerator(
     }
 
     private fun generateKProperty(): String {
-        val props = UsageSamplesGeneratorWithStLibrary.descriptorDecl.filter { it is DeserializedPropertyDescriptor }
+        val props = StdLibraryGenerator.descriptorDecl.filter { it is DeserializedPropertyDescriptor }
         val args = type.arguments
         when (args.size) {
             1 -> ""

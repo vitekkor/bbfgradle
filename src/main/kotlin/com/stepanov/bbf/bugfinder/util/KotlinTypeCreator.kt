@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.util
 
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.jetbrains.kotlin.name.FqName
@@ -9,7 +9,6 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.ImportPath
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.types.KotlinType
-import kotlin.system.exitProcess
 
 object KotlinTypeCreator {
 
@@ -25,7 +24,7 @@ object KotlinTypeCreator {
                     val twb = s.substringBefore(":").trim()
                     when {
                         file.getAllPSIChildrenOfType<KtClassOrObject>().all { it.name != twb } -> s
-                        UsageSamplesGeneratorWithStLibrary.findPackageForType(twb) != null -> s
+                        StdLibraryGenerator.findPackageForType(twb) != null -> s
                         !s.contains(':') -> "AUX$index: $s"
                         else -> s
                     }
@@ -44,7 +43,7 @@ object KotlinTypeCreator {
             typeParams = ""
             val t = type.substringBeforeLast('?').trim()
             if (file.getAllPSIChildrenOfType<KtClass>().all { it.name != t } &&
-                UsageSamplesGeneratorWithStLibrary.findPackageForType(t) == null) {
+                StdLibraryGenerator.findPackageForType(t) == null) {
                 typeParams = "<$t>"
             }
             if (klass?.name == null) typeParamsWithoutBounds = type
@@ -55,7 +54,7 @@ object KotlinTypeCreator {
                     .filter { it is KtUserType && !it.text.contains('<') }
                     .map { it.text.trim() }
                     .filter { ta -> file.getAllPSIChildrenOfType<KtClassOrObject>().all { it.name != ta } }
-                    .filter { ta -> UsageSamplesGeneratorWithStLibrary.findPackageForType(ta) == null }
+                    .filter { ta -> StdLibraryGenerator.findPackageForType(ta) == null }
                     .let { if (it.isEmpty()) "" else it.joinToString(prefix = "<", postfix = ">") }
             typeParamsWithoutBounds = type
         } else {
@@ -64,7 +63,7 @@ object KotlinTypeCreator {
                     ?.filter { it.text.trim().isNotEmpty() }
                     ?.filterNot { it.name?.contains("AUX") == true }
                     ?.filter { ta -> file.getAllPSIChildrenOfType<KtClassOrObject>().all { it.name != ta.name } }
-                    ?.filter { ta -> UsageSamplesGeneratorWithStLibrary.findPackageForType(ta.text) == null }
+                    ?.filter { ta -> StdLibraryGenerator.findPackageForType(ta.text) == null }
                     ?.let { if (it.isEmpty()) "" else it.joinToString(prefix = "<", postfix = ">") { it.text } } ?: ""
             typeParamsWithoutBounds =
                 klass.typeParameterList?.parameters
@@ -83,7 +82,7 @@ object KotlinTypeCreator {
         val prop = "val abcq1: $n$typeParamsWithoutBounds = TODO()"
         val newFile = Factory.psiFactory.createFile("$prefix\n\n$prop\n\n$func\n\n${fileCopy.text}")
         //Search for package of type
-        UsageSamplesGeneratorWithStLibrary.findPackageForType(type)?.let { pack ->
+        StdLibraryGenerator.findPackageForType(type)?.let { pack ->
             val import = Factory.psiFactory.createImportDirective(ImportPath(FqName(pack.fqName.toUnsafe()), true))
             newFile.addImport(import)
         }

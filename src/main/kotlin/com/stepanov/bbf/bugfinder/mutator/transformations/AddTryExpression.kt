@@ -1,25 +1,64 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory
-import com.stepanov.bbf.bugfinder.util.getTrueWithProbability
-import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
-import org.jetbrains.kotlin.psi.KtExpression
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
+import com.stepanov.bbf.bugfinder.util.subList
 import kotlin.random.Random
+import org.jetbrains.kotlin.psi.KtFile
 
-class AddTryExpression: Transformation() {
+class AddTryExpression : Transformation() {
     override fun transform() {
-        file.getAllPSIChildrenOfType<KtExpression>().filter { getTrueWithProbability(15) }.forEach { exp ->
-            val newExp = when (Random.nextInt(0, 3)) {
-                0 -> psiFactory.createExpression("try {\n${exp.text}\n} catch(e: Exception){}")
-                1 -> psiFactory.createExpression("try {\n${exp.text}\n} catch(e: Exception){}\nfinally{}")
-                else -> {
-                    val randomExp = file.getAllPSIChildrenOfType<KtExpression>().random()
-                    psiFactory.createExpression("try {\n${exp.text}\n} catch(e: Exception){}\nfinally{\n${randomExp.text}\n}")
+        for (i in 0 until randomConst) {
+            val fileText = file.text
+            val fileBackup = file.copy() as KtFile
+            val numOfLinesInLine = fileText.count { it == '\n' }
+            val randomPlaceToInsertFrom = Random.nextInt(0, numOfLinesInLine)
+            val randomPlaceToInsertTo = Random.nextInt(randomPlaceToInsertFrom, numOfLinesInLine)
+            if (randomPlaceToInsertTo - randomPlaceToInsertFrom < 2) continue
+            val randomTryBlockPlace =
+                randomPlaceToInsertFrom to Random.nextInt(randomPlaceToInsertFrom, randomPlaceToInsertTo)
+            val randomCatchBlock =
+                if (Random.nextBoolean()) 0 to 0
+                else randomTryBlockPlace.second to Random.nextInt(randomTryBlockPlace.second, randomPlaceToInsertTo)
+            val randomFinallyBlock =
+                if (Random.nextBoolean() && randomCatchBlock.first != 0)
+                    0 to 0
+                else if (randomCatchBlock.first != 0)
+                    randomCatchBlock.second to Random.nextInt(
+                        randomCatchBlock.second,
+                        randomPlaceToInsertTo
+                    )
+                else
+                    randomTryBlockPlace.second to Random.nextInt(randomTryBlockPlace.second, randomPlaceToInsertTo)
+            val tryBlock =
+                "try {\n${getSubtext(randomTryBlockPlace)}\n}\n"
+            val catchBlock =
+                if (randomCatchBlock.first == 0) ""
+                else "catch (e: ${listOfRandomExceptions.random()}) {\n${getSubtext(randomCatchBlock)}\n}\n"
+            val finallyBlock =
+                if (randomFinallyBlock.first == 0) ""
+                else "finally {\n${getSubtext(randomFinallyBlock)}\n}\n"
+            val remainText =
+                if (randomFinallyBlock.first == 0) getSubtext(randomCatchBlock.second to numOfLinesInLine + 1)
+                else getSubtext(randomFinallyBlock.second to numOfLinesInLine + 1)
+            val newText =
+                "${getSubtext(0 to randomPlaceToInsertFrom)}\n" +
+                        tryBlock +
+                        catchBlock +
+                        finallyBlock +
+                        remainText
+            val replacementResult = checker.curFile.changePsiFile(newText, checkCorrectness = true, genCtx = false)
+            if (replacementResult) {
+                if (!checker.checkCompiling()) {
+                    checker.curFile.changePsiFile(fileBackup, genCtx = false)
                 }
             }
-            checker.replaceNodeIfPossible(exp.node, newExp.node)
         }
-
     }
 
+    private fun getSubtext(range: Pair<Int, Int>) = fileText.split("\n").subList(range).joinToString("\n")
+
+    private val fileText: String
+        get() = file.text
+    private val listOfRandomExceptions = StdLibraryGenerator.getListOfExceptionsFromStdLibrary()
+    private val randomConst = Random.nextInt(100, 500)
 }

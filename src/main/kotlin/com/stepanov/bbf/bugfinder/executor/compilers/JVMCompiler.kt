@@ -33,7 +33,6 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
         get() = "JVM $arguments"
 
     override var pathToCompiled: String = "tmp/tmp.jar"
-        //get() =
 
 
     override fun checkCompiling(project: Project): Boolean {
@@ -103,12 +102,11 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
         if (CompilerArgs.isInstrumentationMode) {
             CompilerInstrumentation.clearRecords()
             CompilerInstrumentation.shouldProbesBeRecorded = true
+        } else {
+            CompilerInstrumentation.shouldProbesBeRecorded = false
         }
         val futureExitCode = threadPool.submit {
             compiler.exec(MsgCollector, services, args)
-        }
-        if (CompilerArgs.isInstrumentationMode) {
-            CompilerInstrumentation.shouldProbesBeRecorded = false
         }
         var hasTimeout = false
         try {
@@ -118,6 +116,9 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
             futureExitCode.cancel(true)
         } finally {
             project.saveOrRemoveToTmp(false)
+        }
+        if (CompilerArgs.isInstrumentationMode) {
+            CompilerInstrumentation.shouldProbesBeRecorded = false
         }
         val status = KotlincInvokeStatus(
             MsgCollector.crashMessages.joinToString("\n") +
