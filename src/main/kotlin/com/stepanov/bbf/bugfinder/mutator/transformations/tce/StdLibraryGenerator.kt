@@ -294,7 +294,7 @@ object UsageSamplesGeneratorWithStLibrary {
     fun calcImports(file: KtFile): List<String> {
         val klassesForImport =
             klasses.filter { it.classId?.packageFqName?.asString() != "kotlin" }
-        val types = file.getAllPSIChildrenOfType<KtTypeReference>().map { it.text.trim() }.toSet()
+        val types = file.getAllPSIChildrenOfType<KtReferenceExpression>().map { it.text.trim() }.toSet()
         return types.mapNotNull { t ->
             klassesForImport.find { it.name.asString() == t.substringBefore('<') }.classId?.asString()
                 ?.replace('/', '.')

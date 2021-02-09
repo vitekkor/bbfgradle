@@ -33,7 +33,7 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as 
 class AddNodesFromAnotherFiles : Transformation() {
 
     private val blockListOfTypes = listOf("Unit", "Nothing", "Nothing?")
-    private val randomConst = 3//Random.nextInt(700, 1000)
+    private val randomConst = 3
     private var psi = PSICreator("").getPSIForText(file.text)
     lateinit var usageExamples: List<Triple<KtExpression, String, KotlinType?>>
     private val mutChecker = AbstractTreeMutator(checker.compilers, checker.project.configuration)
