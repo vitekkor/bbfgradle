@@ -30,8 +30,6 @@ class LocalTCE : Transformation() {
         usageExamples = collectUsageCases(ctx).toMutableList()
         addRandomUnitCalls()
         replaceNodesOfFile(psi.getAllPSIChildrenOfType(), ctx)
-        println("RESULT = ${psi.text}")
-        exitProcess(0)
         checker.curFile.changePsiFile(psi.text)
     }
 
