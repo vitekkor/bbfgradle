@@ -62,7 +62,7 @@ class RandomFunctionGenerator(
         }
 
     private fun generateExtension(typeArgs: List<String>): String {
-        val prob = if (gFunc.modifiers.contains("infix") || gFunc.modifiers.contains("operator")) 100 else 20
+        val prob = if (gFunc.modifiers.contains("infix") || gFunc.modifiers.contains("operator")) 100 else 10
         if (!Random.getTrue(prob)) return ""
         val t = randomTypeGenerator.generateRandomTypeWithCtx() ?: return ""
         val strT =
@@ -127,7 +127,10 @@ class RandomFunctionGenerator(
             }
         }
         val randomType = randomTypeGenerator.generateRandomTypeWithCtx() ?: return ""
-        return gClass?.let { randomType.replaceTypeOrRandomSubtypeOnTypeParam(it.typeParams) } ?: "$randomType"
+        return gClass?.let {
+            if (Random.getTrue(30)) randomType.replaceTypeOrRandomSubtypeOnTypeParam(it.typeParams)
+            else "$randomType"
+        } ?: "$randomType"
     }
 
     private fun generateBody(): String =
@@ -157,7 +160,7 @@ class RandomFunctionGenerator(
             typeArgs = genTypeArgs
             extensionReceiver = generateExtension(genTypeArgsWObounds)
             name = generateName()
-            args = generateArgs(genTypeArgsWObounds)
+            args = generateArgs((gClass?.typeParams ?: listOf()) + genTypeArgsWObounds)
             rtvType = generateRtv()
             body = generateBody()
         }

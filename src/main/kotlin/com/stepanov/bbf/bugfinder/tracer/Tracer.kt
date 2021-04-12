@@ -34,7 +34,7 @@ class Tracer(val compiler: CommonCompiler, val project: Project) : KtVisitorVoid
             if (it.getLanguage() == LANGUAGE.KOTLIN) {
                 checker = MutationChecker(compiler, project, it, false)
                 tree = it.psiFile as KtFile
-                ctx = it.ctx as BindingContext
+                ctx = it.ctx ?: PSICreator.analyze(tree) ?: return
                 it.changePsiFile(traceCurFile())
             }
         }
@@ -130,12 +130,12 @@ class Tracer(val compiler: CommonCompiler, val project: Project) : KtVisitorVoid
         val block = function.getChildOfType<KtBlockExpression>() ?: return
         //Init by args
         val trackingVars = function.valueParameters
-                .asSequence()
-                .filter { it.getType()?.isFunctionType == false && it.getType()?.isAnyOrNullableAny() == false }
-                .map { it.name }
-                .filterNotNull()
-                .map { factory.createExpression("println($it);") }
-                .toMutableList()
+            .asSequence()
+            .filter { it.getType()?.isFunctionType == false && it.getType()?.isAnyOrNullableAny() == false }
+            .map { it.name }
+            .filterNotNull()
+            .map { factory.createExpression("println($it);") }
+            .toMutableList()
         handleBlock(block, trackingVars)
     }
 
@@ -155,11 +155,14 @@ class Tracer(val compiler: CommonCompiler, val project: Project) : KtVisitorVoid
             if (el is KtProperty) {
                 val clazzWithPropType = getClassWithName(el.getType()?.toString())
                 if (clazzWithPropType != null &&
-                        clazzWithPropType.getAllPSIChildrenOfType<KtNamedFunction>().all { it.name != "toString()" }) continue
+                    clazzWithPropType.getAllPSIChildrenOfType<KtNamedFunction>().all { it.name != "toString()" }
+                ) continue
                 if (!el.hasInitializer()) continue
                 // Handle objectLiteral
                 if (el.initializer is KtObjectLiteralExpression) continue
-                if (el.getType()?.isFunctionTypeOrSubtype == true || el.getType()?.isAnyOrNullableAny() == true) continue
+                if (el.getType()?.isFunctionTypeOrSubtype == true || el.getType()
+                        ?.isAnyOrNullableAny() == true
+                ) continue
                 if (el.name != null) {
                     curTrack.add(factory.createExpression("println(${el.name});"))
                 }
@@ -197,12 +200,18 @@ class Tracer(val compiler: CommonCompiler, val project: Project) : KtVisitorVoid
     override fun visitWhenExpression(expression: KtWhenExpression) {
         for (entire in expression.entries) {
             entire.expression?.let {
-                it.replaceThis(createNewBlockExpr(it, "WHEN ${entire.conditions.joinToString {
-                    if (it.text.first() == '"')
-                        it.text.substring(1, it.textLength - 1)
-                    else
-                        it.text
-                }}"))
+                it.replaceThis(
+                    createNewBlockExpr(
+                        it, "WHEN ${
+                            entire.conditions.joinToString {
+                                if (it.text.first() == '"')
+                                    it.text.substring(1, it.textLength - 1)
+                                else
+                                    it.text
+                            }
+                        }"
+                    )
+                )
             }
         }
     }
@@ -225,11 +234,16 @@ class Tracer(val compiler: CommonCompiler, val project: Project) : KtVisitorVoid
     }
 
 
-    private fun getClassWithName(name: String?): KtClass? = tree.getAllPSIChildrenOfType<KtClass>().find { it.name == name }
-    private fun KotlinType.isIterable(): Boolean = this.memberScope.getFunctionNames().any { it.toString() == "iterator" }
+    private fun getClassWithName(name: String?): KtClass? =
+        tree.getAllPSIChildrenOfType<KtClass>().find { it.name == name }
+
+    private fun KotlinType.isIterable(): Boolean =
+        this.memberScope.getFunctionNames().any { it.toString() == "iterator" }
+
     private fun KtExpression.getType(): KotlinType? {
         val typesOfExpressions = this.getAllPSIChildrenOfType<KtExpression>().map { ctx.getType(it) }.filterNotNull()
-        val typeReferences = this.getAllPSIChildrenOfType<KtTypeReference>().map { it.getAbbreviatedTypeOrType(ctx) }.filterNotNull()
+        val typeReferences =
+            this.getAllPSIChildrenOfType<KtTypeReference>().map { it.getAbbreviatedTypeOrType(ctx) }.filterNotNull()
         return when {
             typesOfExpressions.isNotEmpty() -> typesOfExpressions.first()
             typeReferences.isNotEmpty() -> typeReferences.first()

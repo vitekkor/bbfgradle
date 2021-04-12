@@ -29,7 +29,10 @@ import org.jetbrains.kotlin.js.config.JsConfig
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.CompilerEnvironment
+import org.jetbrains.kotlin.resolve.TargetEnvironment
 import java.io.File
+import kotlin.system.exitProcess
 
 
 @Suppress("DEPRECATION")
@@ -185,30 +188,7 @@ class PSICreator(var projectDir: String) {
         val file = targetFiles.first()
 
         if (generateCtx) {
-            try {
-                val configuration = env.configuration.copy()
-
-                configuration.put(JSConfigurationKeys.LIBRARIES, JsConfig.JS_STDLIB)
-                configuration.put(CommonConfigurationKeys.MODULE_NAME, "sample")
-
-                configuration.put(
-                    JSConfigurationKeys.LIBRARIES, listOf(
-                        CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
-                        CompilerArgs.getStdLibPath("kotlin-test-js"),
-                        CompilerArgs.getStdLibPath("kotlin-test"),
-                        CompilerArgs.getStdLibPath("kotlin-test-common"),
-                        CompilerArgs.getStdLibPath("kotlin-test-annotations-common"),
-                        CompilerArgs.getStdLibPath("kotlin-test-junit"),
-                        CompilerArgs.getStdLibPath("kotlin-reflect")
-                    )
-                )
-                val tmpCtx =
-                    TopDownAnalyzerFacadeForJS.analyzeFiles(listOf(file), JsConfig(env.project, configuration)).bindingContext
-                ctx = tmpCtx
-            } catch (e: Throwable) {
-                ctx = null
-                return targetFiles.first()
-            }
+            ctx = analyze(file)
         }
         return targetFiles.first()
     }
@@ -222,13 +202,11 @@ class PSICreator(var projectDir: String) {
                 val env = setupMyEnv(cfg)
                 val configuration = env.configuration.copy()
 
-                configuration.put(JSConfigurationKeys.LIBRARIES, JsConfig.JS_STDLIB)
                 configuration.put(CommonConfigurationKeys.MODULE_NAME, "root")
-
                 configuration.put(
                     JSConfigurationKeys.LIBRARIES, listOf(
                         CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
-                        CompilerArgs.getStdLibPath("kotlin-test-js"),
+                        //CompilerArgs.getStdLibPath("kotlin-test-js"),
                         CompilerArgs.getStdLibPath("kotlin-test"),
                         CompilerArgs.getStdLibPath("kotlin-test-common"),
                         CompilerArgs.getStdLibPath("kotlin-test-annotations-common"),
@@ -247,29 +225,13 @@ class PSICreator(var projectDir: String) {
 //                ).bindingContext
                 return TopDownAnalyzerFacadeForJS.analyzeFiles(
                     (listOf(psiFile as KtFile)),
-                    JsConfig(env.project, configuration)
+                    JsConfig(env.project, configuration, CompilerEnvironment)
                 ).bindingContext
             } catch (e: Exception) {
                 println(e)
                 return null
             }
         }
-    }
-
-    fun updateCtx() {
-        val configuration = env.configuration.copy()
-
-        configuration.put(JSConfigurationKeys.LIBRARIES, JsConfig.JS_STDLIB)
-        configuration.put(CommonConfigurationKeys.MODULE_NAME, "sample")
-
-        configuration.put(
-            JSConfigurationKeys.LIBRARIES, listOf(
-                CompilerArgs.getStdLibPath("kotlin-stdlib-js"),
-                CompilerArgs.getStdLibPath("kotlin-test-js")
-            )
-        )
-        ctx = TopDownAnalyzerFacadeForJS.analyzeFiles(listOf(targetFiles.first()), JsConfig(env.project, configuration))
-            .bindingContext
     }
 
     var targetFiles: List<KtFile> = listOf()

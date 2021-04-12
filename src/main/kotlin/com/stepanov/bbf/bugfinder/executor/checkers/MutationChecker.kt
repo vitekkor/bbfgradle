@@ -59,6 +59,9 @@ open class MutationChecker(
         return null
     }
 
+    fun replaceNodeIfPossible(node: PsiElement, replacement: PsiElement): Boolean =
+        replaceNodeIfPossible(node.node, replacement.node)
+
     fun replaceNodeIfPossible(node: ASTNode, replacement: ASTNode): Boolean =
         replaceNodeIfPossibleWithNode(node, replacement) != null
 

@@ -3,7 +3,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.util.*
-import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGeneratorForAnClass
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGeneratorForAnClass
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.fir.lightTree.fir.modifier.ModifierSets
@@ -168,7 +168,7 @@ open class RandomClassGenerator(
                             gType.first
                         } else null
                     } else null
-                }.filterNotNull().removeDuplicatesBy { it.substringBefore('<') }
+                }.filterNotNull().filterDuplicatesBy { it.substringBefore('<') }
         return specifiers
     }
 

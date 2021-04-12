@@ -1,15 +1,11 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import com.intellij.util.IncorrectOperationException
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
-import java.lang.Exception
 import kotlin.random.Random
 import kotlin.streams.toList
-import kotlin.system.exitProcess
 
 class AddRandomNode : Transformation() {
     override fun transform() {
@@ -26,7 +22,7 @@ class AddRandomNode : Transformation() {
             val placeToInsert = file.getAllChildren().randomOrNull() ?: continue
             val whiteSpace = if (Random.nextBoolean()) " " else "\n"
             val fileBackup = file.copy() as KtFile
-            placeToInsert.addAfterWithWhitespace(randomNode, whiteSpace).let {
+            placeToInsert.addAfterThisWithWhitespace(randomNode, whiteSpace).let {
                 if (!checker.checkCompiling()) {
                     checker.curFile.changePsiFile(fileBackup, genCtx = false)
                 }

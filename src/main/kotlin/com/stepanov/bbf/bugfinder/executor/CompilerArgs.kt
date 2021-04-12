@@ -118,11 +118,12 @@ object CompilerArgs {
     val resultsDir = getPropValueWithoutQuotes("RESULTS")
 
     //MODE
-    val isMiscompilationMode = getPropAsBoolean("MISCOMPILATION_MODE")
+    var isMiscompilationMode = getPropAsBoolean("MISCOMPILATION_MODE")
     val isStrictMode = getPropAsBoolean("STRICT_MODE")
 
     //Instrumentation
-    val isInstrumentationMode = getPropAsBoolean("WITH_INSTRUMENTATION")
+    var isInstrumentationMode = getPropAsBoolean("WITH_INSTRUMENTATION")
+    val isGuidedByCoverage = getPropAsBoolean("GUIDE_FUZZER_BY_COVERAGE")
 
     //ABI
     val isABICheckMode = getPropAsBoolean("ABI_CHECK_MODE")
@@ -162,7 +163,10 @@ object CompilerArgs {
 
     val jsStdLibPaths = listOf(
         getStdLibPath("kotlin-stdlib-js"), getStdLibPath("kotlin-stdlib-common"),
-        getStdLibPath("kotlin-test-common"), getStdLibPath("kotlin-test-js"), getStdLibPath("kotlin-reflect")
+        getStdLibPath("kotlin-test-common"),
+        getStdLibPath("kotlin-reflect")
+        //getStdLibPath("kotlin-test-js"),
     )
     val pathToStdLibScheme = "tmp/lib/standardLibraryTree.txt"
+    val pathToSerializedCommits = "tmp/serializedPatches/"
 }

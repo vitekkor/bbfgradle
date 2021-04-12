@@ -38,6 +38,7 @@ public class Transformer implements ClassFileTransformer {
     }
 
     public byte[] transform(String className, byte[] classFile) {
+        if (!CompilerInstrumentation.getShouldProbesBeRecorded()) return null;
         long startTime = System.currentTimeMillis();
 
         if (isTransformationUnnecessary(className)) {

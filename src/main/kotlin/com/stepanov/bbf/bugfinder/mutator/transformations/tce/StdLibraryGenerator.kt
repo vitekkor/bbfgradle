@@ -23,13 +23,15 @@ import org.jetbrains.kotlin.serialization.deserialization.descriptors.Deserializ
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
 import org.jetbrains.kotlin.types.isNullable
 import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
+import org.jetbrains.kotlin.types.typeUtil.isInterface
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
-import kotlin.system.exitProcess
 
 object StdLibraryGenerator {
 
     val descriptorDecl: List<DeclarationDescriptor>
     val klasses: List<ClassDescriptor>
+    private val maxDepth = 2
+    private val blockList = listOf("hashCode", "toString")
 
     init {
         val (psi, ctx) = PSICreator("").let { it.getPSIForText("val a: StringBuilder = StringBuilder(\"\")") to it.ctx!! }
@@ -46,7 +48,7 @@ object StdLibraryGenerator {
         val resForType = gen(type, needType)
         val resForSuperTypes = type.supertypes().getAllWithoutLast().flatMap { gen(it, needType) }.toList()
         val res = resForType + resForSuperTypes
-        return res.removeDuplicatesBy { it.joinToString { it.name.asString() } }
+        return res.filterDuplicatesBy { it.joinToString { it.name.asString() } }
     }
 
     fun findPackageForType(type: String): PackageFragmentDescriptor? {
@@ -119,7 +121,7 @@ object StdLibraryGenerator {
         }
         derivedTypes
             .filter { it.second.toString() != type.toString() }
-            .removeDuplicatesBy { it.second.toString() }
+            .filterDuplicatesBy { it.second.toString() }
             .flatMap { gen(it.second, needType, it.first) }
             .forEach { funList.add(prefix + it) }
         return funList
@@ -138,13 +140,11 @@ object StdLibraryGenerator {
         kl.memberScope.computeAllNames()
         return kl.memberScope.getDescriptorsFiltered { true }.toList() +
                 kl.supertypesWithoutAny().flatMap { getMembersToOverride1(it) }
-
-
     }
 
     fun getMembersToOverride(kl: KotlinType): List<DeclarationDescriptor> {
         val fields = getMembersToOverride1(kl)
-            .removeDuplicatesBy {
+            .filterDuplicatesBy {
                 if (it is FunctionDescriptor) "${it.name}${it.valueParameters.map { it.name.asString() + it.returnType.toString() }}"
                 else it.name.asString()
             }
@@ -224,7 +224,7 @@ object StdLibraryGenerator {
     fun searchForFunWithRetType(type: KotlinType): List<SimpleFunctionDescriptor> {
         val implementations =
             findImplementationOf(type, false)
-                .removeDuplicatesBy { it.name }
+                .filterDuplicatesBy { it.name }
                 .map { it.name.asString().substringBefore('<') }.toMutableList()
         implementations.add(type.toString().substringBefore('<'))
         val funDescriptors =
@@ -289,6 +289,8 @@ object StdLibraryGenerator {
                     it.constructors.any { it.visibility.isPublicAPI && it.visibility.name != "protected" }
                 } else true
             }
+                //TODO ??
+//            .filter { it.name != type.constructor.declarationDescriptor?.name }
             .toList()
 
     fun calcImports(file: KtFile): List<String> {
@@ -307,6 +309,7 @@ object StdLibraryGenerator {
             .getDescriptorsFiltered { true }.filterIsInstance<ClassDescriptor>()
             .filter { it.name.asString() != type.toString().substringBefore('<') }
             .filter { it.getAllSuperClassifiers().any { it.name.asString() == type.toString().substringBefore('<') } }
+            .filter { (!it.defaultType.isInterface() && !it.defaultType.isAbstractClass()) || !withoutInterfaces }
 
     fun isImplementation(type: KotlinType, potImpl: KotlinType?): Boolean {
         if (potImpl == null) return true
@@ -330,8 +333,6 @@ object StdLibraryGenerator {
     private fun handleParams(valParamDesc: List<ValueParameterDescriptor>, typeParamsToArgs: Map<String, String>) =
         valParamDesc.map { "${it.name}: ${it.type.replaceTypeArgsToTypes(typeParamsToArgs)}" }.joinToString()
 
-    private val maxDepth = 2
-    private val blockList = listOf("hashCode", "toString")
 }
 
 data class DeclarationDescr(

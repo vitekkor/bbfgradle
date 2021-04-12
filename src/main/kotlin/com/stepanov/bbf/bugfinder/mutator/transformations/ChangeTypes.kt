@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 
-import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGenerator.generateRandomType
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator.generateRandomType
 import com.stepanov.bbf.bugfinder.util.getType
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.KtProperty
@@ -36,7 +36,7 @@ class ChangeTypes : Transformation() {
     private fun changeRandomTypeOnRandomType() {
         val types = file.getAllPSIChildrenOfType<KtTypeReference>()
         for (i in 0 until magicConst) {
-            val type = types.random()
+            val type = types.randomOrNull() ?: return
             val newType =
                 when (Random.nextBoolean()) {
                     true -> types.random()

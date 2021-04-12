@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.checkers.CoverageGuider
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.checkers.TracesChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
@@ -22,12 +23,15 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
             ++counter
             log.debug("Name = $dir")
             var project = Project.createFromCode(File(dir).readText())
-            if (project.language != LANGUAGE.KOTLIN) return
+            //TEMPORARY!! FIX THIS TODO
+            if (project.language != LANGUAGE.KOTLIN) CompilerArgs.isMiscompilationMode = false
             if (project.files.isEmpty()) {
                 log.debug("Cant create project")
                 return
             }
-            if (project.files.size > 1) {
+            //TODO fuzz with coroutines also
+            if (project.configuration.isWithCoroutines()) return
+            if (project.files.size > 1 && project.language == LANGUAGE.KOTLIN) {
                 project = project.convertToSingleFileProject()
             }
 //            if (project.files.first().psiFile.getAllPSIChildrenOfType<KtNamedFunction> { it.isTopLevel }.size < 2) {
@@ -48,13 +52,18 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
             }
             log.debug("Start to mutate")
             log.debug("BEFORE = ${project.files.first().text}")
+//            CompilerArgs.isInstrumentationMode = false
+            if (CompilerArgs.isGuidedByCoverage) {
+                CoverageGuider.init("", project)
+            }
             //ProjectPreprocessor.preprocess(project, null)
-            val checker = MutationChecker(listOf(JVMCompiler(""), JVMCompiler("-Xuse-ir")), project, project.files.first())
+            val checker = MutationChecker(compilers, project, project.files.first())
             if (!checker.checkCompiling()) {
                 log.debug("=(")
                 exitProcess(0)
             }
-            mutate(project, project.files.first(), listOf(::noBoxFunModifying))
+            //noLastLambdaInFinallyBlock temporary for avoiding duplicates bugs
+            mutate(project, project.files.first(), listOf(::noBoxFunModifying, ::noLastLambdaInFinallyBlock))
 //            //Save mutated file
 //            if (CompilerArgs.shouldSaveMutatedFiles) {
 //                val pathToNewTests = CompilerArgs.dirForNewTests
@@ -63,11 +72,11 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
 //                File(pathToSave).writeText(resultingMutant.text)
 //            }
             log.debug("Mutated = $project")
-            if (!CompilerArgs.isMiscompilationMode) {
-                Tracer(compilers.first(), project).trace()
-                log.debug("Traced = $project")
-                TracesChecker(compilers).checkBehavior(project)
-            }
+//            if (!CompilerArgs.isMiscompilationMode) {
+//                Tracer(compilers.first(), project).trace()
+//                log.debug("Traced = $project")
+//                TracesChecker(compilers).checkBehavior(project)
+//            }
             return
         } catch (e: Error) {
             log.debug("ERROR: ${e.localizedMessage}\n${e.stackTrace.map { it.toString() + "\n" }}")

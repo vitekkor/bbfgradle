@@ -14,14 +14,6 @@ data class CoverageEntry(
                     .split("$")
                     .filterNot { it.matches(Regex("""\d+""")) }
             val klassName = path.lastOrNull()?.substringAfterLast('/') ?: "NoName"
-            val methodName =
-                entry.substringAfter(':').substringBefore('(').let {
-                    val name = it.split("$").filterNot { it.matches(Regex("""\d+""")) }.lastOrNull() ?: "noName"
-                    when (name) {
-                        "<init>", "<clinit>" -> "$klassName()"
-                        else -> name
-                    }
-                }
             val params = mutableListOf<String>()
             entry
                 .substringAfter('(').substringBefore(')')
@@ -36,6 +28,14 @@ data class CoverageEntry(
                     if (prefix != param) {
                         val name = param.substringAfterLast('/')
                         if (name.trim().isNotEmpty()) params.add(name.trim())
+                    }
+                }
+            val methodName =
+                entry.substringAfter(':').substringBefore('(').let {
+                    val name = it.split("$").filterNot { it.matches(Regex("""\d+""")) }.lastOrNull() ?: "noName"
+                    when (name) {
+                        "<init>", "<clinit>" -> if (params.isEmpty()) "$klassName()" else klassName
+                        else -> name
                     }
                 }
             val rtv = entry.substringAfterLast(')').substringAfterLast('/').substringBeforeLast(';').let {

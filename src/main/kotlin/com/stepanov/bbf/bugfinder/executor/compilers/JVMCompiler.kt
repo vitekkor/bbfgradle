@@ -28,7 +28,7 @@ import java.util.jar.JarInputStream
 import java.util.jar.JarOutputStream
 import kotlin.system.exitProcess
 
-open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
+open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
     override val compilerInfo: String
         get() = "JVM $arguments"
 
@@ -91,6 +91,11 @@ open class JVMCompiler(open val arguments: String = "") : CommonCompiler() {
         projectArgs.optIn = arrayOf("kotlin.ExperimentalStdlibApi", "kotlin.contracts.ExperimentalContracts")
         if (project.configuration.jvmDefault.isNotEmpty())
             projectArgs.jvmDefault = project.configuration.jvmDefault.substringAfter(Directives.jvmDefault)
+        //TODO!!
+        //if (project.configuration.samConversion.isNotEmpty()) {
+            //val samConvType = project.configuration.samConversion.substringAfterLast(": ")
+            //projectArgs.samConversions = samConvType.toLowerCase()
+        //}
         return projectArgs
     }
 

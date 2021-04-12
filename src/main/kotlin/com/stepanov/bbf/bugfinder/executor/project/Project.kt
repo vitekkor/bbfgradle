@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.executor.project
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.addMain
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.util.getAllWithout
@@ -68,7 +69,7 @@ class Project(
         val configuration = this.configuration
         val language = this.language
         val projFiles = this.files.map { it.psiFile.copy() as KtFile }
-        val resFile = projFiles.first()
+        val resFile = projFiles.first().copy() as KtFile
         resFile.packageDirective?.delete()
         resFile.importDirectives.forEach { it.delete() }
         projFiles.getAllWithout(0).forEach {
@@ -84,7 +85,7 @@ class Project(
         }
         val pathToTmp = CompilerArgs.pathToTmpDir
         val fileName = "$pathToTmp/tmp0.kt"
-        return Project(configuration, BBFFile(fileName, resFile, null), language)
+        return Project(configuration, BBFFile(fileName, Factory.psiFactory.createFile(resFile.text), null), language)
     }
 
     fun saveInOneFile(pathToSave: String) {

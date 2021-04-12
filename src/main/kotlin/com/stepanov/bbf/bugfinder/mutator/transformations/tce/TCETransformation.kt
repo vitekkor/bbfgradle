@@ -3,17 +3,16 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.checkers.AbstractTreeMutator
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
+import com.stepanov.bbf.bugfinder.mutator.transformations.filterDuplicates
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.KtNodeTypes
-import org.jetbrains.kotlin.descriptors.CallableDescriptor
-import org.jetbrains.kotlin.descriptors.FunctionDescriptor
-import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getReceiverExpression
 import org.jetbrains.kotlin.psi.psiUtil.isTopLevelKtOrJavaMember
@@ -23,18 +22,17 @@ import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isError
-import org.jetbrains.kotlin.types.isNullable
 import java.io.File
-import java.lang.StringBuilder
 import kotlin.random.Random
 import kotlin.streams.toList
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
+//TODO make work for projects
 class TCETransformation : Transformation() {
 
     private val blockListOfTypes = listOf("Unit", "Nothing", "Nothing?")
     private val randomConst = 3
-    private var psi = PSICreator("").getPSIForText(file.text)
+    private var psi = PSICreator("").getPSIForText(file.text, false)
     lateinit var usageExamples: List<Triple<KtExpression, String, KotlinType?>>
     private val mutChecker = AbstractTreeMutator(checker.compilers, checker.project.configuration)
 
@@ -45,19 +43,28 @@ class TCETransformation : Transformation() {
             log.debug("Try №$i")
             val line = File("database.txt").bufferedReader().lines().toList().find { it.startsWith("FUN") }!!//.random()
             val randomType = line.takeWhile { it != ' ' }
-            val files = line.dropLast(1).takeLastWhile { it != '[' }.split(", ")
+            //TODO!!!
+//            val files = line.dropLast(1).takeLastWhile { it != '[' }.split(", ")
+            val files = File(CompilerArgs.baseDir).listFiles().map { it.name }
             val randomFile = files.random()
-            val proj = Project.createFromCode(File("${CompilerArgs.baseDir}/$randomFile").readText())
-            if (proj.files.size != 1) continue
+            var proj = Project.createFromCode(File("${CompilerArgs.baseDir}/$randomFile").readText())
+            if (proj.language != LANGUAGE.KOTLIN) continue
+            if (proj.files.size != 1)
+                proj = proj.convertToSingleFileProject()
+            if (!JVMCompiler().checkCompiling(proj)) continue
             val psi2 = proj.files.first().psiFile
-            if (Project.createFromCode(psi2.text).language != LANGUAGE.KOTLIN) continue
             val anonProj = Project.createFromCode(psi2.text)
+            //TODO!! anonProj.files.size >= 1
+            if (anonProj.language != LANGUAGE.KOTLIN || anonProj.files.size != 1) continue
+            //if (Project.createFromCode(psi2.text).language != LANGUAGE.KOTLIN) continue
+            //val anonProj = Project.createFromCode(psi2.text)
             val anonPsi = anonProj.files.first().psiFile
             if (!Anonymizer.anon(anonProj)) {
                 log.debug("Cant anonymize")
                 continue
             }
             val sameTypeNodes = anonPsi.node.getAllChildrenNodes().filter { it.elementType.toString() == randomType }
+            if (sameTypeNodes.isEmpty()) continue
             val targetNode = sameTypeNodes.random().psi as KtNamedFunction
             if (targetNode.getAllPSIChildrenOfType<KtExpression>().isEmpty()) continue
             log.debug("Trying to insert ${targetNode.text}")
@@ -67,10 +74,13 @@ class TCETransformation : Transformation() {
                 psi = psiBackup
                 continue
             }
-            val newTargetNode = psi.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name == targetNode.name }
-                ?: throw Exception("Cant find node")
+            psi = PSICreator("").getPSIForText(psi.text)
+            val updateAddedNodes =
+                addedNodes.mapNotNull { n -> psi.getAllChildren().find { it.text.trim() == n.text.trim() } }
+//            val newTargetNode = psi.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name == targetNode.name }
+//                ?: throw Exception("Cant find node")
             val ctx2 = PSICreator.analyze(psi) ?: continue
-            replaceNodesOfFile(addedNodes, ctx2)
+            replaceNodesOfFile(updateAddedNodes, ctx2)
         }
         log.debug("Final res = ${psi.text}")
         checker.curFile.changePsiFile(psi.text)
@@ -82,12 +92,18 @@ class TCETransformation : Transformation() {
         replaceNodes: List<PsiElement>,
         ctx: BindingContext
     ): Boolean {
-        val fillerGenerator = FillerGenerator(psi, ctx, usageExamples)
+        val fillerGenerator = FillerGenerator(psi, ctx, usageExamples.toMutableList())
         val replacementsList = mutableListOf<PsiElement>()
-        var nodesForChange = updateReplacement(replaceNodes, ctx).shuffled()
+        var nodesForChange =
+            updateReplacement(replaceNodes, ctx)
+                .filterDuplicates { a: Pair<KtExpression, KotlinType?>, b: Pair<KtExpression, KotlinType?> ->
+                    if (a.first == b.first) 0
+                    else 1
+                }
+                .shuffled()
         log.debug("Trying to change ${nodesForChange.size} nodes")
         for (i in nodesForChange.indices) {
-            if (Random.getTrue(30)) continue
+            if (Random.getTrue(50)) continue
             val node = nodesForChange.randomOrNull() ?: continue
             log.debug("replacing ${node.first.text to node.second?.toString()}")
             node.first.parents.firstOrNull { it is KtNamedFunction }?.let { addPropertiesToFun(it as KtNamedFunction) }
@@ -145,21 +161,21 @@ class TCETransformation : Transformation() {
 
     private fun collectUsageCases(): List<Triple<KtExpression, String, KotlinType?>> {
         val ctx = PSICreator.analyze(psi) ?: return listOf()
-        val generatedSamples = UsagesSamplesGenerator.generate(psi)
+        val generatedSamples = UsagesSamplesGenerator.generate(psi, ctx)
         val boxFuncs = psi.getBoxFuncs() ?: return generatedSamples
-        val properties =
+        /*val properties =
             (boxFuncs.getAllPSIChildrenOfType<KtProperty>() + psi.getAllPSIChildrenOfType { it.isTopLevel })
                 .map {
                     if (it.typeReference != null) Triple(it, it.text, it.typeReference!!.getAbbreviatedTypeOrType(ctx))
                     else Triple(it, it.text, it.initializer?.getType(ctx))
                 }
-                .filter { it.third != null && !it.third!!.isError }
+                .filter { it.third != null && !it.third!!.isError }*/
         val destrDecl = boxFuncs.getAllPSIChildrenOfType<KtDestructuringDeclaration>()
             .map { Triple(it, it.text, it.initializer?.getType(ctx)) }
             .filter { it.third != null && !it.third!!.isError }
         val exprs = boxFuncs.getAllPSIChildrenOfType<KtExpression>()
             .filter { it !is KtProperty }
-            .removeDuplicatesBy { it.text }
+            .filterDuplicatesBy { it.text }
             .map { Triple(it, it.text, it.getType(ctx)) }
             .filter {
                 it.third != null &&
@@ -169,7 +185,7 @@ class TCETransformation : Transformation() {
                         it.first.node.elementType != KtNodeTypes.STRING_TEMPLATE &&
                         !it.first.parent.text.endsWith(it.first.text)
             }
-        return (properties + destrDecl + exprs).map { Triple(it.first, it.second, it.third!!) } + generatedSamples
+        return (destrDecl + exprs).map { Triple(it.first, it.second, it.third!!) } + generatedSamples
     }
 
     private fun addAllDataFromAnotherFile(

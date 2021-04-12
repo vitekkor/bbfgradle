@@ -89,6 +89,12 @@ open class Checker(compilers: List<CommonCompiler>, private val withTracesCheck:
                         return false
                     }
                 }
+                if (CompilerArgs.isGuidedByCoverage) {
+                    if (isCoverageDecreases(project)) {
+                        checkedConfigurations[allTexts] = false
+                        return false
+                    }
+                }
                 if (withTracesCheck && CompilerArgs.isMiscompilationMode) {
                     val checkRes = checkTraces(project)
                     checkedConfigurations[allTexts] = checkRes

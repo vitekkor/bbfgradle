@@ -11,9 +11,9 @@ import org.jetbrains.kotlin.psi.psiUtil.parents
 internal class KotlinSignatureCollector : SignatureCollectorInterface<KtNamedFunction> {
     override fun collect(funcs: List<KtNamedFunction>): List<CoverageEntry> {
         if (funcs.isEmpty()) return listOf()
-        val ktFile = funcs.first().parents.lastOrNull() as KtFile
-        val packageDirective = ktFile.packageFqName.asString().replace('.', '/')
         return funcs.map { f ->
+            val ktFile = f.parents.lastOrNull() as KtFile
+            val packageDirective = ktFile.packageFqName.asString().replace('.', '/')
             var path = f.parents
                 .filter { it is KtNamedFunction || it is KtClassOrObject }
                 .map { (it as KtNamedDeclaration).name }

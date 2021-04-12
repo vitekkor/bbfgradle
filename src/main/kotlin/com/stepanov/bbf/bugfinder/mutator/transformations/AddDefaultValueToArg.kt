@@ -1,40 +1,59 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import org.jetbrains.kotlin.psi.KtNamedFunction
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.FillerGenerator
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
+import com.stepanov.bbf.bugfinder.util.*
 
-import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
-import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
-import com.stepanov.bbf.bugfinder.util.getRandomBoolean
+import com.stepanov.bbf.reduktor.parser.PSICreator
+import org.jetbrains.kotlin.psi.KtExpression
+import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtParameterList
+import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
+import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.types.isNullable
+import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
+import kotlin.random.Random
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 
 class AddDefaultValueToArg : Transformation() {
 
+    val generator = RandomInstancesGenerator(file as KtFile)
+
     //TODO MAYBE INIT AND REINIT SOME PROPERTIES
     override fun transform() {
-        file.getAllPSIChildrenOfType<KtNamedFunction>()
-                .asSequence()
-                .filter { it.valueParameters.size != 0 && getRandomBoolean(randomConst) }
-                .map { it.valueParameters }
-                .toList()
-                .flatten()
-                .forEach { par ->
-                    val typeText = par.typeReference?.text ?: return@forEach
-                    val defaultKey = typeAndDefaultArgs.keys.find { typeText.startsWith(it) } ?: return@forEach
-                    val defaultValue = if (getRandomBoolean() /*false*/) {
-                        typeAndDefaultArgs[defaultKey]!!
-                    } else {
-                        generateDefValuesAsString(typeText)
-                    }
-                    val newParam = psiFactory.createParameter("${par.name}: $typeText = $defaultValue")
-                    checker.replacePSINodeIfPossible(par, newParam)
+        val ctx = PSICreator.analyze(file) ?: return
+        val prevParams = mutableListOf<Triple<KtExpression, String, KotlinType?>>()
+        file.getAllPSIChildrenOfType<KtParameterList>()
+            .filter { it.parameters.isNotEmpty() }
+            .forEach { f ->
+                for ((ind, valueParam) in f.parameters.withIndex()) {
+                    //if (Random.getTrue(75)) continue
+                    val vpType = valueParam.typeReference?.getAbbreviatedTypeOrType(ctx) ?: continue
+                    if (valueParam.name == null) continue
+                    prevParams.add(Triple(psiFactory.createExpression(valueParam.name!!), valueParam.name!!, vpType))
+                    if (valueParam.hasDefaultValue() && Random.getTrue(50)) continue
+                    if (vpType.isTypeParameter()) continue
+                    val emptyConstructor = vpType.hasTypeParam()
+                    val fillGenerator = FillerGenerator(file as KtFile, ctx, prevParams.getAllWithoutLast().toMutableList())
+                    var value =
+                        if (vpType.isNullable() && Random.getTrue(20)) {
+                            "null"
+                        } else if (!emptyConstructor && Random.getTrue(50)) {
+                            val l = fillGenerator.getFillExpressions(valueParam to vpType)
+                            l.randomOrNull()?.text
+                        } else {
+                            generator.generateValueOfType(vpType, withoutParams = emptyConstructor)
+                        }
+                    if (value == null) continue
+                    if (value.trim().isEmpty()) continue
+                    if (emptyConstructor) value = value.substringBefore('<') + value.substringAfterLast('>')
+                    val psiValue = psiFactory.createParameter("${valueParam.text.substringBefore('=')} = $value")
+                    checker.replaceNodeIfPossible(valueParam, psiValue)
                 }
+            }
     }
 
-
-    private val typeAndDefaultArgs = mapOf(Pair("Int", "1"), Pair("Double", "0.0"), Pair("String", "\"\""),
-            Pair("ArrayList", "arrayListOf()"), Pair("List", "listOf()"), Pair("Set", "setOf()"), Pair("Map", "mapOf()"),
-            Pair("Array", "arrayOf()"), Pair("Pair", "null to null"))
 
     private val randomConst = 5
 }

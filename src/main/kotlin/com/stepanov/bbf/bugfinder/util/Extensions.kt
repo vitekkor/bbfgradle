@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.psi.psiUtil.siblings
 import org.jetbrains.kotlin.resolve.ImportPath
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.*
+import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 import org.jetbrains.kotlin.types.typeUtil.isUnsignedNumberType
 import org.jetbrains.kotlin.types.typeUtil.supertypes
 import ru.spbstu.kotlin.generate.util.asCharSequence
@@ -377,7 +378,7 @@ fun removeMainFromFiles(dir: String) {
     }
 }
 
-fun <T, R : Comparable<R>> List<T>.removeDuplicatesBy(f: (T) -> R): List<T> {
+fun <T, R : Comparable<R>> List<T>.filterDuplicatesBy(f: (T) -> R): List<T> {
     val list1 = this.zip(this.map(f))
     val res = mutableListOf<Pair<T, R>>()
     for (i in 0 until size) {
@@ -411,17 +412,6 @@ fun PsiFile.addToTheEnd(psiElement: PsiElement): PsiElement {
     }
 }
 
-fun PsiElement.addAfterWithWhitespace(psiElement: PsiElement, whiteSpace: String): PsiElement {
-    return try {
-        val placeToInsert = this.allChildren.lastOrNull() ?: this
-        placeToInsert.add(Factory.psiFactory.createWhiteSpace(whiteSpace))
-        val res = placeToInsert.add(psiElement)
-        placeToInsert.add(Factory.psiFactory.createWhiteSpace(whiteSpace))
-        res
-    } catch (e: IncorrectOperationException) {
-        this
-    }
-}
 
 fun PsiFile.addToTheTop(psiElement: PsiElement): PsiElement {
     val firstChild = this.allChildren.first!!
@@ -502,6 +492,9 @@ fun PsiFile.contains(cond: (PsiElement) -> Boolean) = this.getAllChildren().any 
 
 fun KotlinType.getAllTypeArgs(): List<TypeProjection> =
     this.arguments + this.arguments.flatMap { it.type.getAllTypeArgs() }
+
+fun KotlinType.hasTypeParam(): Boolean =
+    this.isTypeParameter() || getAllTypeArgs().any { it.type.isTypeParameter() }
 
 fun KotlinType.isKType(): Boolean =
     constructor.declarationDescriptor?.name?.asString()

@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.intellij.psi.PsiElement
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.RandomInstancesGenerator
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.addImport
 import com.stepanov.bbf.bugfinder.util.addToTheTop
@@ -33,7 +33,7 @@ class AddRandomAnnotation : Transformation() {
         //println("trying to insert ${type ?: kl!!.name}")
         val instance =
             type?.let { randomInstancesGenerator.generateValueOfType(type) }
-                ?: randomInstancesGenerator.generateRandomInstanceOfClass(kl!!)?.text
+                ?: randomInstancesGenerator.generateRandomInstanceOfClass(kl!!)?.first?.text
         //println("instance = $instance")
         if (instance == null || instance.isEmpty()) return
         val newNode: PsiElement

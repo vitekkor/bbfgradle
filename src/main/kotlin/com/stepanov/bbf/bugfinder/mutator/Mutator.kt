@@ -4,8 +4,11 @@ import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.LocalTCE
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.TCETransformation
+import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import org.apache.log4j.Logger
+import org.jetbrains.kotlin.psi.KtNamedFunction
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
@@ -15,13 +18,13 @@ class Mutator(val project: Project) {
         if (Random.nextInt(0, 100) < probPercentage) {
             log.debug("Cur transformation ${t::class.simpleName}")
 //            try {
-                t.transform()
-                //log.debug("After ${t::class.simpleName} = ${Transformation.checker.curFile.text}")
-                //log.debug("Verify = ${verify()}")
-                //Update ctx and file
-                checker.curFile.changePsiFile(checker.curFile.text)
-                //val newFile = Project.createFromCode(Transformation.checker.curFile.text).files.first()
-                //Transformation.checker.curFile = newFile
+            t.transform()
+            //log.debug("After ${t::class.simpleName} = ${Transformation.checker.curFile.text}")
+            //log.debug("Verify = ${verify()}")
+            //Update ctx and file
+            checker.curFile.changePsiFile(checker.curFile.text)
+            //val newFile = Project.createFromCode(Transformation.checker.curFile.text).files.first()
+            //Transformation.checker.curFile = newFile
 //            } catch (e: Exception) {
 //                log.debug("Exception ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
 //                System.exit(1)
@@ -37,11 +40,18 @@ class Mutator(val project: Project) {
             log.debug("Mutation of ${bbfFile.name} started")
             Transformation.checker.curFile = bbfFile
             when (bbfFile.getLanguage()) {
-                LANGUAGE.JAVA -> startJavaMutations()
-                else -> startKotlinMutations()
+                //LANGUAGE.JAVA -> startJavaMutations()
+                LANGUAGE.KOTLIN -> startKotlinMutations()
             }
             log.debug("End")
         }
+    }
+
+    private fun beforeKotlinMutations() {
+        //TODO!!! files without box funcs are not mutating because of ::noBoxFunModifications
+//        val funcs = checker.curFile.psiFile.getAllPSIChildrenOfType<KtNamedFunction>()
+//        if (funcs.find { it.name?.contains("box") == true } != null)
+//            println("LOL")
     }
 
     //Stub
@@ -54,9 +64,29 @@ class Mutator(val project: Project) {
     }
 
     private fun startKotlinMutations() {
-        executeMutation(AddTryExpression(), 100)
+        val mut = listOf(
+            AddDefaultValueToArg() to 100,
+            LocalTCE() to 100,
+            AddReificationToTypeParam() to 100,
+            TCETransformation() to 100,
+            ChangeRandomASTNodesFromAnotherTrees() to 100,
+            AddPossibleModifiers() to 50,
+            AddArgumentToFunction() to 75,
+            AddDefaultValueToArg() to 50,
+            ChangeTypes() to 75,
+            ChangeModifiers() to 50,
+            ChangeRandomASTNodesFromAnotherTrees() to 100
+        )
+        for (i in 0 until Random.nextInt(1, 3)) {
+            mut.forEach { executeMutation(it.first, it.second) }
+        }
 //        executeMutation(AddRandomNode(), 100)
 //        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 100)
+//        executeMutation(AddPossibleModifiers())
+//        executeMutation(AddDefaultValueToArg())
+//        executeMutation(AddSameFunctions())
+//        executeMutation(ChangeModifiers())
+//        executeMutation(ChangeTypes(), 75)
 //        exitProcess(0)
 //        executeMutation(TCETransformation(), 100)
 //        executeMutation(ChangeRandomASTNodesFromAnotherTrees(), 100)
@@ -113,30 +143,31 @@ class Mutator(val project: Project) {
         return res
     }
 
-    private val mutations = listOf(AddNullabilityTransformer() to 50,
-        AddPossibleModifiers() to 50,
-        AddReifiedToType() to 50,
-        ChangeSmthToExtension() to 50,
-        AddDefaultValueToArg() to 50,
-        ChangeArgToAnotherValue() to 50,
-        ReinitProperties() to 50,
-        //AddNotNullAssertions() to 50,
-        //AddBlockToExpression() to 50,
-        //ChangeOperators() to 50,
-        //ChangeConstants() to 50,
-        //ChangeTypes() to 75,
-        //ChangeReturnValueToConstant() to 50,
-        //AddBracketsToExpression() to 50,
-        ChangeModifiers() to 50,
-        AddSameFunctions() to 50,
-        //ChangeOperatorsToFunInvocations() to 50,
-        ChangeRandomASTNodes() to 75,
-        //AddFunInvocations() to 75,
-        ChangeRandomLines() to 50,
-        ChangeRandomASTNodesFromAnotherTrees() to 100,
-        //AddTryExpression() to 50,
-        //AddNodesFromAnotherFiles() to 50
-    )
+//    private val mutations = listOf(
+//        AddNullabilityTransformer() to 50,
+//        AddPossibleModifiers() to 50,
+//        AddReifiedToType() to 50,
+//        ChangeSmthToExtension() to 50,
+//        AddDefaultValueToArg() to 50,
+//        ChangeArgToAnotherValue() to 50,
+//        ReinitProperties() to 50,
+//        //AddNotNullAssertions() to 50,
+//        //AddBlockToExpression() to 50,
+//        //ChangeOperators() to 50,
+//        //ChangeConstants() to 50,
+//        //ChangeTypes() to 75,
+//        //ChangeReturnValueToConstant() to 50,
+//        //AddBracketsToExpression() to 50,
+//        ChangeModifiers() to 50,
+//        AddSameFunctions() to 50,
+//        //ChangeOperatorsToFunInvocations() to 50,
+//        ChangeRandomASTNodes() to 75,
+//        //AddFunInvocations() to 75,
+//        ChangeRandomLines() to 50,
+//        ChangeRandomASTNodesFromAnotherTrees() to 100,
+//        //AddTryExpression() to 50,
+//        //AddNodesFromAnotherFiles() to 50
+//    )
     private val log = Logger.getLogger("bugFinderLogger")
     private val checker
         get() = Transformation.checker

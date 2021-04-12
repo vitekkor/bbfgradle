@@ -1,5 +1,6 @@
 package com.stepanov.bbf
 
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.manager.ReportProperties
 import org.apache.commons.exec.*
 import org.apache.commons.io.FileUtils
@@ -7,9 +8,9 @@ import java.io.File
 import java.util.*
 
 
-const val COMMAND = "gradle runBBF"
+val COMMAND = if (CompilerArgs.isGuidedByCoverage) "gradle runBBFWithCoverage" else "gradle runBBF"
 val TIMEOUT_SEC = Properties()
-    .also { it.load(File("bbf.conf").inputStream()) }
+    .also { it.load(File("./bbf.conf").inputStream()) }
     .getProperty("BBF_TIMEOUT")?.toLongOrNull() ?: throw IllegalArgumentException("Can't init timeout value")
 
 //data class BBFProcess(val cmd: CommandLine, val file: File,
@@ -121,7 +122,7 @@ Bugs per minute: 0.0
         }
         globalCounter += 1000
         if ((globalCounter / 1000) % 60 == 0L) {
-            if (ReportProperties.getPropAsBoolean("SAVE_STATS") == true) saveStats((globalCounter / 1000) / 60)
+            //if (ReportProperties.getPropAsBoolean("SAVE_STATS") == true) saveStats((globalCounter / 1000) / 60)
         }
         timeElapsed += 1000
         Thread.sleep(1000)

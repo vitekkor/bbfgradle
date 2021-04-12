@@ -3,10 +3,13 @@ package com.stepanov.bbf.bugfinder.executor.checkers
 import com.stepanov.bbf.bugfinder.executor.COMPILE_STATUS
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.tracer.Tracer
+import com.stepanov.bbf.coverage.CoverageEntry
+import com.stepanov.bbf.coverage.ProgramCoverage
 import org.jetbrains.kotlin.abicmp.MySummaryReport
 import org.jetbrains.kotlin.abicmp.tasks.JarTask
 import org.jetbrains.kotlin.abicmp.tasks.checkerConfiguration
@@ -31,14 +34,12 @@ open class CompilationChecker(val compilers: List<CommonCompiler>) /*: Checker()
         return TracesChecker(compilers).checkBehavior(copyOfProject)
     }
 
-    //${Kostyl.name.substringBefore("_")}$index.jar"
     fun checkABI(project: Project): Pair<Int, File>? {
         val compilers = CompilerArgs.getCompilersList()
         if (compilers.size != 2) return null
         val compiled = compilers.mapIndexed { index, comp ->
             comp.pathToCompiled =
                 comp.pathToCompiled.replace(".jar", "$index.jar")
-                //comp.pathToCompiled.replace("tmp.jar", "${Kostyl.name.substringBefore("_")}$index.jar")
             comp.compile(project).pathToCompiled
         }
         if (compiled.any { it == "" }) return null
@@ -56,6 +57,15 @@ open class CompilationChecker(val compilers: List<CommonCompiler>) /*: Checker()
         val execRes = task.execute()
         MySummaryReport.summary.add(task.defectReport)
         return execRes
+    }
+
+    //
+    fun isCoverageDecreases(project: Project): Boolean {
+        val sumCoverage = CoverageGuider.getCoverage(project, compilers)
+        val k = CoverageGuider.calcKoefOfCoverageUsage(sumCoverage)
+        println("k = $k")
+        if (k > CoverageGuider.initCoef) CoverageGuider.initCoef = k
+        return k < CoverageGuider.initCoef
     }
 
     fun checkAndGetCompilerBugs(project: Project): List<Bug> {

@@ -25,7 +25,7 @@ import java.util.concurrent.TimeoutException
 import java.util.jar.JarInputStream
 import java.util.jar.JarOutputStream
 
-class JSCompiler(private val arguments: String = "") : CommonCompiler() {
+class JSCompiler(override val arguments: String = "") : CommonCompiler() {
 
     override val compilerInfo: String
         get() = "JS $arguments"

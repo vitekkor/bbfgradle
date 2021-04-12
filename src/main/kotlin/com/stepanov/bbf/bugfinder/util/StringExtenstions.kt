@@ -7,3 +7,6 @@ fun String.splitWithoutRemoving(regex: Regex): List<String> {
     if (ranges.last() != this.length) ranges.add(this.length)
     return ranges.zipWithNext().map { this.substring(it.first, it.second) }
 }
+
+fun String.erase(str: String) =
+    this.split(str).joinToString("")

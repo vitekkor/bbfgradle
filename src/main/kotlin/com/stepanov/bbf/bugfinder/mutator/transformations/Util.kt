@@ -40,7 +40,7 @@ fun getPropsUntil(node: PsiElement, until: PsiElement) =
         .filter { it !is KtNamedFunction && it !is KtClassOrObject && it is KtExpression }
         .flatMap { it.getAllPSIDFSChildrenOfType<KtExpression>() }
 
-internal fun <T> List<T>.removeDuplicates(comparator: Comparator<T>): List<T> {
+internal fun <T> List<T>.filterDuplicates(comparator: Comparator<T>): List<T> {
     val res = mutableListOf<T>()
     this.forEach { el -> if (res.all { comparator.compare(it, el) != 0 }) res.add(el) }
     return res

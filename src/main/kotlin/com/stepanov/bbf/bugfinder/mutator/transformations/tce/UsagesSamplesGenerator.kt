@@ -1,40 +1,80 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
+import com.intellij.psi.PsiElement
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.findFunByName
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.replaceThis
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.ClassKind
+import org.jetbrains.kotlin.descriptors.PropertyDescriptor
+import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.psi.psiUtil.isPrivate
-import org.jetbrains.kotlin.psi.psiUtil.isPropertyParameter
-import org.jetbrains.kotlin.psi.psiUtil.isProtected
+import org.jetbrains.kotlin.psi.psiUtil.allChildren
+import org.jetbrains.kotlin.psi.psiUtil.parents
+import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 object UsagesSamplesGenerator {
 
-    fun generate(file: KtFile): List<Triple<KtExpression, String, KotlinType?>> {
-        //val ctx = PSICreator.analyze(file)!!
-        val instanceGenerator = RandomInstancesGenerator(file)
+    private lateinit var instanceGenerator: RandomInstancesGenerator
+    private val randomTypeGenerator = RandomTypeGenerator
+    lateinit var file: KtFile
+    lateinit var ctx: BindingContext
+
+    //No more not private methods!
+    fun generate(file_: KtFile, ctx_: BindingContext): List<Triple<KtExpression, String, KotlinType?>> {
+        file = file_
+        ctx = ctx_
+        instanceGenerator = RandomInstancesGenerator(file)
+        randomTypeGenerator.setFileAndContext(file, ctx)
         val res = mutableListOf<KtExpression>()
-        generateForKlasses(file, res, instanceGenerator)
+        generateForKlasses(file, res)
         val withTypes = generateTypes(file, res.joinToString("\n") { it.text })
-        generateForFuncs(file, res, instanceGenerator, withTypes)
+        generateForFuncs(file, res, withTypes)
+        generateForProps(file, res, withTypes)
         val resToStr = res.joinToString("\n") { it.text }
         return generateTypes(file, resToStr)
     }
 
+    private fun generateForProps(
+        file: KtFile,
+        res: MutableList<KtExpression>,
+        klassInstances: List<Triple<KtExpression, String, KotlinType?>>
+    ) {
+        val props = file.getAllPSIChildrenOfType<KtProperty>()
+            .filter { it.isTopLevel }
+            .filter { it.name != null }
+        for (p in props) {
+            if (p.receiverTypeReference == null) {
+                res.add(Factory.psiFactory.createExpression(p.name!!))
+            }
+            val receiverTypeReference = p.receiverTypeReference?.getAbbreviatedTypeOrType(ctx) ?: continue
+            val instance = instanceGenerator.generateValueOfType(receiverTypeReference)
+            if (instance.isNotEmpty()) {
+                res.add(Factory.psiFactory.createExpression("$instance.${p.name}"))
+            }
+        }
+    }
+
+
     private fun generateForFuncs(
         file: KtFile,
         res: MutableList<KtExpression>,
-        generator: RandomInstancesGenerator,
         klassInstances: List<Triple<KtExpression, String, KotlinType?>>
     ) {
         for (func in file.getAllPSIChildrenOfType<KtNamedFunction>().filter { it.isTopLevel }) {
             if (func.name?.startsWith("box") == true) continue
-            val (instance, valueParams) = generator.generateTopLevelFunctionCall(func) ?: continue
+            val (instance, valueParams) = instanceGenerator.generateTopLevelFunctionCall(func) ?: continue
             val valueArgs =
                 if (instance is KtCallExpression) instance.valueArguments
                 else null
@@ -51,43 +91,93 @@ object UsagesSamplesGenerator {
 
     private fun generateForKlasses(
         file: KtFile,
-        res: MutableList<KtExpression>,
-        generator: RandomInstancesGenerator,
-        funInstances: List<Triple<KtExpression, String, KotlinType?>> = listOf()
-    ) {
+        res: MutableList<KtExpression>
+    ): List<KtExpression> {
         val classes = file.getAllPSIChildrenOfType<KtClassOrObject>()
+            .filter { it.name != null }
+            .filterNot { it.parents.any { it is KtNamedFunction } }//.filter { it.isTopLevel() }
         for (klass in classes) {
             val openFuncsAndProps = mutableListOf<String>()
-            klass.primaryConstructor?.valueParameters
-                ?.filter { it.isPropertyParameter() && !it.isPrivate() && it.name != null }
-                ?.forEach { openFuncsAndProps.add(it.name!!) }
-            filterOpenFuncsAndPropsFromDecl(klass.declarations).forEach { openFuncsAndProps.add(it) }
-            val instanceOfKlass = generator.generateRandomInstanceOfClass(klass)
+            val klassDescriptor =
+                klass.getDeclarationDescriptorIncludingConstructors(ctx) as? ClassDescriptor ?: continue
+            val genRes =
+                instanceGenerator.classInstanceGenerator.generateRandomInstanceOfUserClass(klassDescriptor.defaultType)
+                    ?: null to null
+            val instanceOfKlass = genRes.first ?: continue
+            res.add(instanceOfKlass as KtExpression)
+            var klassType = genRes.second
+            if (klassType == null) {
+                klassType = randomTypeGenerator.generateType(instanceOfKlass.text.substringBefore('(')) ?: continue
+            }
+            filterOpenFuncsAndPropsFromDecl(instanceOfKlass, klassType).forEach { openFuncsAndProps.add(it) }
             openFuncsAndProps
                 .mapNotNull {
                     if (it.startsWith("CoBj"))
                         Factory.psiFactory.createExpressionIfPossible("${klass.name}.${it.substringAfter("CoBj")}")
                     else
-                        Factory.psiFactory.createExpressionIfPossible("${instanceOfKlass?.text}.$it")
+                        Factory.psiFactory.createExpressionIfPossible(it)
                 }
                 .forEach { res.add(it) }
         }
+        return res
     }
 
-    private fun filterOpenFuncsAndPropsFromDecl(declarations: List<KtDeclaration>): List<String> {
+    private fun filterOpenFuncsAndPropsFromDecl(
+        parentInstance: PsiElement,
+        classType: KotlinType
+    ): List<String> {
         val openFuncsAndProps = mutableListOf<String>()
-        for (decl in declarations) {
-            if (decl.isPrivate() || decl.isProtected() || (decl.name == null && decl !is KtObjectDeclaration)) continue
-            when (decl) {
-                is KtProperty -> openFuncsAndProps.add(decl.name!!)
-                is KtNamedFunction -> openFuncsAndProps.add("${decl.name!!}()")
-                is KtObjectDeclaration ->
-                    filterOpenFuncsAndPropsFromDecl(decl.declarations).forEach {
-                        openFuncsAndProps.add("CoBj$it")
+        for (desc in classType.memberScope.getDescriptorsFiltered { true }) {
+            if (desc is SimpleFunctionDescriptor && desc.visibility.isPublicAPI && desc.extensionReceiverParameter == null) {
+                if (desc.name.asString() !in noNeedFunctions)
+                    instanceGenerator.generateFunctionCall(desc)?.let {
+                        openFuncsAndProps.add(
+                            "${parentInstance.text}.${it.text}"
+                        )
                     }
+            } else if (desc is PropertyDescriptor && desc.visibility.isPublicAPI) {
+                openFuncsAndProps.add("${parentInstance.text}.${desc.name}")
             }
         }
         return openFuncsAndProps
+    }
+
+    private fun generateForNestedClass(
+        parentInstance: KtExpression,
+        classDescriptor: ClassDescriptor
+    ): List<String> {
+        val resInvocation: String
+        val type = classDescriptor.defaultType
+        if (classDescriptor.isInner) {
+            //TODO add type parameters
+            val instance =
+                instanceGenerator.classInstanceGenerator.generateRandomInstanceOfUserClass(type, 0)
+            if (instance?.first == null) return listOf()
+            resInvocation =
+                "${parentInstance.text}.${instance.first!!.text}"//"${parentInstance.text}.${classDescriptor.name}$constructorInvocation"
+        } else {
+            if (classDescriptor.kind == ClassKind.OBJECT) {
+                val parentInstanceName = parentInstance.text.substringBefore('(').substringBefore('<')
+                val objectInvocationAsExpression =
+                    Factory.psiFactory.createExpression("$parentInstanceName.${classDescriptor.name}")
+                val objectType = randomTypeGenerator.generateType(objectInvocationAsExpression.text) ?: return listOf()
+                return filterOpenFuncsAndPropsFromDecl(objectInvocationAsExpression, objectType)
+                    .map { "CoBj" + classDescriptor.name + "." + it }
+            } else {
+                val instance = instanceGenerator.classInstanceGenerator.generateRandomInstanceOfUserClass(type, 0)
+                if (instance?.first == null) return listOf()
+                val parentInstanceName = parentInstance.text.substringBefore('(').substringBefore('<')
+                resInvocation = "${parentInstanceName}.${instance.first!!.text}"
+            }
+        }
+        val expression =
+            Factory.psiFactory.createExpressionIfPossible(resInvocation) ?: return listOf()
+        //Remove constructor invocations
+        val expressionForTypeGeneration = expression.copy()
+        expressionForTypeGeneration.allChildren.toList().filterIsInstance<KtCallExpression>()
+            .forEach { it.valueArgumentList?.replaceThis(Factory.psiFactory.createWhiteSpace(" ")) }
+        val newKlassType = randomTypeGenerator.generateType(expressionForTypeGeneration.text) ?: return listOf()
+        return filterOpenFuncsAndPropsFromDecl(expression, newKlassType)
     }
 
     private fun generateTypes(file: KtFile, resToStr: String): List<Triple<KtExpression, String, KotlinType?>> {
@@ -101,7 +191,9 @@ object UsagesSamplesGenerator {
             .filter { it.third != null }
     }
 
-    fun List<Triple<KtExpression, String, KotlinType?>>.getValueOfType(type: String): KtExpression? =
+    private fun List<Triple<KtExpression, String, KotlinType?>>.getValueOfType(type: String): KtExpression? =
         this.filter { it.third?.let { it.toString() == type || it.toString() == type.substringBefore('?') } ?: false }
             .randomOrNull()?.first
+
+    private val noNeedFunctions = listOf("equals", "hashCode", "toString")
 }

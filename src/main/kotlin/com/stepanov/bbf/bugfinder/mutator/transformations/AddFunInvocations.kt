@@ -64,7 +64,7 @@ class AddFunInvocations : Transformation() {
                 }
             }
             .filter { it.second != null && it.first != null }
-            .removeDuplicates(Comparator { t, t2 -> t.first!!.compareTo(t2.first!!) })
+            .filterDuplicates(Comparator { t, t2 -> t.first!!.compareTo(t2.first!!) })
             .map { Triple(it.first, it.second!!.constructor, it.third?.typeElement?.typeArgumentsAsTypes) }
         val objects = availableVars.filter { it.second.toString() == randomFunc.second }
         val neededObj = if (randomFunc.second == null || objects.isEmpty()) null else objects.random()

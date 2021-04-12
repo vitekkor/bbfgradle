@@ -2,11 +2,11 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GStructure
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.RandomInstancesGenerator
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.addImport
 import com.stepanov.bbf.bugfinder.util.addToTheEnd
-import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGenerator
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.util.getTrue
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext

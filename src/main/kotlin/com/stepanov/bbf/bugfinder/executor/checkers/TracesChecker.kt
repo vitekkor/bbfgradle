@@ -29,7 +29,7 @@ class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compil
     fun checkBehavior(project: Project): Boolean {
         val groupedRes = checkTest(project)
         if (groupedRes.size > 1) {
-            if (groupedRes.keys.first().split("\n").any { it.matches(Regex(""".+@[0-9a-z]""")) }) {
+            if (groupedRes.keys.first().split("\n").any { it.matches(Regex(""".+@[0-9a-z]+""")) }) {
                 val comment = Factory.psiFactory.createComment("// DIFF_ONLY_IN_ADDRESSES")
                 project.files.first().psiFile.addToTheTop(comment)
             }
@@ -43,7 +43,7 @@ class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compil
             )
             return false
         }
-        if (CompilerArgs.isStrictMode && CompilerArgs.isMiscompilationMode) {
+        if (CompilerArgs.isStrictMode) {
             if (groupedRes.keys.firstOrNull() == "-1Exception") {
                 return false
             }
@@ -53,7 +53,8 @@ class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compil
 
     private fun checkTest(project: Project): Map<String, List<CommonCompiler>> {
         log.debug("Trying to compile with main function:")
-        val extendedCompilerList = compilers + listOf(JVMCompiler("-Xno-optimize"))
+        //val extendedCompilerList = compilers + listOf(JVMCompiler("-Xno-optimize"))
+        val extendedCompilerList = compilers
         if (!extendedCompilerList.checkCompilingForAllBackends(project)) {
             log.debug("Cannot compile with main + \n$project")
             return mapOf()
@@ -62,6 +63,7 @@ class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compil
         log.debug("Executing traced code:\n$project")
         val results = mutableListOf<Pair<CommonCompiler, String>>()
         val errorsMap = mutableListOf<Pair<CommonCompiler, String>>()
+        var jvmCrashed = false
         for (comp in extendedCompilerList) {
             val status = comp.compile(project)
             if (status.status == -1)
@@ -73,7 +75,15 @@ class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compil
             if (exclErrorMessages.any { errors.contains(it) })
                 return mapOf()
             results.add(comp to res.trim())
-            errorsMap.add(comp to errors.trim())
+            if (errors.contains("java.lang.VerifyError: Bad type on operand stack")) {
+                errorsMap.add(comp to "Bytecode by $comp is incorrect\n${errors.trim()}")
+                jvmCrashed = true
+            } else {
+                errorsMap.add(comp to errors.trim())
+            }
+        }
+        if (jvmCrashed) {
+            return errorsMap.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap()
         }
         if (results.all { it.second.trim().isEmpty() }) {
             return mapOf("-1Exception" to listOf())

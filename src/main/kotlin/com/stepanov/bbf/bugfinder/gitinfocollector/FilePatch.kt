@@ -1,14 +1,17 @@
 package com.stepanov.bbf.bugfinder.gitinfocollector
 
 import com.stepanov.bbf.reduktor.util.getAllWithout
+import kotlinx.serialization.Serializable
 import kotlin.system.exitProcess
 
+@Serializable
 data class FilePatch(
     val fileName: String,
     val text: String,
     val patches: List<Patch>
 )
 
+@Serializable
 data class Patch(
     val startRemoveLine: Int,
     val numOfRemovedLines: Int,

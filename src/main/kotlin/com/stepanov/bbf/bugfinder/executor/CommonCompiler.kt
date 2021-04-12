@@ -20,6 +20,7 @@ enum class COMPILE_STATUS {
 
 abstract class CommonCompiler {
 
+    abstract val arguments: String
     abstract fun checkCompiling(project: Project): Boolean
     abstract fun getErrorMessageWithLocation(project: Project): Pair<String, List<CompilerMessageSourceLocation>>
     abstract fun tryToCompile(project: Project): KotlincInvokeStatus

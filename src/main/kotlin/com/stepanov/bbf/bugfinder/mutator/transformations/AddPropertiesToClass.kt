@@ -1,19 +1,12 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators.RandomPropertyGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.RandomInstancesGenerator
-import com.stepanov.bbf.bugfinder.util.addToTheEnd
-import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
-import com.stepanov.bbf.bugfinder.util.getAllPSIDFSChildrenOfType
-import com.stepanov.bbf.bugfinder.util.replaceThis
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
+import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.psi.psiUtil.isPropertyParameter
-import kotlin.system.exitProcess
 
 class AddPropertiesToClass : Transformation() {
 
@@ -57,18 +50,4 @@ class AddPropertiesToClass : Transformation() {
     }
 
     private val RAND_CONST = 50
-}
-
-
-fun KtClass.addPsiToBody(prop: PsiElement): PsiElement? {
-    return this.body?.addBeforeRBrace(prop) ?: this.add(Factory.psiFactory.createBlock(prop.text))
-}
-
-fun KtClassBody.addBeforeRBrace(psiElement: PsiElement): PsiElement {
-    return this.rBrace?.let { rBrace ->
-        val ws = this.addBefore(Factory.psiFactory.createWhiteSpace("\n\n"), rBrace)
-        val res = this.addAfter(psiElement, ws)
-        this.addAfter(Factory.psiFactory.createWhiteSpace("\n\n"), res)
-        res
-    } ?: psiElement
 }

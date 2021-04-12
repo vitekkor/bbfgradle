@@ -59,7 +59,7 @@ internal open class ClassBodyGenerator(
                         else -> true
                     }
                 }
-        }.removeDuplicatesBy {
+        }.filterDuplicatesBy {
             if (it is FunctionDescriptor) "${it.name}${it.valueParameters.map { it.name.asString() + it.returnType.toString() }}"
             else (it as PropertyDescriptor).name.asString()
         }
