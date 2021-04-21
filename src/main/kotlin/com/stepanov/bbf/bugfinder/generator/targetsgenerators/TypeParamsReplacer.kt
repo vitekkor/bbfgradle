@@ -21,7 +21,7 @@ object TypeParamsReplacer {
         toType: ClassDescriptor,
         typeGenerator: RandomTypeGenerator,
         withoutParams: Boolean = false
-    ): Pair<KtNamedFunction, Map<String, String>> {
+    ): Pair<KtNamedFunction, Map<String, KotlinType?>> {
         val implConstr =
             if (CompilerArgs.isABICheckMode)
                 toType.constructors
@@ -43,8 +43,8 @@ object TypeParamsReplacer {
                 .indexOf(name)
                 .let { if (it == -1) implSupertypeTypeParams.map { it.asString() }.indexOf("$name?") else it }
             if (index != -1)
-                realTypeParams[index].toString()
-            else typeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull()).toString()
+                realTypeParams[index].type
+            else typeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull())
         }
         val oldToRealTypeParams = toType.declaredTypeParameters.map { it.name.asString() }.zip(typeParams).toMap()
         val valueParams = produceValueParams(implConstr.valueParameters, oldToRealTypeParams)
@@ -64,7 +64,7 @@ object TypeParamsReplacer {
         fromType: KotlinType,
         toType: FunctionDescriptor,
         typeGenerator: RandomTypeGenerator
-    ): Pair<KtNamedFunction, Map<String, String>> {
+    ): Pair<KtNamedFunction, Map<String, KotlinType?>> {
         val retType = toType.returnType!!
         val realTypeParams = fromType.arguments.map { it.type }
         val implSupertypeTypeParams = retType.arguments.map { it.type.toString() }
@@ -74,9 +74,9 @@ object TypeParamsReplacer {
                 .indexOf(name)
                 .let { if (it == -1) implSupertypeTypeParams.indexOf("$name?") else it }
             if (index != -1) {
-                realTypeParams[index].toString()
+                realTypeParams[index]
             } else {
-                typeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull()).toString()
+                typeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull())
                 //name
             }
         }
@@ -100,7 +100,7 @@ object TypeParamsReplacer {
 
     private fun produceValueParams(
         valueParameters: List<ValueParameterDescriptor>,
-        oldToRealTypeParams: Map<String, String>
+        oldToRealTypeParams: Map<String, KotlinType?>
     ) =
         valueParameters.joinToString { param ->
             val paramType =
@@ -121,7 +121,8 @@ object TypeParamsReplacer {
                         .joinToString(separator = "") {
                             if (it == ",") "$it "
                             else if (it == "in" || it == "out") ""
-                            else oldToRealTypeParams[it] ?: oldToRealTypeParams[makeNotNullable(it)] ?: it
+                            else oldToRealTypeParams[it]?.toString()
+                                ?: oldToRealTypeParams[makeNotNullable(it)]?.toString() ?: it
                         }
         }
 

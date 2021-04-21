@@ -69,8 +69,8 @@ abstract class DSGenerator(
 
     protected abstract fun simpleGeneration(): PsiElement?
     protected abstract fun partialGeneration(initialStructure: GStructure): PsiElement?
-    abstract fun afterGeneration(psi: PsiElement)
-    abstract fun beforeGeneration()
+    protected abstract fun afterGeneration(psi: PsiElement)
+    protected abstract fun beforeGeneration()
 
     fun generate(): PsiElement? {
         beforeGeneration()

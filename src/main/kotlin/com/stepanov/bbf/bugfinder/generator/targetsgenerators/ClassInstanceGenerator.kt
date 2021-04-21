@@ -24,7 +24,7 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
 
     private val rtg = RandomTypeGenerator
     private val log = Logger.getLogger("mutatorLogger")
-    private val MAX_DEPTH = 20
+    private val MAX_DEPTH = 10
 
     private fun generateInstanceOfLocalClass(
         klDescriptor: ClassDescriptor,

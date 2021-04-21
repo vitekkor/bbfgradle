@@ -191,11 +191,10 @@ object RandomTypeGenerator {
 
     fun generateType(name: String): KotlinType? {
         if (!RandomTypeGenerator::file.isInitialized || !RandomTypeGenerator::ctx.isInitialized) return null
+        if (name.isEmpty()) return null
         generateType(file, ctx, name.trim()).let {
             if (it == null) {
                 println("CANT GENERATE TYPE $name")
-//                println(file.text)
-//                exitProcess(0)
             }
             return it
         }

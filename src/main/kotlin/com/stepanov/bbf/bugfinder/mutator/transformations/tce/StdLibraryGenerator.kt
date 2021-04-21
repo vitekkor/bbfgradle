@@ -156,16 +156,6 @@ object StdLibraryGenerator {
             .filter { it is PropertyDescriptor || it is FunctionDescriptor }
     }
 
-    private fun KotlinType.replaceTypeArgsToTypes(map: Map<String, String>): String {
-        val realType =
-            when {
-                isTypeParameter() -> map[this.constructor.toString()] ?: map["${this.constructor}?"] ?: this.toString()
-                this.isNullable() -> "${this.constructor}?"
-                else -> this.constructor.toString()
-            }
-        val typeParams = this.arguments.map { it.type.replaceTypeArgsToTypes(map) }
-        return if (typeParams.isNotEmpty()) "$realType<${typeParams.joinToString()}>" else realType
-    }
 
     private fun getExtensionFuncsFromStdLibrary(type: KotlinType, needType: String): List<DeclarationDescr> {
         val res = mutableListOf<DeclarationDescr>()
@@ -221,11 +211,25 @@ object StdLibraryGenerator {
         }
     }
 
+    fun getLibraryCallsForType(type: KotlinType, needType: KotlinType): List<SimpleFunctionDescriptor> {
+        val superTypes =
+            type.constructor.declarationDescriptor?.getAllSuperClassifiers()?.filter { it.name.asString() != "Any" }
+                ?.map { it.name.toString().substringBefore('<') }
+                ?.toList() ?: listOf()
+        val condition2 = { a: SimpleFunctionDescriptor ->
+            a.extensionReceiverParameter?.value?.type?.let {
+                val rtv = "${a.returnType}".substringBefore('<')
+                "$it".substringBefore('<') in superTypes && rtv in superTypes
+            } ?: false
+        }
+        return listOf()
+    }
+
     fun searchForFunWithRetType(type: KotlinType): List<SimpleFunctionDescriptor> {
         val implementations =
             findImplementationOf(type, false)
                 .filterDuplicatesBy { it.name }
-                .map { it.name.asString().substringBefore('<') }.toMutableList()
+                .map { it.name.asString().substringBefore('<') }.toMutableSet()
         implementations.add(type.toString().substringBefore('<'))
         val funDescriptors =
             descriptorDecl.filterIsInstance<DeserializedSimpleFunctionDescriptor>()
@@ -289,7 +293,7 @@ object StdLibraryGenerator {
                     it.constructors.any { it.visibility.isPublicAPI && it.visibility.name != "protected" }
                 } else true
             }
-                //TODO ??
+            //TODO ??
 //            .filter { it.name != type.constructor.declarationDescriptor?.name }
             .toList()
 

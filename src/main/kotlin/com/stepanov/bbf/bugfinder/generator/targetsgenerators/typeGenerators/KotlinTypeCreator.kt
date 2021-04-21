@@ -17,13 +17,17 @@ import org.jetbrains.kotlin.types.KotlinType
 object KotlinTypeCreator {
 
     fun createType(file: KtFile, type: String): KotlinType? {
-        if (type.contains("??") || type.contains("ERROR")) return null
+        val vtype =
+            if (type.contains('<') && type.substringBefore('<').contains('.'))
+                type.substringBefore('<').substringAfterLast('.') + "<" + type.substringAfter('<')
+            else type
+        if (vtype.contains("??") || vtype.contains("ERROR")) return null
         val fileCopy = file.copy() as KtFile
         val prefix = fileCopy.packageDirective?.text + "\n" + fileCopy.importList?.text + "\n"
         fileCopy.packageDirective?.delete()
         fileCopy.importList?.delete()
         val classDef =
-            splitTypeByCommas(type)
+            splitTypeByCommas(vtype)
                 .mapIndexed { index, s ->
                     val twb = s.substringBefore(":").trim()
                     when {
@@ -33,7 +37,7 @@ object KotlinTypeCreator {
                         else -> s
                     }
                 }
-                .joinToString(prefix = "${type.substringBefore('<')}<", postfix = ">")
+                .joinToString(prefix = "${vtype.substringBefore('<')}<", postfix = ">")
         val klass =
             try {
                 val kl = Factory.psiFactory.createClass("class $classDef")
@@ -43,8 +47,8 @@ object KotlinTypeCreator {
             }
         var typeParams = ""
         var typeParamsWithoutBounds = ""
-        if (!type.contains("<")) {
-            val typeReference = Factory.psiFactory.createTypeIfPossible(type)
+        if (!vtype.contains("<")) {
+            val typeReference = Factory.psiFactory.createTypeIfPossible(vtype)
             if (typeReference != null) {
                 typeParams =
                     typeReference.getAllChildren()
@@ -53,18 +57,18 @@ object KotlinTypeCreator {
                         .filter { ta -> file.getAllPSIChildrenOfType<KtClassOrObject>().all { it.name != ta } }
                         .filter { ta -> StdLibraryGenerator.findPackageForType(ta) == null }
                         .let { if (it.isEmpty()) "" else it.joinToString(prefix = "<", postfix = ">") }
-                if (klass?.name == null) typeParamsWithoutBounds = type
+                if (klass?.name == null) typeParamsWithoutBounds = vtype
             } else {
                 typeParams = ""
-                val t = type.substringBeforeLast('?').trim()
+                val t = vtype.substringBeforeLast('?').trim()
                 if (file.getAllPSIChildrenOfType<KtClass>().all { it.name != t } &&
                     StdLibraryGenerator.findPackageForType(t) == null) {
                     typeParams = "<$t>"
                 }
-                if (klass?.name == null) typeParamsWithoutBounds = type
+                if (klass?.name == null) typeParamsWithoutBounds = vtype
             }
         } else if (klass == null || klass.name == null) {
-            val typeReference = Factory.psiFactory.createTypeIfPossible(type) ?: return null
+            val typeReference = Factory.psiFactory.createTypeIfPossible(vtype) ?: return null
             typeParams =
                 typeReference.getAllChildren()
                     .filter { it is KtUserType && !it.text.contains('<') }
@@ -72,7 +76,7 @@ object KotlinTypeCreator {
                     .filter { ta -> file.getAllPSIChildrenOfType<KtClassOrObject>().all { it.name != ta } }
                     .filter { ta -> StdLibraryGenerator.findPackageForType(ta) == null }
                     .let { if (it.isEmpty()) "" else it.joinToString(prefix = "<", postfix = ">") }
-            typeParamsWithoutBounds = type
+            typeParamsWithoutBounds = vtype
         } else {
             typeParams =
                 klass.typeParameterList?.parameters
@@ -99,7 +103,7 @@ object KotlinTypeCreator {
         val prop = "val abcq1: $n$typeParamsWithoutBounds = TODO()"
         val newFile = Factory.psiFactory.createFile("$prefix\n\n$prop\n\n$func\n\n${fileCopy.text}")
         //Search for package of type
-        StdLibraryGenerator.findPackageForType(type)?.let { pack ->
+        StdLibraryGenerator.findPackageForType(vtype)?.let { pack ->
             val import = Factory.psiFactory.createImportDirective(ImportPath(FqName(pack.fqName.toUnsafe()), true))
             newFile.addImport(import)
         }

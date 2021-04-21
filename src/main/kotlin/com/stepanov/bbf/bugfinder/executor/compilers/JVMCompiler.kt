@@ -93,8 +93,8 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
             projectArgs.jvmDefault = project.configuration.jvmDefault.substringAfter(Directives.jvmDefault)
         //TODO!!
         //if (project.configuration.samConversion.isNotEmpty()) {
-            //val samConvType = project.configuration.samConversion.substringAfterLast(": ")
-            //projectArgs.samConversions = samConvType.toLowerCase()
+        //val samConvType = project.configuration.samConversion.substringAfterLast(": ")
+        //projectArgs.samConversions = samConvType.toLowerCase()
         //}
         return projectArgs
     }
@@ -133,6 +133,7 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
             hasTimeout,
             MsgCollector.locations.toMutableList()
         )
+        //println(status.combinedOutput)
         return status
     }
 
@@ -143,14 +144,15 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
         return executeCompiler(project, args)
     }
 
-    override fun exec(path: String, streamType: Stream): String {
-        val mainClass = JarInputStream(File(path).inputStream()).manifest.mainAttributes.getValue("Main-class")
+    override fun exec(path: String, streamType: Stream, mainClass: String): String {
+        val mc =
+            mainClass.ifEmpty { JarInputStream(File(path).inputStream()).manifest.mainAttributes.getValue("Main-class") }
         return commonExec(
-            "java -classpath ${CompilerArgs.jvmStdLibPaths.joinToString(":")}:$path $mainClass",
+            "java -classpath ${CompilerArgs.jvmStdLibPaths.joinToString(":")}:$path $mc",
             streamType
         )
     }
-        //commonExec("java -classpath ${CompilerArgs.jvmStdLibPaths.joinToString(":")} -jar $path", streamType)
+    //commonExec("java -classpath ${CompilerArgs.jvmStdLibPaths.joinToString(":")} -jar $path", streamType)
 
     private fun analyzeErrorMessage(msg: String): Boolean = !msg.split("\n").any { it.contains(": error:") }
 

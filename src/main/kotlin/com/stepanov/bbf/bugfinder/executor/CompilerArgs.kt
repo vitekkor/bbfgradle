@@ -157,8 +157,8 @@ object CompilerArgs {
     val jvmStdLibPaths = listOf(
         getStdLibPath("kotlin-stdlib"), getStdLibPath("kotlin-stdlib-common"),
         getStdLibPath("kotlin-test"), getStdLibPath("kotlin-test-common"), getStdLibPath("kotlin-reflect"),
-        getStdLibPath("kotlin-script-runtime"), getStdLibPath("kotlin-test-junit")
-        //getStdLibPath("kotlin-stdlib-jdk8"), getStdLibPath("kotlin-stdlib-jdk7")
+        getStdLibPath("kotlin-script-runtime"), getStdLibPath("kotlin-test-junit"),
+        getStdLibPath("kotlin-stdlib-jdk8"), getStdLibPath("kotlin-stdlib-jdk7")
     )
 
     val jsStdLibPaths = listOf(

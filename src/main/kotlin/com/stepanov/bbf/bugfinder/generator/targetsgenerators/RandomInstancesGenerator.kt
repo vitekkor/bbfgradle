@@ -22,6 +22,7 @@ import org.jetbrains.kotlin.resolve.descriptorUtil.parentsWithSelf
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.*
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 open class RandomInstancesGenerator(private val file: KtFile) {
 
@@ -220,7 +221,8 @@ open class RandomInstancesGenerator(private val file: KtFile) {
         return searchForImplementation(type, depth + 1, onlyImpl, withoutParams)
     }
 
-    private fun searchForImplementation(
+    //Add without extensionReceiver?
+    fun searchForImplementation(
         type: KotlinType,
         depth: Int,
         onlyImpl: Boolean = false,
@@ -231,6 +233,8 @@ open class RandomInstancesGenerator(private val file: KtFile) {
                 .filter { it.valueParameters.all { !it.type.hasTypeParam() } || !withoutParams }
         if (type.getAllTypeArgs().any { it.type.isInterface() })
             funcs = funcs.filter { it.valueParameters.all { !it.type.isTypeParameter() } }
+//        funcs = funcs.filterNot { it.annotations.any { it.fqName?.asString()?.contains("Deprecated") ?: false } }
+//        //TODO
         funcs = funcs.filter { it.extensionReceiverParameter == null }
             .filterNot { it.annotations.any { it.fqName?.asString()?.contains("Deprecated") ?: false } }
 //        funcs = if (Random.getTrue(75))
@@ -265,9 +269,20 @@ open class RandomInstancesGenerator(private val file: KtFile) {
             is ClassDescriptor -> TypeParamsReplacer.throwTypeParams(type, el, randomTypeGenerator, withoutParams)
             else -> return ""
         }
-        val extTypeRec = (el as? SimpleFunctionDescriptor)?.extensionReceiverParameter?.value?.type
+        //TODO!!!
+        val extTypeRec =
+            (el as? SimpleFunctionDescriptor)
+                ?.extensionReceiverParameter
+                ?.value
+                ?.type
+        //?.replaceTypeArgsToTypes(typeParamsToRealTypes)
         val generatedExtension = extTypeRec?.let { generateValueOfType(it) + "." } ?: ""
-        generateTopLevelFunctionCall(psi, typeParamsToRealTypes, false, depth + 1)?.let {
+        generateTopLevelFunctionCall(
+            psi,
+            typeParamsToRealTypes.entries.map { it.key to "${it.value}" }.toMap(),
+            false,
+            depth + 1
+        )?.let {
             return "$generatedExtension${it.first.text}"
         }
         log.debug("Cant generate call of ${psi.text}")

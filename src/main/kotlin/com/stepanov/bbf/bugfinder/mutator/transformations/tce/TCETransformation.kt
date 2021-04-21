@@ -126,7 +126,7 @@ class TCETransformation : Transformation() {
     }
 
     private fun changeValuesInExpression(nodeList: List<PsiElement>) {
-        val ctx = PSICreator.analyze(psi)!!
+        val ctx = PSICreator.analyze(psi) ?: return
         val constants = nodeList
             .flatMap { it.getAllPSIChildrenOfType<KtConstantExpression>() }
             .map { it to it.getType(ctx) }

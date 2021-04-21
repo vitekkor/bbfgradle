@@ -11,6 +11,7 @@ import com.stepanov.bbf.bugfinder.tracer.Tracer
 import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtEnumEntry
+import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
 import kotlin.system.exitProcess
@@ -40,6 +41,12 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
 //                    return
 //                }
 //            }
+            //Add some imports
+            for (f in project.files.map { it.psiFile }) {
+                if (f !is KtFile) continue
+                f.addImport("kotlin.properties", true)
+                f.addImport("kotlin.reflect", true)
+            }
             val compilersConf = BBFProperties.getStringGroupWithoutQuotes("BACKENDS")
             val filterBackends = compilersConf.map { it.key }
             if (filterBackends.any { project.isBackendIgnores(it) }) {

@@ -26,7 +26,7 @@ abstract class CommonCompiler {
     abstract fun tryToCompile(project: Project): KotlincInvokeStatus
     abstract fun isCompilerBug(project: Project): Boolean
     abstract fun compile(project: Project, includeRuntime: Boolean = true): CompilingResult
-    abstract fun exec(path: String, streamType: Stream = Stream.INPUT): String
+    abstract fun exec(path: String, streamType: Stream = Stream.INPUT, mainClass: String = ""): String
 
     abstract val compilerInfo: String
     abstract var pathToCompiled: String

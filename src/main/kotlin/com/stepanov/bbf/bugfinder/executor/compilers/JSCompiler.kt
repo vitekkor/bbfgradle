@@ -112,7 +112,8 @@ class JSCompiler(override val arguments: String = "") : CommonCompiler() {
         return executeCompiler(project, args)
     }
 
-    override fun exec(path: String, streamType: Stream): String = commonExec("node $path", streamType)
+    override fun exec(path: String, streamType: Stream, mainClass: String): String =
+        commonExec("node $path", streamType)
 
     private fun analyzeErrorMessage(msg: String): Boolean = !msg.split("\n").any { it.contains(": error:") }
 

@@ -2,12 +2,20 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNamedElement
+import com.stepanov.bbf.bugfinder.mutator.transformations.util.FileMember
 import com.stepanov.bbf.bugfinder.util.getAllPSIDFSChildrenOfType
 import com.stepanov.bbf.reduktor.util.getAllChildren
-import org.jetbrains.kotlin.psi.KtClassOrObject
-import org.jetbrains.kotlin.psi.KtExpression
-import org.jetbrains.kotlin.psi.KtNamedFunction
 import com.stepanov.bbf.bugfinder.util.flatMap
+import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
+import org.jetbrains.kotlin.backend.common.serialization.findPackage
+import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
+import org.jetbrains.kotlin.descriptors.*
+import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.parents
+import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.descriptorUtil.parents
+import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 
 internal fun getSlice(node: PsiElement): Set<KtExpression> {
     val res = mutableSetOf<KtExpression>()
@@ -45,3 +53,26 @@ internal fun <T> List<T>.filterDuplicates(comparator: Comparator<T>): List<T> {
     this.forEach { el -> if (res.all { comparator.compare(it, el) != 0 }) res.add(el) }
     return res
 }
+
+
+fun PsiElement.getPath() = this.parents
+    .filter { it is KtNamedFunction || it is KtClassOrObject }
+    .map { it as PsiNamedElement }
+    .toList().reversed()
+
+//DeclarationDescriptorsUtils
+fun DeclarationDescriptor.getParents(): List<DeclarationDescriptor> =
+    this.parents
+        .filter {
+            it !is ModuleDescriptor &&
+                    it !is PackageFragmentDescriptor &&
+                    it !is PackageViewDescriptor
+        }
+        .toList()
+
+fun DeclarationDescriptor.getReturnTypeForCallableAndClasses() =
+    when (this) {
+        is CallableDescriptor -> this.returnType
+        is ClassDescriptor -> this.defaultType
+        else -> null
+    }

@@ -142,48 +142,10 @@ object UsagesSamplesGenerator {
         return openFuncsAndProps
     }
 
-    private fun generateForNestedClass(
-        parentInstance: KtExpression,
-        classDescriptor: ClassDescriptor
-    ): List<String> {
-        val resInvocation: String
-        val type = classDescriptor.defaultType
-        if (classDescriptor.isInner) {
-            //TODO add type parameters
-            val instance =
-                instanceGenerator.classInstanceGenerator.generateRandomInstanceOfUserClass(type, 0)
-            if (instance?.first == null) return listOf()
-            resInvocation =
-                "${parentInstance.text}.${instance.first!!.text}"//"${parentInstance.text}.${classDescriptor.name}$constructorInvocation"
-        } else {
-            if (classDescriptor.kind == ClassKind.OBJECT) {
-                val parentInstanceName = parentInstance.text.substringBefore('(').substringBefore('<')
-                val objectInvocationAsExpression =
-                    Factory.psiFactory.createExpression("$parentInstanceName.${classDescriptor.name}")
-                val objectType = randomTypeGenerator.generateType(objectInvocationAsExpression.text) ?: return listOf()
-                return filterOpenFuncsAndPropsFromDecl(objectInvocationAsExpression, objectType)
-                    .map { "CoBj" + classDescriptor.name + "." + it }
-            } else {
-                val instance = instanceGenerator.classInstanceGenerator.generateRandomInstanceOfUserClass(type, 0)
-                if (instance?.first == null) return listOf()
-                val parentInstanceName = parentInstance.text.substringBefore('(').substringBefore('<')
-                resInvocation = "${parentInstanceName}.${instance.first!!.text}"
-            }
-        }
-        val expression =
-            Factory.psiFactory.createExpressionIfPossible(resInvocation) ?: return listOf()
-        //Remove constructor invocations
-        val expressionForTypeGeneration = expression.copy()
-        expressionForTypeGeneration.allChildren.toList().filterIsInstance<KtCallExpression>()
-            .forEach { it.valueArgumentList?.replaceThis(Factory.psiFactory.createWhiteSpace(" ")) }
-        val newKlassType = randomTypeGenerator.generateType(expressionForTypeGeneration.text) ?: return listOf()
-        return filterOpenFuncsAndPropsFromDecl(expression, newKlassType)
-    }
-
     private fun generateTypes(file: KtFile, resToStr: String): List<Triple<KtExpression, String, KotlinType?>> {
         val func = Factory.psiFactory.createFunction("fun usageExamples(){\n$resToStr\n}")
         val newFile = Factory.psiFactory.createFile(file.text + "\n\n" + func.text)
-        val ctx = PSICreator.analyze(newFile)!!
+        val ctx = PSICreator.analyze(newFile) ?: return listOf()
         val myFunc = newFile.findFunByName("usageExamples")!!
         return myFunc.getAllPSIChildrenOfType<KtExpression>()
             .filter { it.parent == myFunc.bodyBlockExpression }

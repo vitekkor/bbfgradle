@@ -65,6 +65,7 @@ class Mutator(val project: Project) {
 
     private fun startKotlinMutations() {
         val mut = listOf(
+            AddRandomComponent() to 100,
             AddDefaultValueToArg() to 100,
             LocalTCE() to 100,
             AddReificationToTypeParam() to 100,
@@ -76,7 +77,7 @@ class Mutator(val project: Project) {
             ChangeTypes() to 75,
             ChangeModifiers() to 50,
             ChangeRandomASTNodesFromAnotherTrees() to 100
-        )
+        ).shuffled()
         for (i in 0 until Random.nextInt(1, 3)) {
             mut.forEach { executeMutation(it.first, it.second) }
         }

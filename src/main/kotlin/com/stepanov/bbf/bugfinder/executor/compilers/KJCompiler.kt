@@ -95,12 +95,14 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
 //        return status == 0
 //    }
 
-    override fun exec(path: String, streamType: Stream): String {
+    override fun exec(path: String, streamType: Stream, mainClass: String): String {
         val manifest = Files.walk(Paths.get(path)).toList().map { it.toFile() }.find { it.name == "MANIFEST.MF" }
             ?: return ""
-        val mainClass = manifest.readLines().find { it.startsWith("Main-Class:") }?.substringAfter("Main-Class: ")
-            ?: return ""
-        val res =  commonExec("java -cp $path $mainClass", streamType)
+        val mc =
+            mainClass.ifEmpty {
+                manifest.readLines().find { it.startsWith("Main-Class:") }?.substringAfter("Main-Class: ") ?: return ""
+            }
+        val res = commonExec("java -cp $path $mc", streamType)
         File(path).deleteRecursively()
         return res
     }
