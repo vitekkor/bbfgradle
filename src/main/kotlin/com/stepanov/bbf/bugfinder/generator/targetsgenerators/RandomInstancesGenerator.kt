@@ -22,7 +22,6 @@ import org.jetbrains.kotlin.resolve.descriptorUtil.parentsWithSelf
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.*
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 open class RandomInstancesGenerator(private val file: KtFile) {
 
@@ -231,12 +230,15 @@ open class RandomInstancesGenerator(private val file: KtFile) {
         var funcs =
             StdLibraryGenerator.searchForFunWithRetType(type.makeNotNullable())
                 .filter { it.valueParameters.all { !it.type.hasTypeParam() } || !withoutParams }
-        if (type.getAllTypeArgs().any { it.type.isInterface() })
+        if (type.getAllTypeParams().any { it.type.isInterface() })
             funcs = funcs.filter { it.valueParameters.all { !it.type.isTypeParameter() } }
-//        funcs = funcs.filterNot { it.annotations.any { it.fqName?.asString()?.contains("Deprecated") ?: false } }
+        funcs = funcs.filterNot { it.annotations.any { it.fqName?.asString()?.contains("Deprecated") ?: false } }
+        if (Random.getTrue(50)) {
+            funcs = funcs.filter { it.extensionReceiverParameter == null }
+        }
 //        //TODO
-        funcs = funcs.filter { it.extensionReceiverParameter == null }
-            .filterNot { it.annotations.any { it.fqName?.asString()?.contains("Deprecated") ?: false } }
+//        funcs = funcs.filter { it.extensionReceiverParameter == null }
+//            .filterNot { it.annotations.any { it.fqName?.asString()?.contains("Deprecated") ?: false } }
 //        funcs = if (Random.getTrue(75))
 //            funcs.filter { it.extensionReceiverParameter == null }
 //        else
@@ -275,8 +277,11 @@ open class RandomInstancesGenerator(private val file: KtFile) {
                 ?.extensionReceiverParameter
                 ?.value
                 ?.type
-        //?.replaceTypeArgsToTypes(typeParamsToRealTypes)
-        val generatedExtension = extTypeRec?.let { generateValueOfType(it) + "." } ?: ""
+        val extRecTypeWithoutTP =
+            extTypeRec?.arguments?.map { typeParamsToRealTypes[it.toString()]?.asTypeProjection() ?: it }?.let {
+                extTypeRec.replace(it)
+            } ?: extTypeRec
+        val generatedExtension = extRecTypeWithoutTP?.let { generateValueOfType(it) + "." } ?: ""
         generateTopLevelFunctionCall(
             psi,
             typeParamsToRealTypes.entries.map { it.key to "${it.value}" }.toMap(),

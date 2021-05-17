@@ -64,6 +64,8 @@ class Mutator(val project: Project) {
     }
 
     private fun startKotlinMutations() {
+        executeMutation(ExpressionObfuscator(), 100)
+        exitProcess(0)
         val mut = listOf(
             AddRandomComponent() to 100,
             AddDefaultValueToArg() to 100,

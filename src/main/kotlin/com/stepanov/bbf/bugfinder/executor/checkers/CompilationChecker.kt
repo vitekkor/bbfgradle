@@ -10,13 +10,10 @@ import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.tracer.Tracer
 import com.stepanov.bbf.coverage.CoverageEntry
 import com.stepanov.bbf.coverage.ProgramCoverage
-import org.jetbrains.kotlin.abicmp.MySummaryReport
-import org.jetbrains.kotlin.abicmp.tasks.JarTask
-import org.jetbrains.kotlin.abicmp.tasks.checkerConfiguration
 import java.io.File
 import java.util.jar.JarFile
 
-open class CompilationChecker(val compilers: List<CommonCompiler>) /*: Checker()*/ {
+open class CompilationChecker(val compilers: List<CommonCompiler>)  {
 
     constructor(compiler: CommonCompiler) : this(listOf(compiler))
 
@@ -35,30 +32,30 @@ open class CompilationChecker(val compilers: List<CommonCompiler>) /*: Checker()
             return TracesChecker(compilers).checkBehavior(copyOfProject)
         }
 
-        fun checkABI(project: Project): Pair<Int, File>? {
-            val compilers = CompilerArgs.getCompilersList()
-            if (compilers.size != 2) return null
-            val compiled = compilers.mapIndexed { index, comp ->
-                comp.pathToCompiled =
-                    comp.pathToCompiled.replace(".jar", "$index.jar")
-                comp.compile(project).pathToCompiled
-            }
-            if (compiled.any { it == "" }) return null
-            val jars = compiled.map { JarFile(it) }
-            val task =
-                JarTask(
-                    "",
-                    jars.first(),
-                    jars.last(),
-                    compilers.first().compilerInfo,
-                    compilers.last().compilerInfo,
-                    File("tmp/report.html"),
-                    checkerConfiguration {}
-                )
-            val execRes = task.execute()
-            MySummaryReport.summary.add(task.defectReport)
-            return execRes
-        }
+//        fun checkABI(project: Project): Pair<Int, File>? {
+//            val compilers = CompilerArgs.getCompilersList()
+//            if (compilers.size != 2) return null
+//            val compiled = compilers.mapIndexed { index, comp ->
+//                comp.pathToCompiled =
+//                    comp.pathToCompiled.replace(".jar", "$index.jar")
+//                comp.compile(project).pathToCompiled
+//            }
+//            if (compiled.any { it == "" }) return null
+//            val jars = compiled.map { JarFile(it) }
+//            val task =
+//                JarTask(
+//                    "",
+//                    jars.first(),
+//                    jars.last(),
+//                    compilers.first().compilerInfo,
+//                    compilers.last().compilerInfo,
+//                    File("tmp/report.html"),
+//                    checkerConfiguration {}
+//                )
+//            val execRes = task.execute()
+//            MySummaryReport.summary.add(task.defectReport)
+//            return execRes
+//        }
     }
 
     //

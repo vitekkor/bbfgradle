@@ -76,19 +76,6 @@ open class Checker(compilers: List<CommonCompiler>, private val withTracesCheck:
         val statuses = compileAndGetStatuses(project)
         when {
             statuses.all { it == COMPILE_STATUS.OK } -> {
-                if (isABICheckMode) {
-                    checkABI(project)?.let { res ->
-                        BugManager.saveBug(
-                            Bug(
-                                CompilerArgs.getCompilersList(),
-                                res.second.readText(),
-                                project,
-                                BugType.DIFFABI
-                            )
-                        )
-                        return false
-                    }
-                }
                 if (CompilerArgs.isGuidedByCoverage) {
                     if (isCoverageDecreases(project)) {
                         checkedConfigurations[allTexts] = false

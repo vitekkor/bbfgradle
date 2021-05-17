@@ -46,6 +46,7 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
                 if (f !is KtFile) continue
                 f.addImport("kotlin.properties", true)
                 f.addImport("kotlin.reflect", true)
+                f.addImport("kotlin.math", true)
             }
             val compilersConf = BBFProperties.getStringGroupWithoutQuotes("BACKENDS")
             val filterBackends = compilersConf.map { it.key }

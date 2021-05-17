@@ -27,7 +27,7 @@ class LocalTCE : Transformation() {
 
     override fun transform() {
         val ctx = PSICreator.analyze(psi) ?: return
-        usageExamples = collectUsageCases(ctx).toMutableList()
+        usageExamples = TCEUsagesCollector.collectUsageCases(psi, ctx).toMutableList()
         addRandomUnitCalls()
         replaceNodesOfFile(psi.getAllPSIChildrenOfType(), ctx)
         checker.curFile.changePsiFile(psi.text)
@@ -83,29 +83,6 @@ class LocalTCE : Transformation() {
         return true
     }
 
-    private fun collectUsageCases(
-        ctx: BindingContext,
-        node: KtExpression? = null
-    ): List<Triple<KtExpression, String, KotlinType?>> {
-        val generatedSamples = UsagesSamplesGenerator.generate(psi, ctx)
-        if (node == null) return generatedSamples
-        val destrDecl = psi.getAllPSIChildrenOfType<KtDestructuringDeclaration>()
-            .map { Triple(it, it.text, it.initializer?.getType(ctx)) }
-            .filter { it.third != null && !it.third!!.isError }
-        val exprs = psi.getAllPSIChildrenOfType<KtExpression>()
-            .filter { it !is KtProperty }
-            .filterDuplicatesBy { it.text }
-            .map { Triple(it, it.text, it.getType(ctx)) }
-            .filter {
-                it.third != null &&
-                        !it.third!!.isError &&
-                        it.first !is KtStringTemplateEntry &&
-                        it.first !is KtConstantExpression &&
-                        it.first.node.elementType != KtNodeTypes.STRING_TEMPLATE &&
-                        !it.first.parent.text.endsWith(it.first.text)
-            }
-        return (destrDecl + exprs).map { Triple(it.first, it.second, it.third!!) } + generatedSamples
-    }
 
     private fun changeValuesInExpression(nodeList: List<PsiElement>) {
         val ctx = PSICreator.analyze(psi) ?: return

@@ -16,7 +16,7 @@ private val typeParamDescComparator = Comparator { t1: TypeParameterDescriptor, 
     if (t1.upperBounds.isEmpty() && t2.upperBounds.isEmpty()) {
         0
     } else {
-        val t1Args = t1.upperBounds.flatMap { listOf("$it") + it.getAllTypeArgs().map { "${it.type}" } }
+        val t1Args = t1.upperBounds.flatMap { listOf("$it") + it.getAllTypeParams().map { "${it.type}" } }
         if (t1Args.any { it == "${t2.defaultType}" }) 1 else -1
     }
 }
@@ -25,8 +25,7 @@ fun DeclarationDescriptor.findPsi(): PsiElement? {
     val psi = (this as? DeclarationDescriptorWithSource)?.source?.getPsi()
     return if (psi == null && this is CallableMemberDescriptor && kind == CallableMemberDescriptor.Kind.FAKE_OVERRIDE) {
         overriddenDescriptors.mapNotNull { it.findPsi() }.firstOrNull()
-    }
-    else {
+    } else {
         psi
     }
 }
@@ -43,6 +42,10 @@ fun KotlinType.replaceTypeArgsToTypes(map: Map<String, String>): String {
     val typeParams = this.arguments.map { it.type.replaceTypeArgsToTypes(map) }
     return if (typeParams.isNotEmpty()) "$realType<${typeParams.joinToString()}>" else realType
 }
+
+val KotlinType.name: String?
+    get() = this.constructor.declarationDescriptor?.name?.asString()
+
 
 //fun TypeParameterDescriptor.getAllTypeArgs(): List<KotlinType> {
 //    val res = mutableListOf<KotlinType>()

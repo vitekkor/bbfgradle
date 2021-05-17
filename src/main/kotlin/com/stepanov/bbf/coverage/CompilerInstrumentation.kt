@@ -1,7 +1,6 @@
 package com.stepanov.bbf.coverage
 
 import org.objectweb.asm.Opcodes
-import ru.spbstu.wheels.toMap
 import kotlin.IllegalArgumentException
 
 // TODO Create some sort of verification that both CompilerInstrumentation files are identical.

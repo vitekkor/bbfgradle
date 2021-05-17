@@ -97,8 +97,8 @@ object RandomTypeGenerator {
             } else {
                 StdLibraryGenerator.findImplementationOf(upperBounds, false)
             }
-        if (upperBounds.getAllTypeArgs().isEmpty() && (impls.isEmpty() || Random.getTrue(50))) return upperBounds
-        if (upperBounds.getAllTypeArgs().isNotEmpty() && impls.isEmpty()) return null
+        if (upperBounds.getAllTypeParams().isEmpty() && (impls.isEmpty() || Random.getTrue(50))) return upperBounds
+        if (upperBounds.getAllTypeParams().isNotEmpty() && impls.isEmpty()) return null
         val implsTypes = impls.map { it.defaultType }
         val randomImpl =
             implsTypes.shuffled().find { it.isPrimitiveTypeOrNullablePrimitiveTypeOrString() } ?: implsTypes.random()

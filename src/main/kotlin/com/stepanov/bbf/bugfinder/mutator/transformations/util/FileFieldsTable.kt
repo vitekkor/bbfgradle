@@ -11,7 +11,7 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.KotlinType
 
-class FileFieldsTable(file: KtFile, ctx: BindingContext) {
+class FileFieldsTable(private val file: KtFile, private val ctx: BindingContext) {
     val fileMembersTable = mutableListOf<FileMember>()
 
     init {

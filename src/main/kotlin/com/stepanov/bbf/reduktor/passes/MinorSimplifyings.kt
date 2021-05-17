@@ -1,8 +1,8 @@
 package com.stepanov.bbf.reduktor.passes
 
+import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.util.debugPrint
-import com.stepanov.bbf.reduktor.util.generateDefValuesAsString
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*

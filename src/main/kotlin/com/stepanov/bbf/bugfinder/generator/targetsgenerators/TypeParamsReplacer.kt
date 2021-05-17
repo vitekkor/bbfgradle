@@ -42,7 +42,7 @@ object TypeParamsReplacer {
             val index = implSupertypeTypeParams
                 .indexOf(name)
                 .let { if (it == -1) implSupertypeTypeParams.map { it.asString() }.indexOf("$name?") else it }
-            if (index != -1)
+            if (index != -1 && realTypeParams.size > index)
                 realTypeParams[index].type
             else typeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull())
         }
@@ -107,7 +107,7 @@ object TypeParamsReplacer {
                 if (param.isVararg)
                     param.varargElementType.toString()
                 else
-                    param.toString()
+                    param.returnType.toString()
                         .substringAfter(':')
                         .substringBefore("defined")
                         .substringBefore('=')

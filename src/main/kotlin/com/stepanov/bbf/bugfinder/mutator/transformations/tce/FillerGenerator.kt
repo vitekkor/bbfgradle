@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isNullable
 import org.jetbrains.kotlin.types.typeUtil.isInterface
+import org.jetbrains.kotlin.types.typeUtil.makeNotNullable
 import java.lang.StringBuilder
 import kotlin.random.Random
 
@@ -38,7 +39,7 @@ class FillerGenerator(
     fun generateExpressionOfType(type: KotlinType, depth: Int = 0): KtExpression? {
         val randomUsage = generatedUsages.randomOrNull() ?: return null
         val isNullable = randomUsage.third!!.isNullable()
-        return StdLibraryGenerator.generateForStandardType(randomUsage.third!!, "$type")
+        return StdLibraryGenerator.generateForStandardType(randomUsage.third!!, type)
             .random()
             .let { handleCallSeq(it) }
             ?.let {
@@ -53,7 +54,7 @@ class FillerGenerator(
         val res = mutableListOf<KtExpression>()
         val nodeType = node.second ?: return emptyList()
         log.debug("Getting value of type $nodeType")
-        val strNodeType = nodeType.toString().let { if (it.endsWith("?")) it.substring(0, it.length - 1) else it }
+//        val strNodeType = nodeType.toString().let { if (it.endsWith("?")) it.substring(0, it.length - 1) else it }
         val isNullable = nodeType.isNullable()
         val generated = RandomInstancesGenerator(psi).generateValueOfType(nodeType)
         log.debug("GENERATED VALUE OF TYPE $nodeType = $generated")
@@ -68,7 +69,7 @@ class FillerGenerator(
         log.debug("randomType = $randomType")
         if (!randomType.isAbstractClass() && !randomType.isInterface()) {
             val ins = RandomInstancesGenerator(psi).generateValueOfType(randomType, nullIsPossible = false)
-            val variants = StdLibraryGenerator.generateForStandardType(randomType, strNodeType)
+            val variants = StdLibraryGenerator.generateForStandardType(randomType, nodeType.makeNotNullable())
             variants.randomOrNull()?.let { variant ->
                 val prefix = if (randomType.isNullable())
                     "($ins)?."
@@ -89,7 +90,7 @@ class FillerGenerator(
             if (el.third.toString() in blockListOfTypes) continue
             val elCopy = el.first.copy()
             when {
-                el.third?.toString() == strNodeType -> {
+                el.third?.toString() == "$nodeType" -> {
                     localRes.add(elCopy)
                 }
                 el.third?.toString() == "$nodeType?" -> {
@@ -100,14 +101,13 @@ class FillerGenerator(
                 }
                 //commonTypesMap[strNodeType]?.contains(el.third?.toString()) ?: false -> localRes.add(el.first)
             }
-            val notNullableType = if (strNodeType.last() == '?') strNodeType.substringBeforeLast('?') else strNodeType
-            if (notNullableType != strNodeType) res.add(Factory.psiFactory.createExpression("null"))
+            if (nodeType.isNullable()) res.add(Factory.psiFactory.createExpression("null"))
             if (depth > 0) continue
             //val deeperCases = UsageSamplesGeneratorWithStLibrary.generateForStandardType(el.third!!, nodeType)
             log.debug("GETTING ${nodeType} from ${el.third.toString()}")
             if (checkedTypes.contains(el.third!!.toString())) continue
             checkedTypes.add(el.third!!.toString())
-            StdLibraryGenerator.generateForStandardType(el.third!!, strNodeType)
+            StdLibraryGenerator.generateForStandardType(el.third!!, nodeType)
                 .shuffled()
                 .take(10)
                 .forEach { list ->

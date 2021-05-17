@@ -5,6 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.TreeElement
 import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
@@ -23,6 +24,7 @@ open class MutationChecker(
             this(listOf(compiler), project, curFile, withTracesCheck)
     constructor(compiler: CommonCompiler, project: Project) : this(compiler, project, project.files.first())
     constructor(compilers: List<CommonCompiler>, project: Project) : this(compilers, project, project.files.first())
+    constructor(project: Project): this(CompilerArgs.getCompilersList(), project)
 
     fun checkCompiling() = checkCompilingWithBugSaving(project, curFile)
 

@@ -7,7 +7,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
-import com.intellij.util.IncorrectOperationException
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.reduktor.util.getAllChildren
@@ -20,17 +19,16 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
-import org.jetbrains.kotlin.psi.psiUtil.parents
-import org.jetbrains.kotlin.psi.psiUtil.siblings
 import org.jetbrains.kotlin.resolve.ImportPath
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.*
+import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 import org.jetbrains.kotlin.types.typeUtil.isUnsignedNumberType
 import org.jetbrains.kotlin.types.typeUtil.supertypes
-import ru.spbstu.kotlin.generate.util.asCharSequence
-import ru.spbstu.kotlin.generate.util.nextInRange
-import ru.spbstu.kotlin.generate.util.nextString
+import com.stepanov.bbf.bugfinder.util.kcheck.asCharSequence
+import com.stepanov.bbf.bugfinder.util.kcheck.nextInRange
+import com.stepanov.bbf.bugfinder.util.kcheck.nextString
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -474,7 +472,9 @@ fun KotlinType.getNameWithoutError(): String {
     return thisName + argsName
 }
 
-fun KotlinType.supertypesWithoutAny(): Collection<KotlinType> = this.supertypes().getAllWithoutLast()
+fun KotlinType.supertypesWithoutAny(): Collection<KotlinType> =
+    if (this.supertypes().size <= 1) listOf()
+    else this.supertypes().getAllWithoutLast()
 
 @Deprecated("")
 fun <T : Any> List<Any>.flatten(type: KClass<T>): List<T> {
@@ -490,11 +490,15 @@ inline fun <reified T : Any> List<Any>.flatten(): List<T> = this.flatten(T::clas
 
 fun PsiFile.contains(cond: (PsiElement) -> Boolean) = this.getAllChildren().any { cond(it) }
 
-fun KotlinType.getAllTypeArgs(): List<TypeProjection> =
-    this.arguments + this.arguments.flatMap { it.type.getAllTypeArgs() }
+fun KotlinType.getAllTypeParams(): List<TypeProjection> =
+    this.arguments + this.arguments.flatMap { it.type.getAllTypeParams() }
+
+fun KotlinType.getAllTypeParamsWithItself(): List<TypeProjection> =
+    if (this.isTypeParameter()) listOf(this.asTypeProjection()) + this.getAllTypeParams()
+    else this.getAllTypeParams()
 
 fun KotlinType.hasTypeParam(): Boolean =
-    this.isTypeParameter() || getAllTypeArgs().any { it.type.isTypeParameter() }
+    this.isTypeParameter() || getAllTypeParams().any { it.type.isTypeParameter() }
 
 fun KotlinType.isKType(): Boolean =
     constructor.declarationDescriptor?.name?.asString()
@@ -523,7 +527,7 @@ fun KotlinType.replaceTypeOrRandomSubtypeOnTypeParam(typeParams: List<String>): 
 
 fun KotlinType.getMinModifier() =
     this
-        .let { listOf(it) + it.getAllTypeArgs().map { it.type } }
+        .let { listOf(it) + it.getAllTypeParams().map { it.type } }
         .map { it.constructor.declarationDescriptor }
         .mapNotNull { (it as? ClassDescriptor)?.visibility }
         .minWithOrNull { t: DescriptorVisibility, t2: DescriptorVisibility -> t.compareTo(t2) ?: 0 }

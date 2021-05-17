@@ -32,13 +32,13 @@ object FilterDuplcatesCompilerErrors {
     }
 
     fun simpleHaveDuplicatesErrors(proj: Project, dir: String, compiler: CommonCompiler): Boolean =
-        File(dir).listFiles().filter { it.path.endsWith(".kt") || it.path.endsWith(".java") }.any {
+        File(dir).listFiles()?.filter { it.path.endsWith(".kt") || it.path.endsWith(".java") }?.any {
             simpleIsSameErrs(
                 proj,
                 it.absolutePath,
                 compiler
             )
-        }
+        } ?: false
 
     fun haveSameDiffCompileErrors(
         proj: Project,

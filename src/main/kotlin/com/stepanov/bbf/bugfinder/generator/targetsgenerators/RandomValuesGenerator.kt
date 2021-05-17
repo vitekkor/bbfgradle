@@ -2,10 +2,12 @@
 
 package com.stepanov.bbf.bugfinder.util
 
-import ru.spbstu.kotlin.generate.combinators.KCheck
-import ru.spbstu.kotlin.generate.util.*
 import java.util.*
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator.generateRandomType
+import com.stepanov.bbf.bugfinder.util.kcheck.asCharSequence
+import com.stepanov.bbf.bugfinder.util.kcheck.nextChar
+import com.stepanov.bbf.bugfinder.util.kcheck.nextInRange
+import com.stepanov.bbf.bugfinder.util.kcheck.nextString
 
 const val LINE_SIZE = 5
 const val RANDOM_CONST = 5
@@ -147,22 +149,22 @@ fun generateDefValuesAsString(type: String): String {
 @Suppress("UNCHECKED_CAST")
 private fun <T> generateDefValuesForDefaultTypes(type: String): T =
     when (type) {
-        "Int"  -> Random().nextInt()
-        "Double" -> Random().nextDouble()
+        "Int"  -> Random().nextInRange(-100, 100)
+        "Double" -> Random().nextInRange(-100.0, 100.0)
         "Boolean" -> Random().nextBoolean()
-        "Long" -> Random().nextLong()
-        "Short" -> Random().nextShort()
+        "Long" -> Random().nextInRange(-100, 100)
+        "Short" -> Random().nextInRange(-100, 100)
         "Char" -> Random().nextChar()
-        "Byte" -> Random().nextByte()
-        "Float" -> Random().nextFloat()
-        "Int?"  -> Random().nextInt()
-        "Double?" -> Random().nextDouble()
+        "Byte" -> Random().nextInRange(-100, 100)
+        "Float" -> Random().nextInRange(-100.0f, 100.0f)
+        "Int?"  -> Random().nextInRange(-100, 100)
+        "Double?" -> Random().nextInRange(-100.0, 100.0)
         "Boolean?" -> Random().nextBoolean()
-        "Long?" -> Random().nextLong()
-        "Short?" -> Random().nextShort()
+        "Long?" -> Random().nextInRange(-100, 100)
+        "Short?" -> Random().nextInRange(-100, 100)
         "Char?" -> Random().nextChar()
-        "Byte?" -> Random().nextByte()
-        "Float?" -> Random().nextFloat()
+        "Byte?" -> Random().nextInRange(-100, 100)
+        "Float?" -> Random().nextInRange(-100.0f, 100.0f)
         else -> Random().nextString(
             ('a'..'z').asCharSequence(),
             LINE_SIZE, LINE_SIZE + 1
@@ -219,12 +221,4 @@ private fun createDefaultValueForContainer(name: String, typeParam: String): Str
     }
     values.replace(values.length - 2, values.length, ")")
     return values.toString()
-}
-
-inline fun <reified T> getValue(): T {
-    var res: T? = null
-    KCheck.forAll(1) { v: T ->
-        res = v
-    }
-    return res!!
 }

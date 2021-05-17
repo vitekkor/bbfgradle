@@ -14,23 +14,26 @@ object FileReporter : Reporter {
         val resDir = CompilerArgs.resultsDir
         val randomName = Random().getRandomVariableName(5)
         val newPath =
-                if (resDir.endsWith('/')) "$resDir$compilerBugDir/${bug.type.name}_$randomName.kt"
-                else "$resDir/$compilerBugDir/${bug.type.name}_$randomName.kt"
+            if (resDir.endsWith('/')) "$resDir$compilerBugDir/${bug.type.name}_$randomName.kt"
+            else "$resDir/$compilerBugDir/${bug.type.name}_$randomName.kt"
         File(newPath).writeText(bug.crashedProject.moveAllCodeInOneFile())
     }
 
     fun saveDiffBug(bug: Bug, type: String) {
         val resDir = CompilerArgs.resultsDir
         val newPath =
-                if (resDir.endsWith('/')) "${resDir}diff$type/${Random().getRandomVariableName(7)}.kt"
-                else "${resDir}/diff$type/${Random().getRandomVariableName(7)}.kt"
+            if (resDir.endsWith('/')) "${resDir}diff$type/${Random().getRandomVariableName(7)}.kt"
+            else "${resDir}/diff$type/${Random().getRandomVariableName(7)}.kt"
         val diffCompilers = "// Different ${type.toLowerCase()} happens on:${bug.compilerVersion}"
         File(newPath.substringBeforeLast('/')).mkdirs()
         File(newPath).writeText("$diffCompilers\n${bug.crashedProject.moveAllCodeInOneFile()}")
     }
 
     override fun dump(bugs: List<Bug>) {
-        for (bug in bugs) {
+        val isFrontendBug = bugs.size == 2 && bugs.first().type == BugType.FRONTEND
+        val withoutDuplicates =
+            if (isFrontendBug) bugs.drop(1) else bugs
+        for (bug in withoutDuplicates) {
             val resDir = CompilerArgs.resultsDir
             val name = Random().getRandomVariableName(7) +
                     if (bug.crashedProject.files.size == 1) "_FILE" else "_PROJECT"
@@ -45,6 +48,11 @@ object FileReporter : Reporter {
             val info = "// Bug happens on ${bug.compilerVersion}"
             if (bug.type == BugType.DIFFABI) {
                 File(newPath.replaceAfter('.', "html")).writeText(bug.msg)
+            }
+            if (isFrontendBug) {
+                val pathForOriginal =
+                    "$resDir${bug.compilerVersion.filter { it != ' ' }}/${bug.type.name}_${name}_ORIGINAL.kt"
+                File(pathForOriginal).writeText(bugs.first().crashedProject.moveAllCodeInOneFile())
             }
             File(newPath).writeText("$info\n${bug.crashedProject.moveAllCodeInOneFile()}")
         }
