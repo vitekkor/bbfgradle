@@ -30,7 +30,7 @@ open class Checker(compilers: List<CommonCompiler>, private val withTracesCheck:
 
     private fun createPsiAndCheckOnErrors(text: String, language: LANGUAGE): Boolean =
         when (language) {
-            LANGUAGE.JAVA -> PSICreator("").getPsiForJava(text, Factory.file.project)
+            LANGUAGE.JAVA -> PSICreator.getPsiForJava(text, Factory.file.project)
             else -> Factory.psiFactory.createFile(text)
         }.let { tree ->
             tree.getAllPSIChildrenOfType<PsiErrorElement>().isEmpty() && additionalConditions.all { it.invoke(tree) }

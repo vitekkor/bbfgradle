@@ -142,7 +142,7 @@ class NodeCollector(val dir: String) {
         val size = File(dir).listFiles().filter { it.name.endsWith(".kt") }.size
         for ((ind, f) in File(dir).listFiles().filter { it.name.endsWith(".kt") }.withIndex()) {
             println("HANDLING $ind from $size file")
-            val psiFile = PSICreator("").getPSIForFile(f.path)
+            val psiFile = PSICreator.getPSIForFile(f.path)
             for (node in psiFile.node.getAllChildrenNodes()) {
                 if (!excludes.contains(node.elementType))
                     database.getOrPut(node.elementType) { mutableSetOf(f.name) }.add(f.name)
@@ -157,10 +157,10 @@ class NodeCollector(val dir: String) {
 
     fun collectJavaDB() {
         val size = File(dir).listFiles().filter { it.name.endsWith(".java") }.size
-        val proj = PSICreator("").getPSIForText("").project
+        val proj = PSICreator.getPSIForText("").project
         for ((ind, f) in File(dir).listFiles().filter { it.name.endsWith(".java") }.withIndex()) {
             println("HANDLING $ind from $size file")
-            val psiFile = PSICreator("").getPsiForJava(f.readText(), proj)
+            val psiFile = PSICreator.getPsiForJava(f.readText(), proj)
             for (node in psiFile.node.getAllChildrenNodes()) {
                 database.getOrPut(node.elementType) { mutableSetOf(f.name) }.add(f.name)
             }

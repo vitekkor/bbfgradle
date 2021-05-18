@@ -38,9 +38,9 @@ class Project(
         }
     }
 
-    fun saveOrRemoveToTmp(flag: Boolean): String {
+    fun saveOrRemoveToTmp(trueSaveFalseDelete: Boolean): String {
         files.forEach {
-            if (flag) {
+            if (trueSaveFalseDelete) {
                 File(it.name.substringBeforeLast("/")).mkdirs()
                 File(it.name).writeText(it.psiFile.text)
             } else {
@@ -85,7 +85,7 @@ class Project(
         }
         val pathToTmp = CompilerArgs.pathToTmpDir
         val fileName = "$pathToTmp/tmp0.kt"
-        return Project(configuration, BBFFile(fileName, Factory.psiFactory.createFile(resFile.text), null), language)
+        return Project(configuration, BBFFile(fileName, Factory.psiFactory.createFile(resFile.text)), language)
     }
 
     fun saveInOneFile(pathToSave: String) {

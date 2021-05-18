@@ -116,7 +116,7 @@ package com.stepanov.bbf.bugfinder.executor.checkers//package com.stepanov.bbf.b
 //            log.debug("ALREADY CHECKED!!!")
 //            return true to alreadyChecked[hash]!!
 //        }
-//        if (!::psiFactory.isInitialized) psiFactory = KtPsiFactory(PSICreator("").getPSIForText(text, false).project)
+//        if (!::psiFactory.isInitialized) psiFactory = KtPsiFactory(PSICreator.getPSIForText(text, false).project)
 //        if (psiFactory.createFile(text).node.getAllChildrenNodes().any { it.psi is PsiErrorElement }) {
 //            log.debug("Not correct syntax")
 //            alreadyChecked[hash] = false

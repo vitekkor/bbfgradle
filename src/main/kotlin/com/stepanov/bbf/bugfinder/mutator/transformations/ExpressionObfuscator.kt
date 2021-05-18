@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isNullable
 import org.jetbrains.kotlin.types.typeUtil.isNothing
 import org.jetbrains.kotlin.types.typeUtil.isUnit
+import org.jetbrains.kotlin.types.typeUtil.makeNotNullable
 import java.lang.StringBuilder
 import java.util.ArrayList
 import kotlin.random.Random
@@ -36,14 +37,13 @@ class ExpressionObfuscator : Transformation() {
 
     override fun transform() {
         var ctx = PSICreator.analyze(file) ?: return
-        RandomTypeGenerator.setFileAndContext(file as KtFile, ctx)
         usageExamples = TCEUsagesCollector.collectUsageCases(file as KtFile, ctx).toMutableList()
-        repeat(Random.nextInt(30, 31)) { i ->
-            println(i)
+        //TODO make dependent from size of program
+        repeat(Random.nextInt(10, 20)) { it ->
             ctx = PSICreator.analyze(file) ?: return
             val (expr, exprType) = getRandomExpressionForObfuscation(ctx) ?: return@repeat
             calcAvailableVariables(expr, ctx)
-            val callList = StdLibraryGenerator.gen(exprType!!, exprType)
+            val callList = StdLibraryGenerator.gen(exprType.makeNotNullable(), exprType.makeNotNullable())
             if (callList.isEmpty()) {
                 return@repeat
             }

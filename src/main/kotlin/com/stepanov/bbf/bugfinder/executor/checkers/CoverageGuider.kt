@@ -18,7 +18,7 @@ import kotlin.system.exitProcess
 object CoverageGuider {
     private lateinit var desiredCoverage: List<CoverageEntry>
     var initCoef = 0
-    private val commit = "d94912ed624d0347e4432ce69cc5465cad0ebe05"
+    private val commit = "c629ba5a3cb13e823276aab0aca4d918b65ca856"
     private val patches: List<FilePatch>
         get() {
             val pathToSerializedCommits = CompilerArgs.pathToSerializedCommits

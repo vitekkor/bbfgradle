@@ -41,8 +41,8 @@
 //        val files = File(path).listFiles()?.toList() ?: return ""
 //        val mainFile = files.find { it.absolutePath.endsWith("Main.kt") } ?: return ""
 //        val javaFiles = files.filter { it.absolutePath.endsWith(".java") && !it.absolutePath.contains("Main") }
-//        val mainPsi = PSICreator("").getPSIForText(mainFile.readText())
-//        val javaPsi = javaFiles.map { PSICreator("").getPsiForJava(it.readText(), mainPsi.project) }
+//        val mainPsi = PSICreator.getPSIForText(mainFile.readText())
+//        val javaPsi = javaFiles.map { PSICreator.getPsiForJava(it.readText(), mainPsi.project) }
 //        //Remove metadata and intrinsics
 //        for (psiFile in javaPsi) {
 //            psiFile.node.getAllChildrenNodes()
@@ -65,8 +65,8 @@
 //    private fun handleSingleDecompiledFile(path: String): String {
 //        val files = File(path).listFiles()?.toList() ?: return ""
 //        val javaFiles = files.filter { it.absolutePath.endsWith(".java") }
-//        val project = PSICreator("").getPSIForText("").project
-//        val javaPsi = javaFiles.map { PSICreator("").getPsiForJava(it.readText(), project) }
+//        val project = PSICreator.getPSIForText("").project
+//        val javaPsi = javaFiles.map { PSICreator.getPsiForJava(it.readText(), project) }
 //        for (psiFile in javaPsi) {
 //            psiFile.node.getAllChildrenNodes()
 //                .filter { it.psi is PsiAnnotation && it.text.contains("@Metadata") }

@@ -32,7 +32,7 @@ object KtProjectPreprocessor {
 //                    .toSet()
 //            //If we have one file, which should be split to compile, we need
 //            //gather it back to one file before renaming
-//            val notSplittedProj = project.map { PSICreator("").getPSIForText(it, false) }
+//            val notSplittedProj = project.map { PSICreator.getPSIForText(it, false) }
 //            Renamer().rename(notSplittedProj, renameNameReferences)
 //            psiFiles = buildPsiForProject(notSplittedProj.map { it.text })
 //            renameBoxFun(psiFiles)
@@ -84,7 +84,7 @@ object KtProjectPreprocessor {
     private fun buildPsiForProject(project: List<String>): List<KtFile> = TODO()
 //    {
 //        val splitProject = Project(project.map { Project(it).split() }.flatMap { it.texts })
-//        return splitProject.texts.map { PSICreator("").getPSIForText(it, false) }
+//        return splitProject.texts.map { PSICreator.getPSIForText(it, false) }
 //    }
 
     private fun renameBoxFun(psiFiles: List<KtFile>) {

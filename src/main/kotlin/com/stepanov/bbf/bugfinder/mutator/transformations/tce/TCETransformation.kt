@@ -32,7 +32,7 @@ class TCETransformation : Transformation() {
 
     private val blockListOfTypes = listOf("Unit", "Nothing", "Nothing?")
     private val randomConst = 3
-    private var psi = PSICreator("").getPSIForText(file.text, false)
+    private var psi = PSICreator.getPSIForText(file.text, false)
     lateinit var usageExamples: List<Triple<KtExpression, String, KotlinType?>>
     private val mutChecker = AbstractTreeMutator(checker.compilers, checker.project.configuration)
 
@@ -74,7 +74,7 @@ class TCETransformation : Transformation() {
                 psi = psiBackup
                 continue
             }
-            psi = PSICreator("").getPSIForText(psi.text)
+            psi = PSICreator.getPSIForText(psi.text)
             val updateAddedNodes =
                 addedNodes.mapNotNull { n -> psi.getAllChildren().find { it.text.trim() == n.text.trim() } }
 //            val newTargetNode = psi.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name == targetNode.name }

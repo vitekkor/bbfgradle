@@ -5,8 +5,10 @@ import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.replaceThis
+import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtReturnExpression
 import org.jetbrains.kotlin.resolve.BindingContext
@@ -25,7 +27,7 @@ object ProjectPreprocessor {
     fun preprocess(proj: Project, checker: MutationChecker?) {
         for (file in proj.files) {
             val functions = file.psiFile.getAllPSIChildrenOfType<KtNamedFunction>()
-            val ctx = file.ctx ?: continue
+            val ctx = PSICreator.analyze(file.psiFile) ?: continue //file.ctx ?: continue
             for (f in functions) {
                 val funType = getFunTypeAsStr(ctx, f) ?: continue
                 try {

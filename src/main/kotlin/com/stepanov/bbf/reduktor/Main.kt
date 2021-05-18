@@ -75,16 +75,16 @@ fun main(args: Array<String>) {
     }
 
     //Create PSI
-    val creator = PSICreator(debugProjectDir)
-    val targetFiles = creator.getPSI()
-    if (targetFiles.isEmpty())
-        return
-
-    //Check classpath and delete all sources from jar
-    if (classpath.isNotEmpty()) {
-        //CompilerArgs.classpath = RemoveSourcesFromJar.transform(targetFiles, classpath).name
-        CompilerArgs.classpath = classpath
-    }
+//    val creator = PSICreator(debugProjectDir)
+//    val targetFiles = creator.getPSI()
+//    if (targetFiles.isEmpty())
+//        return
+//
+//    //Check classpath and delete all sources from jar
+//    if (classpath.isNotEmpty()) {
+//        //CompilerArgs.classpath = RemoveSourcesFromJar.transform(targetFiles, classpath).name
+//        CompilerArgs.classpath = classpath
+//    }
 //    val manager = TransformationManager(targetFiles.map { it to it.name })
 //    val backendProperty = ReduKtorProperties.getStringGroup("BACKEND_FOR_REDUCE").entries.first()
 //    val backend = when (backendProperty.key) {

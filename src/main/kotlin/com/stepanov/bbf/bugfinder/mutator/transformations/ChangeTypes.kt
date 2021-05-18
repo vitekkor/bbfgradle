@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator.generateRandomType
 import com.stepanov.bbf.bugfinder.util.getType
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtTypeReference
@@ -97,6 +98,6 @@ class ChangeTypes : Transformation() {
         "MutableMap" to listOf("Map")
     )
 
-    private val context = checker.curFile.ctx
+    private val context = PSICreator.analyze(checker.curFile.psiFile)//checker.curFile.ctx
     private val magicConst = 100
 }

@@ -4,17 +4,13 @@ import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.util.filterLines
 import com.stepanov.bbf.bugfinder.util.filterNotLines
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.containsChildOfType
-import org.jetbrains.kotlin.resolve.BindingContext
 import java.io.File
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.contract
 
-data class BBFFile(val name: String, var psiFile: PsiFile, var ctx: BindingContext? = null) {
+data class BBFFile(val name: String, var psiFile: PsiFile) {
 
     fun getLanguage(): LANGUAGE {
         return when {
@@ -27,40 +23,34 @@ data class BBFFile(val name: String, var psiFile: PsiFile, var ctx: BindingConte
     fun changePsiFile(newPsiFile: PsiFile, genCtx: Boolean = false) {
         if (!genCtx) {
             this.psiFile = newPsiFile
-            this.ctx = null
         } else {
             changePsiFile(newPsiFile.text)
         }
     }
 
     fun changePsiFile(newPsiFileText: String, checkCorrectness: Boolean = true, genCtx: Boolean = false): Boolean {
-        val (psiFile, ctx) = createPSI(newPsiFileText, genCtx)
+        val psiFile = createPSI(newPsiFileText)
         if (checkCorrectness && psiFile.containsChildOfType<PsiErrorElement>()) {
             println("NOT CORRECT")
             return false
         }
         this.psiFile = psiFile
-        this.ctx = ctx
         return true
     }
 
     fun isPsiWrong(): Boolean =
-        createPSI(psiFile.text, false).first.getAllPSIChildrenOfType<PsiErrorElement>().isNotEmpty()
+        createPSI(psiFile.text).getAllPSIChildrenOfType<PsiErrorElement>().isNotEmpty()
 
-    private fun createPSI(text: String, withCtx: Boolean = true): Pair<PsiFile, BindingContext?> {
-        val creator = PSICreator("")
+    private fun createPSI(text: String): PsiFile {
+        val creator = PSICreator
         val newPsi = when (getLanguage()) {
             LANGUAGE.JAVA -> creator.getPsiForJava(text)
-            else -> creator.getPSIForText(text, withCtx)
+            else -> creator.getPSIForText(text)
         }
-        return newPsi to creator.ctx
+        return newPsi
     }
 
-    fun copy() =
-        ctx?.let {
-            val (newPsi, ctx) = createPSI(text)
-            BBFFile(name, newPsi, ctx)
-        } ?: BBFFile(name, psiFile.copy() as PsiFile, null)
+    fun copy() = BBFFile(name, psiFile.copy() as PsiFile)
 
     override fun toString(): String =
         "// FILE: ${name.substringAfter(CompilerArgs.pathToTmpDir).substring(1)}\n\n${psiFile.text}"
@@ -82,17 +72,17 @@ internal class BBFFileFactory(
             val pathToTmp = CompilerArgs.pathToTmpDir
             return if (names.any { it.isEmpty() }) codeWithoutComments.mapIndexed { i, code ->
                 val fileName = "$pathToTmp/$name$i.kt"
-                val fileToCtx = createKtFileWithCtx(code)
+                val ktFile = createKtFile(code)
                 //val fileToCtx = createKtFileWithCtx("${Directives.file}$fileName\n$code")
-                BBFFile(fileName, fileToCtx.first, fileToCtx.second)
+                BBFFile(fileName, ktFile)
             }
             else names.zip(codeWithoutComments).map {
                 val fileName = "$pathToTmp/${it.first.substringAfter(Directives.file)}"
                 if (fileName.contains(".java"))
-                    BBFFile(fileName, PSICreator("").getPsiForJava(it.second, Factory.file.project), null)
+                    BBFFile(fileName, PSICreator.getPsiForJava(it.second, Factory.file.project))
                 else {
-                    val fileToCtx = createKtFileWithCtx(it.second)
-                    BBFFile(fileName, fileToCtx.first, fileToCtx.second)
+                    val ktFile = createKtFile(it.second)
+                    BBFFile(fileName, ktFile)
                 }
             }
         } catch (e: Throwable) {
@@ -150,10 +140,6 @@ internal class BBFFileFactory(
         return splitByFragments(text, Directives.file)
     }
 
-    private fun createKtFileWithCtx(text: String): Pair<PsiFile, BindingContext?> {
-        val creator = PSICreator("")
-        val file = creator.getPSIForText(text)
-        return file to creator.ctx
-    }
+    private fun createKtFile(text: String): PsiFile = PSICreator.getPSIForText(text)
 
 }

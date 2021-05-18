@@ -30,7 +30,7 @@ class ChangeRandomJavaASTNodesFromAnotherTrees : Transformation() {
                     files[0]
                 else
                     files[Random.nextInt(0, files.size - 1)]
-            val psi = PSICreator("")
+            val psi = PSICreator
                 .getPsiForJava(File("${CompilerArgs.javaBaseDir}/$randomFile").readText(), file.project)
             val sameTypeNodes = psi.node.getAllChildrenNodes().filter { it.elementType == randomNode.elementType }
             val targetNode =

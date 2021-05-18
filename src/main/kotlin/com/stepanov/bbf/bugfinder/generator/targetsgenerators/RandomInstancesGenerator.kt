@@ -58,16 +58,16 @@ open class RandomInstancesGenerator(private val file: KtFile) {
         }
         log.debug("WITHOUT TYPE PARAMS = ${func.text}")
         addedFun.replaceThis(func)
-        val creator = PSICreator("")
+        val creator = PSICreator
         val newFile = creator.getPSIForText(file.text)
-        val ctx = creator.ctx!!
+        val ctx = creator.analyze(newFile) ?: return null
         func.replaceThis(addedFun)
         if (addedFun != function) addedFun.delete()
         func = newFile.getAllChildren().find { it.text.trim() == func.text.trim() } as? KtNamedFunction ?: return null
         val generatedParams = func.valueParameters
             .map { param ->
                 if (param.typeReference == null) return null
-                param.typeReference?.getAbbreviatedTypeOrType(ctx)?.let {
+                param.typeReference?.getAbbreviatedTypeOrType(ctx)?.makeNotNullable()?.let {
                     if (it.isError) return null
                     if ("$it" != param.typeReference!!.text.trim())
                         randomTypeGenerator.generateType(param.typeReference!!.text)
@@ -284,7 +284,7 @@ open class RandomInstancesGenerator(private val file: KtFile) {
         val generatedExtension = extRecTypeWithoutTP?.let { generateValueOfType(it) + "." } ?: ""
         generateTopLevelFunctionCall(
             psi,
-            typeParamsToRealTypes.entries.map { it.key to "${it.value}" }.toMap(),
+            typeParamsToRealTypes.entries.associate { it.key to "${it.value?.getNameWithoutError()}" },
             false,
             depth + 1
         )?.let {

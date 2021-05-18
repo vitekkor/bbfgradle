@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder
 import com.stepanov.bbf.bugfinder.executor.Checker
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
+import com.stepanov.bbf.bugfinder.executor.checkers.CoverageGuider
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
@@ -72,7 +73,12 @@ fun main(args: Array<String>) {
         FalsePositivesDeleter().cleanDirs()
         exitProcess(0)
     }
-    val file = File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
-    SingleFileBugFinder(file.absolutePath).findBugsInFile()
+    //val file = File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
+//    val file =
+//        (File("/home/zver/IdeaProjects/kotlinWithFuzzer/compiler/testData/codegen/box/invokedynamic/sam/functionExprToJavaInterface").listFiles()
+//            .toList() +
+//                File("/home/zver/IdeaProjects/kotlinWithFuzzer/compiler/testData/codegen/box/invokedynamic/sam/functionRefToJavaInterface").listFiles()
+//                    .toList()).random()
+    SingleFileBugFinder("tmp/myTest.kt").findBugsInFile()
     exitProcess(0)
 }

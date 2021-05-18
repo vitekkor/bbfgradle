@@ -48,6 +48,7 @@ class FillerGenerator(
             }
     }
 
+    //TODO repair for Sam<(FT..FT?), (FR..FR?)>
     fun getFillExpressions(node: Pair<KtExpression, KotlinType?>, depth: Int = 0): List<KtExpression> {
         log.debug("replacing ${node.first.text} ${node.second}")
         //Nullable or most common types

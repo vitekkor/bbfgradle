@@ -5,7 +5,7 @@ import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.psi.KtPsiFactory
 
 object Factory {
-    val file = PSICreator("").getPSIForText("")
+    val file = PSICreator.getPSIForText("")
     val psiFactory = KtPsiFactory(file.project)
 }
 //abstract class Factory {

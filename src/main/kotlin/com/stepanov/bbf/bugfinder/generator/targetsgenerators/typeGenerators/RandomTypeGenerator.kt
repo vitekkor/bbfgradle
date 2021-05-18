@@ -19,7 +19,6 @@ import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyPackageDescriptor
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
-import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isNullable
 import org.jetbrains.kotlin.types.replace
@@ -241,7 +240,7 @@ object RandomTypeGenerator {
 
     private fun generateContainer1(depth: Int = 0): String {
         val container = containers.random()
-        val descr = getDeclDescriptorOf(container) as DeserializedClassDescriptor
+        val descr = getDeclDescriptorOf(container) as ClassDescriptor
         val typeParams =
             descr.typeConstructor.parameters.map {
                 generateRandomTypeWithCtx(it.upperBounds.firstOrNull(), depth + 1)
@@ -252,7 +251,7 @@ object RandomTypeGenerator {
 
     private fun generateContainer(): String {
         val container = containers.random()
-        val descr = getDeclDescriptorOf(container) as DeserializedClassDescriptor
+        val descr = getDeclDescriptorOf(container) as ClassDescriptor
         val typeParams = descr.typeConstructor.parameters.map {
             if (Random.nextBoolean()) {
                 generatePrimitive()
@@ -300,7 +299,7 @@ object RandomTypeGenerator {
     val containers = listOf(
         "ArrayList", "List", "Set", "Map", "Array", "HashMap", "MutableMap",
         "HashSet", "LinkedHashMap", "LinkedHashSet", "Collection", "ArrayDeque",
-        "Pair", "Triple", "Sequence"
+        "Pair", "Triple", "Sequence", "PriorityQueue"
     )
 
     val typeParamComparator = Comparator { t1: KtTypeParameter, t2: KtTypeParameter ->

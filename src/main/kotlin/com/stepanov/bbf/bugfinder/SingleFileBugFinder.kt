@@ -9,6 +9,7 @@ import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.tracer.Tracer
 import com.stepanov.bbf.bugfinder.util.*
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtEnumEntry
 import org.jetbrains.kotlin.psi.KtFile
@@ -18,12 +19,14 @@ import kotlin.system.exitProcess
 
 class SingleFileBugFinder(dir: String) : BugFinder(dir) {
 
+    //TODO RETURN BACK TRY
     fun findBugsInFile() {
         try {
             println("Let's go")
             ++counter
             log.debug("Name = $dir")
             var project = Project.createFromCode(File(dir).readText())
+            PSICreator.curProject = project
             //TEMPORARY!! FIX THIS TODO
             if (project.language != LANGUAGE.KOTLIN) CompilerArgs.isMiscompilationMode = false
             if (project.files.isEmpty()) {

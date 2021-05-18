@@ -20,7 +20,6 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.resolve.ImportPath
-import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
@@ -464,7 +463,7 @@ fun KotlinType.getNameWithoutError(): String {
         when (this) {
             is ErrorType -> this.presentableName
             is UnresolvedType -> this.presentableName
-            else -> "${this.constructor}"
+            else -> "${this.name}"
         }
     val argsName =
         if (arguments.isNotEmpty()) "<${this.arguments.joinToString { it.type.getNameWithoutError() }}>"
@@ -506,7 +505,7 @@ fun KotlinType.isKType(): Boolean =
         ?: false
 
 fun KotlinType.isAbstractClass(): Boolean =
-    (this.constructor.declarationDescriptor as? DeserializedClassDescriptor)?.modality == Modality.ABSTRACT
+    (this.constructor.declarationDescriptor as? ClassDescriptor)?.modality == Modality.ABSTRACT
 
 fun KotlinType.replaceTypeOrRandomSubtypeOnTypeParam(typeParams: List<String>): String {
     val typeParamsWithoutBounds = typeParams.map { it.substringBefore(':') }

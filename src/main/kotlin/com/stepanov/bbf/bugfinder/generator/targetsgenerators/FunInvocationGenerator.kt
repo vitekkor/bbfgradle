@@ -77,7 +77,7 @@ class FunInvocationGenerator(file: KtFile, private val ctx: BindingContext) :
 //    }
 //    log.debug("WITHOUT TYPE PARAMS = ${func.text}")
 //    addedFun.replaceThis(func)
-//    val creator = PSICreator("")
+//    val creator = PSICreator
 //    val newFile = creator.getPSIForText(file.text)
 //    val ctx = creator.ctx!!
 //    func.replaceThis(addedFun)

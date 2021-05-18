@@ -64,14 +64,15 @@ class Mutator(val project: Project) {
     }
 
     private fun startKotlinMutations() {
-        executeMutation(ExpressionObfuscator(), 100)
+        executeMutation(LocalTCE(), 100)
         exitProcess(0)
         val mut = listOf(
+            ExpressionObfuscator() to 100,
             AddRandomComponent() to 100,
             AddDefaultValueToArg() to 100,
             LocalTCE() to 100,
             AddReificationToTypeParam() to 100,
-            TCETransformation() to 100,
+            //TCETransformation() to 100,
             ChangeRandomASTNodesFromAnotherTrees() to 100,
             AddPossibleModifiers() to 50,
             AddArgumentToFunction() to 75,

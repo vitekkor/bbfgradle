@@ -33,9 +33,9 @@ class AddFunInvocations : Transformation() {
     }
 
     private fun tryToAddCalls(): KtFile {
-        val creator = PSICreator("")
+        val creator = PSICreator
         val psi = creator.getPSIForText(file.text)
-        val ctx = creator.ctx!!
+        val ctx = creator.analyze(psi) ?: return psi
         val whitespaces = psi.getAllPSIDFSChildrenOfType<PsiWhiteSpace>().filter { it.text.contains("\n") }
         if (whitespaces.isEmpty()) return psi
         val randomPlace = whitespaces.random()

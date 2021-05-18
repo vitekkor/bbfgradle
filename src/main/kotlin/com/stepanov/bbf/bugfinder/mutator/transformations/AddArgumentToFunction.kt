@@ -72,8 +72,6 @@ class AddArgumentToFunction : Transformation() {
             } catch (e: Error) {
             }
         }
-        println(file.text)
-        exitProcess(0)
     }
 
     private fun getTypeParamsFromCurrentScope(psiElement: PsiElement) =

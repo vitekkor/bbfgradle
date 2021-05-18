@@ -17,10 +17,6 @@ import org.jetbrains.kotlin.resolve.descriptorUtil.classId
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.resolve.scopes.computeAllNames
-import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedCallableMemberDescriptor
-import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
-import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedPropertyDescriptor
-import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.*
 import kotlin.random.Random
@@ -33,20 +29,24 @@ object StdLibraryGenerator {
     private val maxDepth = 2
     private val blockList = listOf("hashCode", "toString")
 
+    //TODO
     init {
-        val (psi, ctx) = PSICreator("").let { it.getPSIForText("val a: StringBuilder = StringBuilder(\"\")") to it.ctx!! }
+        val psi = PSICreator.getPSIForText("val a: StringBuilder = StringBuilder(\"\")")
+        val ctx = PSICreator.analyze(psi)!!
         val kType =
             psi.getAllPSIChildrenOfType<KtProperty>().map { it.typeReference?.getAbbreviatedTypeOrType(ctx) }[0]!!
         val module = kType.constructor.declarationDescriptor!!.module
-        val stringPackages = module.getSubPackagesOf(FqName("kotlin")) { true } + listOf(FqName("kotlin"))
+        val stringPackages = module.getSubPackagesOf(FqName("kotlin")) { true } +
+                listOf(FqName("kotlin"), FqName("java.util"), FqName("java.math"))
         val packages = stringPackages
             .map { module.getPackage(it) }
             .filter { it.name.asString().let { it != "browser" && it != "js" } }
         descriptorDecl = packages.flatMap { it.memberScope.getDescriptorsFiltered { true } }
-        klasses = descriptorDecl.filterIsInstance<DeserializedClassDescriptor>()
+        klasses = descriptorDecl.filterIsInstance<ClassDescriptor>()
     }
 
     fun generateForStandardType(type: KotlinType, needType: KotlinType): List<List<CallableDescriptor>> {
+        println("T = $type N = $needType")
         val resForType = gen(type, needType)
         val resForSuperTypes = type.supertypes().getAllWithoutLast().flatMap { gen(it, needType) }.toList()
         val res = resForType + resForSuperTypes
@@ -94,8 +94,8 @@ object StdLibraryGenerator {
         needType: KotlinType,
         prefix: List<CallableDescriptor> = listOf()
     ): List<List<CallableDescriptor>> {
-//        println("TYPE = $type")
-//        println("NEEDTYPE = $needType")
+        println("TYPE = $type")
+        println("NEEDTYPE = $needType")
         if (prefix.size == maxDepth) return listOf()
         val extFuncsFromLib =
             getExtensionFuncsFromStdLibrary(type, needType)
@@ -109,9 +109,9 @@ object StdLibraryGenerator {
         val funList: MutableList<List<CallableDescriptor>> = mutableListOf()
         generateForRandomLibraryFuncs(type, needType, extFuncsFromLib, funList, prefix)
         val derivedTypes = mutableListOf<Pair<List<CallableDescriptor>, KotlinType>>()
-        for (mem in getMemberFields(type).shuffled().take(3)) {
+        for (mem in getMemberFields(type).shuffled().take(2)) {
             val descriptor =
-                mem as? DeserializedCallableMemberDescriptor ?: mem as? CallableMemberDescriptor ?: continue
+                mem as? CallableMemberDescriptor ?: mem as? CallableMemberDescriptor ?: continue
             if (descriptor.name.asString() in blockList) continue
             if (!descriptor.visibility.isPublicAPI) continue
             if (descriptor.returnType?.toString()
@@ -243,12 +243,12 @@ object StdLibraryGenerator {
             }
         for (desc in filteredDescDecl) {
             val rec = when (desc) {
-                is DeserializedSimpleFunctionDescriptor -> desc.dispatchReceiverParameter
+                is SimpleFunctionDescriptor -> desc.dispatchReceiverParameter
                     ?: desc.extensionReceiverParameter
-                is DeserializedPropertyDescriptor -> desc.dispatchReceiverParameter ?: desc.extensionReceiverParameter
+                is PropertyDescriptor -> desc.dispatchReceiverParameter ?: desc.extensionReceiverParameter
                 else -> null
             }
-            val retValueType = (desc as? DeserializedCallableMemberDescriptor)?.returnType
+            val retValueType = (desc as? CallableMemberDescriptor)?.returnType
             if (retValueType?.getAllTypeParamsWithItself()?.isEmpty() == true) continue
             val recValueTypeAsString = rec?.value?.type?.constructor?.declarationDescriptor?.name?.asString()
                 ?: rec?.value?.type?.toString()?.substringBefore('<')
@@ -285,16 +285,17 @@ object StdLibraryGenerator {
     private fun getExtensionFuncsFromStdLibrary(type: KotlinType, needType: KotlinType): List<DeclarationDescr> {
         val res = mutableListOf<DeclarationDescr>()
         val typeName = type.constructor.declarationDescriptor?.name
+        println("TRYING TO GET SUPERTYPES FOR ${type}")
         val superTypesName = type.supertypesWithoutAny().toList().map { it.constructor.declarationDescriptor?.name }
         val typeAndSupertypesNames = listOf(typeName) + superTypesName
         for (desc in descriptorDecl) {
             val rec = when (desc) {
-                is DeserializedSimpleFunctionDescriptor -> desc.dispatchReceiverParameter
+                is SimpleFunctionDescriptor -> desc.dispatchReceiverParameter
                     ?: desc.extensionReceiverParameter
-                is DeserializedPropertyDescriptor -> desc.dispatchReceiverParameter ?: desc.extensionReceiverParameter
+                is PropertyDescriptor -> desc.dispatchReceiverParameter ?: desc.extensionReceiverParameter
                 else -> null
             } ?: continue
-            val retValueType = (desc as? DeserializedCallableMemberDescriptor)?.returnType
+            val retValueType = (desc as? CallableMemberDescriptor)?.returnType
             val recName = rec.value.type.constructor.declarationDescriptor?.name
             if (recName in typeAndSupertypesNames) {
                 if (type.arguments.size != rec.value.type.arguments.size) continue
@@ -373,7 +374,7 @@ object StdLibraryGenerator {
                 .map { it.name.asString().substringBefore('<') }.toMutableSet()
         implementations.add(type.toString().substringBefore('<'))
         val funDescriptors =
-            descriptorDecl.filterIsInstance<DeserializedSimpleFunctionDescriptor>()
+            descriptorDecl.filterIsInstance<SimpleFunctionDescriptor>()
         return funDescriptors.asSequence()
             .filter { it.returnType?.toString()?.substringBefore('<') in implementations }
             .filter { it.returnType?.let { checkTypeParams(type, it) } ?: false }
@@ -470,7 +471,7 @@ object StdLibraryGenerator {
     }
 
     fun getDeclDescriptorOf(klassName: String): DeclarationDescriptor =
-        descriptorDecl.mapNotNull { it as? DeserializedClassDescriptor }.first { it.name.asString() == klassName }
+        descriptorDecl.mapNotNull { it as? ClassDescriptor }.first { it.name.asString() == klassName }
 
     private fun KotlinType.compareStringRepOfTypesWithoutTypeParams(other: KotlinType) =
         this.toString().substringBefore('<') == other.toString().substringBefore("<")

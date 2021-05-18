@@ -16,8 +16,7 @@ class AbstractTreeMutator(private val compilers: List<CommonCompiler>, val confi
 
     private fun prepareChecker(file: PsiFile): MutationChecker {
         val tmpName = "${CompilerArgs.pathToTmpDir}/tmp.kt"
-        val ctx = PSICreator.analyze(file)
-        val bbfFile = BBFFile(tmpName, file, ctx)
+        val bbfFile = BBFFile(tmpName, file)
         val pr = Project(configuration, listOf(bbfFile), LANGUAGE.KOTLIN)
         return MutationChecker(compilers, pr, pr.files.first())
     }

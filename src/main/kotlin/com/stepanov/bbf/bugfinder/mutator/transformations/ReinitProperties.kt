@@ -7,6 +7,7 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as 
 
 import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
+import com.stepanov.bbf.reduktor.parser.PSICreator
 
 //TODO Add for map!!
 class ReinitProperties : Transformation() {
@@ -51,5 +52,5 @@ class ReinitProperties : Transformation() {
     private val constructorsToTypes = mapOf("arrayListOf" to "ArrayList", "listOf" to "List",
             "setOf" to "Set", "arrayOf" to "Array")
 
-    private val context = checker.curFile.ctx
+    private val context = PSICreator.analyze(checker.curFile.psiFile)
 }

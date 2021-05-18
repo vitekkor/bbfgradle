@@ -3,16 +3,17 @@ package com.stepanov.bbf.bugfinder.generator.targetsgenerators
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
-import com.stepanov.bbf.bugfinder.util.splitWithoutRemoving
+import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.types.KotlinType
-import com.stepanov.bbf.bugfinder.util.flatMap
-import com.stepanov.bbf.bugfinder.util.hasTypeParam
+import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.resolve.calls.components.isVararg
+import org.jetbrains.kotlin.types.TypeProjectionImpl
+import org.jetbrains.kotlin.types.TypeSubstitutor
 
 object TypeParamsReplacer {
 
@@ -47,14 +48,14 @@ object TypeParamsReplacer {
             else typeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull())
         }
         val oldToRealTypeParams = toType.declaredTypeParameters.map { it.name.asString() }.zip(typeParams).toMap()
-        val valueParams = produceValueParams(implConstr.valueParameters, oldToRealTypeParams)
+        val valueParams = produceValueParams(implConstr, oldToRealTypeParams)
         val strTypeParams = implConstr.typeParameters.joinToString(prefix = " <", postfix = ">") { it.name.asString() }
         val func = StringBuilder().apply {
             append("fun")
             if (strTypeParams != " <>") append(strTypeParams)
             append(" ${toType.name}")
             append("($valueParams): ")
-            append(fromType.toString())
+            append(fromType.getNameWithoutError())
             append(" = TODO()")
         }.toString()
         return Factory.psiFactory.createFunction(func) to oldToRealTypeParams
@@ -81,7 +82,7 @@ object TypeParamsReplacer {
             }
         }
         val oldToRealTypeParams = toType.typeParameters.map { it.name.asString() }.zip(typeParams).toMap()
-        val valueParams = produceValueParams(toType.valueParameters, oldToRealTypeParams)
+        val valueParams = produceValueParams(toType, oldToRealTypeParams)
         val res = StringBuilder().apply {
             append("fun")
             if (toType.typeParameters.isNotEmpty()) {
@@ -91,7 +92,7 @@ object TypeParamsReplacer {
             }
             append(" ${toType.name}")
             append("($valueParams): ")
-            append(fromType.toString().split(Regex("""in\s+|out\s+""")).joinToString(""))
+            append(fromType.getNameWithoutError())
             append(" = TODO()")
         }
         val func = Factory.psiFactory.createFunction(res.toString())
@@ -99,32 +100,43 @@ object TypeParamsReplacer {
     }
 
     private fun produceValueParams(
-        valueParameters: List<ValueParameterDescriptor>,
+        targetFunc: FunctionDescriptor,
         oldToRealTypeParams: Map<String, KotlinType?>
-    ) =
-        valueParameters.joinToString { param ->
-            val paramType =
-                if (param.isVararg)
-                    param.varargElementType.toString()
-                else
-                    param.returnType.toString()
-                        .substringAfter(':')
-                        .substringBefore("defined")
-                        .substringBefore('=')
-                        .substringAfter(']')
-            param.name.asString() + ": " +
-                    paramType
-                        .splitWithoutRemoving(Regex("""[<>,()]|in |out """))
-                        .flatMap { it.splitWithoutRemoving(Regex("""\[.*\]""")) }
-                        .map { it.trim() }
-                        .filter { it.isNotEmpty() && !it.startsWith('[') }
-                        .joinToString(separator = "") {
-                            if (it == ",") "$it "
-                            else if (it == "in" || it == "out") ""
-                            else oldToRealTypeParams[it]?.toString()
-                                ?: oldToRealTypeParams[makeNotNullable(it)]?.toString() ?: it
-                        }
-        }
+    ): String {
+        val targetFuncWithReplacedTP = targetFunc.substitute(
+            TypeSubstitutor.create(
+                targetFunc.typeParameters
+                    .withIndex()
+                    .associateBy({ it.value.typeConstructor }) {
+                        TypeProjectionImpl(oldToRealTypeParams[it.value.name.asString()]!!)
+                    }
+            )
+        ) ?: return ""
+        return targetFuncWithReplacedTP.valueParameters.joinToString { "${it.name}: ${it.type.getNameWithoutError()}" }
+    }
+//        valueParameters.joinToString { param ->
+//            val paramType =
+//                if (param.isVararg)
+//                    param.varargElementType.toString()
+//                else
+//                    param.returnType.toString()
+//                        .substringAfter(':')
+//                        .substringBefore("defined")
+//                        .substringBefore('=')
+//                        .substringAfter(']')
+//            param.name.asString() + ": " +
+//                    paramType
+//                        .splitWithoutRemoving(Regex("""[<>,()]|in |out """))
+//                        .flatMap { it.splitWithoutRemoving(Regex("""\[.*\]""")) }
+//                        .map { it.trim() }
+//                        .filter { it.isNotEmpty() && !it.startsWith('[') }
+//                        .joinToString(separator = "") {
+//                            if (it == ",") "$it "
+//                            else if (it == "in" || it == "out") ""
+//                            else oldToRealTypeParams[it]?.toString()
+//                                ?: oldToRealTypeParams[makeNotNullable(it)]?.toString() ?: it
+//                        }
+//        }
 
 
     private fun makeNotNullable(type: String) = type.substringBeforeLast('?')

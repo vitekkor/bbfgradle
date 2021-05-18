@@ -17,12 +17,11 @@ class FilePatchHandler(private val patches: List<FilePatch>) {
             else patches
         val patchToPsi = filteredPatches.map {
             when {
-                it.fileName.endsWith(".kt") -> it to PSICreator("").getPsiForTextWithName(
+                it.fileName.endsWith(".kt") -> it to PSICreator.getPsiForTextWithName(
                     it.text,
-                    it.fileName.substringAfterLast('/'),
-                    false
+                    it.fileName.substringAfterLast('/')
                 )
-                it.fileName.endsWith(".java") -> it to PSICreator("").getPsiForJava(it.text)
+                it.fileName.endsWith(".java") -> it to PSICreator.getPsiForJava(it.text)
                 else -> it to null
             }
         }.filter { it.second != null }
