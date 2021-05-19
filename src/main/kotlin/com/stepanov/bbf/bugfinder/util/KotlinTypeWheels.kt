@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder.util
 
 import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.descriptors.*
+import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.resolve.source.PsiSourceElement
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isNullable
@@ -46,6 +47,10 @@ fun KotlinType.replaceTypeArgsToTypes(map: Map<String, String>): String {
 val KotlinType.name: String?
     get() = this.constructor.declarationDescriptor?.name?.asString()
 
+fun ClassDescriptor.isFunInterface(): Boolean {
+    if (this.kind != ClassKind.INTERFACE) return false
+    return this.unsubstitutedMemberScope.getDescriptorsFiltered { true }.size == 4
+}
 
 //fun TypeParameterDescriptor.getAllTypeArgs(): List<KotlinType> {
 //    val res = mutableListOf<KotlinType>()

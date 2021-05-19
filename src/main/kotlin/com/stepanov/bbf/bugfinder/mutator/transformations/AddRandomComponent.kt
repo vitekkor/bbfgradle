@@ -47,6 +47,13 @@ class AddRandomComponent : Transformation() {
         }
     }
 
+    private fun addRandomTopLevelFunction() {
+        val randomFunctionGenerator = RandomFunctionGenerator(ktFile, ctx!!)
+        val generatedFunc = randomFunctionGenerator.generate() as? KtNamedFunction ?: return
+        println(generatedFunc.text)
+        return
+    }
+
     private fun addRandomProperty(psiClass: KtClassOrObject, gClass: GClass) {
         val randomPropertyGenerator = RandomPropertyGenerator(ktFile, ctx!!, gClass)
         val generatedProp =

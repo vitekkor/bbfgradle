@@ -65,6 +65,8 @@ class Mutator(val project: Project) {
 
     private fun startKotlinMutations() {
         executeMutation(LocalTCE(), 100)
+        println("AFTER = ${checker.curFile.text}")
+        //executeMutation(LocalTCE(), 100)
         exitProcess(0)
         val mut = listOf(
             ExpressionObfuscator() to 100,

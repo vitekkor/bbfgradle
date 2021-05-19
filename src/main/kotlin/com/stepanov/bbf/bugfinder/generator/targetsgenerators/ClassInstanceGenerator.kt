@@ -12,17 +12,16 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.isPrivate
 import org.jetbrains.kotlin.psi.psiUtil.parents
-import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
-import org.jetbrains.kotlin.resolve.descriptorUtil.parents
 import org.jetbrains.kotlin.resolve.descriptorUtil.parentsWithSelf
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.*
+import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
 import org.jetbrains.kotlin.types.typeUtil.isInterface
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGenerator(file) {
 
-    private val rtg = RandomTypeGenerator
     private val log = Logger.getLogger("mutatorLogger")
     private val MAX_DEPTH = 10
 
@@ -64,6 +63,7 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
         log.debug("Generate instance of class $klOrObjType")
         if (depth > MAX_DEPTH) return null
         val classDescriptor = klOrObjType.constructor.declarationDescriptor as? ClassDescriptor ?: return null
+        if (classDescriptor.isFunInterface()) return generateFunInterfaceInstance(classDescriptor, depth)
         if (classDescriptor.name.asString().trim().isEmpty()) return null
         if (classDescriptor.parentsWithSelf.any { it is FunctionDescriptor }) return null
         log.debug("generating klass ${classDescriptor.name} depth = $depth")
@@ -121,8 +121,8 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
         }
         val classType =
             (klOrObj.getDeclarationDescriptorIncludingConstructors(rtg.ctx) as? ClassDescriptor)?.defaultType
-            ?: rtg.generateKTypeForClass(klOrObj)
-            ?: return null
+                ?: rtg.generateKTypeForClass(klOrObj)
+                ?: return null
         if (klOrObj.parents.any { it is KtClassOrObject }) {
             return generateInstanceOfLocalClass(
                 classType.constructor.declarationDescriptor as ClassDescriptor,
@@ -161,6 +161,37 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
             return listOfNotNull(instance, anObjImpl).randomOrNull()
         }
         return instance
+    }
+
+    private fun generateFunInterfaceInstance(classDescriptor: ClassDescriptor, depth: Int): Pair<PsiElement?, KotlinType?>? {
+        val typeParams = classDescriptor.declaredTypeParameters
+        val newTypeParameters = generateTypeParameters(typeParams)
+        if (newTypeParameters.size != classDescriptor.declaredTypeParameters.size) return null
+        val typeSubstitutor = TypeSubstitutor.create(
+            classDescriptor.declaredTypeParameters
+                .withIndex()
+                .associateBy({ it.value.typeConstructor }) {
+                    TypeProjectionImpl(newTypeParameters[it.index])
+                }
+        )
+        val subClassDescr = classDescriptor.substitute(typeSubstitutor) as? ClassDescriptor
+        val substConDescr = (subClassDescr
+            ?.unsubstitutedMemberScope
+            ?.getDescriptorsFiltered { true }
+            ?.lastOrNull() as? FunctionDescriptor)
+            ?: return null
+
+        val numberOfParams = substConDescr.valueParameters.size
+        val substitutedTypeParams = substConDescr.valueParameters.map { it.returnType } + listOf(substConDescr.returnType)
+        val substitutedTypeParamsAsString = substitutedTypeParams.joinToString(", ","<", ">") {
+            it?.getNameWithoutError() ?: ""
+        }
+        val type = "Function$numberOfParams$substitutedTypeParamsAsString"
+        val typeAsKotlinType = rtg.generateType(type) ?: return null
+        val generatedConstructor = RandomInstancesGenerator(file).generateValueOfType(typeAsKotlinType, depth + 1)
+        val instance = "${classDescriptor.name}${substitutedTypeParamsAsString}$generatedConstructor"
+        val psiInstance = Factory.psiFactory.createExpressionIfPossible(instance) ?: return null
+        return psiInstance to subClassDescr.defaultType.replace(newTypeParameters.map { it.asTypeProjection() })
     }
 
     private fun generateAnonymousObjectImplementation(

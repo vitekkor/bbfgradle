@@ -29,6 +29,8 @@ class LocalTCE : Transformation() {
     override fun transform() {
         val ctx = PSICreator.analyze(psi) ?: return
         usageExamples = TCEUsagesCollector.collectUsageCases(psi, ctx).toMutableList()
+        println(usageExamples)
+        exitProcess(0)
         addRandomUnitCalls()
         replaceNodesOfFile(psi.getAllPSIChildrenOfType(), ctx)
         checker.curFile.changePsiFile(psi.text)

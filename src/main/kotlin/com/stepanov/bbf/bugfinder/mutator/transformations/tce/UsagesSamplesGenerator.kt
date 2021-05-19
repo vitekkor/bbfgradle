@@ -7,18 +7,21 @@ import com.stepanov.bbf.bugfinder.util.findFunByName
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.replaceThis
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
+import com.stepanov.bbf.bugfinder.util.getBoxFuncs
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
+import org.jetbrains.kotlin.load.java.descriptors.JavaClassDescriptor
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.random.Random
@@ -93,13 +96,18 @@ object UsagesSamplesGenerator {
         file: KtFile,
         res: MutableList<KtExpression>
     ): List<KtExpression> {
+        val currentModule = file.getBoxFuncs()?.first().getDeclarationDescriptorIncludingConstructors(ctx)?.module
+        val javaClassesFromCurrentModule = file.getAllPSIChildrenOfType<KtExpression>()
+            .mapNotNull { it.getType(ctx)?.constructor?.declarationDescriptor }
+            .toSet()
+            .filter { it is JavaClassDescriptor && it.module == currentModule }
         val classes = file.getAllPSIChildrenOfType<KtClassOrObject>()
             .filter { it.name != null }
             .filterNot { it.parents.any { it is KtNamedFunction } }//.filter { it.isTopLevel() }
-        for (klass in classes) {
+        val classesDescriptors =
+            classes.mapNotNull { it.getDeclarationDescriptorIncludingConstructors(ctx) as? ClassDescriptor }
+        for (klassDescriptor in classesDescriptors + javaClassesFromCurrentModule) {
             val openFuncsAndProps = mutableListOf<String>()
-            val klassDescriptor =
-                klass.getDeclarationDescriptorIncludingConstructors(ctx) as? ClassDescriptor ?: continue
             val genRes =
                 instanceGenerator.classInstanceGenerator.generateRandomInstanceOfUserClass(klassDescriptor.defaultType)
                     ?: null to null
@@ -113,7 +121,7 @@ object UsagesSamplesGenerator {
             openFuncsAndProps
                 .mapNotNull {
                     if (it.startsWith("CoBj"))
-                        Factory.psiFactory.createExpressionIfPossible("${klass.name}.${it.substringAfter("CoBj")}")
+                        Factory.psiFactory.createExpressionIfPossible("${klassDescriptor.name}.${it.substringAfter("CoBj")}")
                     else
                         Factory.psiFactory.createExpressionIfPossible(it)
                 }

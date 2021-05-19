@@ -13,7 +13,7 @@ import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
 
 open class TypeAndValueParametersGenerator(val file: KtFile) {
 
-    private val rtg = RandomTypeGenerator
+    val rtg = RandomTypeGenerator
 
     init {
         if (!rtg.isInitialized()) {

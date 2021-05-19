@@ -2,10 +2,8 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
-import com.stepanov.bbf.bugfinder.util.getRandomVariableName
-import com.stepanov.bbf.bugfinder.util.replaceTypeOrRandomSubtypeOnTypeParam
-import com.stepanov.bbf.bugfinder.util.splitWithoutRemoving
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
+import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.descriptors.CallableMemberDescriptor
@@ -13,6 +11,7 @@ import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptorWithSource
 import org.jetbrains.kotlin.descriptors.SourceElement
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.getOrCreateValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
 import org.jetbrains.kotlin.resolve.calls.callUtil.getFunctionResolvedCallWithAssert
 import org.jetbrains.kotlin.resolve.calls.callUtil.getResolvedCall
@@ -21,7 +20,6 @@ import kotlin.random.Random
 import kotlin.system.exitProcess
 
 //TODO add field to class
-//TODO doesnt work for projects
 class AddArgumentToFunction : Transformation() {
 
     override fun transform() {
@@ -38,11 +36,19 @@ class AddArgumentToFunction : Transformation() {
                     val rt = newType.replaceTypeOrRandomSubtypeOnTypeParam(availableTypeParams)
                     newType = RandomTypeGenerator.generateType(rt) ?: return@repeat
                 }
+                //Add default value
+                val defaultValue =
+                    if (Random.getTrue(20)) {
+                        RandomInstancesGenerator(ktFile).generateValueOfType(newType)
+                    } else ""
+                val defaultValueAsString = if (defaultValue.isEmpty()) "" else " = $defaultValue"
                 val callers = ktFile.getAllPSIChildrenOfType<KtCallExpression>()
                     .filter { it.getFunctionResolvedCallWithAssert(ctx).resultingDescriptor.findPsi() == randomFunc }
-                val generatedParam = Factory.psiFactory.createParameter("${Random.getRandomVariableName(4)}: $newType")
+                val generatedParam =
+                    Factory.psiFactory.createParameter("${Random.getRandomVariableName(4)}: $newType $defaultValueAsString")
                 randomFunc.valueParameterList!!.addParameter(generatedParam)
                 callers.forEach { call ->
+                    if (defaultValueAsString.isNotEmpty() && Random.getTrue(10)) return@forEach
                     val resolvedTypeParams =
                         call.getResolvedCall(ctx)?.typeArguments?.map { it.key.name.asString() to it.value.toString() }
                             ?.toMap()
@@ -57,12 +63,21 @@ class AddArgumentToFunction : Transformation() {
                     var generatedValue =
                         RandomInstancesGenerator(ktFile).generateValueOfType(resolvedNewTypeAsKotlinType)
                     if (generatedValue.isNotEmpty()) {
-                        if (resolvedNewType.trim() == "$newType".trim()) {
+                        if (resolvedNewType.trim() == "$newType".trim() && generatedValue.contains('<')) {
                             generatedValue =
                                 generatedValue.substringBefore('<') + generatedValue.substringAfterLast('>')
                         }
                         val genValuePsi = Factory.psiFactory.createArgument(generatedValue)
-                        call.valueArgumentList?.addArgument(genValuePsi)
+                        if (call.valueArgumentList == null) {
+                            val newValueArgumentList = call.getOrCreateValueArgumentList()
+                            val lambda = call.valueArguments.firstOrNull()?.copy() as? KtValueArgument
+                            call.valueArguments.forEach { it.delete() }
+                            val valArgsWithLambda = (lambda?.let { it.text + ", " } ?: "") + genValuePsi.text
+                            val valArgsWithLambdaPsi = Factory.psiFactory.createCallArguments("(${valArgsWithLambda})")
+                            newValueArgumentList.replaceThis(valArgsWithLambdaPsi)
+                        } else {
+                            call.valueArgumentList!!.addArgument(genValuePsi)
+                        }
                     }
                 }
                 if (!checker.checkCompiling()) {
@@ -94,5 +109,5 @@ class AddArgumentToFunction : Transformation() {
 
     private fun SourceElement.getPsi(): PsiElement? = (this as? PsiSourceElement)?.psi
 
-    private val MAGIC_CONST = 10
+    private val MAGIC_CONST = file.getAllPSIChildrenOfType<KtNamedFunction>().size / 2
 }

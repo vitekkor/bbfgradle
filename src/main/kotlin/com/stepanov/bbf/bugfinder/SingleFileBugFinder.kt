@@ -19,7 +19,6 @@ import kotlin.system.exitProcess
 
 class SingleFileBugFinder(dir: String) : BugFinder(dir) {
 
-    //TODO RETURN BACK TRY
     fun findBugsInFile() {
         try {
             println("Let's go")

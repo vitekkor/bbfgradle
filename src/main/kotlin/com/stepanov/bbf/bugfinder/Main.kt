@@ -73,7 +73,7 @@ fun main(args: Array<String>) {
         FalsePositivesDeleter().cleanDirs()
         exitProcess(0)
     }
-    //val file = File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
+    val file = File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
 //    val file =
 //        (File("/home/zver/IdeaProjects/kotlinWithFuzzer/compiler/testData/codegen/box/invokedynamic/sam/functionExprToJavaInterface").listFiles()
 //            .toList() +
