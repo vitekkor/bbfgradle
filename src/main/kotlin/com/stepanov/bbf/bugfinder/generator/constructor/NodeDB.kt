@@ -118,6 +118,6 @@ object NodeDB {
         getAllNodesOfTypeFromRandomFileWithCtx(type).let { it.first.random() to it.second }
 
 
-    private val file = File("database.txt").bufferedReader().lines().toList()
+    private val file = File("database.txt").bufferedReader().lines().toArray().toList().map { it as String }
     private val counters = mutableListOf(0, 0, 0, 0, 0)
 }
