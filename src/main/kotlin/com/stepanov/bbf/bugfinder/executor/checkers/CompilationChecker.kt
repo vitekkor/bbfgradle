@@ -1,36 +1,157 @@
-package com.stepanov.bbf.bugfinder.executor.checkers
+package com.stepanov.bbf.bugfinder.executor
 
-import com.stepanov.bbf.bugfinder.executor.COMPILE_STATUS
-import com.stepanov.bbf.bugfinder.executor.CommonCompiler
-import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.manager.Bug
-import com.stepanov.bbf.bugfinder.manager.BugType
+import com.intellij.psi.PsiErrorElement
+import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.checkers.CoverageGuider
+import com.stepanov.bbf.bugfinder.executor.checkers.TracesChecker
+import com.stepanov.bbf.bugfinder.executor.project.BBFFile
+import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.manager.Bug
+import com.stepanov.bbf.bugfinder.manager.BugManager
+import com.stepanov.bbf.bugfinder.manager.BugType
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.tracer.Tracer
-import com.stepanov.bbf.coverage.CoverageEntry
-import com.stepanov.bbf.coverage.ProgramCoverage
-import java.io.File
-import java.util.jar.JarFile
+import com.stepanov.bbf.bugfinder.util.StatisticCollector
+import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
+import com.stepanov.bbf.reduktor.parser.PSICreator
+import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
+import coverage.MyMethodBasedCoverage
+import org.apache.log4j.Logger
 
-open class CompilationChecker(val compilers: List<CommonCompiler>)  {
+//Project adaptation
+open class CompilationChecker(private val compilers: List<CommonCompiler>) {
 
     constructor(compiler: CommonCompiler) : this(listOf(compiler))
+
+    //Back compatibility
+    fun checkTextCompiling(text: String): Boolean = checkCompilingWithBugSaving(Project.createFromCode(text), null)
+    fun checkCompilingWithBugSaving(file: PsiFile): Boolean = checkTextCompiling(file.text)
+
+
+    private fun createPsiAndCheckOnErrors(text: String, language: LANGUAGE): Boolean =
+        when (language) {
+            LANGUAGE.JAVA -> PSICreator.getPsiForJava(text, Factory.file.project)
+            else -> Factory.psiFactory.createFile(text)
+        }.let { tree ->
+            tree.getAllPSIChildrenOfType<PsiErrorElement>().isEmpty() && additionalConditions.all { it.invoke(tree) }
+        }
+
+    //FALSE IF ERROR
+    private fun checkSyntaxCorrectnessAndAddCond(project: Project, curFile: BBFFile?) =
+        curFile?.let {
+            createPsiAndCheckOnErrors(curFile.text, curFile.getLanguage())
+        } ?: project.files.any { createPsiAndCheckOnErrors(it.text, it.getLanguage()) }
+
+
+    fun checkCompiling(project: Project): Boolean {
+        val allTexts = project.files.map { it.psiFile.text }.joinToString()
+        checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
+        //Checking syntax correction
+        if (!checkSyntaxCorrectnessAndAddCond(project, null)) {
+            log.debug("Wrong syntax or breaks conditions")
+            checkedConfigurations[allTexts] = false
+            return false
+        }
+        val statuses = compileAndGetStatuses(project)
+        return if (statuses.all { it == COMPILE_STATUS.OK }) {
+            checkedConfigurations[allTexts] = true
+            true
+        } else {
+            checkedConfigurations[allTexts] = false
+            false
+        }
+    }
+
+    fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null): Boolean {
+        log.debug("Compilation checking started")
+        val allTexts = project.files.map { it.psiFile.text }.joinToString()
+        checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
+        //Checking syntax correction
+        if (!checkSyntaxCorrectnessAndAddCond(project, curFile)) {
+            log.debug("Wrong syntax or breaks conditions")
+            StatisticCollector.incField("Incorrect programs")
+            checkedConfigurations[allTexts] = false
+            return false
+        }
+        val statuses = compileAndGetStatuses(project)
+        when {
+            statuses.all { it == COMPILE_STATUS.OK } -> {
+                if (CompilerArgs.isGuidedByCoverage) {
+                    if (isCoverageDecreases(project)) {
+                        checkedConfigurations[allTexts] = false
+                        return false
+                    }
+                }
+                if (CompilerArgs.isMiscompilationMode) {
+                    val checkRes = checkTraces(project)
+                    checkedConfigurations[allTexts] = checkRes
+                    return checkRes
+                }
+                StatisticCollector.incField("Correct programs")
+                checkedConfigurations[allTexts] = true
+                return true
+            }
+            statuses.all { it == COMPILE_STATUS.ERROR } -> {
+                StatisticCollector.incField("Incorrect programs")
+                checkedConfigurations[allTexts] = false
+                return false
+            }
+        }
+        checkAndGetCompilerBugs(project).forEach { BugManager.saveBug(it) }
+        checkedConfigurations[allTexts] = false
+        StatisticCollector.incField("Correct programs")
+        return false
+    }
 
     fun isCompilationSuccessful(project: Project): Boolean = compilers.all { it.checkCompiling(project) }
 
     fun compileAndGetMessage(project: Project): String = compilers.first().getErrorMessage(project)
 
-    fun compileAndGetStatuses(project: Project): List<COMPILE_STATUS> =
+    private fun compileAndGetStatuses(project: Project): List<COMPILE_STATUS> =
         compilers.map { it.tryToCompileWithStatus(project) }
 
-    companion object {
-        fun checkTraces(project: Project): Boolean {
-            val compilers = CompilerArgs.getCompilersList()
-            val copyOfProject = project.copy()
-            Tracer(compilers.first(), copyOfProject).trace()
-            return TracesChecker(compilers).checkBehavior(copyOfProject)
+
+    fun checkTraces(project: Project): Boolean {
+        val copyOfProject = project.copy()
+        Tracer(compilers.first(), copyOfProject).trace()
+        return TracesChecker(compilers).checkBehavior(copyOfProject)
+    }
+
+
+    fun isCoverageDecreases(project: Project): Boolean {
+        val sumCoverage = CoverageGuider.getCoverage(project, compilers)
+        MyMethodBasedCoverage.methodProbes.clear()
+        val k = CoverageGuider.calcKoefOfCoverageUsage(sumCoverage)
+        println("k = $k")
+        if (k > CoverageGuider.initCoef) CoverageGuider.initCoef = k
+        return k < CoverageGuider.initCoef
+    }
+
+    private fun checkAndGetCompilerBugs(project: Project): List<Bug> {
+        val res = mutableListOf<Bug>()
+        compilers.forEach { compiler ->
+            if (compiler.isCompilerBug(project)) {
+                val msg = compiler.getErrorMessage(project)
+                val type =
+                    if (msg.contains("Exception while analyzing expression")) BugType.FRONTEND else BugType.BACKEND
+                res.add(Bug(compiler, msg, project.copy(), type))
+            }
         }
+        if (res.size != 0) return res
+        val compilersToStatus = compilers.map { it to it.checkCompiling(project) }
+        val grouped = compilersToStatus.groupBy { it.first.compilerInfo.split(" ").first() }
+        for (g in grouped) {
+            if (g.value.map { it.second }.toSet().size != 1) {
+                val diffCompilers =
+                    g.value.groupBy { it.second }.mapValues { it.value.first().first }.values.toList()
+                res.add(
+                    Bug(diffCompilers, "", project.copy(), BugType.DIFFCOMPILE)
+                )
+            }
+        }
+        return res
+    }
 
 //        fun checkABI(project: Project): Pair<Int, File>? {
 //            val compilers = CompilerArgs.getCompilersList()
@@ -56,41 +177,9 @@ open class CompilationChecker(val compilers: List<CommonCompiler>)  {
 //            MySummaryReport.summary.add(task.defectReport)
 //            return execRes
 //        }
-    }
 
-    //
-    fun isCoverageDecreases(project: Project): Boolean {
-        val sumCoverage = CoverageGuider.getCoverage(project, compilers)
-        val k = CoverageGuider.calcKoefOfCoverageUsage(sumCoverage)
-        println("k = $k")
-        if (k > CoverageGuider.initCoef) CoverageGuider.initCoef = k
-        return k < CoverageGuider.initCoef
-    }
+    val additionalConditions: MutableList<(PsiFile) -> Boolean> = mutableListOf()
 
-    fun checkAndGetCompilerBugs(project: Project): List<Bug> {
-        val res = mutableListOf<Bug>()
-        compilers.forEach { compiler ->
-            if (compiler.isCompilerBug(project)) {
-                val msg = compiler.getErrorMessage(project)
-                val type =
-                    if (msg.contains("Exception while analyzing expression")) BugType.FRONTEND else BugType.BACKEND
-                res.add(Bug(compiler, msg, project.copy(), type))
-            }
-        }
-        if (res.size != 0) return res
-        val compilersToStatus = compilers.map { it to it.checkCompiling(project) }
-        val grouped = compilersToStatus.groupBy { it.first.compilerInfo.split(" ").first() }
-        for (g in grouped) {
-            if (g.value.map { it.second }.toSet().size != 1) {
-                val diffCompilers =
-                    g.value.groupBy { it.second }.mapValues { it.value.first().first }.values.toList()
-                res.add(
-                    Bug(diffCompilers, "", project.copy(), BugType.DIFFCOMPILE)
-                )
-            }
-        }
-        return res
-    }
-
-
+    private val checkedConfigurations = hashMapOf<String, Boolean>()
+    private val log = Logger.getLogger("mutatorLogger")
 }
