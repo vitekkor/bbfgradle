@@ -27,7 +27,7 @@ fun main(args: Array<String>) {
         Logger.getLogger("transformationManagerLog").level = Level.OFF
     }
     val file = File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
-    SingleFileBugFinder("/home/zver/IdeaProjects/bbfgradle/tmp/arrays/typeReferenceEqualsHashCode.kt").findBugsInFile()
+    SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 //    val parser = ArgumentParsers.newFor("bbf").build()
 //    parser.addArgument("-r", "--reduce")
