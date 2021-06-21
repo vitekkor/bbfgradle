@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 
 class ChangeRandomASTNodesFromAnotherTrees : Transformation() {

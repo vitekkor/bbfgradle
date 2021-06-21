@@ -28,7 +28,7 @@ class ChangeTypes : Transformation() {
                         return@let
                     }
                 } else {
-                    checker.replacePSINodeIfPossible(prop.typeReference!!, newTypeRef)
+                    checker.replaceNodeIfPossible(prop.typeReference!!, newTypeRef)
                 }
             }
         }

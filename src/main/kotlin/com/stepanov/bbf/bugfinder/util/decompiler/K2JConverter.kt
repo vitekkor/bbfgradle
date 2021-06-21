@@ -1,20 +1,69 @@
-//package com.stepanov.bbf.bugfinder.util.decompiler
-//
-//import com.intellij.psi.PsiAnnotation
-//import com.intellij.psi.PsiExpressionStatement
-//import com.stepanov.bbf.bugfinder.executor.addMain
-//import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-//import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
-//import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
-//import com.stepanov.bbf.reduktor.parser.PSICreator
-//import org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler
-//import org.jetbrains.kotlin.psi.KtClassOrObject
-//import org.jetbrains.kotlin.psi.KtNamedFunction
-//import java.io.File
-//import java.util.zip.ZipFile
-//
-//class K2JConverter {
-//
+package com.stepanov.bbf.bugfinder.util.decompiler
+
+import com.intellij.psi.PsiAnnotation
+import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiExpressionStatement
+import com.intellij.psi.meta.PsiMetaData
+import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.project.BBFFile
+import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
+import com.stepanov.bbf.bugfinder.util.addAtTheEnd
+import com.stepanov.bbf.bugfinder.util.addImport
+import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
+import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
+import com.stepanov.bbf.reduktor.parser.PSICreator
+import com.stepanov.bbf.reduktor.util.getAllChildren
+import org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler
+import org.jetbrains.kotlin.psi.KtClassOrObject
+import org.jetbrains.kotlin.psi.KtFile
+import java.io.File
+import java.util.zip.ZipFile
+import kotlin.system.exitProcess
+
+object K2JConverter {
+
+    fun convertClassToJava(el: KtClassOrObject, checker: MutationChecker): PsiElement? {
+        val project = checker.project
+        val pathToDecompiled = "tmp/decompiled/"
+        File(pathToDecompiled).deleteRecursively()
+        File(pathToDecompiled).mkdirs()
+        val tmpName = "tmp/tmp_for_converter.kt"
+        val newFile = Factory.psiFactory.createFile("")
+        val addedEl = newFile.addAtTheEnd(el)
+        StdLibraryGenerator.calcImports(newFile)
+            .forEach { newFile.addImport(it.substringBeforeLast('.'), true) }
+        val bbfFile = BBFFile(tmpName, newFile)
+        project.addFile(bbfFile)
+        val compiled = JVMCompiler().compile(project, false)
+        project.removeFile(bbfFile)
+        if (compiled.status == -1) return null
+        val savedSource = File(tmpName).writeText(el.text)
+        val pathToJar = compiled.pathToCompiled
+        ConsoleDecompiler.main(arrayOf(tmpName, pathToJar, pathToDecompiled))
+        val zipFile = ZipFile("${pathToDecompiled}/tmp.jar")
+        zipFile.copyContentTo(pathToDecompiled) { it.name.endsWith(".java") }
+        val decompiledClass = File("$pathToDecompiled/${el.name}.java")
+        if (!decompiledClass.exists()) return null
+        val decompiledPsi = PSICreator.getPsiForJava("""
+            ${decompiledClass.readText()}
+        """.trimIndent())
+        val decompiledPsiClass = decompiledPsi.getAllPSIChildrenOfType<PsiClass>().firstOrNull()
+        decompiledPsiClass?.let { deleteExceedInfo(it) }
+        return decompiledPsiClass
+    }
+
+    fun deleteExceedInfo(el: PsiElement) {
+        el.node.getAllChildrenNodes()
+            .filter { it.psi is PsiAnnotation && it.text.contains("@Metadata") }
+            .forEach { it.psi.delete() }
+        el.node.getAllChildrenNodes()
+            .filter { it.psi is PsiExpressionStatement && it.text.contains("Intrinsics.") }
+            .forEach { it.psi.delete() }
+    }
 //    fun convert(pathToFile: String, isProject: Boolean): String {
 //        val pathToDecompiled = "tmp/decompiled/"
 //        File(pathToDecompiled).deleteRecursively()
@@ -36,7 +85,7 @@
 //            ""
 //        }
 //    }
-//
+
 //    private fun handleProjectDecompiledFiles(path: String): String {
 //        val files = File(path).listFiles()?.toList() ?: return ""
 //        val mainFile = files.find { it.absolutePath.endsWith("Main.kt") } ?: return ""
@@ -78,5 +127,5 @@
 //        javaFiles.forEachIndexed { index, file -> file.writeText(javaPsi[index].text) }
 //        return javaFiles.map { it.absolutePath }.joinToString(" ")
 //    }
-//
-//}
+
+}

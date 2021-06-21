@@ -26,16 +26,16 @@ data class GClass(
         val c =
             if (constructorArgs.isEmpty()) ""
             else constructorArgs.joinToString(prefix = "(", postfix = ")")
-        val g =
+        val t =
             if (typeParams.isEmpty()) ""
             else typeParams.joinToString(prefix = "<", postfix = "> ")
-        val i =
+        val s =
             if (supertypes.isEmpty()) ""
             else supertypes.joinToString(prefix = ": ")
         val b =
             if (body.isEmpty()) ""
             else Factory.psiFactory.createBlock(body).text
-        return "$a$m $classWord $name $g $constructorWord$c$i$b"
+        return "$a$m $classWord $name $t $constructorWord$c$s$b"
     }
 
     companion object {

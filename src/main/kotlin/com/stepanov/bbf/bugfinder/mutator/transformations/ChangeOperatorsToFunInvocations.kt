@@ -48,7 +48,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
             return
         val params = exp.indexExpressions.joinToString(separator = ",") { it.text }
         val newCall = createCall(base.text, "get", params)
-        checker.replacePSINodeIfPossible(exp, newCall)
+        checker.replaceNodeIfPossible(exp, newCall)
         //exp.replaceThis(newCall)
     }
 
@@ -64,7 +64,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
         }
         exp.baseExpression?.let {
             //exp.replaceThis(createCall(it.text, newCall))
-            checker.replacePSINodeIfPossible(exp, createCall(it.text, newCall))
+            checker.replaceNodeIfPossible(exp, createCall(it.text, newCall))
         }
     }
 
@@ -73,7 +73,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
         val right = exp.right ?: return
         if (exp.operationToken == KtTokens.EQEQ) {
             val newExp = psiFactory.createExpression("(${left.text})?.equals(${right.text}) ?: (${right.text} === null)")
-            checker.replacePSINodeIfPossible(exp, newExp)
+            checker.replaceNodeIfPossible(exp, newExp)
             //exp.replaceThis(newExp)
             return
         } else if (exp.operationToken in allowedEqs) {
@@ -82,7 +82,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
                 val params = "${left.indexExpressions.joinToString(separator = ",") { it.text }}, ${right.text}"
                 val newCall = createCall(arrayExp.text, "set", params)
                 //exp.replaceThis(newCall)
-                checker.replacePSINodeIfPossible(exp, newCall)
+                checker.replaceNodeIfPossible(exp, newCall)
                 return
             }
         }
@@ -100,7 +100,7 @@ class ChangeOperatorsToFunInvocations : Transformation() {
 //            KtTokens.DIVEQ -> "divAssign"
             else -> return
         }
-        checker.replacePSINodeIfPossible(exp, createCallWithBraces(left.text, newCall, right.text))
+        checker.replaceNodeIfPossible(exp, createCallWithBraces(left.text, newCall, right.text))
         //exp.replaceThis(createCallWithBraces(left.text, newCall, right.text))
     }
 

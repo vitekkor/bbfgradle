@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.gitinfocollector
 
 import com.stepanov.bbf.bugfinder.util.isUnit
-import com.stepanov.bbf.coverage.CoverageEntry
+import coverage.CoverageEntry
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedDeclaration
@@ -13,7 +13,7 @@ internal class KotlinSignatureCollector : SignatureCollectorInterface<KtNamedFun
         if (funcs.isEmpty()) return listOf()
         return funcs.map { f ->
             val ktFile = f.parents.lastOrNull() as KtFile
-            val packageDirective = ktFile.packageFqName.asString().replace('.', '/')
+            val packageDirective = ktFile.packageFqName.asString()//.replace('.', '/')
             var path = f.parents
                 .filter { it is KtNamedFunction || it is KtClassOrObject }
                 .map { (it as KtNamedDeclaration).name }
@@ -31,9 +31,9 @@ internal class KotlinSignatureCollector : SignatureCollectorInterface<KtNamedFun
                 .map { it.typeReference?.text?.substringBefore('<')?.substringBefore('?') ?: "Any" }
                 .toMutableList()
             f.receiverTypeReference?.let { params.add(0, it.text) }
-            val reserveRtv = if (f.isUnit()) "void" else "Any"
+            val reserveRtv = if (f.isUnit()) "Unit" else "Any"
             val rtv = f.typeReference?.text?.substringBefore('<')?.substringBefore('?') ?: reserveRtv
-            CoverageEntry("$packageDirective/$path", name, params, rtv)
+            CoverageEntry("$packageDirective.$path", name, params, rtv)
         }
     }
 

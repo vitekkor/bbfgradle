@@ -1,7 +1,6 @@
 package com.stepanov.bbf.bugfinder.generator.targetsgenerators
 
 import com.intellij.psi.PsiElement
-import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.*
@@ -18,7 +17,6 @@ import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
 import org.jetbrains.kotlin.types.typeUtil.isInterface
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGenerator(file) {
 
@@ -75,15 +73,15 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
                     .joinToString(".") { it.name.asString() }
             return Factory.psiFactory.createExpressionIfPossible(fullName) to klOrObjType
         }
+        val psiClassOrObj = classDescriptor.findPsi() as? KtClassOrObject ?: return null
+        if (classDescriptor.kind == ClassKind.ENUM_CLASS || classDescriptor.kind == ClassKind.ENUM_ENTRY) {
+            return generateEnumInstance(psiClassOrObj) to klOrObjType
+        }
         if (classDescriptor.constructors.isNotEmpty() &&
             classDescriptor.constructors.all { !it.visibility.isPublicAPI }
         ) return null
         if (classDescriptor.kind == ClassKind.ANNOTATION_CLASS) return null
         if (classDescriptor.isSealed()) return null
-        val psiClassOrObj = classDescriptor.findPsi() as? KtClassOrObject ?: return null
-        if (classDescriptor.kind == ClassKind.ENUM_CLASS || classDescriptor.kind == ClassKind.ENUM_ENTRY) {
-            return generateEnumInstance(psiClassOrObj) to klOrObjType
-        }
         if (!rtg.isInitialized()) {
             rtg.setFileAndContext(file)
         }
@@ -141,6 +139,10 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
         return unsafeGenerateRandomInstanceOfClass(classType, depth)
     }
 
+    public fun generateEnumInstance(klDescriptor: ClassDescriptor): KtExpression? {
+        return null
+    }
+
     private fun generateEnumInstance(klOrObj: KtClassOrObject): KtExpression? {
         val klass =
             if (klOrObj is KtEnumEntry) {
@@ -163,7 +165,10 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
         return instance
     }
 
-    private fun generateFunInterfaceInstance(classDescriptor: ClassDescriptor, depth: Int): Pair<PsiElement?, KotlinType?>? {
+    private fun generateFunInterfaceInstance(
+        classDescriptor: ClassDescriptor,
+        depth: Int
+    ): Pair<PsiElement?, KotlinType?>? {
         val typeParams = classDescriptor.declaredTypeParameters
         val newTypeParameters = generateTypeParameters(typeParams)
         if (newTypeParameters.size != classDescriptor.declaredTypeParameters.size) return null
@@ -182,14 +187,30 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
             ?: return null
 
         val numberOfParams = substConDescr.valueParameters.size
-        val substitutedTypeParams = substConDescr.valueParameters.map { it.returnType } + listOf(substConDescr.returnType)
-        val substitutedTypeParamsAsString = substitutedTypeParams.joinToString(", ","<", ">") {
-            it?.getNameWithoutError() ?: ""
-        }
+        val substitutedValueParamsAndRTV =
+            substConDescr.valueParameters.map { it.returnType } + listOf(substConDescr.returnType)
+        val substitutedTypeParamsAsString =
+            substitutedValueParamsAndRTV
+                .joinToString(", ", "<", ">") {
+                    it?.getNameWithoutError() ?: "Any"
+                }
+        val typeParamsForDeclaration =
+            substitutedValueParamsAndRTV
+                .dropLast(substitutedValueParamsAndRTV.size - typeParams.size)
+                .let {
+                    if (it.isEmpty()) {
+                        ""
+                    } else {
+                        it.joinToString(", ", "<", ">") {
+                            it?.getNameWithoutError() ?: "Any"
+                        }
+                    }
+                }
+
         val type = "Function$numberOfParams$substitutedTypeParamsAsString"
         val typeAsKotlinType = rtg.generateType(type) ?: return null
         val generatedConstructor = RandomInstancesGenerator(file).generateValueOfType(typeAsKotlinType, depth + 1)
-        val instance = "${classDescriptor.name}${substitutedTypeParamsAsString}$generatedConstructor"
+        val instance = "${classDescriptor.name}${typeParamsForDeclaration}$generatedConstructor"
         val psiInstance = Factory.psiFactory.createExpressionIfPossible(instance) ?: return null
         return psiInstance to subClassDescr.defaultType.replace(newTypeParameters.map { it.asTypeProjection() })
     }

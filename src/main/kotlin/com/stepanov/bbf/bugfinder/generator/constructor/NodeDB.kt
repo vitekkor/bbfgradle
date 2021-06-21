@@ -14,7 +14,6 @@ import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import com.stepanov.bbf.bugfinder.util.getType as getType1
 import java.io.File
 import kotlin.random.Random
-import kotlin.streams.toList
 
 object NodeDB {
 

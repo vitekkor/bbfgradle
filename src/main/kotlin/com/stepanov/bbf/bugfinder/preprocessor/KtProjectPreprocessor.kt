@@ -1,6 +1,6 @@
 package com.stepanov.bbf.bugfinder.preprocessor
 
-import com.stepanov.bbf.bugfinder.executor.Checker
+import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.*
@@ -16,7 +16,7 @@ import kotlin.random.Random
 object KtProjectPreprocessor {
 
     //Returns null if we cant compile
-    fun preprocess(project: Project, checker: Checker): List<KtFile>? = TODO()
+    fun preprocess(project: Project, checker: CompilationChecker): List<KtFile>? = TODO()
 //    {
 //        var psiFiles = buildPsiForProject(project)
 //        renameBoxFun(psiFiles)

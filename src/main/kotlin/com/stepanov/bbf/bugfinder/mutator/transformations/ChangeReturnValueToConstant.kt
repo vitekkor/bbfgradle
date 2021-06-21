@@ -23,7 +23,7 @@ class ChangeReturnValueToConstant : Transformation() {
             for (r in returns) {
                 val replacement = KtPsiFactory(file.project).createExpression(typeConstants[key]!!)
                 if (r.returnedExpression != null) {
-                    checker.replacePSINodeIfPossible(r.returnedExpression!!, replacement)
+                    checker.replaceNodeIfPossible(r.returnedExpression!!, replacement)
                 }
             }
         }

@@ -12,17 +12,23 @@ import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.builtins.isExtensionFunctionType
 import org.jetbrains.kotlin.builtins.isFunctionOrSuspendFunctionType
+import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
+import org.jetbrains.kotlin.descriptors.impl.EnumEntrySyntheticClassDescriptor
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.descriptorUtil.parentsWithSelf
+import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
+import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.*
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
+//TODO add project
 open class RandomInstancesGenerator(private val file: KtFile) {
 
     //TODO rewrite this someday
@@ -41,7 +47,7 @@ open class RandomInstancesGenerator(private val file: KtFile) {
         log.debug("GENERATING CALL OF ${function.text}")
         val addedFun =
             if (!file.getAllChildren().contains(function)) {
-                file.addToTheEnd(function) as KtNamedFunction
+                file.addAtTheEnd(function) as KtNamedFunction
             } else {
                 function
             }
@@ -93,16 +99,33 @@ open class RandomInstancesGenerator(private val file: KtFile) {
             func.typeParameters.map { lTypeParamsToRealTypeParams.getOrDefault(it.name!!, it.name!!) }
                 .let { if (it.isNotEmpty()) it.joinToString(prefix = "<", postfix = ">") else "" }
         log.debug("Trying to generate $generatedReciever${func.name}$typeParams($generatedParams)")
-        val expr =
-            Factory.psiFactory.createExpressionIfPossible("$generatedReciever${func.name}$typeParams($generatedParams)")
-                ?: return null
-        log.debug("GENERATED = ${expr.text}")
-        return expr to func.valueParameters
+        try {
+            val expr =
+                Factory.psiFactory.createExpressionIfPossible("$generatedReciever${func.name}$typeParams($generatedParams)")
+                    ?: return null
+            log.debug("GENERATED = ${expr.text}")
+            return expr to func.valueParameters
+        } catch (e: Exception) {
+            return null
+        }
     }
 
     //Type parameters will be replaced by randomly generated types
     fun generateFunctionCall(desc: FunctionDescriptor): PsiElement? {
-        val funDef = desc.toString().substringAfter("fun").substringBefore(" defined").split(" = ...").joinToString(" ")
+        //val funDef = desc.toString().substringAfter("fun").substringBefore(" defined").split(" = ...").joinToString(" ")
+        val name = desc.name.asString()
+        val tp =
+            if (desc.typeParameters.isEmpty()) ""
+            else desc.typeParameters.joinToString(", ", prefix = "<", postfix = ">") { it.name.asString() }
+        val valueParams =
+            if (desc.valueParameters.isEmpty()) ""
+            else desc.valueParameters.joinToString(
+                ", ",
+                "(",
+                ")"
+            ) { "${it.name.asString()}: ${it.returnType?.getNameWithoutError() ?: "Any"}" }
+        val returnType = desc.returnType?.getNameWithoutError() ?: "Any"
+        val funDef = "$tp $name$valueParams: $returnType"
         val ktFun = Factory.psiFactory.createFunction("fun $funDef")
         val res = generateTopLevelFunctionCall(ktFun)
         return res?.first
@@ -165,6 +188,21 @@ open class RandomInstancesGenerator(private val file: KtFile) {
     fun generateRandomInstanceOfClass(ktClass: KtClassOrObject) =
         classInstanceGenerator.generateRandomInstanceOfUserClass(ktClass)
 
+    fun generateValueOfTypeAsExpression(
+        t: KotlinType,
+        depth: Int = 0,
+        onlyImpl: Boolean = false,
+        withoutParams: Boolean = false,
+        nullIsPossible: Boolean = true
+    ): KtExpression? =
+        try {
+            Factory.psiFactory.createExpression(generateValueOfType(t, depth, onlyImpl, withoutParams, nullIsPossible))
+        } catch (e: Error) {
+            null
+        } catch (e: Exception) {
+            null
+        }
+
     fun generateValueOfType(
         t: KotlinType,
         depth: Int = 0,
@@ -197,12 +235,34 @@ open class RandomInstancesGenerator(private val file: KtFile) {
                 .reversed()
                 .joinToString(".") { it.name.asString().trim() }
             file.getClassWithName(className)?.let {
-                val res = ClassInstanceGenerator(file).generateRandomInstanceOfUserClass(type, depth + 1)
+                val res = classInstanceGenerator.generateRandomInstanceOfUserClass(type, depth + 1)
                 return res?.first?.text ?: ""
             }
         }
-        if (type.isEnum()) return StdLibraryGenerator.findEnumMembers(type).randomOrNull()?.toString()
-            ?: ""
+        if (type.constructor.declarationDescriptor.let { it is ClassDescriptor && it.name.asString() == "Enum" }) {
+            val enumClassesFromFile =
+                file.getAllPSIChildrenOfType<KtClass>()
+                    .filter { it.isEnum() }
+                    .mapNotNull { ctx?.let { ctx -> it.getDeclarationDescriptorIncludingConstructors(ctx) as? ClassDescriptor } }
+            return if (enumClassesFromFile.isNotEmpty() && Random.getTrue(60)) {
+                classInstanceGenerator
+                    .generateRandomInstanceOfUserClass(enumClassesFromFile.random().defaultType)
+                    ?.first
+                    ?.text
+                    ?: ""
+            } else {
+                val enumFromStdLibrary = StdLibraryGenerator.findEnumClasses().random()
+                val randomEntry = enumFromStdLibrary.unsubstitutedMemberScope
+                    .getDescriptorsFiltered { true }
+                    .filterIsInstance<EnumEntrySyntheticClassDescriptor>().random()
+                    .name.asString()
+                enumFromStdLibrary.name.asString() + "." + randomEntry
+            }
+        }
+        if (type.isEnum()) {
+            return StdLibraryGenerator.findEnumMembers(type).randomOrNull()?.toString()
+                ?: ""
+        }
         if (type.isPrimitiveTypeOrNullablePrimitiveTypeOrString())
             generateDefValuesAsString(type.toString()).let { if (it.isNotEmpty()) return it }
         if (type.isKType()) return RandomReflectionInstanceGenerator(file, type).generateReflection()
@@ -220,22 +280,20 @@ open class RandomInstancesGenerator(private val file: KtFile) {
         return searchForImplementation(type, depth + 1, onlyImpl, withoutParams)
     }
 
-    //Add without extensionReceiver?
     fun searchForImplementation(
         type: KotlinType,
         depth: Int,
         onlyImpl: Boolean = false,
         withoutParams: Boolean = false
     ): String {
-        var funcs =
-            StdLibraryGenerator.searchForFunWithRetType(type.makeNotNullable())
-                .filter { it.valueParameters.all { !it.type.hasTypeParam() } || !withoutParams }
+        var funcs = StdLibraryGenerator.searchForFunWithRetType(type.makeNotNullable())
         if (type.getAllTypeParams().any { it.type.isInterface() })
             funcs = funcs.filter { it.valueParameters.all { !it.type.isTypeParameter() } }
         funcs = funcs.filterNot { it.annotations.any { it.fqName?.asString()?.contains("Deprecated") ?: false } }
-        if (Random.getTrue(50)) {
-            funcs = funcs.filter { it.extensionReceiverParameter == null }
-        }
+//        TODO!!!
+//        if (Random.getTrue(50)) {
+//            funcs = funcs.filter { it.extensionReceiverParameter != null }
+//        }
 //        //TODO
 //        funcs = funcs.filter { it.extensionReceiverParameter == null }
 //            .filterNot { it.annotations.any { it.fqName?.asString()?.contains("Deprecated") ?: false } }
@@ -266,38 +324,20 @@ open class RandomInstancesGenerator(private val file: KtFile) {
         if (el is ClassDescriptor && el.defaultType.isPrimitiveTypeOrNullablePrimitiveTypeOrString())
             return generateDefValuesAsString(el.name.asString())
         ctx?.let { randomTypeGenerator.setFileAndContext(file, it) } ?: return ""
-        val (psi, typeParamsToRealTypes) = when (el) {
+        val (resFunDescriptor, typeParams) = when (el) {
             is SimpleFunctionDescriptor -> TypeParamsReplacer.throwTypeParams(type, el, randomTypeGenerator)
             is ClassDescriptor -> TypeParamsReplacer.throwTypeParams(type, el, randomTypeGenerator, withoutParams)
             else -> return ""
-        }
-        //TODO!!!
-        val extTypeRec =
-            (el as? SimpleFunctionDescriptor)
-                ?.extensionReceiverParameter
-                ?.value
-                ?.type
-        val extRecTypeWithoutTP =
-            extTypeRec?.arguments?.map { typeParamsToRealTypes[it.toString()]?.asTypeProjection() ?: it }?.let {
-                extTypeRec.replace(it)
-            } ?: extTypeRec
-        val generatedExtension = extRecTypeWithoutTP?.let { generateValueOfType(it) + "." } ?: ""
-        generateTopLevelFunctionCall(
-            psi,
-            typeParamsToRealTypes.entries.associate { it.key to "${it.value?.getNameWithoutError()}" },
-            false,
-            depth + 1
-        )?.let {
-            return "$generatedExtension${it.first.text}"
-        }
-        log.debug("Cant generate call of ${psi.text}")
-        return ""
+        } ?: return ""
+        val invocation = funInvocationGenerator.generateFunctionCallWithoutTypeParameters(resFunDescriptor, typeParams)
+        return invocation?.text ?: ""
     }
 
     private val fileCopy = file.copy() as KtFile
     private var ctx: BindingContext? = PSICreator.analyze(file)
-    val randomTypeGenerator = RandomTypeGenerator
     internal val classInstanceGenerator = ClassInstanceGenerator(file)
+    internal val funInvocationGenerator = FunInvocationGenerator(file)
+    val randomTypeGenerator = RandomTypeGenerator
     private val MAGIC_CONST = 15
     private val log = Logger.getLogger("mutatorLogger")
 

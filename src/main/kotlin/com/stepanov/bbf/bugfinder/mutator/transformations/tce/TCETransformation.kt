@@ -2,10 +2,10 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.checkers.AbstractTreeMutator
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.mutator.transformations.filterDuplicates
 import com.stepanov.bbf.bugfinder.util.*
@@ -18,14 +18,11 @@ import org.jetbrains.kotlin.psi.psiUtil.getReceiverExpression
 import org.jetbrains.kotlin.psi.psiUtil.isTopLevelKtOrJavaMember
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isError
 import java.io.File
 import kotlin.random.Random
-import kotlin.streams.toList
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 //TODO make work for projects
 class TCETransformation : Transformation() {
@@ -34,17 +31,19 @@ class TCETransformation : Transformation() {
     private val randomConst = 3
     private var psi = PSICreator.getPSIForText(file.text, false)
     lateinit var usageExamples: List<Triple<KtExpression, String, KotlinType?>>
-    private val mutChecker = AbstractTreeMutator(checker.compilers, checker.project.configuration)
 
     override fun transform() {
         for (i in 0 until randomConst) {
             log.debug("AFTER TRY $i res = ${psi.text}")
             usageExamples = collectUsageCases()
             log.debug("Try №$i")
-            val line = File("database.txt").bufferedReader().lines().toList().find { it.startsWith("FUN") }!!//.random()
+            val line = File("database.txt").bufferedReader()
+                .lines()
+                .toArray()
+                .toList()
+                .map { it as String }
+                .find { it.startsWith("FUN") }!!//.random()
             val randomType = line.takeWhile { it != ' ' }
-            //TODO!!!
-//            val files = line.dropLast(1).takeLastWhile { it != '[' }.split(", ")
             val files = File(CompilerArgs.baseDir).listFiles().map { it.name }
             val randomFile = files.random()
             var proj = Project.createFromCode(File("${CompilerArgs.baseDir}/$randomFile").readText())
@@ -70,7 +69,7 @@ class TCETransformation : Transformation() {
             log.debug("Trying to insert ${targetNode.text}")
             val psiBackup = psi.copy() as KtFile
             val addedNodes = addAllDataFromAnotherFile(psi, anonPsi as KtFile)
-            if (!mutChecker.checkCompiling(psi)) {
+            if (!checker.checkCompilingWithFileReplacement(psi, checker.curFile)) {
                 psi = psiBackup
                 continue
             }
@@ -113,8 +112,9 @@ class TCETransformation : Transformation() {
                 continue
             }
             log.debug("replacement of ${node.first.text} of type ${node.second} is ${replacement.text}")
-            mutChecker.replaceNodeIfPossibleWithNode(
+            checker.replaceNodeIfPossibleWithNodeWithFileReplacement(
                 psi,
+                checker.curFile,
                 node.first.node,
                 replacement.copy().node
             )?.let { replacementsList.add(it.psi) }
@@ -141,8 +141,18 @@ class TCETransformation : Transformation() {
             sameTypeExpression?.let {
                 log.debug("TRYING TO REPLACE CONSTANT ${constant.first.text}")
                 if (constant.first.parent is KtPrefixExpression) {
-                    mutChecker.replacePSINodeIfPossible(psi, constant.first.parent, it.first)
-                } else mutChecker.replacePSINodeIfPossible(psi, constant.first, it.first)
+                    checker.replacePSINodeIfPossibleWithFileReplacement(
+                        psi,
+                        checker.curFile,
+                        constant.first.parent,
+                        it.first
+                    )
+                } else checker.replacePSINodeIfPossibleWithFileReplacement(
+                    psi,
+                    checker.curFile,
+                    constant.first,
+                    it.first
+                )
             }
         }
     }
@@ -161,7 +171,7 @@ class TCETransformation : Transformation() {
 
     private fun collectUsageCases(): List<Triple<KtExpression, String, KotlinType?>> {
         val ctx = PSICreator.analyze(psi) ?: return listOf()
-        val generatedSamples = UsagesSamplesGenerator.generate(psi, ctx)
+        val generatedSamples = UsagesSamplesGenerator.generate(psi, ctx, checker.project)
         val boxFuncs = psi.getBoxFuncs() ?: return generatedSamples
         /*val properties =
             (boxFuncs.getAllPSIChildrenOfType<KtProperty>() + psi.getAllPSIChildrenOfType { it.isTopLevel })

@@ -114,6 +114,14 @@ fun <T> Iterable<T>.getAllWithout(index: Int): List<T> {
     return list
 }
 
+fun <T> Iterable<T>.getAllWithout(el: T): List<T> {
+    val list: ArrayList<T> = arrayListOf<T>()
+    for (item in this) {
+        if (item != el) list.add(item)
+    }
+    return list
+}
+
 fun <ASTNode> List<ASTNode>.filterRowPsiWhiteSpaces(): List<ASTNode> {
     if (this.isEmpty()) return listOf()
     val res = arrayListOf<ASTNode>()

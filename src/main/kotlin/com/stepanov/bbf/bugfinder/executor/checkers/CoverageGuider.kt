@@ -7,18 +7,17 @@ import com.stepanov.bbf.bugfinder.gitinfocollector.FilePatch
 import com.stepanov.bbf.bugfinder.gitinfocollector.FilePatchHandler
 import com.stepanov.bbf.bugfinder.gitinfocollector.GitRepo
 import com.stepanov.bbf.bugfinder.gitinfocollector.SignatureCollector
-import com.stepanov.bbf.coverage.CoverageEntry
-import com.stepanov.bbf.coverage.ProgramCoverage
+import coverage.CoverageEntry
+import coverage.MyMethodBasedCoverage
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
-import kotlin.system.exitProcess
 
 object CoverageGuider {
     private lateinit var desiredCoverage: List<CoverageEntry>
     var initCoef = 0
-    private val commit = "c629ba5a3cb13e823276aab0aca4d918b65ca856"
+    private val commit = "d1322280ddba07a581cc18f9e97d040c9c1a95da"
     private val patches: List<FilePatch>
         get() {
             val pathToSerializedCommits = CompilerArgs.pathToSerializedCommits
@@ -37,7 +36,7 @@ object CoverageGuider {
         SignatureCollector.collectSignatures(modifiedFunctions)
 
     fun init(commit: String, project: Project) {
-        println("PATCHES = ${patches.size}")
+        //println("PATCHES = ${patches.size}")
         this.desiredCoverage = signatures
         val initCoverage = getCoverage(project, CompilerArgs.getCompilersList())
         initCoef = calcKoefOfCoverageUsage(initCoverage)
@@ -49,9 +48,10 @@ object CoverageGuider {
         val sumCoverage = mutableMapOf<CoverageEntry, Int>()
         for (compiler in compilers) {
             compiler.checkCompiling(project)
-            val coverage = ProgramCoverage.createFromMethodProbes()
-            val coverageEntries =
-                coverage.getMethodProbes().entries.map { CoverageEntry.parseFromKtCoverage(it.key) to it.value }.toMap()
+//            val coverage = ProgramCoverage.createFromMethodProbes()
+//            val coverageEntries =
+//                coverage.getMethodProbes().entries.map { CoverageEntry.parseFromKtCoverage(it.key) to it.value }.toMap()
+            val coverageEntries = MyMethodBasedCoverage.methodProbes
             coverageEntries.entries.forEach {
                 sumCoverage[it.key]?.let { c -> sumCoverage[it.key] = c + it.value } ?: sumCoverage.put(
                     it.key,

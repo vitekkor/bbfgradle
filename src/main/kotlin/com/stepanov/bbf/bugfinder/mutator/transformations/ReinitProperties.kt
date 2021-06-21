@@ -24,7 +24,7 @@ class ReinitProperties : Transformation() {
             if (newValue.isEmpty()) return@forEach
             val newProp = it.copy() as KtProperty
             newProp.initializer = psiFactory.createExpression(newValue)
-            checker.replacePSINodeIfPossible(it, newProp)
+            checker.replaceNodeIfPossible(it, newProp)
         }
     }
 

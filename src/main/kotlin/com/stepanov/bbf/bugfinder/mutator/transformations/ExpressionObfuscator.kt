@@ -37,7 +37,7 @@ class ExpressionObfuscator : Transformation() {
 
     override fun transform() {
         var ctx = PSICreator.analyze(file) ?: return
-        usageExamples = TCEUsagesCollector.collectUsageCases(file as KtFile, ctx).toMutableList()
+        usageExamples = TCEUsagesCollector.collectUsageCases(file as KtFile, ctx, checker.project).toMutableList()
         //TODO make dependent from size of program
         repeat(Random.nextInt(10, 20)) { it ->
             ctx = PSICreator.analyze(file) ?: return

@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.tracer
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
@@ -30,14 +31,16 @@ import java.lang.StringBuilder
 class Tracer(val compiler: CommonCompiler, val project: Project) : KtVisitorVoid() {
 
     fun trace() {
+        CompilerArgs.isMiscompilationMode = false
         project.files.forEach {
             if (it.getLanguage() == LANGUAGE.KOTLIN) {
-                checker = MutationChecker(compiler, project, it, false)
+                checker = MutationChecker(compiler, project, it)
                 tree = it.psiFile as KtFile
                 ctx = PSICreator.analyze(tree) ?: return
                 it.changePsiFile(traceCurFile())
             }
         }
+        CompilerArgs.isMiscompilationMode = true
     }
 
     private fun traceCurFile(): KtFile {

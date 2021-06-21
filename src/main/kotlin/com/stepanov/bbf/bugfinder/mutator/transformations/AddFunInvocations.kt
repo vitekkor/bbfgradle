@@ -2,7 +2,6 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
-import com.stepanov.bbf.bugfinder.executor.checkers.AbstractTreeMutator
 import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
 import com.stepanov.bbf.bugfinder.util.getAllPSIDFSChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getType
@@ -116,7 +115,7 @@ class AddFunInvocations : Transformation() {
         val block = psiFactory.createBlock(node.text)
         block.lBrace?.delete()
         block.rBrace?.delete()
-        AbstractTreeMutator(checker.compilers, checker.project.configuration).addNodeIfPossibleWithNode(tree, this, block)
+        checker.addNodeIfPossibleWithNodeWithFileReplacement(tree, checker.curFile, this, block)
         //checker.addNodeIfPossible(this, block)
     }
 

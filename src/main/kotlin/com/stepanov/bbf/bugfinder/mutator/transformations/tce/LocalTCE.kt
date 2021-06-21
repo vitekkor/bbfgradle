@@ -2,13 +2,12 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
-import com.stepanov.bbf.bugfinder.executor.checkers.AbstractTreeMutator
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
-import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getReceiverExpression
 import org.jetbrains.kotlin.resolve.BindingContext
@@ -24,13 +23,11 @@ class LocalTCE : Transformation() {
     private val blockListOfTypes = listOf("Unit", "Nothing", "Nothing?")
     private var psi = file.copy() as KtFile
     lateinit var usageExamples: MutableList<Triple<KtExpression, String, KotlinType?>>
-    private val mutChecker = AbstractTreeMutator(checker.compilers, checker.project.configuration)
 
     override fun transform() {
         val ctx = PSICreator.analyze(psi) ?: return
-        usageExamples = TCEUsagesCollector.collectUsageCases(psi, ctx).toMutableList()
-        println(usageExamples)
-        exitProcess(0)
+        RandomTypeGenerator.setFileAndContext(file as KtFile, ctx)
+        usageExamples = TCEUsagesCollector.collectUsageCases(psi, ctx, checker.project).toMutableList()
         addRandomUnitCalls()
         replaceNodesOfFile(psi.getAllPSIChildrenOfType(), ctx)
         checker.curFile.changePsiFile(psi.text)
@@ -75,8 +72,9 @@ class LocalTCE : Transformation() {
                 continue
             }
             log.debug("replacement of ${node.first.text} of type ${node.second} is ${replacement.text}")
-            mutChecker.replaceNodeIfPossibleWithNode(
+            checker.replaceNodeIfPossibleWithNodeWithFileReplacement(
                 psi,
+                checker.curFile,
                 node.first.node,
                 replacement.copy().node
             )?.let { replacementsList.add(it.psi) }
@@ -103,8 +101,8 @@ class LocalTCE : Transformation() {
             sameTypeExpression?.let {
                 log.debug("TRYING TO REPLACE CONSTANT ${constant.first.text}")
                 if (constant.first.parent is KtPrefixExpression) {
-                    mutChecker.replacePSINodeIfPossible(psi, constant.first.parent, it.first)
-                } else mutChecker.replacePSINodeIfPossible(psi, constant.first, it.first)
+                    checker.replacePSINodeIfPossibleWithFileReplacement(psi, checker.curFile, constant.first.parent, it.first)
+                } else checker.replacePSINodeIfPossibleWithFileReplacement(psi, checker.curFile, constant.first, it.first)
             }
         }
     }

@@ -2,7 +2,6 @@ package com.stepanov.bbf.bugfinder.executor.checkers
 
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
@@ -12,10 +11,9 @@ import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.bugfinder.util.addToTheTop
 import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
 import org.apache.log4j.Logger
-import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch
 
 // Transformation is here only for PSIFactory
-class TracesChecker(compilers: List<CommonCompiler>) : CompilationChecker(compilers) {
+class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationChecker(compilers) {
 
     private companion object FalsePositivesTemplates {
         //Regex and replacing

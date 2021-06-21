@@ -28,6 +28,8 @@ import org.jetbrains.kotlin.types.typeUtil.supertypes
 import com.stepanov.bbf.bugfinder.util.kcheck.asCharSequence
 import com.stepanov.bbf.bugfinder.util.kcheck.nextInRange
 import com.stepanov.bbf.bugfinder.util.kcheck.nextString
+import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -400,7 +402,7 @@ fun KtBlockExpression.addProperty(prop: KtProperty): PsiElement? {
 fun KtFile.getBoxFuncs(): List<KtNamedFunction>? =
     this.getAllPSIChildrenOfType { it.text.contains(Regex("""fun box\d*\(""")) }
 
-fun PsiFile.addToTheEnd(psiElement: PsiElement): PsiElement {
+fun PsiFile.addAtTheEnd(psiElement: PsiElement): PsiElement {
     return this.getAllPSIDFSChildrenOfType<PsiElement>().last().parent.let {
         it.add(Factory.psiFactory.createWhiteSpace("\n\n"))
         val res = it.add(psiElement)
@@ -562,3 +564,6 @@ fun KtProperty.getVisibility() =
         this.text.contains("protected") -> "protected"
         else -> "public"
     }
+
+fun KtNamedFunction.getReturnType(context: BindingContext): KotlinType? =
+    this.typeReference?.getAbbreviatedTypeOrType(context) ?: this.initializer?.getType(context)

@@ -1,8 +1,8 @@
 package com.stepanov.bbf.bugfinder.gitinfocollector
 
 import com.intellij.psi.*
-import com.stepanov.bbf.coverage.CoverageEntry
 import com.stepanov.bbf.reduktor.util.getAllChildren
+import coverage.CoverageEntry
 import org.jetbrains.kotlin.psi.psiUtil.parents
 
 internal class JavaSignatureCollector : SignatureCollectorInterface<PsiMethod> {
@@ -16,7 +16,7 @@ internal class JavaSignatureCollector : SignatureCollectorInterface<PsiMethod> {
                     .firstOrNull { it is PsiPackageStatement }
                     ?.text
                     ?.substringAfter("package ")
-                    ?.replace('.', '/')
+                    //?.replace('.', '/')
                     ?.dropLast(1) ?: ""
             val path =
                 f.parents

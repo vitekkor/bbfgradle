@@ -1,9 +1,10 @@
-package com.stepanov.bbf.bugfinder.executor
+package com.stepanov.bbf.bugfinder.executor.checkers
 
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFile
-import com.stepanov.bbf.bugfinder.executor.checkers.CoverageGuider
-import com.stepanov.bbf.bugfinder.executor.checkers.TracesChecker
+import com.stepanov.bbf.bugfinder.executor.COMPILE_STATUS
+import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
@@ -13,7 +14,6 @@ import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.tracer.Tracer
 import com.stepanov.bbf.bugfinder.util.StatisticCollector
-import com.stepanov.bbf.bugfinder.util.getFileLanguageIfExist
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import coverage.MyMethodBasedCoverage

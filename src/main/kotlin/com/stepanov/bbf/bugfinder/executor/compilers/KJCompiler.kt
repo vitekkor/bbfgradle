@@ -9,6 +9,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.nio.charset.Charset
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
@@ -16,7 +17,6 @@ import java.util.zip.ZipFile
 import javax.tools.DiagnosticCollector
 import javax.tools.JavaFileObject
 import javax.tools.ToolProvider
-import kotlin.streams.toList
 
 
 class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
@@ -57,24 +57,6 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
         return pathToCompiled
     }
 
-//    fun compile(path: String, includeRuntime: Boolean): CompilingResult {
-//        val kotlinCompiled = super.compile(path, includeRuntime)
-//        if (kotlinCompiled.status == -1) return CompilingResult(-1, "")
-//        File(pathToTmpDir).deleteRecursively()
-////        File(pathToTmpDir).listFiles()
-////            .filter { !it.absolutePath.endsWith(".java") && !it.absolutePath.endsWith(".kt") }
-////            .forEach { it.deleteRecursively() }
-//        val kotlinJar = ZipFile(kotlinCompiled.pathToCompiled, Charset.forName("CP866"))
-//        kotlinJar.copyContentTo(pathToTmpDir)
-//        val javaRes = compileJava(path, kotlinCompiled.pathToCompiled, pathToTmpDir)
-//        File(kotlinCompiled.pathToCompiled).let { if (it.exists()) it.delete() }
-//        return if (javaRes) {
-//            CompilingResult(0, pathToTmpDir)
-//        } else {
-//            CompilingResult(-1, "")
-//        }
-//    }
-
     private fun compileJava(path: String, pathToDir: String): Boolean {
         val javaFiles = path.split(" ").filter { it.endsWith(".java") }.map { File(it) }
         if (javaFiles.isEmpty()) return true
@@ -96,8 +78,12 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
 //    }
 
     override fun exec(path: String, streamType: Stream, mainClass: String): String {
-        val manifest = Files.walk(Paths.get(path)).toList().map { it.toFile() }.find { it.name == "MANIFEST.MF" }
-            ?: return ""
+        val manifest =
+            Files.walk(Paths.get(path))
+                .toArray()
+                .map { (it as Path).toFile() }
+                .find { it.name == "MANIFEST.MF" }
+                ?: return ""
         val mc =
             mainClass.ifEmpty {
                 manifest.readLines().find { it.startsWith("Main-Class:") }?.substringAfter("Main-Class: ") ?: return ""

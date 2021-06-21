@@ -5,7 +5,7 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GStruc
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.addImport
-import com.stepanov.bbf.bugfinder.util.addToTheEnd
+import com.stepanov.bbf.bugfinder.util.addAtTheEnd
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.util.getTrue
 import org.jetbrains.kotlin.psi.KtFile
@@ -88,7 +88,7 @@ abstract class DSGenerator(
 
     fun generateAndAddToFile(): PsiElement? {
         generate()?.let {
-            val added = file.addToTheEnd(it)
+            val added = file.addAtTheEnd(it)
             calcImports().forEach { file.addImport(it.substringBeforeLast('.'), true) }
             return added
         } ?: return null

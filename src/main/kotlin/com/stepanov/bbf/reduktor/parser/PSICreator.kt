@@ -12,22 +12,17 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyCfg
 import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyEnv
 import com.stepanov.bbf.kootstrap.util.opt
+import org.jetbrains.kotlin.analyzer.AnalysisResult
 import org.jetbrains.kotlin.cli.common.config.addKotlinSourceRoots
 import org.jetbrains.kotlin.cli.jvm.compiler.*
 import org.jetbrains.kotlin.cli.jvm.config.addJavaSourceRoots
-import org.jetbrains.kotlin.cli.jvm.config.addJvmClasspathRoot
 import org.jetbrains.kotlin.cli.jvm.config.addJvmClasspathRoots
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.JVMConfigurationKeys
-import org.jetbrains.kotlin.config.JvmTarget
-import org.jetbrains.kotlin.js.analyze.TopDownAnalyzerFacadeForJS
-import org.jetbrains.kotlin.js.config.JSConfigurationKeys
-import org.jetbrains.kotlin.js.config.JsConfig
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.resolve.CompilerEnvironment
 import org.jetbrains.kotlin.resolve.lazy.JvmResolveUtil
 import java.io.File
 
@@ -83,8 +78,16 @@ object PSICreator {
 
     fun analyze(psiFile: PsiFile): BindingContext? = analyze(psiFile, curProject)
 
-    fun analyze(psiFile: PsiFile, project: com.stepanov.bbf.bugfinder.executor.project.Project?): BindingContext? {
-        if (psiFile !is KtFile) return null
+    fun analyzeAndGetModuleDescriptor(psiFile: PsiFile) = getAnalysisResult(psiFile, curProject)?.moduleDescriptor
+
+    fun analyze(psiFile: PsiFile, project: com.stepanov.bbf.bugfinder.executor.project.Project?): BindingContext? =
+        getAnalysisResult(psiFile, project)?.bindingContext
+
+    private fun getAnalysisResult(
+        psiFile: PsiFile,
+        project: com.stepanov.bbf.bugfinder.executor.project.Project?
+    ): AnalysisResult? {
+        //if (psiFile !is KtFile) return null
         project?.saveOrRemoveToTmp(true)
         val cmd = opt.parse(arrayOf())
         val cfg = setupMyCfg(cmd)
@@ -96,7 +99,7 @@ object PSICreator {
                 CompilerArgs.getStdLibPath("kotlin-test"),
                 CompilerArgs.getStdLibPath("kotlin-test-common"),
                 CompilerArgs.getStdLibPath("kotlin-test-annotations-common"),
-                CompilerArgs.getStdLibPath("kotlin-test-junit"),
+                //CompilerArgs.getStdLibPath("kotlin-test-junit"),
                 CompilerArgs.getStdLibPath("kotlin-reflect"),
                 CompilerArgs.getStdLibPath("kotlin-stdlib-common"),
                 CompilerArgs.getStdLibPath("kotlin-stdlib"),
@@ -115,12 +118,16 @@ object PSICreator {
         val configuration = env.configuration.copy()
         configuration.put(CommonConfigurationKeys.MODULE_NAME, "root")
         return try {
-            JvmResolveUtil.analyze(listOf(psiFile), env, configuration).bindingContext
+            if (psiFile is KtFile) {
+                JvmResolveUtil.analyze(listOf(psiFile), env, configuration)
+            } else {
+                JvmResolveUtil.analyze(env)
+            }
         } catch (e: Exception) {
             println(e)
             null
         } finally {
-            project?.saveOrRemoveToTmp(false)
+            //project?.saveOrRemoveToTmp(false)
         }
     }
 

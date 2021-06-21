@@ -2,7 +2,7 @@ package com.stepanov.bbf.bugfinder.gitinfocollector
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMethod
-import com.stepanov.bbf.coverage.CoverageEntry
+import coverage.CoverageEntry
 import org.jetbrains.kotlin.psi.KtNamedFunction
 
 object SignatureCollector {

@@ -30,42 +30,58 @@ object CompilerArgs {
         ?: throw IllegalArgumentException("Cannot init $name property")
 
     fun getStdLibPath(libToSearch: String): String {
-        val kotlinVersion =
-            File("build.gradle").readText().lines().firstOrNull { it.trim().contains("kotlin_version") }
-                ?: throw Exception("Dont see kotlinVersion parameter in build.gradle file")
-        var ver = kotlinVersion.split("=").last().trim().filter { it != '\'' }
-        val gradleDir = "${System.getProperty("user.home")}/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/"
-        var dir =
-            File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path ?: ""
-        //TODO fix this
-        if (dir.trim().isEmpty()) {
-            ver = (ver.last() - '0').let { ver.dropLast(1) + (it - 1) }
-            dir = File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path
-                ?: ""
+        val kotlinVersion = File("build.gradle")
+            .readText()
+            .lines()
+            .firstOrNull { it.trim().contains("kotlin_version") }
+            ?.substringAfter('\'')
+            ?.substringBefore('\'')
+            ?: throw Exception("Dont see kotlinVersion parameter in build.gradle file")
+        "tmp/lib/$libToSearch-$kotlinVersion.jar".let {
+            require(File(it).exists())
+            return it
         }
-        if (dir.trim().isEmpty()) {
-            ver = (ver.last() - '0').let { ver.dropLast(1) + (it + 1) }
-            dir = File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path
-                ?: ""
-        }
-        var pathToLib = File(dir).walkTopDown().find { it.name == "$libToSearch-$ver.jar" }?.absolutePath ?: ""
-        if (pathToLib.isEmpty()) {
-            ver = "1.5.255-SNAPSHOT"
-            dir = File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path
-                ?: ""
-            pathToLib = File(dir).walkTopDown().find { it.name == "$libToSearch-$ver.jar" }?.absolutePath ?: ""
-        }
-        require(pathToLib.isNotEmpty())
-        return pathToLib
     }
+//    fun getStdLibPath(libToSearch: String): String {
+//        val kotlinVersion =
+//            File("build.gradle").readText().lines().firstOrNull { it.trim().contains("kotlin_version") }
+//                ?: throw Exception("Dont see kotlinVersion parameter in build.gradle file")
+//        var ver = kotlinVersion.split("=").last().trim().filter { it != '\'' }
+//        val gradleDir = "${System.getProperty("user.home")}/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/"
+//        var dir =
+//            File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path ?: ""
+//        //TODO fix this
+//        if (dir.trim().isEmpty()) {
+//            ver = (ver.last() - '0').let { ver.dropLast(1) + (it - 1) }
+//            dir = File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path
+//                ?: ""
+//        }
+//        if (dir.trim().isEmpty()) {
+//            ver = (ver.last() - '0').let { ver.dropLast(1) + (it + 1) }
+//            dir = File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path
+//                ?: ""
+//        }
+//        var pathToLib = File(dir).walkTopDown().find { it.name == "$libToSearch-$ver.jar" }?.absolutePath ?: ""
+//        if (pathToLib.isEmpty()) {
+//            ver = "1.5.255-SNAPSHOT"
+//            dir = File("$gradleDir/$libToSearch").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path
+//                ?: ""
+//            pathToLib = File(dir).walkTopDown().find { it.name == "$libToSearch-$ver.jar" }?.absolutePath ?: ""
+//        }
+//        require(pathToLib.isNotEmpty())
+//        return pathToLib
+//    }
 
     fun getAnnoPath(ver: String): String {
-        val gradleDir = "${System.getProperty("user.home")}/.gradle/caches/modules-2/files-2.1/org.jetbrains/"
-        val dir =
-            File("$gradleDir/annotations").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path ?: ""
-        val pathToLib = File(dir).walkTopDown().find { it.name == "annotations-$ver.jar" }?.absolutePath ?: ""
-        require(pathToLib.isNotEmpty())
-        return pathToLib
+//        val gradleDir = "${System.getProperty("user.home")}/.gradle/caches/modules-2/files-2.1/org.jetbrains/"
+//        val dir =
+//            File("$gradleDir/annotations").listFiles()?.find { it.isDirectory && it.name.trim() == ver }?.path ?: ""
+//        val pathToLib = File(dir).walkTopDown().find { it.name == "annotations-$ver.jar" }?.absolutePath ?: ""
+//        require(pathToLib.isNotEmpty())
+        File("tmp/lib/annotations-$ver.jar").let {
+            require(it.exists())
+            return it.absolutePath
+        }
     }
 
     private fun findAndSaveLib(name: String, jarFile: JarFile) {
@@ -155,17 +171,19 @@ object CompilerArgs {
 
     //STDLIB
     val jvmStdLibPaths = listOf(
-        getStdLibPath("kotlin-stdlib"), getStdLibPath("kotlin-stdlib-common"),
-        getStdLibPath("kotlin-test"), getStdLibPath("kotlin-test-common"), getStdLibPath("kotlin-reflect"),
-        getStdLibPath("kotlin-script-runtime"), getStdLibPath("kotlin-test-junit"),
-        getStdLibPath("kotlin-stdlib-jdk8"), getStdLibPath("kotlin-stdlib-jdk7")
+        getStdLibPath("kotlin-stdlib"),
+        getStdLibPath("kotlin-stdlib-common"),
+        getStdLibPath("kotlin-test"),
+        getStdLibPath("kotlin-test-common"),
+        getStdLibPath("kotlin-reflect"),
+        getStdLibPath("kotlin-script-runtime"),
+        getStdLibPath("kotlin-stdlib-jdk8"),
+        getStdLibPath("kotlin-stdlib-jdk7")
     )
 
     val jsStdLibPaths = listOf(
-        getStdLibPath("kotlin-stdlib-js"), getStdLibPath("kotlin-stdlib-common"),
-        getStdLibPath("kotlin-test-common"),
-        getStdLibPath("kotlin-reflect")
-        //getStdLibPath("kotlin-test-js"),
+        getStdLibPath("kotlin-stdlib-js"),
+        getStdLibPath("kotlin-test-js")
     )
     val pathToStdLibScheme = "tmp/lib/standardLibraryTree.txt"
     val pathToSerializedCommits = "tmp/serializedPatches/"

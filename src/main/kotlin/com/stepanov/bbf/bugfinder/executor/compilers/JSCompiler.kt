@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.jar.JarInputStream
 import java.util.jar.JarOutputStream
+import kotlin.system.exitProcess
 
 class JSCompiler(override val arguments: String = "") : CommonCompiler() {
 

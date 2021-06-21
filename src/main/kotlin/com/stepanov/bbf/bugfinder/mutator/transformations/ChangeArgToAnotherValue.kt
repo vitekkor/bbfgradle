@@ -20,7 +20,7 @@ class ChangeArgToAnotherValue : Transformation() {
                         log.debug("generated value for type $type is $newRandomValue")
                         if (newRandomValue.trim().isEmpty()) return@forEachIndexed
                         val newArg = psiFactory.createArgument(newRandomValue)
-                        checker.replacePSINodeIfPossible(arg, newArg)
+                        checker.replaceNodeIfPossible(arg, newArg)
                     }
                 }
             }

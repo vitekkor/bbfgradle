@@ -1,6 +1,8 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.findFunByName
@@ -11,12 +13,10 @@ import com.stepanov.bbf.bugfinder.util.getBoxFuncs
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
-import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.load.java.descriptors.JavaClassDescriptor
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
@@ -24,8 +24,8 @@ import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.KotlinType
+import kotlin.math.exp
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 object UsagesSamplesGenerator {
 
@@ -34,14 +34,17 @@ object UsagesSamplesGenerator {
     lateinit var file: KtFile
     lateinit var ctx: BindingContext
 
-    //No more not private methods!
-    fun generate(file_: KtFile, ctx_: BindingContext): List<Triple<KtExpression, String, KotlinType?>> {
-        file = file_
-        ctx = ctx_
+    fun generate(
+        _file: KtFile,
+        _ctx: BindingContext,
+        project: Project?
+    ): List<Triple<KtExpression, String, KotlinType?>> {
+        file = _file
+        ctx = _ctx
         instanceGenerator = RandomInstancesGenerator(file)
         randomTypeGenerator.setFileAndContext(file, ctx)
         val res = mutableListOf<KtExpression>()
-        generateForKlasses(file, res)
+        generateForKlasses(file, project, res)
         val withTypes = generateTypes(file, res.joinToString("\n") { it.text })
         generateForFuncs(file, res, withTypes)
         generateForProps(file, res, withTypes)
@@ -92,21 +95,53 @@ object UsagesSamplesGenerator {
         }
     }
 
+    fun generateClassUsages(
+        _file: PsiFile,
+        _ctx: BindingContext,
+        classDescriptor: ClassDescriptor
+    ): List<Pair<KtExpression, KotlinType?>> {
+        file = _file as KtFile
+        ctx = _ctx
+        instanceGenerator = RandomInstancesGenerator(file)
+        randomTypeGenerator.setFileAndContext(file, ctx)
+        val (instanceOfClass, classType) =
+            instanceGenerator.classInstanceGenerator.generateRandomInstanceOfUserClass(classDescriptor.defaultType)
+                ?: return emptyList()
+        if (instanceOfClass == null || classType == null) return emptyList()
+        return filterOpenFuncsAndPropsFromDecl(instanceOfClass, classType)
+            .map {
+                val exp = it.first
+                if (exp.startsWith("CoBj")) {
+                    val expAsString = "${classDescriptor.name}.${exp.substringAfter("CoBj")}"
+                    Factory.psiFactory.createExpressionIfPossible(expAsString) to it.second
+                }
+                else {
+                    Factory.psiFactory.createExpressionIfPossible(exp) to it.second
+                }
+            }.filter { it.first != null }.map { it.first!! to it.second }
+    }
+
     private fun generateForKlasses(
         file: KtFile,
+        project: Project? = null,
         res: MutableList<KtExpression>
     ): List<KtExpression> {
         val currentModule = file.getBoxFuncs()?.first().getDeclarationDescriptorIncludingConstructors(ctx)?.module
-        val javaClassesFromCurrentModule = file.getAllPSIChildrenOfType<KtExpression>()
-            .mapNotNull { it.getType(ctx)?.constructor?.declarationDescriptor }
-            .toSet()
-            .filter { it is JavaClassDescriptor && it.module == currentModule }
-        val classes = file.getAllPSIChildrenOfType<KtClassOrObject>()
-            .filter { it.name != null }
-            .filterNot { it.parents.any { it is KtNamedFunction } }//.filter { it.isTopLevel() }
-        val classesDescriptors =
-            classes.mapNotNull { it.getDeclarationDescriptorIncludingConstructors(ctx) as? ClassDescriptor }
-        for (klassDescriptor in classesDescriptors + javaClassesFromCurrentModule) {
+        val userClasses = if (project != null && currentModule != null) {
+            StdLibraryGenerator.getUserClassesDescriptorsFromProject(project, currentModule)
+        } else {
+            val javaClassesFromCurrentModule = file.getAllPSIChildrenOfType<KtExpression>()
+                .mapNotNull { it.getType(ctx)?.constructor?.declarationDescriptor }
+                .toSet()
+                .filter { it is JavaClassDescriptor && it.module == currentModule }
+            val classes = file.getAllPSIChildrenOfType<KtClassOrObject>()
+                .filter { it.name != null }
+                .filterNot { it.parents.any { it is KtNamedFunction } }//.filter { it.isTopLevel() }
+            val classesDescriptors =
+                classes.mapNotNull { it.getDeclarationDescriptorIncludingConstructors(ctx) as? ClassDescriptor }
+            classesDescriptors + javaClassesFromCurrentModule
+        }
+        for (klassDescriptor in userClasses) {
             val openFuncsAndProps = mutableListOf<String>()
             val genRes =
                 instanceGenerator.classInstanceGenerator.generateRandomInstanceOfUserClass(klassDescriptor.defaultType)
@@ -117,7 +152,7 @@ object UsagesSamplesGenerator {
             if (klassType == null) {
                 klassType = randomTypeGenerator.generateType(instanceOfKlass.text.substringBefore('(')) ?: continue
             }
-            filterOpenFuncsAndPropsFromDecl(instanceOfKlass, klassType).forEach { openFuncsAndProps.add(it) }
+            filterOpenFuncsAndPropsFromDecl(instanceOfKlass, klassType).forEach { openFuncsAndProps.add(it.first) }
             openFuncsAndProps
                 .mapNotNull {
                     if (it.startsWith("CoBj"))
@@ -133,18 +168,18 @@ object UsagesSamplesGenerator {
     private fun filterOpenFuncsAndPropsFromDecl(
         parentInstance: PsiElement,
         classType: KotlinType
-    ): List<String> {
-        val openFuncsAndProps = mutableListOf<String>()
+    ): List<Pair<String, KotlinType?>> {
+        val openFuncsAndProps = mutableListOf<Pair<String, KotlinType?>>()
         for (desc in classType.memberScope.getDescriptorsFiltered { true }) {
             if (desc is SimpleFunctionDescriptor && desc.visibility.isPublicAPI && desc.extensionReceiverParameter == null) {
                 if (desc.name.asString() !in noNeedFunctions)
                     instanceGenerator.generateFunctionCall(desc)?.let {
                         openFuncsAndProps.add(
-                            "${parentInstance.text}.${it.text}"
+                            "${parentInstance.text}.${it.text}" to desc.returnType
                         )
                     }
             } else if (desc is PropertyDescriptor && desc.visibility.isPublicAPI) {
-                openFuncsAndProps.add("${parentInstance.text}.${desc.name}")
+                openFuncsAndProps.add("${parentInstance.text}.${desc.name}" to desc.type)
             }
         }
         return openFuncsAndProps

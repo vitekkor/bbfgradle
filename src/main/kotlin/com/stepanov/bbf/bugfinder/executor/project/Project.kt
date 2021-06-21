@@ -18,7 +18,7 @@ import org.jetbrains.kotlin.psi.KtFile
 
 class Project(
     var configuration: Header,
-    val files: List<BBFFile>,
+    var files: List<BBFFile>,
     val language: LANGUAGE = LANGUAGE.KOTLIN
 ) {
 
@@ -36,6 +36,41 @@ class Project(
                 }
             return Project(configuration, files, language)
         }
+    }
+
+    fun addFile(file: BBFFile): List<BBFFile> {
+        files = files + listOf(file)
+        return files
+    }
+
+    fun removeFile(file: BBFFile): List<BBFFile> {
+        files = files.getAllWithout(file)
+        return files
+    }
+
+    fun saveOrRemoveToDirectory(trueSaveFalseDelete: Boolean, directory: String): String {
+        files.forEach {
+            val name = it.name.substringAfterLast('/')
+            val fullDir = directory +
+                    if (it.name.contains("/")) {
+                        "/${it.name.substringBeforeLast('/')}"
+                    } else {
+                        ""
+                    }
+            val fullName = "$fullDir/$name"
+            if (trueSaveFalseDelete) {
+                File(fullDir).mkdirs()
+                File(fullName).writeText(it.psiFile.text)
+            } else {
+                val createdDirectories = it.name.substringAfter(directory).substringBeforeLast('/')
+                if (createdDirectories.trim().isNotEmpty()) {
+                    File("$directory$createdDirectories").deleteRecursively()
+                } else {
+                    File(fullName).delete()
+                }
+            }
+        }
+        return files.joinToString(" ") { it.name }
     }
 
     fun saveOrRemoveToTmp(trueSaveFalseDelete: Boolean): String {
@@ -75,7 +110,7 @@ class Project(
         projFiles.getAllWithout(0).forEach {
             it.packageDirective?.delete()
             it.importList?.delete()
-            resFile.addToTheEnd(it)
+            resFile.addAtTheEnd(it)
         }
         StdLibraryGenerator.calcImports(resFile)
             .forEach { resFile.addImport(it.substringBeforeLast('.'), true) }

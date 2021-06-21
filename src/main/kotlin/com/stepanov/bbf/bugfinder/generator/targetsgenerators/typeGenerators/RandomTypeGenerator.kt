@@ -1,5 +1,6 @@
 package com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators
 
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.generator.constructor.util.StandardLibraryInheritanceTree
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator.getDeclDescriptorOf
@@ -34,9 +35,9 @@ object RandomTypeGenerator {
 
     fun isInitialized() = ::file.isInitialized
 
-    fun setFileAndContext(file: KtFile) {
+    fun setFileAndContext(file: KtFile, project: Project? = null) {
         RandomTypeGenerator.file = file
-        RandomTypeGenerator.ctx = PSICreator.analyze(file) ?: return
+        RandomTypeGenerator.ctx = PSICreator.analyze(file, project) ?: return
     }
 
     fun setFileAndContext(file: KtFile, ctx: BindingContext) {
@@ -157,16 +158,17 @@ object RandomTypeGenerator {
         val klassNames = file.getAllPSIChildrenOfType<KtClassOrObject>().map { it.name }.filterNotNull()
         val klassList =
             randomClass.typeParameters
-                .map { typeParamToType.getOrDefault(it.name, it.name) }
+                .map { typeParamToType[it.name]?.getNameWithoutError() ?: it.text }
+                //.map { typeParamToType.getOrDefault(it.name, it.name) }
                 .joinToString()
                 .plus(",$name")
                 .split(Regex("""[,<>]"""))
                 .map { it.trim() }
                 .filter { it in klassNames }
         val finalTypeParams = if (klassList.size == klassList.toSet().size)
-            randomClass.typeParameters.map { typeParamToType.getOrDefault(it.name, it.name) }
+            randomClass.typeParameters.map { typeParamToType[it.name]?.getNameWithoutError() ?: it.text }
         else
-            randomClass.typeParameters.map { generateType(generatePrimitive()) }
+            randomClass.typeParameters.map { generateType(generatePrimitive())!!.getNameWithoutError() }
         val strTypeParams =
             if (finalTypeParams.isEmpty()) "" else finalTypeParams.joinToString(prefix = "<", postfix = ">")
 //        //Helps for nested, but not inner classes

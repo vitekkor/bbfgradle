@@ -5,13 +5,12 @@ import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 import kotlin.random.Random
-import kotlin.streams.toList
 
 class AddRandomNode : Transformation() {
     override fun transform() {
         val randConst = Random.nextInt(numOfTries.first, numOfTries.second)
         val filteredNodes = file.node.getAllChildrenNodes().filter { it.elementType !in NodeCollector.excludes }
-        val nodeDB = File("database.txt").bufferedReader().lines().toList()
+        val nodeDB = File("database.txt").bufferedReader().lines().toArray().toList()
         log.debug("Trying to add some nodes $randConst times")
         println("Trying to add some nodes $randConst times")
         //From same file

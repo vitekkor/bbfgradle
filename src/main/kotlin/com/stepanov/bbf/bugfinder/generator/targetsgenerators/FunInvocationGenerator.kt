@@ -1,46 +1,76 @@
 package com.stepanov.bbf.bugfinder.generator.targetsgenerators
 
 import com.intellij.psi.PsiElement
-import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.util.addToTheEnd
-import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.util.getAllChildren
-import org.apache.log4j.Logger
-import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
+import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
+import org.jetbrains.kotlin.load.java.descriptors.JavaClassConstructorDescriptor
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.types.TypeProjectionImpl
-import org.jetbrains.kotlin.types.TypeSubstitutor
+import org.jetbrains.kotlin.resolve.calls.components.isVararg
+import org.jetbrains.kotlin.types.KotlinType
+import kotlin.random.Random
 
-class FunInvocationGenerator(file: KtFile, private val ctx: BindingContext) :
+internal class FunInvocationGenerator(file: KtFile) :
     TypeAndValueParametersGenerator(file) {
 
     private val MAX_DEPTH = 20
 
-    fun generateTopLevelFunInvocation(func: KtNamedFunction, depth: Int = 0): PsiElement? {
-        if (depth > MAX_DEPTH) return null
-        val funAsKtDeclaration = (func as? KtDeclaration) ?: return null
-        val functionDescriptor =
-            funAsKtDeclaration.getDeclarationDescriptorIncludingConstructors(ctx) as? FunctionDescriptor ?: return null
-        val newTypeParameters = generateTypeParameters(functionDescriptor.typeParameters)
-        val typeSubstitutor = TypeSubstitutor.create(
-            functionDescriptor.typeParameters
-                .withIndex()
-                .associateBy({ it.value.typeConstructor }) {
-                    TypeProjectionImpl(newTypeParameters[it.index])
-                }
-        )
-        val newFD = functionDescriptor.substitute(typeSubstitutor) ?: return null
-        val generatedValueParams = generateValueParameters(newFD.valueParameters, depth)
+    fun generateFunctionCallWithoutTypeParameters(
+        functionDescriptor: FunctionDescriptor,
+        typeParameters: Map<String, KotlinType?>
+    ): PsiElement? {
+        val funcName =
+            when (functionDescriptor) {
+                is JavaClassConstructorDescriptor -> functionDescriptor.constructedClass.name
+                is ClassConstructorDescriptor -> functionDescriptor.constructedClass.name
+                else -> functionDescriptor.name
+            }
         val typeParamsAsString =
-            if (newTypeParameters.isEmpty()) ""
-            else newTypeParameters.joinToString(prefix = "<", postfix = ">") { "$it" }
-        val invocationAsString = "${func.name}$typeParamsAsString(${generatedValueParams.joinToString()})"
-        return Factory.psiFactory.createExpressionIfPossible(invocationAsString)
+            functionDescriptor.typeParameters.map {
+                typeParameters[it.name.asString()] ?: "Any"
+            }.let { if (it.isEmpty()) "" else "<${it.joinToString()}>" }
+        val extRecValue =
+            functionDescriptor.extensionReceiverParameter?.type?.let {
+                RandomInstancesGenerator(file).generateValueOfType(it) + "."
+            } ?: ""
+        val valueParams = functionDescriptor.valueParameters.joinToString {
+            if (it.isVararg) {
+                val randomSize = Random.nextInt(1, 4)
+                val elType = it.varargElementType!!
+                List(randomSize) { RandomInstancesGenerator(file).generateValueOfType(elType) }.joinToString()
+            } else {
+                RandomInstancesGenerator(file).generateValueOfType(it.type)
+            }
+        }
+        val callExpression = """$extRecValue$funcName$typeParamsAsString($valueParams)"""
+        return try {
+            Factory.psiFactory.createExpression(callExpression)
+        } catch (e: Exception) {
+            null
+        }
     }
 
+//    fun generateTopLevelFunInvocation(func: KtNamedFunction, depth: Int = 0): PsiElement? {
+//        if (depth > MAX_DEPTH) return null
+//        val funAsKtDeclaration = (func as? KtDeclaration) ?: return null
+//        val functionDescriptor =
+//            funAsKtDeclaration.getDeclarationDescriptorIncludingConstructors(ctx) as? FunctionDescriptor ?: return null
+//        val newTypeParameters = generateTypeParameters(functionDescriptor.typeParameters)
+//        val typeSubstitutor = TypeSubstitutor.create(
+//            functionDescriptor.typeParameters
+//                .withIndex()
+//                .associateBy({ it.value.typeConstructor }) {
+//                    TypeProjectionImpl(newTypeParameters[it.index])
+//                }
+//        )
+//        val newFD = functionDescriptor.substitute(typeSubstitutor) ?: return null
+//        val generatedValueParams = generateValueParameters(newFD.valueParameters, depth)
+//        val typeParamsAsString =
+//            if (newTypeParameters.isEmpty()) ""
+//            else newTypeParameters.joinToString(prefix = "<", postfix = ">") { "$it" }
+//        val invocationAsString = "${func.name}$typeParamsAsString(${generatedValueParams.joinToString()})"
+//        return Factory.psiFactory.createExpressionIfPossible(invocationAsString)
+//    }
 
 
 }

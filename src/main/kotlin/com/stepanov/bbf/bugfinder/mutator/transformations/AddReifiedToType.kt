@@ -13,7 +13,7 @@ class AddReifiedToType: Transformation() {
         val typeParameters = file.getAllPSIChildrenOfType<KtTypeParameter>()
         typeParameters.forEach {
             val newTypeModifier = psiFactory.createTypeParameter("reified ${it.text}")
-            checker.replacePSINodeIfPossible(it, newTypeModifier)
+            checker.replaceNodeIfPossible(it, newTypeModifier)
         }
     }
 

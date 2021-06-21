@@ -6,30 +6,25 @@ import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.LocalTCE
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.TCETransformation
-import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.apache.log4j.Logger
-import org.jetbrains.kotlin.psi.KtNamedFunction
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
 class Mutator(val project: Project) {
 
-    private fun executeMutation(t: Transformation, probPercentage: Int = 50) {
+    fun executeMutation(t: Transformation, probPercentage: Int = 50) {
         if (Random.nextInt(0, 100) < probPercentage) {
             log.debug("Cur transformation ${t::class.simpleName}")
 //            try {
-            t.transform()
-            //log.debug("After ${t::class.simpleName} = ${Transformation.checker.curFile.text}")
-            //log.debug("Verify = ${verify()}")
-            //Update ctx and file
-            checker.curFile.changePsiFile(checker.curFile.text)
-            //val newFile = Project.createFromCode(Transformation.checker.curFile.text).files.first()
-            //Transformation.checker.curFile = newFile
+                t.transform()
+                checker.curFile.changePsiFile(checker.curFile.text)
 //            } catch (e: Exception) {
 //                log.debug("Exception ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
-//                System.exit(1)
+//                exitProcess(1)
 //            } catch (e: Error) {
 //                log.debug("Error ${e.localizedMessage}\n${e.stackTrace.toList().joinToString("\n") { "$it" }}")
+//                exitProcess(1)
 //            }
         }
     }
@@ -47,14 +42,8 @@ class Mutator(val project: Project) {
         }
     }
 
-    private fun beforeKotlinMutations() {
-        //TODO!!! files without box funcs are not mutating because of ::noBoxFunModifications
-//        val funcs = checker.curFile.psiFile.getAllPSIChildrenOfType<KtNamedFunction>()
-//        if (funcs.find { it.name?.contains("box") == true } != null)
-//            println("LOL")
-    }
 
-    //Stub
+    //TODO!! Implement java mutations
     private fun startJavaMutations() {
         println("STARTING JAVA MUTATIONS")
         executeMutation(ChangeRandomJavaASTNodesFromAnotherTrees(), 100)
@@ -64,24 +53,24 @@ class Mutator(val project: Project) {
     }
 
     private fun startKotlinMutations() {
-        executeMutation(LocalTCE(), 100)
-        println("AFTER = ${checker.curFile.text}")
-        //executeMutation(LocalTCE(), 100)
-        exitProcess(0)
+        PSICreator.analyze(checker.curFile.psiFile, checker.project) ?: return
         val mut = listOf(
+            ShuffleFunctionArguments() to 50,
             ExpressionObfuscator() to 100,
             AddRandomComponent() to 100,
             AddDefaultValueToArg() to 100,
             LocalTCE() to 100,
             AddReificationToTypeParam() to 100,
-            //TCETransformation() to 100,
+            TCETransformation() to 75,
             ChangeRandomASTNodesFromAnotherTrees() to 100,
             AddPossibleModifiers() to 50,
             AddArgumentToFunction() to 75,
+            //AddCallableReference() to 50,
             AddDefaultValueToArg() to 50,
             ChangeTypes() to 75,
             ChangeModifiers() to 50,
-            ChangeRandomASTNodesFromAnotherTrees() to 100
+            ChangeRandomASTNodesFromAnotherTrees() to 100,
+            AddTryExpression() to 25
         ).shuffled()
         for (i in 0 until Random.nextInt(1, 3)) {
             mut.forEach { executeMutation(it.first, it.second) }
@@ -149,7 +138,7 @@ class Mutator(val project: Project) {
         return res
     }
 
-//    private val mutations = listOf(
+    //    private val mutations = listOf(
 //        AddNullabilityTransformer() to 50,
 //        AddPossibleModifiers() to 50,
 //        AddReifiedToType() to 50,

@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.util
 
 import com.intellij.psi.PsiFile
-import com.stepanov.bbf.bugfinder.executor.Checker
+import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.reduktor.util.getAllChildren
@@ -15,7 +15,7 @@ object Anonymizer {
     val counters = mutableListOf(0, 0, 0, 0, 0)
     fun anon(project: Project): Boolean {
         val psi = project.files.first().psiFile
-        val checker = Checker(JVMCompiler())
+        val checker = CompilationChecker(JVMCompiler())
 
         /*if (f.name != "singleAssignmentToVarargInAnnotation.kt") continue*/
         val named = mutableListOf<KtNamedDeclaration>()
@@ -43,7 +43,7 @@ object Anonymizer {
         psi: PsiFile,
         newName: String,
         n: KtNamedDeclaration,
-        checker: Checker,
+        checker: CompilationChecker,
         project: Project
     ): Boolean {
         val oldExpr = n.copy()
