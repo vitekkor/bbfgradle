@@ -14,6 +14,7 @@ import java.nio.file.Paths
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
+import javax.tools.Diagnostic
 import javax.tools.DiagnosticCollector
 import javax.tools.JavaFileObject
 import javax.tools.ToolProvider
@@ -68,7 +69,7 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
         val options = mutableListOf("-classpath", classPath, "-d", pathToDir)
         val task = compiler.getTask(null, manager, diagnostics, options, null, sources)
         task.call()
-        return diagnostics.diagnostics.isEmpty()
+        return diagnostics.diagnostics.none { it.kind == Diagnostic.Kind.ERROR }
     }
 
 //    override fun checkCompiling(pathToFile: String): Boolean {
@@ -88,9 +89,7 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
             mainClass.ifEmpty {
                 manifest.readLines().find { it.startsWith("Main-Class:") }?.substringAfter("Main-Class: ") ?: return ""
             }
-        val res = commonExec("java -cp $path $mc", streamType)
-        File(path).deleteRecursively()
-        return res
+        return commonExec("java -cp $path $mc", streamType)
     }
 
     val pathToTmpDir = CompilerArgs.pathToTmpFile.substringBeforeLast('/') + "/tmp/tmp"

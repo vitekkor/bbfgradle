@@ -17,7 +17,7 @@ import org.jetbrains.kotlin.types.typeUtil.isInt
 class MutationExample : Transformation() {
     private val currentFile = file as KtFile
     private val bindingContext = PSICreator.analyze(file, project)!!
-    val rig = RandomInstancesGenerator(currentFile)
+    private val rig = RandomInstancesGenerator(currentFile)
 
     override fun transform() {
         replaceStringConstant()

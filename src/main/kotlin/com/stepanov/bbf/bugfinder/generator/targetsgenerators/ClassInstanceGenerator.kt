@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
 import org.jetbrains.kotlin.types.typeUtil.isInterface
+import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 import kotlin.random.Random
 
 internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGenerator(file) {
@@ -260,7 +261,16 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
             classType.constructor.declarationDescriptor as? ClassDescriptor ?: return null
         val constructor =
             classDescriptor.constructors.filter { it.visibility.isPublicAPI }.randomOrNull() ?: return null
-        val newTypeParameters = generateTypeParameters(constructor.typeParameters)
+        var newTypeParameters =
+            if (classType.arguments.all { !it.type.isTypeParameter() }) {
+                classType.arguments.map { it.type }
+            } else {
+                generateTypeParameters(constructor.typeParameters)
+            }
+        newTypeParameters = newTypeParameters
+            .zip(classType.arguments.map { it.type })
+            .map { if (it.second.isTypeParameter()) it.first else it.second }
+
         if (newTypeParameters.size != constructor.typeParameters.size) return null
         val typeSubstitutor = TypeSubstitutor.create(
             constructor.typeParameters

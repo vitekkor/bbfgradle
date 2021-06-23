@@ -11,6 +11,7 @@ import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.bugfinder.util.addToTheTop
 import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
 import org.apache.log4j.Logger
+import java.io.File
 
 // Transformation is here only for PSIFactory
 class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationChecker(compilers) {
@@ -68,6 +69,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
                 return mapOf()
             val res = comp.exec(status.pathToCompiled)
             val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
+            File(status.pathToCompiled).let { if (it.exists()) it.deleteRecursively() }
             log.debug("Result of ${comp.compilerInfo}: $res\n")
             log.debug("Errors: $errors")
             if (exclErrorMessages.any { errors.contains(it) })

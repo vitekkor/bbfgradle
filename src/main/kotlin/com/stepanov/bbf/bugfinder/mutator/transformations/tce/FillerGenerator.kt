@@ -135,7 +135,7 @@ class FillerGenerator(
         return res
     }
 
-    private fun handleCallSeq(postfix: List<CallableDescriptor>): KtExpression? {
+    fun handleCallSeq(postfix: List<CallableDescriptor>): KtExpression? {
         val res = StringBuilder()
         var prefix = ""
         postfix.map { desc ->

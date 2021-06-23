@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiPackageStatement
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
@@ -39,11 +40,19 @@ object StdLibraryGenerator {
         val kType =
             psi.getAllPSIChildrenOfType<KtProperty>().map { it.typeReference?.getAbbreviatedTypeOrType(ctx) }[0]!!
         val module = kType.constructor.declarationDescriptor!!.module
-        val stringPackages = module.getSubPackagesOf(FqName("kotlin")) { true } +
-                listOf(FqName("kotlin"),
-                    FqName("java.util"),
-                    FqName("java.math")
-                )
+        val stringPackages =
+            if (CompilerArgs.getCompilersList().any { it.compilerInfo.contains("JS") }) {
+                module.getSubPackagesOf(FqName("kotlin")) { true } +
+                        listOf(FqName("kotlin"))
+            } else {
+                module.getSubPackagesOf(FqName("kotlin")) { true } +
+                        listOf(
+                            FqName("kotlin"),
+                            FqName("java.util"),
+                            FqName("java.math")
+                        )
+            }
+
         val packages = stringPackages
             .map { module.getPackage(it) }
             .filter { it.name.asString().let { it != "browser" && it != "js" } }
@@ -206,7 +215,8 @@ object StdLibraryGenerator {
                     val generatedFunSequence = gen(funRetType, needType, prefix + newDescriptor)
                     funList.addAll(generatedFunSequence)
                 }
-            } catch (e: Exception) { }
+            } catch (e: Exception) {
+            }
         }
     }
 
