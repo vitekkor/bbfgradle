@@ -26,6 +26,7 @@ import org.jetbrains.kotlin.types.replace
 import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
 import org.jetbrains.kotlin.types.typeUtil.substitute
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 object RandomTypeGenerator {
 
@@ -61,12 +62,11 @@ object RandomTypeGenerator {
                     else -> generateType(generateContainer1(depth))
                 }
                 resRandomType =
-                    if (upperBounds?.isNullable() == false)
-                        type
-                    else if (Random.getTrue(20) && type != null)
-                        generateType("$type?")
-                    else
-                        type
+                    when {
+                        upperBounds?.isNullable() == false -> type
+                        Random.getTrue(20) -> generateType("$type?")
+                        else -> type
+                    }
             }
         }
         minVisibility = resRandomType?.getMinModifier()?.let {
@@ -242,7 +242,7 @@ object RandomTypeGenerator {
 
     private fun generateContainer1(depth: Int = 0): String {
         val container = containers.random()
-        val descr = getDeclDescriptorOf(container) as ClassDescriptor
+        val descr = getDeclDescriptorOf(container) as? ClassDescriptor ?: return ""
         val typeParams =
             descr.typeConstructor.parameters.map {
                 generateRandomTypeWithCtx(it.upperBounds.firstOrNull(), depth + 1)
@@ -301,7 +301,7 @@ object RandomTypeGenerator {
     val containers = listOf(
         "ArrayList", "List", "Set", "Map", "Array", "HashMap", "MutableMap",
         "HashSet", "LinkedHashMap", "LinkedHashSet", "Collection", "ArrayDeque",
-        "Pair", "Triple", "Sequence", "PriorityQueue"
+        "Pair", "Triple", "Sequence"
     )
 
     val typeParamComparator = Comparator { t1: KtTypeParameter, t2: KtTypeParameter ->

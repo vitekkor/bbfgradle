@@ -15,6 +15,9 @@ class Mutator(val project: Project) {
 
     fun executeMutation(t: Transformation, probPercentage: Int = 50) {
         if (Random.nextInt(0, 100) < probPercentage) {
+            //Update ctx
+            Transformation.updateCtx()
+            Transformation.ctx ?: return
             log.debug("Cur transformation ${t::class.simpleName}")
 //            try {
                 t.transform()
@@ -56,22 +59,23 @@ class Mutator(val project: Project) {
         PSICreator.analyze(checker.curFile.psiFile, checker.project) ?: return
         val mut = listOf(
             ShuffleFunctionArguments() to 50,
-            ExpressionObfuscator() to 100,
-            AddRandomComponent() to 100,
-            AddDefaultValueToArg() to 100,
-            LocalTCE() to 100,
-            AddReificationToTypeParam() to 100,
+            ExpressionObfuscator() to 75,
+            AddRandomComponent() to 75,
+            AddDefaultValueToArg() to 75,
+            LocalTCE() to 75,
+            AddReificationToTypeParam() to 75,
             TCETransformation() to 75,
-            ChangeRandomASTNodesFromAnotherTrees() to 100,
+            ChangeRandomASTNodesFromAnotherTrees() to 75,
             AddPossibleModifiers() to 50,
             AddArgumentToFunction() to 75,
             //AddCallableReference() to 50,
             AddDefaultValueToArg() to 50,
             ChangeTypes() to 75,
             ChangeModifiers() to 50,
-            ChangeRandomASTNodesFromAnotherTrees() to 100,
+            ChangeRandomASTNodesFromAnotherTrees() to 80,
             AddTryExpression() to 20,
-            ChangeArgToAnotherValue() to 50
+            ChangeArgToAnotherValue() to 50,
+            AddInheritance() to 75
         ).shuffled()
         for (i in 0 until Random.nextInt(1, 3)) {
             mut.forEach { executeMutation(it.first, it.second) }

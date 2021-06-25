@@ -6,6 +6,7 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GStructure
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.*
+import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
@@ -44,10 +45,9 @@ internal open class ClassBodyGenerator(
         return res.toString()
     }
 
-    private fun generateOverrides(gClass: GClass, specifiers: List<KotlinType>): String {
-        if (specifiers.isEmpty()) return ""
-        val res = StringBuilder()
-        val filteredMembers = specifiers.flatMap { specifier ->
+    fun getMembersToOverride(gClass: GClass, specifiers: List<KotlinType>): List<DeclarationDescriptor> {
+        if (specifiers.isEmpty()) return listOf()
+        return specifiers.flatMap { specifier ->
             val membersToOverride = StdLibraryGenerator.getMembersToOverride(specifier)
             if (gClass.let { it.isInterface() || it.isAbstract() })
                 membersToOverride.filter { Random.getTrue(30) }
@@ -63,6 +63,16 @@ internal open class ClassBodyGenerator(
             if (it is FunctionDescriptor) "${it.name}${it.valueParameters.map { it.name.asString() + it.returnType.toString() }}"
             else (it as PropertyDescriptor).name.asString()
         }
+    }
+
+    fun generateOverrides(
+        gClass: GClass,
+        specifiers: List<KotlinType>,
+        filteredMembers_: List<DeclarationDescriptor>? = null
+    ): String {
+        val filteredMembers = filteredMembers_ ?: getMembersToOverride(gClass, specifiers)
+        if (filteredMembers.isEmpty()) return ""
+        val res = StringBuilder()
         for (member in filteredMembers) {
             val rtv = member.toString().substringAfterLast(":").substringBefore(" defined")
             if (member is PropertyDescriptor) {

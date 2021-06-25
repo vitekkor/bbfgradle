@@ -22,6 +22,7 @@ import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.resolve.descriptorUtil.isPublishedApi
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.resolve.scopes.computeAllNames
+import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedTypeAliasDescriptor
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.*
 import kotlin.random.Random
@@ -57,7 +58,14 @@ object StdLibraryGenerator {
             .map { module.getPackage(it) }
             .filter { it.name.asString().let { it != "browser" && it != "js" } }
         descriptorDecl = packages.flatMap { it.memberScope.getDescriptorsFiltered { true } }
-        klasses = descriptorDecl.filterIsInstance<ClassDescriptor>()
+        klasses = descriptorDecl
+            .mapNotNull {
+                when (it) {
+                    is ClassDescriptor -> it
+                    is DeserializedTypeAliasDescriptor -> it.classDescriptor
+                    else -> null
+                }
+            }
     }
 
     fun generateForStandardType(type: KotlinType, needType: KotlinType): List<List<CallableDescriptor>> {
@@ -151,7 +159,7 @@ object StdLibraryGenerator {
         funList: MutableList<List<CallableDescriptor>>,
         prefix: List<CallableDescriptor> = listOf()
     ) {
-        val needTypeName = needType.constructor.declarationDescriptor?.name
+        val needTypeName = needType.getNameWithoutError()//.constructor.declarationDescriptor?.name
         extWithTypeParams.forEach { decl ->
             //for (decl in extWithTypeParams) {
             if (decl.recType?.name == null) return@forEach
@@ -209,7 +217,7 @@ object StdLibraryGenerator {
             //println("NEWDESC = $newDescriptor")
             val funRetType = newDescriptor.returnType ?: return@forEach
             try {
-                if (funRetType.constructor.declarationDescriptor?.name == needTypeName) {
+                if (funRetType.getNameWithoutError() == needTypeName) {
                     funList.add(prefix + newDescriptor)
                 } else {
                     val generatedFunSequence = gen(funRetType, needType, prefix + newDescriptor)
@@ -516,7 +524,7 @@ object StdLibraryGenerator {
     }
 
     fun getDeclDescriptorOf(klassName: String): DeclarationDescriptor? =
-        descriptorDecl.mapNotNull { it as? ClassDescriptor }.firstOrNull { it.name.asString() == klassName }
+        klasses.firstOrNull { it.name.asString() == klassName }
 
     private fun KotlinType.compareStringRepOfTypesWithoutTypeParams(other: KotlinType) =
         this.toString().substringBefore('<') == other.toString().substringBefore("<")

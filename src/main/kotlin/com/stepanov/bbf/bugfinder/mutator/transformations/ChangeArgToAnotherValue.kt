@@ -22,11 +22,11 @@ import kotlin.system.exitProcess
 
 class ChangeArgToAnotherValue : Transformation() {
 
-    val ctx = PSICreator.analyze(file, project)
+    val ctx = Transformation.ctx
 
     override fun transform() {
-        val randomInstancesGenerator = RandomInstancesGenerator(file as KtFile)
         ctx ?: return
+        val randomInstancesGenerator = RandomInstancesGenerator(file as KtFile)
         for (func in file.getAllPSIChildrenOfType<KtNamedFunction>()) {
             val funcDescriptor =
                 func.getDeclarationDescriptorIncludingConstructors(ctx) as? FunctionDescriptor ?: continue
