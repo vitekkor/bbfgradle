@@ -8,22 +8,22 @@ fun two() = 2
 
 fun box(): String {
     val intList = mutableListOf<Int>()
-    for (i in 8 downTo 1 step two()) {
+    for (i in 1 until 9 step two()) {
         intList += i
     }
-    assertEquals(listOf(8, 6, 4, 2), intList)
+    assertEquals(listOf(1, 3, 5, 7), intList)
 
     val longList = mutableListOf<Long>()
-    for (i in 8L downTo 1L step two().toLong()) {
+    for (i in 1L until 9L step two().toLong()) {
         longList += i
     }
-    assertEquals(listOf(8L, 6L, 4L, 2L), longList)
+    assertEquals(listOf(1L, 3L, 5L, 7L), longList)
 
     val charList = mutableListOf<Char>()
-    for (i in 'h' downTo 'a' step two()) {
+    for (i in 'a' until 'i' step two()) {
         charList += i
     }
-    assertEquals(listOf('h', 'f', 'd', 'b'), charList)
+    assertEquals(listOf('a', 'c', 'e', 'g'), charList)
 
     return "OK"
 }

@@ -17,19 +17,31 @@ import java.io.File
 object CoverageGuider {
     private lateinit var desiredCoverage: List<CoverageEntry>
     var initCoef = 0
-    private val commit = "d1322280ddba07a581cc18f9e97d040c9c1a95da"
+    private val commits =
+        File("commits.txt")
+            .let {
+                if (it.exists())
+                    it.readText().split("\n")
+                else listOf()
+            }
+
+    //private val commit = "d1322280ddba07a581cc18f9e97d040c9c1a95da"
     private val patches: List<FilePatch>
         get() {
-            val pathToSerializedCommits = CompilerArgs.pathToSerializedCommits
-            val serFile = File(pathToSerializedCommits).listFiles()?.toList()?.find { it.name == commit.take(7) }
-            serFile?.let {
-                val r = Json.decodeFromString<List<FilePatch>>(serFile.readText())
-                return r
+            val res = mutableListOf<FilePatch>()
+            for (commit in commits) {
+                val pathToSerializedCommits = CompilerArgs.pathToSerializedCommits
+                val serFile = File(pathToSerializedCommits).listFiles()?.toList()?.find { it.name == commit.take(7) }
+                if (serFile != null) {
+                    res.addAll(Json.decodeFromString<List<FilePatch>>(serFile.readText()))
+                    continue
+                }
+                val repo = GitRepo("JetBrains", "kotlin")
+                val patches = repo.getPatches(commit)
+                res.addAll(patches)
+                File("$pathToSerializedCommits/${commit.take(7)}").writeText(Json.encodeToString(patches))
             }
-            val repo = GitRepo("JetBrains", "kotlin")
-            val patches = repo.getPatches(commit)
-            File("$pathToSerializedCommits/${commit.take(7)}").writeText(Json.encodeToString(patches))
-            return patches
+            return res
         }
     private val modifiedFunctions = FilePatchHandler(patches).getListOfAffectedFunctions(true)
     private val signatures =
@@ -45,6 +57,7 @@ object CoverageGuider {
 
     fun getCoverage(project: Project, compilers: List<CommonCompiler>): Map<CoverageEntry, Int> {
         CompilerArgs.isInstrumentationMode = true
+        MyMethodBasedCoverage.methodProbes.clear()
         val sumCoverage = mutableMapOf<CoverageEntry, Int>()
         for (compiler in compilers) {
             compiler.checkCompiling(project)

@@ -1,33 +1,32 @@
-// !JVM_DEFAULT_MODE: all-compatibility
-// IGNORE_BACKEND_FIR: JVM_IR
 // TARGET_BACKEND: JVM
-// JVM_TARGET: 1.8
+// FULL_JDK
 // WITH_RUNTIME
+// WITH_COROUTINES
 
-interface Test {
-    @JvmDefault
-    fun test(): String {
-        return "O"
-    }
+import helpers.*
+import kotlin.coroutines.*
 
-    fun delegatedTest(): String {
-        return "fail"
-    }
+var c: Continuation<*>? = null
+
+suspend fun <T> tx(lambda: () -> T): T = suspendCoroutine { c = it; lambda() }
+
+object Dummy
+
+suspend fun suspect() {
+    tx { Dummy }
 }
 
-class Delegate : Test {
-    override fun test(): String {
-        return "Fail"
-    }
-
-    override fun delegatedTest(): String {
-        return "K"
-    }
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
 }
-
-class TestClass(val foo: Test) : Test by foo
 
 fun box(): String {
-    val testClass = TestClass(Delegate())
-    return testClass.test() + testClass.delegatedTest()
+    var res: Any? = null
+    builder {
+        res = suspect()
+    }
+
+    (c as? Continuation<Dummy>)?.resume(Dummy)
+
+    return if (res != Unit) "$res" else "OK"
 }

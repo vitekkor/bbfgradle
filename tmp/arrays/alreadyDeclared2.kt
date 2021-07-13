@@ -1,8 +1,7 @@
 data class A(val x: Int) {
-  override fun equals(other: Any?): Boolean = false
+  override fun toString(): String = "!"
 }
 
 fun box(): String {
-  val a = A(0)
-  return if (a.equals(a)) "fail" else "OK"
+  return if (A(0).toString() == "!") "OK" else "fail"
 }

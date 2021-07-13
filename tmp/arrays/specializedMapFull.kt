@@ -1,5 +1,7 @@
-// FILE: AbstractSpecializedMap.java
+// TARGET_BACKEND: JVM
 // IGNORE_BACKEND_FIR: JVM_IR
+// MODULE: lib
+// FILE: AbstractSpecializedMap.java
 public abstract class AbstractSpecializedMap implements java.util.Map<Integer, Double> {
     public abstract double put(int x, double y);
     public abstract double remove(int k);
@@ -98,6 +100,7 @@ public class SpecializedMap extends AbstractSpecializedMap {
     }
 }
 
+// MODULE: main(lib)
 // FILE: main.kt
 fun box(): String {
     val x = SpecializedMap()

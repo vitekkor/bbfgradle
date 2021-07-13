@@ -1,19 +1,17 @@
-open class A<T> {
-    var size: T = 56 as T
-}
+// IGNORE_BACKEND: JS_IR
+// IGNORE_BACKEND: JS_IR_ES6
+// TODO: muted automatically, investigate should it be ran for JS or not
+// IGNORE_BACKEND: JS, NATIVE
 
-interface C {
-    var size: Int
-}
+// WITH_REFLECT
+package test
 
-class B : C, A<Int>()
+import kotlin.test.assertEquals
+
+data class Box<T>(val element: T)
 
 fun box(): String {
-    val b = B()
-    if (b.size != 56) return "fail 1: ${b.size}"
-
-    b.size = 55
-    if (b.size != 55) return "fail 2: ${b.size}"
-
-    return "OK"
+    val p = Box<String>::element
+    assertEquals("val test.Box<T>.element: T", p.toString())
+    return p.call(Box("OK"))
 }

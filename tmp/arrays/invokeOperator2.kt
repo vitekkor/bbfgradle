@@ -1,10 +1,14 @@
 // WITH_RUNTIME
+// WITH_COROUTINES
 
 import kotlin.coroutines.*
+import helpers.*
+
+var result = "FAIL"
 
 fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(Continuation(EmptyCoroutineContext) {
-        it.getOrThrow()
+    c.startCoroutine(handleExceptionContinuation {
+        result = it.message!!
     })
 }
 
@@ -26,50 +30,49 @@ inline class IC1(val a: String) {
 }
 
 fun box(): String {
-    var res = "FAIL 1"
     builder {
         val getResult = GetResult()
-        res = getResult().a as String
+        getResult()
     }
-    c?.resume(IC("OK"))
-    if (res != "OK") return "FAIL 1 $res"
+    c?.resumeWithException(IllegalStateException("OK"))
+    if (result != "OK") return "FAIL 1 $result"
 
-    res = "FAIL 2"
+    result = "FAIL 2"
     builder {
         val getResult = GetResult()
-        res = getResult.invoke().a as String
+        getResult.invoke()
     }
-    c?.resume(IC("OK"))
-    if (res != "OK") return "FAIL 2 $res"
+    c?.resumeWithException(IllegalStateException("OK"))
+    if (result != "OK") return "FAIL 2 $result"
 
-    res = "FAIL 3"
+    result = "FAIL 3"
     builder {
-        res = GetResult()().a as String
+        GetResult()()
     }
-    c?.resume(IC("OK"))
-    if (res != "OK") return "FAIL 3 $res"
+    c?.resumeWithException(IllegalStateException("OK"))
+    if (result != "OK") return "FAIL 3 $result"
 
-    res = "FAIL 4"
-    builder {
-        val getResult = IC1("OK")
-        res = getResult().a as String
-    }
-    c?.resume(IC("OK"))
-    if (res != "OK") return "FAIL 4 $res"
-
-    res = "FAIL 5"
+    result = "FAIL 4"
     builder {
         val getResult = IC1("OK")
-        res = getResult.invoke().a as String
+        getResult()
     }
-    c?.resume(IC("OK"))
-    if (res != "OK") return "FAIL 5 $res"
+    c?.resumeWithException(IllegalStateException("OK"))
+    if (result != "OK") return "FAIL 4 $result"
 
-    res = "FAIL 6"
+    result = "FAIL 5"
     builder {
-        res = IC1("OK")().a as String
+        val getResult = IC1("OK")
+        getResult.invoke()
     }
-    c?.resume(IC("OK"))
-    if (res != "OK") return "FAIL 6 $res"
-    return res
+    c?.resumeWithException(IllegalStateException("OK"))
+    if (result != "OK") return "FAIL 5 $result"
+
+    result = "FAIL 6"
+    builder {
+        IC1("OK")()
+    }
+    c?.resumeWithException(IllegalStateException("OK"))
+    if (result != "OK") return "FAIL 6 $result"
+    return result
 }

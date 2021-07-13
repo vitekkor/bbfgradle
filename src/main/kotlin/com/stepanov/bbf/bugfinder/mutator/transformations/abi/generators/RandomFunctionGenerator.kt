@@ -33,7 +33,7 @@ class RandomFunctionGenerator(
             if (gClass != null) {
                 val inMod =
                     (ModifierSets.INHERITANCE_MODIFIER.types.toList()
-                        .filter { it != KtTokens.SEALED_KEYWORD }
+                        .filter { it.toString() != KtTokens.SEALED_KEYWORD.toString() }
                         .map { it.toString() } + listOf("", "", "", "", "")).random()
                 list.add(inMod)
                 if (gClass.isObject() && list[2] == "protected") list[2] = ""

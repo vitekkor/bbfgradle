@@ -8,16 +8,16 @@ fun two() = 2
 
 fun box(): String {
     val uintList = mutableListOf<UInt>()
-    for (i in 8u downTo 1u step two()) {
+    for (i in 1u until 9u step two()) {
         uintList += i
     }
-    assertEquals(listOf(8u, 6u, 4u, 2u), uintList)
+    assertEquals(listOf(1u, 3u, 5u, 7u), uintList)
 
     val ulongList = mutableListOf<ULong>()
-    for (i in 8uL downTo 1uL step two().toLong()) {
+    for (i in 1uL until 9uL step two().toLong()) {
         ulongList += i
     }
-    assertEquals(listOf(8uL, 6uL, 4uL, 2uL), ulongList)
+    assertEquals(listOf(1uL, 3uL, 5uL, 7uL), ulongList)
 
     return "OK"
 }

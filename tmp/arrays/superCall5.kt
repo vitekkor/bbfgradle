@@ -1,45 +1,25 @@
-// FILE: 1.kt
+// TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// FILE: Simple.java
 
-package test
-
-inline fun call(s: () -> String): String {
-    return s()
-}
-
-open class Base {
-
-    protected open fun method(): String = "O"
-
-    protected open val prop = "K"
-}
-
-// FILE: 2.kt
-
-import test.*
-
-class A : Base() {
-
-    override fun method() = "fail method"
-
-    override val prop = "fail property"
-
-    fun test1(): String {
-        return call {
-            super.method() + super.prop
-        }
+public interface Simple {
+    default String test() {
+        return "O";
     }
 
-    fun test2(): String {
-        return call {
-            call {
-                super.method() + super.prop
-            }
-        }
+    static String testStatic() {
+        return "K";
     }
 }
+
+// FILE: main.kt
+class TestClass : Simple {
+    override fun test(): String {
+        return super.test()
+    }
+}
+
 
 fun box(): String {
-    val a = A()
-    if (a.test1() != "OK") return "fail 1: ${a.test1()}"
-    return a.test2()
+    return TestClass().test() + Simple.testStatic()
 }

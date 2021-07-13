@@ -1,15 +1,11 @@
 // WITH_RUNTIME
-// WITH_COROUTINES
 // KJS_WITH_FULL_RUNTIME
 
 import kotlin.coroutines.*
-import helpers.*
-
-var result = "FAIL"
 
 fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(handleExceptionContinuation {
-        result = it.message!!
+    c.startCoroutine(Continuation(EmptyCoroutineContext) {
+        it.getOrThrow()
     })
 }
 
@@ -21,15 +17,10 @@ suspend fun <T> List<T>.onEach(c: suspend (T) -> Unit) {
     }
 }
 
-var c: Continuation<Any>? = null
-
 fun box(): String {
+    var res = ""
     builder {
-        listOf(IC("O"), IC("K")).onEach { suspendCoroutine<String> { cont ->
-            @Suppress("UNCHECKED_CAST")
-            c = cont as Continuation<Any>
-        }}
+        listOf(IC("O"), IC("K")).onEach { res += it.s }
     }
-    c?.resumeWithException(IllegalStateException("OK"))
-    return result
+    return res
 }

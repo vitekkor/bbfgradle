@@ -1,21 +1,8 @@
-// SKIP_JDK6
-// TARGET_BACKEND: JVM
-// WITH_RUNTIME
-// FULL_JDK
-// KOTLIN_CONFIGURATION_FLAGS: +JVM.PARAMETERS_METADATA
+typealias F<T, R> = T.() -> R
 
-class A() {
-    fun String.test(OK: String) {
-
-    }
-}
+inline fun <T, R> T.myRun(f: F<T, R>) = f()
 
 fun box(): String {
-    val clazz = A::class.java
-    val method = clazz.getDeclaredMethod("test", String::class.java, String::class.java)
-    val parameters = method.getParameters()
-
-    if (!parameters[0].isImplicit() || parameters[0].isSynthetic()) return "wrong modifier on receiver parameter: ${parameters[0].modifiers}"
-
-    return parameters[1].name
+    val x = "K"
+    return "O".myRun { this + x }
 }

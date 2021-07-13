@@ -1,11 +1,12 @@
-// !LANGUAGE: +InlineClasses
+// WITH_RUNTIME
+// MODULE: lib
+// FILE: A.kt
 
-inline class S(val string: String)
-
-class Outer private constructor(val s: S) {
-    class Nested {
-        fun test(s: S) = Outer(s)
-    }
+inline class A private constructor(val value: String) {
+    constructor(c: Char) : this(c + "K")
 }
 
-fun box() = Outer.Nested().test(S("OK")).s.string
+// MODULE: main(lib)
+// FILE: B.kt
+
+fun box(): String = A('O').value

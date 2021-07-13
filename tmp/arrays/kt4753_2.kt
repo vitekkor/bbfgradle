@@ -1,3 +1,5 @@
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: ParamBase.java
 
 class ParamBase<T> {}
@@ -13,6 +15,7 @@ interface FBase<T> {
     void call(T t);
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 fun box(): String {

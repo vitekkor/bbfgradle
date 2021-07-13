@@ -1,8 +1,13 @@
-// TARGET_BACKEND: JVM
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: PROPERTY_REFERENCES
+open class A {
+    var f: String = "OK"
+}
 
-data class A(val a: IntArray, var b: Array<String>)
+class B : A() {
+}
 
 fun box() : String {
-   if( A(intArrayOf(1,2,3),arrayOf("239")).hashCode() != 31*java.util.Arrays.hashCode(intArrayOf(0,1,2)) + "239".hashCode()) "fail"
-   return "OK"
+    val b = B()
+    return (b::f).get()
 }

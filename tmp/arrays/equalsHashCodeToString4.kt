@@ -1,33 +1,24 @@
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: IGNORED_IN_JS
+// IGNORE_BACKEND: JS, JS_IR, JS_IR_ES6, NATIVE
 // WITH_REFLECT
-// FILE: test/J.java
-
-package test;
-
-public class J {
-    public final boolean b;
-    public char c;
-
-    public J() {
-        this.b = false;
-        this.c = '0';
-    }
-}
-
-// FILE: 1.kt
-
-package test
-
 import kotlin.test.*
 
+inline class Z(val s: String)
+
 fun box(): String {
-    assertEquals("val test.J.b: kotlin.Boolean", (J::b).toString())
-    assertEquals("var test.J.c: kotlin.Char", (J::c).toString())
+    val a = Z("a")
+    val b = Z("b")
 
-    assertTrue(J::b == J::b)
-    assertFalse(J::c == J::b)
+    val equals = Z::equals
+    assertTrue(equals.call(a, a))
+    assertFalse(equals.call(a, b))
 
-    assertTrue(J::b.hashCode() == J::b.hashCode())
-    assertFalse(J::b.hashCode() == J::c.hashCode())
+    val hashCode = Z::hashCode
+    assertEquals(a.s.hashCode(), hashCode.call(a))
+
+    val toString = Z::toString
+    assertEquals("Z(s=${a.s})", toString.call(a))
 
     return "OK"
 }

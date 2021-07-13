@@ -1,26 +1,40 @@
-interface A<T, U> {
-    fun foo(t: T, u: U) = "A"
+// !JVM_DEFAULT_MODE: enable
+// MODULE: lib
+// FILE: 1.kt
+interface Test {
+    fun test(): String {
+        return "OK"
+    }
 }
 
-interface B<U> : A<String, U>
+// MODULE: main(lib)
+// JVM_TARGET: 1.8
+// WITH_RUNTIME
+// FILE: 2.kt
+interface Test2 : Test {
+    @JvmDefault
+    override fun test(): String {
+        return super.test()
+    }
+}
 
-interface C<T> : A<T, Int>
+interface Test3 : Test {
+    override fun test(): String
+}
 
-class Z : B<Int>, C<String> {
-    override fun foo(t: String, u: Int) = "Z"
+
+interface Test4 : Test2, Test3 {
+    @JvmDefault
+    override fun test(): String {
+        return super.test()
+    }
+}
+
+class TestClass : Test4 {
+
 }
 
 
 fun box(): String {
-    val z = Z()
-    val c: C<String> = z
-    val b: B<Int> = z
-    val a: A<String, Int> = z
-    return when {
-        z.foo("", 0) != "Z" -> "Fail #1"
-        c.foo("", 0) != "Z" -> "Fail #2"
-        b.foo("", 0) != "Z" -> "Fail #3"
-        a.foo("", 0) != "Z" -> "Fail #4"
-        else -> "OK"
-    }
+    return TestClass().test()
 }

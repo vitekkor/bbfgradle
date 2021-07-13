@@ -1,25 +1,62 @@
-fun <T> builder(c: suspend () -> T): T = TODO()
+// !LANGUAGE: +MultiPlatformProjects
+// DONT_TARGET_EXACT_BACKEND: WASM
+// IGNORE_BACKEND_FIR: JVM_IR
+// WITH_RUNTIME
+// MODULE: lib
+// FILE: common.kt
 
-class Test {
-    fun doWork() {
-        builder {
-            execute {
-                getData { getSomeString() }
-            }
-        }
-    }
+expect fun <T> topLevel(a: T, b: (T) -> Int = { 1 }): String
 
-    private inline fun execute(crossinline action: suspend () -> Unit) {
-        builder { action() }
-    }
+actual fun <T> topLevel(a: T, b: (T) -> Int): String = b(a).toString()
 
-    private suspend fun <T> getData(dataProvider: suspend () -> T): T = builder { dataProvider() }
+expect class Foo() {
+    fun <T> member(a: T, b: (T) -> Int = { 2 }): String
+}
 
-    private suspend fun getSomeString(): String {
-        return "OK"
+actual class Foo actual constructor() {
+    actual fun <T> member(a: T, b: (T) -> Int): String = b(a).toString()
+}
+
+expect class Bar<T>() {
+    fun member(a: T, b: (T) -> Int = { 3 }): String
+}
+
+actual class Bar<T> actual constructor() {
+    actual fun member(a: T, b: (T) -> Int): String = b(a).toString()
+}
+
+expect class A<T> {
+    inner class B<N> {
+        fun <H> foo(t: T, n: N, h: H, a: (T, N, H) -> Int = { _, _, _ -> 4 }): String
     }
 }
 
-// suspend lambdas: 4
-// suspend lambdas $$forInline: 1
-// 5 TABLESWITCH
+actual class A<T> {
+    actual inner class B<N> {
+        actual fun <H> foo(t: T, n: N, h: H, a: (T, N, H) -> Int) = a(t, n, h).toString()
+    }
+}
+
+// MODULE: main(lib)
+// FILE: main.kt
+
+import kotlin.test.assertEquals
+
+fun box(): String {
+    assertEquals("1", topLevel("OK"))
+    assertEquals("73", topLevel("OK") { 73 })
+
+    val foo = Foo()
+    assertEquals("2", foo.member("OK"))
+    assertEquals("42", foo.member("OK") { 42 })
+
+    val bar = Bar<String>()
+    assertEquals("3", bar.member("OK"))
+    assertEquals("37", bar.member("OK") { 37 })
+
+    val b = A<Int>().B<Double>()
+    assertEquals("4", b.foo<Int>(1, 2.0, 3))
+    assertEquals("6", b.foo<Int>(1, 2.0, 3) { t, n, h -> t + n.toInt() + h })
+
+    return "OK"
+}

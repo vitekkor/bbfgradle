@@ -1,16 +1,24 @@
-// FILE: klib.kt
-package fromKlib
+// TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// FILE: Base.java
 
-class C {
-    val x = "OK"
-}
-fun foo(): String {
-    return C().x
+public interface Base {
+    String getValue();
+
+    default String test() {
+        return getValue();
+    }
 }
 
-// FILE: test.kt
-import fromKlib.foo
+// FILE: main.kt
+
+class Fail : Base {
+    override fun getValue() = "Fail"
+}
 
 fun box(): String {
-    return foo()
+    val z = object : Base by Fail() {
+        override fun getValue() = "OK"
+    }
+    return z.test()
 }

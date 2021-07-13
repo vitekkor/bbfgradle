@@ -1,4 +1,6 @@
+// TARGET_BACKEND: JVM
 // IGNORE_BACKEND_FIR: JVM_IR
+// MODULE: lib
 // FILE: RightElvisOperand.java
 
 class RightElvisOperand {
@@ -7,6 +9,7 @@ class RightElvisOperand {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 fun baz(): String? = null

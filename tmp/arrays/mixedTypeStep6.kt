@@ -6,11 +6,11 @@ import kotlin.test.*
 
 fun box(): String {
     val uintList = mutableListOf<UInt>()
-    val uintProgression = 7.toUByte() downTo 1.toUByte()
+    val uintProgression = 1.toUByte() until 8.toUByte()
     for (i in uintProgression step 2) {
         uintList += i
     }
-    assertEquals(listOf(7u, 5u, 3u, 1u), uintList)
+    assertEquals(listOf(1u, 3u, 5u, 7u), uintList)
 
     return "OK"
 }

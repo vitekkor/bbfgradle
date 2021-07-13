@@ -1,5 +1,7 @@
-// FILE: CharBuffer.java
+// TARGET_BACKEND: JVM
 // IGNORE_BACKEND_FIR: JVM_IR
+// MODULE: lib
+// FILE: CharBuffer.java
 
 public abstract class CharBuffer implements CharSequence {
     public final int length() {
@@ -29,6 +31,7 @@ public abstract class CharBuffer implements CharSequence {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 fun box(): String {

@@ -1,45 +1,34 @@
-// DONT_TARGET_EXACT_BACKEND: WASM
-// WASM_MUTE_REASON: EXPECT_DEFAULT_PARAMETERS
-// !LANGUAGE: +MultiPlatformProjects
-// IGNORE_BACKEND_FIR: JVM_IR
-// IGNORE_BACKEND: NATIVE
-// IGNORE_BACKEND: JVM_IR
-// IGNORE_BACKEND: JVM
+// WITH_RUNTIME
+// WITH_COROUTINES
+import helpers.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 
-// FILE: lib.kt
+open class A(val v: String) {
+    suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
+        x.resume(v)
+        COROUTINE_SUSPENDED
+    }
 
-package foo
-
-expect open class A {
-    open fun foo(x: Int = 20, y: Int = 3): Int
+    open suspend fun suspendHere(x: String): String = suspendThere(x) + suspendThere(v)
 }
 
-// FILE: main.kt
-package foo
-
-actual open class A {
-    actual open fun foo(x: Int, y: Int) = x + y
+class B(v: String) : A(v) {
+    override suspend fun suspendHere(x: String): String = super.suspendHere(x) + suspendThere("56")
 }
 
-open class B : A() {
-    override fun foo(x: Int, y: Int) = 0
-
-    fun bar1() = super.foo()
-
-    fun bar2() = super.foo(30)
-
-    fun bar3() = super.foo(y = 4)
+fun builder(c: suspend A.() -> Unit) {
+    c.startCoroutine(B("K"), EmptyContinuation)
 }
 
 fun box(): String {
-    val v1 = B().bar1()
-    if (v1 != 23) return "fail1: $v1"
+    var result = ""
 
-    val v2 = B().bar2()
-    if (v2 != 33) return "fail2: $v2"
+    builder {
+        result = suspendHere("O")
+    }
 
-    val v3 = B().bar3()
-    if (v3 != 24) return "fail3: $v3"
+    if (result != "OK56") return "fail 1: $result"
 
     return "OK"
 }

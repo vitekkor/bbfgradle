@@ -1,10 +1,5 @@
-// FILE: test.kt
-class Test : Base {
-    constructor(f: () -> String) : super(f)
-}
-
-fun box() = Test({ "OK" }).get()
-
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: Supplier.java
 public interface Supplier<T> {
     T get();
@@ -22,3 +17,11 @@ public class Base {
         return supplier.get();
     }
 }
+
+// MODULE: main(lib)
+// FILE: test.kt
+class Test : Base {
+    constructor(f: () -> String) : super(f)
+}
+
+fun box() = Test({ "OK" }).get()

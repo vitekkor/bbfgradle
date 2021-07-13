@@ -1,21 +1,19 @@
-var result = "fail"
+// TARGET_BACKEND: JVM
 
-interface B {
+// WITH_RUNTIME
 
-    private fun test() {
-        result = "OK"
+class C {
+    companion object {
+        private @JvmStatic fun foo(): String {
+            return "OK"
+        }
     }
 
-    class Z {
-        fun ztest(b: B) {
-            b.test()
-        }
+    fun bar(): String {
+        return foo()
     }
 }
 
-class C : B
-
 fun box(): String {
-    B.Z().ztest(C())
-    return result
+    return C().bar()
 }

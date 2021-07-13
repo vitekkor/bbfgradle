@@ -1,7 +1,17 @@
-// DONT_TARGET_EXACT_BACKEND: WASM
-// WASM_MUTE_REASON: PROPERTY_REFERENCES
-fun box(): String {
-    val f = "kotlin"::length
-    val result = f.get()
-    return if (result == 6) "OK" else "Fail: $result"
+// !JVM_DEFAULT_MODE: enable
+// TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// WITH_RUNTIME
+
+interface Z {
+    @JvmDefault
+    val z: String
+        get() = "OK"
+}
+
+
+class Test : Z
+
+fun box() : String {
+    return Test().z
 }

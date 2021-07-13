@@ -1,3 +1,5 @@
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: JavaClass.java
 
 public class JavaClass {
@@ -7,6 +9,7 @@ public class JavaClass {
     protected void setX(String x) { this.x = x; }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 package p

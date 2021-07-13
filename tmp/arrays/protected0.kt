@@ -1,23 +1,22 @@
-// FILE: Foo.kt
+// TARGET_BACKEND: JVM
+// MODULE: lib
+// FILE: JavaClass.java
 
-package foo
-
-open class Foo() {
-    protected fun foo(value: Boolean = false) = if (!value) "OK" else "fail5"
+public class JavaClass {
+    protected String getOk() { return "OK"; }
 }
 
-// FILE: Bar.kt
+// MODULE: main(lib)
+// FILE: 1.kt
 
-package bar
+package p
 
-import foo.Foo
-
-class Bar() : Foo() {
-    fun execute(): String {
-        return { foo() } ()
-    }
-}
+import JavaClass
 
 fun box(): String {
-    return Bar().execute()
+    return KotlinClass().ok()
+}
+
+class KotlinClass : JavaClass() {
+    fun ok() = ok
 }

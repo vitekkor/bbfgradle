@@ -1,4 +1,8 @@
+// TARGET_BACKEND: JVM
 // SKIP_JDK6
+// SAM_CONVERSIONS: CLASS
+//   ^ test checks reflection for synthetic classes
+// MODULE: lib
 // FILE: Custom.java
 
 class Custom<K, V> {
@@ -20,6 +24,7 @@ class Custom<K, V> {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 import java.util.Arrays
@@ -32,7 +37,7 @@ fun box(): String {
     })
 
     val superInterfaces = Arrays.toString((Class.forName("_1Kt\$box$1")).genericInterfaces)
-    if (superInterfaces != "[Custom\$MBiConsumer<java.lang.String, java.lang.String>]") {
+    if (superInterfaces != "[interface Custom\$MBiConsumer]") {
         return "fail: $superInterfaces"
     }
 

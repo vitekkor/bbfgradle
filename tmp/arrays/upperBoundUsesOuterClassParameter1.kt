@@ -1,6 +1,6 @@
 // !USE_EXPERIMENTAL: kotlin.ExperimentalStdlibApi
-// WITH_REFLECT
-// KJS_WITH_FULL_RUNTIME
+// TARGET_BACKEND: JVM
+// WITH_RUNTIME
 
 package test
 
@@ -20,7 +20,7 @@ class C<X> {
 fun box(): String {
     with(C<Any>()) {
         val y = B<Any>().createY
-        assertEquals("X", y.upperBounds.joinToString())
+        assertEquals("X (Kotlin reflection is not available)", y.upperBounds.joinToString())
     }
     return "OK"
 }

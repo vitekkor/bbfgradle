@@ -1,12 +1,23 @@
-// KOTLIN_CONFIGURATION_FLAGS: +JVM.EMIT_JVM_TYPE_ANNOTATIONS
-// TYPE_ANNOTATIONS
-// TARGET_BACKEND: JVM
-// JVM_TARGET: 1.8
-package foo
+// MODULE: lib
+// FILE: A.kt
 
-@Target(AnnotationTarget.TYPE)
-annotation class TypeAnn
+package second
 
-class Kotlin {
-    inner class Inner(s: @TypeAnn String) {}
+public class Outer() {
+    inner class Inner(test: String)
+}
+
+// MODULE: main(lib)
+// FILE: B.kt
+
+//test for KT-3702 Inner class constructor cannot be invoked in override function with receiver
+import second.Outer
+
+fun Outer.testExt() {
+    Inner("test")
+}
+
+fun box(): String {
+    Outer().testExt()
+    return "OK"
 }

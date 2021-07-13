@@ -1,31 +1,32 @@
-// WITH_RUNTIME
 // TARGET_BACKEND: JVM
 
-import kotlin.test.*
+// WITH_REFLECT
 
-var log: String = ""
+import kotlin.test.assertEquals
 
-inline fun <T> runLogged(entry: String, action: () -> T): T {
-    log += entry
-    return action()
-}
-
-operator fun String.provideDelegate(host: Any?, p: Any): String =
-        runLogged("tdf($this);") { this }
-
-operator fun String.getValue(receiver: Any?, p: Any): String =
-        runLogged("get($this);") { this }
-
-object Test {
-    fun foo() {}
-    @JvmStatic val testO by runLogged("O;") { "O" }
-    @JvmStatic val testK by runLogged("K;") { "K" }
-    @JvmStatic val testOK = runLogged("OK;") { testO + testK }
+object Obj {
+    @JvmStatic
+    fun foo(a: String, b: String = "b") = a + b
 }
 
 fun box(): String {
-    assertEquals("", log)
-    Test.foo()
-    assertEquals("O;tdf(O);K;tdf(K);OK;get(O);get(K);", log)
-    return Test.testOK
+    val f = Obj::class.members.single { it.name == "foo" }
+
+    // Any object method currently requires the object instance passed
+    try {
+        f.callBy(mapOf(
+                f.parameters.single { it.name == "a" } to "a"
+        ))
+        return "Fail: IllegalArgumentException should have been thrown"
+    }
+    catch (e: IllegalArgumentException) {
+        // OK
+    }
+
+    assertEquals("ab", f.callBy(mapOf(
+            f.parameters.first() to Obj,
+            f.parameters.single { it.name == "a" } to "a"
+    )))
+
+    return "OK"
 }

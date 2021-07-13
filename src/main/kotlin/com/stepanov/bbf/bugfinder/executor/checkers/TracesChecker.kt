@@ -25,21 +25,23 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         )
     }
 
-    fun checkBehavior(project: Project): Boolean {
+    fun checkBehavior(project: Project, saveFoundBugs: Boolean = true): Boolean {
         val groupedRes = checkTest(project)
         if (groupedRes.size > 1) {
             if (groupedRes.keys.first().split("\n").any { it.matches(Regex(""".+@[0-9a-z]+""")) }) {
                 val comment = Factory.psiFactory.createComment("// DIFF_ONLY_IN_ADDRESSES")
                 project.files.first().psiFile.addToTheTop(comment)
             }
-            BugManager.saveBug(
-                Bug(
-                    groupedRes.map { it.value.first() },
-                    "",
-                    project,
-                    BugType.DIFFBEHAVIOR
+            if (saveFoundBugs) {
+                BugManager.saveBug(
+                    Bug(
+                        groupedRes.map { it.value.first() },
+                        "",
+                        project,
+                        BugType.DIFFBEHAVIOR
+                    )
                 )
-            )
+            }
             return false
         }
         if (CompilerArgs.isStrictMode) {
@@ -51,14 +53,17 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
     }
 
     private fun checkTest(project: Project): Map<String, List<CommonCompiler>> {
-        log.debug("Trying to compile with main function:")
+        //log.debug("Trying to compile with main function:")
+        println("Trying to compile with main function:")
         //val extendedCompilerList = compilers + listOf(JVMCompiler("-Xno-optimize"))
         val extendedCompilerList = compilers
         if (!extendedCompilerList.checkCompilingForAllBackends(project)) {
+            println("Cannot compile with main + \n$project")
             log.debug("Cannot compile with main + \n$project")
             return mapOf()
         }
 
+        //println("Executing traced code:\n$project")
         log.debug("Executing traced code:\n$project")
         val results = mutableListOf<Pair<CommonCompiler, String>>()
         val errorsMap = mutableListOf<Pair<CommonCompiler, String>>()
@@ -70,6 +75,8 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
             val res = comp.exec(status.pathToCompiled)
             val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
             File(status.pathToCompiled).let { if (it.exists()) it.deleteRecursively() }
+            println("Result of ${comp.compilerInfo}: $res\n")
+            println("Errors: $errors")
             log.debug("Result of ${comp.compilerInfo}: $res\n")
             log.debug("Errors: $errors")
             if (exclErrorMessages.any { errors.contains(it) })

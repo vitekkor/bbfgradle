@@ -1,32 +1,21 @@
 // TARGET_BACKEND: JVM
+// WITH_STDLIB
 
-// WITH_REFLECT
+// MODULE: lib
+// FILE: A.kt
 
-import kotlin.test.assertEquals
+package aaa
 
-object Obj {
+import kotlin.jvm.*
+
+public object TestObject {
     @JvmStatic
-    fun foo(a: String, b: String = "b") = a + b
+    public val test: String = "OK"
 }
 
+// MODULE: main(lib)
+// FILE: B.kt
+
 fun box(): String {
-    val f = Obj::class.members.single { it.name == "foo" }
-
-    // Any object method currently requires the object instance passed
-    try {
-        f.callBy(mapOf(
-                f.parameters.single { it.name == "a" } to "a"
-        ))
-        return "Fail: IllegalArgumentException should have been thrown"
-    }
-    catch (e: IllegalArgumentException) {
-        // OK
-    }
-
-    assertEquals("ab", f.callBy(mapOf(
-            f.parameters.first() to Obj,
-            f.parameters.single { it.name == "a" } to "a"
-    )))
-
-    return "OK"
+    return aaa.TestObject.test
 }

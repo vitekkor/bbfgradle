@@ -1,25 +1,17 @@
-// TARGET_BACKEND: JVM
+// IGNORE_BACKEND: JS_IR
+// IGNORE_BACKEND: JS_IR_ES6
+// TODO: muted automatically, investigate should it be ran for JS or not
+// IGNORE_BACKEND: JS, NATIVE
+
 // WITH_REFLECT
 
-import kotlin.reflect.KProperty
-import kotlin.reflect.jvm.isAccessible
-import kotlin.test.*
-
-object Delegate {
-    operator fun getValue(instance: Any?, property: KProperty<*>) = "OK"
+open class A {
+    fun foo() = "OK"
 }
 
-open class Base {
-    val x: String by Delegate
-}
-
-class Derived : Base()
+class B : A()
 
 fun box(): String {
-    val d = Derived()
-    assertEquals(
-            (Base::x).apply { isAccessible = true }.getDelegate(d),
-            (Derived::x).apply { isAccessible = true }.getDelegate(d)
-    )
-    return d.x
+    val foo = B::class.members.single { it.name == "foo" }
+    return foo.call(B()) as String
 }

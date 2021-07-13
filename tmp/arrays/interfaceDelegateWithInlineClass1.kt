@@ -11,14 +11,19 @@ fun builder(c: suspend () -> Unit) {
 @Suppress("UNSUPPORTED_FEATURE")
 inline class IC(val s: String)
 
+var c: Continuation<Any>? = null
+
+suspend fun <T> suspendMe(): T = suspendCoroutine {
+    @Suppress("UNCHECKED_CAST")
+    c = it as Continuation<Any>
+}
+
 interface I {
     suspend fun foo(s: String): IC
 }
 
 class D: I {
-    override suspend fun foo(s: String): IC {
-        return IC(s)
-    }
+    override suspend fun foo(s: String): IC = suspendMe()
 }
 
 class C(val d: I) : I by d
@@ -30,8 +35,9 @@ fun box(): String {
     val d = D()
 
     builder {
-        result = C(d).foo("OK").s
+        result = C(d).foo("IGNORE ME").s
     }
+    c?.resume(IC("OK"))
 
     if (result != "OK") return "FAIL: $result"
 

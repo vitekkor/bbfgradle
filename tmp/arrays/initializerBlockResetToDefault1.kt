@@ -1,4 +1,4 @@
-class C {
+object C {
   var myIntProp: Int = 1
   var myByteProp: Byte = 2
   var myLongProp: Long = 3L
@@ -21,14 +21,13 @@ class C {
 }
 
 fun box(): String {
-  val c = C()
-  if (c.myIntProp != 0) return "fail Int"
-  if (c.myByteProp != 0.toByte()) return "fail Byte"
-  if (c.myLongProp != 0L) return "fail Long"
-  if (c.myShortProp != 0.toShort()) return "fail Short"
-  if (c.myDoubleProp != 0.0) return "fail Double"
-  if (c.myFloatProp != 0.0f) return "fail Float"
-  if (c.myBooleanProp != false) return "fail Boolean"
-  if (c.myCharProp != '\u0000') return "fail Char"
+  if (C.myIntProp != 0) return "fail Int"
+  if (C.myByteProp != 0.toByte()) return "fail Byte"
+  if (C.myLongProp != 0L) return "fail Long"
+  if (C.myShortProp != 0.toShort()) return "fail Short"
+  if (C.myDoubleProp != 0.0) return "fail Double"
+  if (C.myFloatProp != 0.0f) return "fail Float"
+  if (C.myBooleanProp != false) return "fail Boolean"
+  if (C.myCharProp != '\u0000') return "fail Char"
   return "OK"
 }

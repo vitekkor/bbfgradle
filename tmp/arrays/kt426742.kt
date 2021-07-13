@@ -1,4 +1,4 @@
-// !JVM_DEFAULT_MODE: enable
+// !JVM_DEFAULT_MODE: all-compatibility
 // TARGET_BACKEND: JVM
 // JVM_TARGET: 1.8
 // WITH_RUNTIME
@@ -16,7 +16,6 @@ public abstract class B implements A {}
 // FILE: test.kt
 
 interface KDefault : A {
-    @JvmDefault
     override fun foo() = "OK"
 }
 

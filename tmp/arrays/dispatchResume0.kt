@@ -33,8 +33,8 @@ abstract class ContinuationDispatcher : AbstractCoroutineContextElement(Continua
 }
 
 private class DispatchedContinuation<T>(
-        val dispatcher: ContinuationDispatcher,
-        val continuation: Continuation<T>
+    val dispatcher: ContinuationDispatcher,
+    val continuation: Continuation<T>
 ): ContinuationAdapter<T>() {
     override val context: CoroutineContext = continuation.context
 
@@ -83,24 +83,36 @@ fun test(c: suspend Controller.() -> Unit): String {
     return controller.log
 }
 
+suspend fun Controller.foo() = suspendWithValue("") + suspendWithValue("O")
+
+suspend fun Controller.test1() {
+    val o = foo()
+    val k = suspendWithValue("K")
+    log += "$o$k;"
+}
+
+suspend fun Controller.test2() {
+    try {
+        foo()
+
+        suspendWithException("OK")
+        log += "ignore;"
+    }
+    catch (e: RuntimeException) {
+        log += "${e.message};"
+    }
+}
+
 fun box(): String {
     var result = test {
-        val o = suspendWithValue("O")
-        val k = suspendWithValue("K")
-        log += "$o$k;"
+        test1()
     }
-    if (result != "before 0;suspend(O);after 0;before 1;suspend(K);after 1;before 2;OK;after 2;") return "fail1: $result"
+    if (result != "before 0;suspend();after 0;before 1;suspend(O);after 1;before 2;suspend(K);after 2;before 3;OK;after 3;") return "fail1: $result"
 
     result = test {
-        try {
-            suspendWithException("OK")
-            log += "ignore;"
-        }
-        catch (e: RuntimeException) {
-            log += "${e.message};"
-        }
+        test2()
     }
-    if (result != "before 0;error(OK);after 0;before 1;OK;after 1;") return "fail2: $result"
+    if (result != "before 0;suspend();after 0;before 1;suspend(O);after 1;before 2;error(OK);after 2;before 3;OK;after 3;") return "fail2: $result"
 
     return "OK"
 }

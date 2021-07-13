@@ -1,3 +1,5 @@
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: JavaClass.java
 
 import java.io.*;
@@ -8,6 +10,7 @@ class JavaClass {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 import java.io.*

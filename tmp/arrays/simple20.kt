@@ -1,21 +1,12 @@
-// FILE: 1.kt
-
-package test
-
-inline fun foo(x: String) = x
-
-class A {
-    fun test(s: String) = s
+enum class Season {
+    WINTER,
+    SPRING,
+    SUMMER,
+    AUTUMN
 }
 
-inline fun processRecords(block: (String) -> String): String {
-    return A().test(block(foo("K")))
-}
+fun foo(): Season = Season.SPRING
 
-// FILE: 2.kt
-
-import test.*
-
-fun box(): String {
-    return processRecords { "O" + it }
-}
+fun box() =
+    if (foo() == Season.SPRING) "OK"
+    else "fail"

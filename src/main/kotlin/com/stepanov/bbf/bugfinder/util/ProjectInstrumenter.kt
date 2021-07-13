@@ -16,7 +16,7 @@ import java.nio.file.Paths
 object ProjectInstrumenter {
 
     fun instrument() {
-        Files.walk(Paths.get("/home/zver/IdeaProjects/kotlin/compiler/resolution.common.jvm/")).forEach {
+        Files.walk(Paths.get("/home/zver/IdeaProjects/kotlin/compiler/ir/backend.jvm/src/org/jetbrains/kotlin/backend/jvm/lower/PropertyReferenceLowering.kt")).forEach {
             val file = it.toFile()
             if (file.name == "CoverageEntry.kt" || file.name == "MyMethodBasedCoverage.kt") return@forEach
             var lang = ""

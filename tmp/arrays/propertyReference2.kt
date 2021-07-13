@@ -1,17 +1,17 @@
-// FILE: 1.kt
-// SKIP_INLINE_CHECK_IN: inlineFun$default
-package test
+// TARGET_BACKEND: JVM
+// MODULE: lib
+// FILE: Base.java
 
-val ok = "OK"
-
-inline fun inlineFun(lambda: () -> String = ::ok): String {
-    return lambda()
+interface Interface {
+    String call(String t);
 }
 
-// FILE: 2.kt
+// MODULE: main(lib)
+// FILE: 1.kt
 
-import test.*
+val String.property: String
+    get() = this
 
 fun box(): String {
-    return inlineFun()
+    return Interface(String::property).call("OK")
 }

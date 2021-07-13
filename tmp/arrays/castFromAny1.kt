@@ -1,15 +1,8 @@
-// DONT_TARGET_EXACT_BACKEND: WASM
-// WASM_MUTE_REASON: STDLIB_COLLECTIONS
-// !LANGUAGE: +NewInference +FunctionalInterfaceConversion +SamConversionPerArgument +SamConversionForKotlinFunctions
-
-
-fun interface KRunnable {
-    fun invoke()
-}
+// TARGET_BACKEND: JVM
 
 fun test(a: Any?) {
     a as () -> Unit
-    KRunnable(a).invoke()
+    Runnable(a).run()
 }
 
 fun box(): String {

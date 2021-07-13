@@ -1,20 +1,26 @@
-// IGNORE_BACKEND: JS_IR
-// IGNORE_BACKEND: JS_IR_ES6
-// TODO: muted automatically, investigate should it be ran for JS or not
-// IGNORE_BACKEND: JS, NATIVE
+// TARGET_BACKEND: JVM
 
 // WITH_REFLECT
+// FULL_JDK
 
-import kotlin.test.assertTrue
-import kotlin.test.assertFalse
+import java.lang.reflect.TypeVariable
+import kotlin.reflect.jvm.*
+import kotlin.test.assertEquals
 
-class A {
-    fun <T> nonReified(): T = null!!
-    inline fun <reified U> reified(): U = null!!
+class A<T : CharSequence> {
+    fun foo(t: T) {}
 }
 
 fun box(): String {
-    assertFalse(A::class.members.single { it.name == "nonReified" }.typeParameters.single().isReified)
-    assertTrue(A::class.members.single { it.name == "reified" }.typeParameters.single().isReified)
+    val f = A<String>::foo
+    val t = f.parameters.last().type.javaType
+    if (t !is TypeVariable<*>) return "Fail, t should be a type variable: $t"
+
+    assertEquals("T", t.name)
+    assertEquals(A::class.java, (t.genericDeclaration as Class<*>))
+
+    val tp = A::class.typeParameters
+    assertEquals(CharSequence::class.java, tp.single().upperBounds.single().javaType)
+
     return "OK"
 }

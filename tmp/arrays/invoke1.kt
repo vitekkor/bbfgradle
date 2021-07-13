@@ -1,49 +1,31 @@
-// !LANGUAGE: +PolymorphicSignature
-// TARGET_BACKEND: JVM
-// FULL_JDK
-// SKIP_JDK6
-// WITH_RUNTIME
+package invoke
 
-import java.lang.invoke.MethodHandles
-import java.lang.invoke.MethodType
+fun test1(predicate: (Int) -> Int, i: Int) = predicate(i)
 
-open class Base
-class Derived : Base() {
-    override fun toString() = "!"
+fun test2(predicate: (Int) -> Int, i: Int) = predicate.invoke(i)
+
+class Method {
+    operator fun invoke(i: Int) = i
 }
 
-class C {
-    fun foo(s: String, d: Double?, x: Base): String = "$s$d$x"
-}
+fun test3(method: Method, i: Int) = method.invoke(i)
 
-@Target(AnnotationTarget.EXPRESSION)
-@Retention(AnnotationRetention.SOURCE)
-annotation class IrrelevantAnnotation
+fun test4(method: Method, i: Int) = method(i)
 
-fun box(): String {
-    val mh = MethodHandles.lookup().findVirtual(
-        C::class.java, "foo",
-        MethodType.methodType(String::class.java, String::class.java, Double::class.javaObjectType, Base::class.java)
-    )
+class Method2 {}
 
-    val result1: String = mh.invoke(C(), "Hello", 0.01, Derived()) as String
-    if (result1 != "Hello0.01!") return "Fail 1: $result1"
+operator fun Method2.invoke(s: String) = s
 
-    // Check parenthesized/annotated expressions + invoke via "()"
-    val result2 = (@IrrelevantAnnotation() ((mh(C(), (("Hello")), 0.01, Derived())))) as String
-    if (result1 != result2) return "Fail 2: $result1 != $result2"
+fun test5(method2: Method2, s: String) = method2(s)
 
-    // Check deep qualified expressions
-    val o = object {
-        val p = object {
-            val handle = mh
-        }
-    }
-    val result3 = (o.p).handle.invoke(C(), "Hello", 0.01, Derived()) as String
-    if (result1 != result3) return "Fail 3: $result1 != $result3"
-
-    // Check cast expression without assignment to a variable
-    mh.invoke(C(), "", 0.01, Derived()) as String
-
+fun box() : String {
+    if (test1({ it }, 1) != 1) return "fail 1"
+    if (test2({ it }, 2) != 2) return "fail 2"
+    if (test3(Method(), 3) != 3) return "fail 3"
+    if (test4(Method(), 4) != 4) return "fail 4"
+    if (test5(Method2(), "s") != "s") return "fail 5"
+    if (test1(Int::dec, 1) != 0) return "fail 6"
+    if (test2(Int::dec, 1) != 0) return "fail 7"
+    if (test1(fun(x: Int) = x - 1, 1) != 0) return "fail 8"
     return "OK"
 }

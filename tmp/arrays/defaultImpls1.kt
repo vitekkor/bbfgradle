@@ -1,23 +1,21 @@
+// SKIP_JDK6
 // TARGET_BACKEND: JVM
-// WITH_REFLECT
+// WITH_RUNTIME
+// FULL_JDK
+// PARAMETERS_METADATA
 
-import kotlin.reflect.KProperty
-import kotlin.test.assertEquals
-
-object Delegate {
-    operator fun getValue(z: Any?, p: KProperty<*>): String? {
-        assertEquals("val x: kotlin.String?", p.toString())
-        return "OK"
-    }
+interface Test {
+    fun test(OK: String) = "123"
 }
 
-interface Foo {
-    fun bar(): String {
-        val x by Delegate
-        return x!!
-    }
+
+fun box(): String {
+    val testMethod = Class.forName("Test\$DefaultImpls").declaredMethods.single()
+    val parameters = testMethod.getParameters()
+
+    if (!parameters[0].isSynthetic()) return "wrong modifier on receiver parameter: ${parameters[0].modifiers}"
+
+    if (parameters[1].modifiers != 0) return "wrong modifier on value parameter: ${parameters[1].modifiers}"
+
+    return parameters[1].name
 }
-
-object O : Foo
-
-fun box(): String = O.bar()

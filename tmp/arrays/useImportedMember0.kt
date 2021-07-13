@@ -1,15 +1,11 @@
-// MODULE: lib
-// FILE: lib.kt
-package test
-
-import test.C.f
-import test.C.p
-import test.C.ext
-import test.C.g1
-import test.C.g2
-import test.C.fromClass
-import test.C.fromInterface
-import test.C.genericFromSuper
+import C.f
+import C.p
+import C.ext
+import C.g1
+import C.g2
+import C.fromClass
+import C.fromInterface
+import C.genericFromSuper
 
 interface I<G> {
     fun <T> T.fromInterface(): T = this
@@ -35,17 +31,6 @@ object C: BaseClass(), I<String> {
     val <T> T.g2: T
         get() = this
 }
-
-// MODULE: main(lib)
-// FILE: main.kt
-import test.C.f
-import test.C.p
-import test.C.ext
-import test.C.g1
-import test.C.g2
-import test.C.fromClass
-import test.C.fromInterface
-import test.C.genericFromSuper
 
 fun box(): String {
     if (f(1) != 1) return "1"

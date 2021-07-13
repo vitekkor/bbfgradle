@@ -1,3 +1,5 @@
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: Foo.java
 
 import java.util.*;
@@ -8,6 +10,7 @@ public class Foo {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 fun box(): String {

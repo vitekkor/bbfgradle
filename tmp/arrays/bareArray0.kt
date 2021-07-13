@@ -1,8 +1,15 @@
 // !LANGUAGE: +BareArrayClassLiteral
+// TARGET_BACKEND: JVM
+// WITH_REFLECT
+
+import kotlin.test.*
+import kotlin.reflect.KClass
 
 fun box(): String {
-    val x = Array(1) { Any() }
-    if (x::class != Array::class) return "Fail"
+    val any = Array<Any>::class
+    val bare = Array::class
+
+    assertEquals<KClass<*>>(any, bare)
 
     return "OK"
 }

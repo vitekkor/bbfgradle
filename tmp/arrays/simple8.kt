@@ -1,23 +1,17 @@
-// WITH_RUNTIME
-// WITH_COROUTINES
-import helpers.*
-import kotlin.coroutines.*
-import kotlin.coroutines.intrinsics.*
+// TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// SAM_CONVERSIONS: INDY
 
-class Controller {
-    suspend fun suspendHere() = "OK"
-}
+// CHECK_BYTECODE_TEXT
+// JVM_IR_TEMPLATES
+// 1 java/lang/invoke/LambdaMetafactory
 
-fun builder(c: suspend Controller.() -> Unit) {
-    c.startCoroutine(Controller(), EmptyContinuation)
-}
+// FILE: simple.kt
+val lambda = { "OK" }
 
-fun box(): String {
-    var result = ""
+fun box() = Sam(lambda).get()
 
-    builder {
-        result = suspendHere()
-    }
-
-    return result
+// FILE: Sam.java
+public interface Sam {
+    String get();
 }

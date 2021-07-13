@@ -1,10 +1,14 @@
-// IGNORE_BACKEND_FIR: JVM_IR
+// TARGET_BACKEND: JVM
 // SKIP_JDK6
+// SAM_CONVERSIONS: CLASS
+//   ^ test checks reflection for synthetic classes
+// MODULE: lib
 // FILE: Custom.java
 
 class Custom<K, V> {
-    private K k;
+    static Class<?> lambdaClass;
 
+    private K k;
     private V v;
 
     public Custom(K k, V v) {
@@ -18,9 +22,11 @@ class Custom<K, V> {
 
     public void forEach(MBiConsumer<? super K, ? super V> action) {
         action.accept(k, v);
+        lambdaClass = action.getClass();
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 import java.util.Arrays
@@ -32,8 +38,8 @@ fun box(): String {
         result = a + b
     }
 
-    val superInterfaces = Arrays.toString((Class.forName("_1Kt\$box$1")).genericInterfaces)
-    if (superInterfaces != "[Custom\$MBiConsumer<java.lang.String, java.lang.String>]") {
+    val superInterfaces = Arrays.toString(Custom.lambdaClass.genericInterfaces)
+    if (superInterfaces != "[interface Custom\$MBiConsumer]") {
         return "fail: $superInterfaces"
     }
 

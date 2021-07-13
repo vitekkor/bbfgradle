@@ -1,14 +1,24 @@
-// TARGET_BACKEND: JVM
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: EXCEPTIONS_NOT_IMPLEMENTED
+// WITH_RUNTIME
 
-// WITH_REFLECT
+import kotlin.test.assertEquals
 
-import kotlin.reflect.KClass
+inline fun<reified T> checkcast(x: Any?): T {
+    return x as T
+}
 
 fun box(): String {
+    val x = checkcast<String>("abc")
+    assertEquals("abc", x)
+    val y = checkcast<Int>(1)
+    assertEquals(1, y)
+
     try {
-        String::class.java as KClass<String>
+        val z = checkcast<Int>("abc")
     } catch (e: Exception) {
         return "OK"
     }
-    return "fail"
+
+    return "Fail"
 }

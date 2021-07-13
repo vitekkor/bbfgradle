@@ -4,23 +4,12 @@ import helpers.*
 import kotlin.coroutines.*
 import kotlin.coroutines.intrinsics.*
 
-var result = "FAIL"
-
 fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(handleExceptionContinuation {
-        result = it.message!!
-    })
+    c.startCoroutine(EmptyContinuation)
 }
 
 @Suppress("UNSUPPORTED_FEATURE")
 inline class IC(val s: Any)
-
-var c: Continuation<Any>? = null
-
-suspend fun <T> suspendMe(): T = suspendCoroutine {
-    @Suppress("UNCHECKED_CAST")
-    c = it as Continuation<Any>
-}
 
 interface IBar {
     suspend fun bar(): IC
@@ -35,7 +24,7 @@ class Test1() : IBar {
     suspend fun <T> quz(t: T): T = t
 
     override suspend fun bar(): IC {
-        return foo(qux(quz(suspendMe())))
+        return foo(qux(quz(IC("OK"))))
     }
 
     suspend fun test(): Any {
@@ -51,7 +40,7 @@ class Test2 : IBar {
 
     suspend fun qux(s: String): IC = IC(s)
 
-    suspend fun quz(): String = suspendMe()
+    suspend fun quz(): String = "OK"
 
     override suspend fun bar(): IC {
         return foo(qux(quz()))
@@ -67,7 +56,7 @@ class Test3 : IBar {
     suspend fun <T> foo(value: T): T = value
 
     override suspend fun bar(): IC {
-        return foo(suspendMe())
+        return foo(IC("OK"))
     }
 
     suspend fun test(): Any {
@@ -77,23 +66,21 @@ class Test3 : IBar {
 }
 
 fun box(): String {
+    var result: Any = "FAIL1"
     builder {
-        Test1().test()
+        result = Test1().test()
     }
-    c?.resumeWithException(IllegalStateException("OK"))
     if (result != "OK") return "FAIL 1 $result"
 
     result = "FAIL2"
     builder {
-        Test2().test()
+        result = Test2().test()
     }
-    c?.resumeWithException(IllegalStateException("OK"))
     if (result != "OK") return "FAIL 2 $result"
 
     result = "FAIL 3"
     builder {
-        Test3().test()
+        result = Test3().test()
     }
-    c?.resumeWithException(IllegalStateException("OK"))
     return result as String
 }

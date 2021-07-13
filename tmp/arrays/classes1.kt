@@ -1,8 +1,7 @@
 // !USE_EXPERIMENTAL: kotlin.ExperimentalStdlibApi
-// !LANGUAGE: +NewInference
-// IGNORE_BACKEND: JS, JS_IR
-// IGNORE_BACKEND: JS_IR_ES6
+// TARGET_BACKEND: JS
 // WITH_REFLECT
+// KJS_WITH_FULL_RUNTIME
 
 package test
 
@@ -17,27 +16,27 @@ fun check(expected: String, actual: KType) {
 }
 
 fun box(): String {
-    check("kotlin.Any", typeOf<Any>())
-    check("kotlin.String", typeOf<String>())
-    check("kotlin.String?", typeOf<String?>())
-    check("kotlin.Unit", typeOf<Unit>())
+    check("Any", typeOf<Any>())
+    check("String", typeOf<String>())
+    check("String?", typeOf<String?>())
+    check("Unit", typeOf<Unit>())
 
-    check("test.C", typeOf<C>())
-    check("test.C?", typeOf<C?>())
+    check("C", typeOf<C>())
+    check("C?", typeOf<C?>())
 
-    check("kotlin.collections.List<kotlin.String>", typeOf<List<String>>())
-    check("kotlin.collections.Map<in kotlin.Number, *>?", typeOf<Map<in Number, *>?>())
-    check("kotlin.Enum<*>", typeOf<Enum<*>>())
-    check("kotlin.Enum<kotlin.annotation.AnnotationRetention>", typeOf<Enum<AnnotationRetention>>())
+    check("List<String>", typeOf<List<String>>())
+    check("Map<in Number, *>?", typeOf<Map<in Number, *>?>())
+    check("Enum<*>", typeOf<Enum<*>>())
+    check("Enum<AnnotationRetention>", typeOf<Enum<AnnotationRetention>>())
 
-    check("kotlin.Array<kotlin.Any>", typeOf<Array<Any>>())
-    check("kotlin.Array<*>", typeOf<Array<*>>())
-    check("kotlin.Array<kotlin.IntArray>", typeOf<Array<IntArray>>())
-    check("kotlin.Array<in kotlin.Array<test.C>?>", typeOf<Array<in Array<C>?>>())
+    check("Array<Any>", typeOf<Array<Any>>())
+    check("Array<*>", typeOf<Array<*>>())
+    check("Array<IntArray>", typeOf<Array<IntArray>>())
+    check("Array<in Array<C>?>", typeOf<Array<in Array<C>?>>())
 
-    check("kotlin.Int", typeOf<Int>())
-    check("kotlin.Int?", typeOf<Int?>())
-    check("kotlin.Boolean", typeOf<Boolean>())
+    check("Int", typeOf<Int>())
+    check("Int?", typeOf<Int?>())
+    check("Boolean", typeOf<Boolean>())
 
     return "OK"
 }

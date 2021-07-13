@@ -1,3 +1,5 @@
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: JavaClass2.java
 
 class JavaClass1 {
@@ -11,6 +13,7 @@ class JavaClass2 extends JavaClass1 {
     public String getSomething() { return (String)value; }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 fun box(): String {

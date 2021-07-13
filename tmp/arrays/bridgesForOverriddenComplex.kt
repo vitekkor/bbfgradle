@@ -1,3 +1,5 @@
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: JavaClass.java
 
 // KT-5912
@@ -18,6 +20,7 @@ class JavaClass<T> {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 // KT-5912

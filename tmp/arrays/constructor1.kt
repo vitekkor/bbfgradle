@@ -1,11 +1,35 @@
-// !LANGUAGE: +InlineClasses
+// TARGET_BACKEND: JVM
 
-inline class IC1 public constructor(val i: Int)
-inline class IC11 internal constructor(val i: Int)
-inline class IC2 private constructor(val i: Int)
-inline class IC4 protected constructor(val i: Int)
+// WITH_REFLECT
 
-private inline class PIC1 public constructor(val i: Int)
-private inline class PIC11 internal constructor(val i: Int)
-private inline class PIC2 private constructor(val i: Int)
-private inline class PIC4 protected constructor(val i: Int)
+import kotlin.reflect.*
+import kotlin.reflect.jvm.*
+
+class K {
+    class Nested
+    inner class Inner
+}
+
+class Secondary {
+    constructor(x: Int) {}
+}
+
+fun check(f: KFunction<Any>) {
+    assert(f.javaMethod == null) { "Fail f method" }
+    assert(f.javaConstructor != null) { "Fail f constructor" }
+    val c = f.javaConstructor!!
+
+    assert(c.kotlinFunction != null) { "Fail m function" }
+    val ff = c.kotlinFunction!!
+
+    assert(f == ff) { "Fail f != ff" }
+}
+
+fun box(): String {
+    check(::K)
+    check(K::Nested)
+    check(K::Inner)
+    check(::Secondary)
+
+    return "OK"
+}

@@ -1,18 +1,13 @@
-interface T {
-    var result: String
+interface A<T> {
+    var v: T
 }
 
-open class A : T {
-    override var result: String
-        get() = ""
-        set(value) {}
+class B : A<String> {
+    override var v: String = "Fail"
 }
-
-class B : A(), T
-class C : T, A()
 
 fun box(): String {
-    B().result = ""
-    C().result = ""
-    return "OK"
+    val a: A<String> = B()
+    a.v = "OK"
+    return a.v
 }

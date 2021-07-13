@@ -4,9 +4,8 @@
 
 import kotlin.UninitializedPropertyAccessException
 
-lateinit var str: String
-
 fun box(): String {
+    lateinit var str: String
     var str2: String = ""
     try {
         str2 = str

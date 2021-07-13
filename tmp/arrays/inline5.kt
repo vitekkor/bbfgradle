@@ -1,11 +1,33 @@
-// See also KT-6299
-public open class Outer private constructor() {
-    companion object {
-        internal inline fun foo() = Outer()
-    }
+// WITH_RUNTIME
+// WITH_COROUTINES
+import helpers.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
+
+suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
+    x.resume(v)
+    COROUTINE_SUSPENDED
+}
+
+suspend inline fun suspendHere(crossinline block: () -> String): String {
+    return suspendThere(block()) + suspendThere(block())
+}
+
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
 }
 
 fun box(): String {
-    val outer = Outer.foo()
-    return "OK"
+    var result = ""
+
+    builder {
+        var q = "O"
+        result = suspendHere {
+            val r = q
+            q = "K"
+            r
+        }
+    }
+
+    return result
 }

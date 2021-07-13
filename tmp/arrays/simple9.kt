@@ -1,31 +1,17 @@
 // TARGET_BACKEND: JVM
-// FULL_JDK
-// WITH_RUNTIME
-// WITH_COROUTINES
-// CHECK_TAIL_CALL_OPTIMIZATION
-import helpers.*
-import kotlin.coroutines.*
-import kotlin.coroutines.intrinsics.*
+// JVM_TARGET: 1.8
+// SAM_CONVERSIONS: INDY
 
-suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
-    TailCallOptimizationChecker.saveStackTrace(x)
-    x.resume(v)
-    COROUTINE_SUSPENDED
-}
+// CHECK_BYTECODE_TEXT
+// JVM_IR_TEMPLATES
+// 1 java/lang/invoke/LambdaMetafactory
 
-suspend fun suspendHere(): String = suspendThere("OK")
+// FILE: simple.kt
+fun ok() = "OK"
 
-fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(EmptyContinuation)
-}
+fun box() = Sam(::ok).get()
 
-fun box(): String {
-    var result = ""
-
-    builder {
-        result = suspendHere()
-    }
-    TailCallOptimizationChecker.checkNoStateMachineIn("suspendHere")
-
-    return result
+// FILE: Sam.java
+public interface Sam {
+    String get();
 }

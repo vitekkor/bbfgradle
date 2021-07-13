@@ -1,19 +1,69 @@
+// !LANGUAGE: +UnrestrictedBuilderInference
+// !DIAGNOSTICS: -DEPRECATION -EXPERIMENTAL_IS_NOT_ENABLED
+// WITH_RUNTIME
 // IGNORE_BACKEND_FIR: JVM_IR
-fun foo1(x : String?) : String {
-    when (x) {
-        "abc", "cde" -> return "abc_cde"
-        "efg", "ghi", null -> return "efg_ghi"
-    }
+// DONT_TARGET_EXACT_BACKEND: WASM
 
-    return "other"
+// FILE: main.kt
+import kotlin.experimental.ExperimentalTypeInference
+
+interface TestInterface<R> {
+    fun emit(r: R)
+    fun get(): R
 }
 
-fun foo2(x : String?) : String {
-    when (x) {
-        "abc", "cde" -> return "abc_cde"
-        "efg", "ghi" -> return "efg_ghi"
-        else -> return "other"
+@UseExperimental(ExperimentalTypeInference::class)
+fun <R1> build(@BuilderInference block: TestInterface<R1>.() -> Unit) {}
+
+@UseExperimental(ExperimentalTypeInference::class)
+fun <R1 : Any> build2(@BuilderInference block: TestInterface<R1>.() -> Unit) {}
+
+@UseExperimental(ExperimentalTypeInference::class)
+fun <R1 : R2, R2 : Any> build3(@BuilderInference block: TestInterface<R1>.() -> Unit) {}
+
+@UseExperimental(ExperimentalTypeInference::class)
+fun <R1 : R2, R2> build4(x: R2, @BuilderInference block: TestInterface<R1>.() -> Unit) {}
+
+fun test(a: String?) {
+    val ret1 = build {
+        emit("1")
+//        get()?.equals("")
+        val x = get()
+//        x?.equals("")
+        x ?: "1"
+//        x!!
+        ""
     }
+//    val ret2 = build2 {
+//        emit(1)
+//        get()?.equals("")
+//        val x = get()
+//        x?.equals("")
+//        x ?: 1
+//        x!!
+//        ""
+//    }
+//    val ret3 = build3 {
+//        emit(1)
+//        get()?.equals("")
+//        val x = get()
+//        x?.equals("")
+//        x ?: 1
+//        x!!
+//        ""
+//    }
+//    val ret4 = build4(1) {
+//        emit(1)
+//        get()?.equals("")
+//        val x = get()
+//        x?.equals("")
+//        x ?: 1
+//        x!!
+//        ""
+//    }
 }
 
-// 2 LOOKUPSWITCH
+fun box(): String {
+    test("")
+    return "OK"
+}

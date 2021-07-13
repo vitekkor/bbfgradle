@@ -1,12 +1,6 @@
+class A
 
-fun String.test() {}
-
-private fun String.testPrivate() {}
-
-var String.prop
-    get() = "123"
-    set(value) {}
-
-private var String.propPrivate
-    get() = "123"
-    set(value) {}
+fun box(): String {
+    fun A.foo() = "OK"
+    return (A::foo)(A())
+}

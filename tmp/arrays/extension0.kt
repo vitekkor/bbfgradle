@@ -1,14 +1,25 @@
-// KOTLIN_CONFIGURATION_FLAGS: +JVM.EMIT_JVM_TYPE_ANNOTATIONS
-// TYPE_ANNOTATIONS
-// TARGET_BACKEND: JVM
-// JVM_TARGET: 1.8
-package foo
+// WITH_RUNTIME
+// WITH_COROUTINES
+import helpers.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 
-@Target(AnnotationTarget.TYPE)
-annotation class TypeAnn(val name: String)
-
-class Kotlin {
-
-    fun @TypeAnn("ext") String.foo2(s: @TypeAnn("param") String) {
+suspend fun callLocal(): String {
+    suspend fun String.local() = suspendCoroutineUninterceptedOrReturn<String> {
+        it.resume(this)
+        COROUTINE_SUSPENDED
     }
+    return "OK".local()
+}
+
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
+}
+
+fun box(): String {
+    var res = "FAIL"
+    builder {
+        res = callLocal()
+    }
+    return res
 }

@@ -1,9 +1,23 @@
-class C(@JvmField var foo: String) {
-    @JvmField var bar: String = "123"
+// TARGET_BACKEND: JVM
+// WITH_RUNTIME
+
+// FILE: A.kt
+package a
+import b.*
+
+class A {
+    fun foo() = ok
+
+    companion object : B()
 }
 
+fun box(): String {
+    return A().foo()
+}
 
-// 0 getFoo
-// 0 setFoo
-// 0 getBar
-// 0 setBar
+// FILE: B.kt
+package b
+
+open class B {
+    @JvmField protected val ok = "OK"
+}

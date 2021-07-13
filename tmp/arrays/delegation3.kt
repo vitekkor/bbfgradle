@@ -1,35 +1,36 @@
-interface One {
-  public open fun foo() : Int
-  public open fun faz() : Int = 10
-}
-interface Two {
-  public open fun foo() : Int
-  public open fun quux() : Int = 100
+// TARGET_BACKEND: JVM
+// IGNORE_BACKEND_FIR: JVM_IR
+
+// MODULE: lib
+// FILE: Delegation.java
+
+public class Delegation {
+    public static class ReturnNull {
+        public String foo() {
+            return null;
+        }
+    }
 }
 
-class OneImpl : One {
-  public override fun foo() = 1
-}
-class TwoImpl : Two {
-  public override fun foo() = 2
-}
+// MODULE: main(lib)
+// FILE: delegation.kt
 
-class Test2(a : One, b : Two) : Two by b, One by a {
-  public override fun foo() = 0
+interface Tr {
+    fun foo(): String
 }
 
-fun box() : String {
-    var t2 = Test2(OneImpl(), TwoImpl())
-    if (t2.foo() != 0)
-        return "Fail #1"
-    if (t2.faz() != 10)
-        return "Fail #2"
-    if (t2.quux() != 100)
-        return "Fail #3"
-    if (t2 !is One)
-        return "Fail #4"
-    if (t2 !is Two)
-        return "Fail #5"
+class DelegateTo : Delegation.ReturnNull(), Tr {
+    override fun foo() = super<Delegation.ReturnNull>.foo()
+}
 
-    return "OK"
+class DelegateFrom : Tr by DelegateTo()
+
+fun box(): String {
+    try {
+        DelegateFrom().foo()
+        return "Fail: should have been an exception"
+    }
+    catch(e: NullPointerException) {
+        return "OK"
+    }
 }

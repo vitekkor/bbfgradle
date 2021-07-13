@@ -1,33 +1,31 @@
-// !JVM_DEFAULT_MODE: enable
-// IGNORE_BACKEND_FIR: JVM_IR
 // TARGET_BACKEND: JVM
-// JVM_TARGET: 1.8
+// FULL_JDK
 // WITH_RUNTIME
+// WITH_COROUTINES
+// CHECK_TAIL_CALL_OPTIMIZATION
+import helpers.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 
-interface Test {
-    @JvmDefault
-    fun test(): String {
-        return "O"
-    }
-
-    fun delegatedTest(): String {
-        return "fail"
-    }
+suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
+    TailCallOptimizationChecker.saveStackTrace(x)
+    x.resume(v)
+    COROUTINE_SUSPENDED
 }
 
-class Delegate : Test {
-    override fun test(): String {
-        return "Fail"
-    }
+suspend fun suspendHere(): String = suspendThere("OK")
 
-    override fun delegatedTest(): String {
-        return "K"
-    }
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
 }
-
-class TestClass(val foo: Test) : Test by foo
 
 fun box(): String {
-    val testClass = TestClass(Delegate())
-    return testClass.test() + testClass.delegatedTest()
+    var result = ""
+
+    builder {
+        result = suspendHere()
+    }
+    TailCallOptimizationChecker.checkNoStateMachineIn("suspendHere")
+
+    return result
 }

@@ -1,5 +1,9 @@
+// TARGET_BACKEND: JVM
 // SKIP_JDK6
 // WITH_RUNTIME
+// SAM_CONVERSIONS: CLASS
+//   ^ test checks reflection for synthetic classes
+// MODULE: lib
 // FILE: JavaClass.java
 
 class JavaClass {
@@ -12,6 +16,7 @@ class JavaClass {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 import java.util.Arrays
@@ -19,6 +24,6 @@ import java.util.Arrays
 fun box(): String {
     val r: JavaClass.Computable<String> = JavaClass.Computable { "OK" }
     val supertypes = Arrays.toString(r.javaClass.getGenericInterfaces())
-    if (supertypes != "[JavaClass\$Computable<java.lang.String>]") return "Fail: $supertypes"
+    if (supertypes != "[interface JavaClass\$Computable]") return "Fail: $supertypes"
     return JavaClass.compute(r)!!
 }

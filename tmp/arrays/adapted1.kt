@@ -1,11 +1,7 @@
-// FILE: 1.kt
-package test
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: BINDING_RECEIVERS
+class C {
+    fun ffff(i: Int, s: String = "OK") = s
+}
 
-inline fun foo(x: (String) -> String): String = x("OK")
-
-fun String.bar(vararg xs: String) = xs[0]
-
-// FILE: 2.kt
-import test.*
-
-fun box() = foo("fail"::bar)
+fun box(): String = 42.run(C()::ffff)

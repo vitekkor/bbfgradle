@@ -1,11 +1,22 @@
-// TARGET_BACKEND: JVM
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: SAM_CONVERSIONS
+// IGNORE_BACKEND: JS, JS_IR, JS_IR_ES6
 // FILE: test.kt
+
+fun checkEqual(x: Any, y: Any) {
+    if (x != y || y != x) throw AssertionError("$x and $y should be equal")
+    if (x.hashCode() != y.hashCode()) throw AssertionError("$x and $y should have the same hash code")
+}
 
 fun checkNotEqual(x: Any, y: Any) {
     if (x == y || y == x) throw AssertionError("$x and $y should NOT be equal")
 }
 
-private fun id(f: Runnable): Any = f
+fun interface FunInterface {
+    fun invoke()
+}
+
+private fun id(f: FunInterface): Any = f
 
 class C {
     fun target1() {}
@@ -16,17 +27,17 @@ class C {
 }
 
 fun box(): String {
-    // Since 1.0, SAM wrappers for Java do not implement equals/hashCode
     val c0 = C()
 
-    checkNotEqual(id(c0::target1), id(c0::target1))
-    checkNotEqual(id(c0::target1), target1FromOtherFile(c0))
+    checkEqual(id(c0::target1), id(c0::target1))
+    checkEqual(id(c0::target1), target1FromOtherFile(c0))
+
     checkNotEqual(id(c0::target1), id(c0::target2))
 
-    checkNotEqual(id(c0::adapted1), id(c0::adapted1))
-    checkNotEqual(id(c0::adapted1), adapted1FromOtherFile(c0))
-    checkNotEqual(id(c0::adapted2), id(c0::adapted2))
-    checkNotEqual(id(c0::adapted2), adapted2FromOtherFile(c0))
+    checkEqual(id(c0::adapted1), id(c0::adapted1))
+    checkEqual(id(c0::adapted1), adapted1FromOtherFile(c0))
+    checkEqual(id(c0::adapted2), id(c0::adapted2))
+    checkEqual(id(c0::adapted2), adapted2FromOtherFile(c0))
     checkNotEqual(id(c0::adapted1), id(c0::adapted2))
 
     val c1 = C()
@@ -39,7 +50,7 @@ fun box(): String {
 
 // FILE: fromOtherFile.kt
 
-private fun id(f: Runnable): Any = f
+private fun id(f: FunInterface): Any = f
 
 fun target1FromOtherFile(c0: C): Any = id(c0::target1)
 fun adapted1FromOtherFile(c0: C): Any = id(c0::adapted1)

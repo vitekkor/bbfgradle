@@ -1,34 +1,23 @@
+// !JVM_DEFAULT_MODE: enable
+// JVM_TARGET: 1.8
 // WITH_RUNTIME
-// WITH_COROUTINES
-import helpers.*
-import kotlin.coroutines.*
-import kotlin.coroutines.intrinsics.*
-
-open class A(val v: String) {
-    suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
-        x.resume(v)
-        COROUTINE_SUSPENDED
+// MODULE: lib
+// FILE: 1.kt
+interface Test {
+    @JvmDefault
+    fun test(): String {
+        return "OK"
     }
-
-    open suspend fun suspendHere(x: String): String = suspendThere(x) + suspendThere(v)
 }
 
-class B(v: String) : A(v) {
-    override suspend fun suspendHere(x: String): String = super.suspendHere(x) + suspendThere("56")
-}
-
-fun builder(c: suspend A.() -> Unit) {
-    c.startCoroutine(B("K"), EmptyContinuation)
+// MODULE: main(lib)
+// FILE: 2.kt
+class TestClass : Test {
+    override fun test(): String {
+        return super.test()
+    }
 }
 
 fun box(): String {
-    var result = ""
-
-    builder {
-        result = suspendHere("O")
-    }
-
-    if (result != "OK56") return "fail 1: $result"
-
-    return "OK"
+    return TestClass().test()
 }

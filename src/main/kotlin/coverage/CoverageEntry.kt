@@ -73,9 +73,6 @@ data class CoverageEntry(
         return "$tmpPathToFun$methodName($strParams)$returnType;"
     }
 
-    override fun hashCode(): Int {
-        return super.hashCode()
-    }
 
     override fun equals(other: Any?) =
         if (other !is CoverageEntry) false
@@ -105,4 +102,12 @@ data class CoverageEntry(
             param1 == "Any" || param2 == "Any" -> true
             else -> param1 == "Object" || param2 == "Object"
         }
+
+    override fun hashCode(): Int {
+        var result = pathToFun.hashCode()
+        result = 31 * result + methodName.hashCode()
+        result = 31 * result + parameters.hashCode()
+        result = 31 * result + returnType.hashCode()
+        return result
+    }
 }

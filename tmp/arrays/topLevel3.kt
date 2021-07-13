@@ -1,19 +1,10 @@
-// FILE: 1.kt
+// MODULE: lib
+// FILE: lib.kt
+@PublishedApi
+internal fun published() = "OK"
 
-package test
+inline fun test() = published()
 
-inline fun call(p: Int, s: (Int) -> Int): Int {
-    return s(p)
-}
-
-// FILE: 2.kt
-
-import test.*
-
-fun box() : String {
-    return if (call(10, ::calc) == 5) "OK" else "fail"
-}
-
-fun calc(p: Int) : Int {
-    return p / 2
-}
+// MODULE: main(lib)
+// FILE: main.kt
+fun box() = test()

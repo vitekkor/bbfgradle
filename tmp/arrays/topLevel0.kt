@@ -1,10 +1,6 @@
-// MODULE: lib
-// FILE: lib.kt
-@PublishedApi
-internal fun published() = "OK"
+// WITH_RUNTIME
+// KJS_WITH_FULL_RUNTIME
 
-inline fun test() = published()
+fun foo(): Result<String> = Result.success("OK")
 
-// MODULE: main(lib)
-// FILE: main.kt
-fun box() = test()
+fun box() = foo().getOrThrow()

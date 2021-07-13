@@ -1,18 +1,14 @@
 interface A<T> {
-    fun id(t: T): T
+    fun foo(): T
 }
 
-open class B : A<String> {
-    override fun id(t: String) = t
+class B : A<String> {
+    override fun foo() = "OK"
 }
 
-class C : B()
-
-class D : A<String> by C()
+class C(a: A<String>) : A<String> by a
 
 fun box(): String {
-    val d = D()
-    if (d.id("") != "") return "Fail"
-    val a: A<String> = d
-    return a.id("OK")
+    val a: A<String> = C(B())
+    return a.foo()
 }

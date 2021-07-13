@@ -1,28 +1,23 @@
-// !USE_EXPERIMENTAL: kotlin.contracts.ExperimentalContracts
-// IGNORE_BACKEND: NATIVE
 // WITH_RUNTIME
+// WITH_COROUTINES
+import helpers.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 
-import kotlin.contracts.*
-
-fun runOnce(action: () -> Unit) {
-    contract {
-        callsInPlace(action, InvocationKind.EXACTLY_ONCE)
-    }
-    action()
+class Controller {
+    suspend fun suspendHere(): String = throw RuntimeException("OK")
 }
 
-fun foo(): String {
-    var res = "FAIL"
-    try {
-        error("OK")
-    } catch(e: Exception) {
-        runOnce {
-            res = e.message!!
-        }
-    }
-    return res
+fun builder(c: suspend Controller.() -> Unit) {
+    c.startCoroutine(Controller(), EmptyContinuation)
 }
 
 fun box(): String {
-    return foo()
+    var result = ""
+
+    builder {
+        result = try { suspendHere() } catch (e: RuntimeException) { e.message!! }
+    }
+
+    return result
 }

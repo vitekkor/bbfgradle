@@ -1,17 +1,17 @@
-// IGNORE_BACKEND: JS_IR
-// IGNORE_BACKEND: JS_IR_ES6
-// TODO: muted automatically, investigate should it be ran for JS or not
-// IGNORE_BACKEND: JS, NATIVE
+// TARGET_BACKEND: JVM
+// WITH_RUNTIME
+// FILE: A.kt
 
-// WITH_REFLECT
+@file:kotlin.jvm.JvmMultifileClass
+@file:kotlin.jvm.JvmName("A")
+
 package test
 
-import kotlin.test.assertEquals
+public val <T> Array<out T>.foo: String
+    get() = this[0].toString() + this[1].toString()
 
-data class Box<T>(val element: T)
+// FILE: B.kt
 
-fun box(): String {
-    val p = Box<String>::element
-    assertEquals("val test.Box<T>.element: T", p.toString())
-    return p.call(Box("OK"))
-}
+import test.foo
+
+fun box(): String = arrayOf('O', "K").foo

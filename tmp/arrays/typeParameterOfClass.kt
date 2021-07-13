@@ -1,3 +1,5 @@
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: WeirdComparator.java
 
 import java.util.*;
@@ -8,6 +10,7 @@ class WeirdComparator<T> {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 fun box(): String {

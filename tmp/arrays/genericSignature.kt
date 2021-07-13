@@ -1,3 +1,7 @@
+// TARGET_BACKEND: JVM
+// SAM_CONVERSIONS: CLASS
+//   ^ test checks reflection for synthetic classes
+// MODULE: lib
 // FILE: JavaClass.java
 
 import java.util.Arrays;
@@ -9,10 +13,11 @@ class JavaClass {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 fun box(): String {
     val supertypes = JavaClass.foo { a, b -> a.compareTo(b) }
-    if (supertypes != "[java.util.Comparator<java.lang.String>]") return "Fail: $supertypes"
+    if (supertypes != "[interface java.util.Comparator]") return "Fail: $supertypes"
     return "OK"
 }

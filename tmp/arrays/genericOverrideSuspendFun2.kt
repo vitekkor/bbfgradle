@@ -4,6 +4,8 @@
 import helpers.*
 import kotlin.coroutines.*
 
+var result = "FAIL"
+
 inline class IC(val s: String)
 
 var c: Continuation<Any>? = null
@@ -22,15 +24,16 @@ class Derived : Base<IC> {
 }
 
 fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(EmptyContinuation)
+    c.startCoroutine(handleExceptionContinuation {
+        result = it.message!!
+    })
 }
 
 fun box(): String {
-    var res: String? = null
     builder {
         val base: Base<*> = Derived()
-        res = (base.generic() as IC).s
+        (base.generic() as IC).s
     }
-    c?.resume(IC("OK"))
-    return res!!
+    c?.resumeWithException(IllegalStateException("OK"))
+    return result
 }

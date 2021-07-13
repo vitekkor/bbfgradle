@@ -1,4 +1,6 @@
+// TARGET_BACKEND: JVM
 // WITH_REFLECT
+// MODULE: lib
 // FILE: J.java
 
 public class J {
@@ -9,6 +11,7 @@ public class J {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 import kotlin.reflect.*

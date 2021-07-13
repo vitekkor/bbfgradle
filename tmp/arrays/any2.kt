@@ -1,27 +1,31 @@
 // !LANGUAGE: +InlineClasses
 
-fun <T> underlying(a: IC): T = bar(a) {
-    it.value as T
-}
+fun <T> underlying(a: IC): T = bar(a, object : IFace<IC, T> {
+    override fun call(ic: IC): T = ic.value as T
+})
 
-fun <T> extension(a: IC): T = bar(a) {
-    it.extensionValue()
-}
+fun <T> extension(a: IC): T = bar(a, object : IFace<IC, T> {
+    override fun call(ic: IC): T = ic.extensionValue()
+})
 
-fun <T> dispatch(a: IC): T = bar(a) {
-    it.dispatchValue()
-}
+fun <T> dispatch(a: IC): T = bar(a, object : IFace<IC, T> {
+    override fun call(ic: IC): T = ic.dispatchValue()
+})
 
-fun <T> normal(a: IC): T = bar(a) {
-    normalValue(it)
-}
+fun <T> normal(a: IC): T = bar(a, object : IFace<IC, T> {
+    override fun call(ic: IC): T = normalValue(ic)
+})
 
 fun <T> IC.extensionValue(): T = value as T
 
 fun <T> normalValue(ic: IC): T = ic.value as T
 
-fun <T, R> bar(value: T, f: (T) -> R): R {
-    return f(value)
+interface IFace<T, R> {
+    fun call(ic: T): R
+}
+
+fun <T, R> bar(value: T, f: IFace<T, R>): R {
+    return f.call(value)
 }
 
 inline class IC(val value: Any) {

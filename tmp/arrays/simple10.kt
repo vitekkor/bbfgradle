@@ -1,32 +1,18 @@
-// TARGET_BACKEND: JVM
-// FULL_JDK
-// WITH_RUNTIME
-// WITH_COROUTINES
-
-import helpers.*
-import kotlin.coroutines.*
-
-var c: Continuation<*>? = null
-
-suspend fun <T> tx(lambda: () -> T): T = suspendCoroutine { c = it; lambda() }
-
-object Dummy
-
-suspend fun suspect() {
-    tx { Dummy }
+open class A<T> {
+    open fun foo(t: T) = "A"
 }
 
-fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(EmptyContinuation)
+class Z : A<String>() {
+    override fun foo(t: String) = "Z"
 }
+
 
 fun box(): String {
-    var res: Any? = null
-    builder {
-        res = suspect()
+    val z = Z()
+    val a: A<String> = z
+    return when {
+        z.foo("") != "Z" -> "Fail #1"
+        a.foo("") != "Z" -> "Fail #2"
+        else -> "OK"
     }
-
-    (c as? Continuation<Dummy>)?.resume(Dummy)
-
-    return if (res != Unit) "$res" else "OK"
 }

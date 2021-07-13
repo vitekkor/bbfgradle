@@ -4,23 +4,12 @@ import helpers.*
 import kotlin.coroutines.*
 import kotlin.coroutines.intrinsics.*
 
-var result = "FAIL"
-
 fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(handleExceptionContinuation {
-        result = it.message!!
-    })
+    c.startCoroutine(EmptyContinuation)
 }
 
 @Suppress("UNSUPPORTED_FEATURE")
 inline class IC(val s: String)
-
-var c: Continuation<Any>? = null
-
-suspend fun <T> suspendMe(): T = suspendCoroutine {
-    @Suppress("UNCHECKED_CAST")
-    c = it as Continuation<Any>
-}
 
 class Test1() {
 
@@ -32,7 +21,7 @@ class Test1() {
 
     suspend fun bar(): IC {
         run {
-            return foo(qux(quz(suspendMe())))
+            return foo(qux(quz(IC("OK"))))
         }
     }
 
@@ -46,7 +35,7 @@ class Test2 {
 
     suspend fun qux(s: String): IC = IC(s)
 
-    suspend fun quz(): String = suspendMe()
+    suspend fun quz(): String = "OK"
 
     suspend fun bar(): IC {
         run {
@@ -62,7 +51,7 @@ class Test3 {
 
     suspend fun bar(): IC {
         run {
-            return foo(suspendMe())
+            return foo(IC("OK"))
         }
     }
 
@@ -74,7 +63,7 @@ class Test4 {
 
     suspend fun bar(): IC? {
         run {
-            return foo(suspendMe())
+            return foo(IC("OK"))
         }
     }
 
@@ -82,35 +71,35 @@ class Test4 {
 }
 
 fun box(): String {
+
+    var result = "FAIL"
     builder {
-        Test1().test()
+        result = Test1().test()
     }
-    c?.resumeWithException(IllegalStateException("OK"))
 
     if (result != "OK") return "FAIL 1 $result"
 
     result = "FAIL2"
 
     builder {
-        Test2().test()
+        result = Test2().test()
     }
-    c?.resumeWithException(IllegalStateException("OK"))
 
     if (result != "OK") return "FAIL 2 $result"
 
     result = "FAIL 3"
 
     builder {
-        Test3().test()
+        result = Test3().test()
     }
-    c?.resumeWithException(IllegalStateException("OK"))
 
     if (result != "OK") return "FAIL 3 $result"
 
+    result = "FAIL 4"
+
     builder {
-        Test4().test()
+        result = Test4().test()
     }
-    c?.resumeWithException(IllegalStateException("OK"))
 
     return result
 }
