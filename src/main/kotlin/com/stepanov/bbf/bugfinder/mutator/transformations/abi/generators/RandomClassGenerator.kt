@@ -6,11 +6,11 @@ import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGeneratorForAnClass
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
-import org.jetbrains.kotlin.fir.lightTree.fir.modifier.ModifierSets
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.types.typeUtil.isInterface
+import com.stepanov.bbf.bugfinder.util.ModifierSets
 import kotlin.random.Random
 
 open class RandomClassGenerator(

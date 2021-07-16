@@ -148,6 +148,14 @@ object CompilerArgs {
     //ORACLE
     val useJavaAsOracle = getPropAsBoolean("USE_JAVA_AS_ORACLE")
 
+    //COMPILER
+    val compilerVersion = File("build.gradle")
+        .readText()
+        .lines()
+        .firstOrNull { it.trim().contains("kotlin_version") }
+        ?.substringAfter('\'')
+        ?.substringBefore('\'')
+
     //MUTATED BUGS
     val shouldSaveCompilerBugs =
         getPropAsBoolean("SAVE_BACKEND_EXCEPTIONS")

@@ -45,16 +45,22 @@ object FileReporter : Reporter {
                 else -> return
             }
             File(newPath.substringBeforeLast('/')).mkdirs()
-            val info = "// Bug happens on ${bug.compilerVersion}"
+            val info = "// Bug happens on ${bug.compilerVersion} ver ${CompilerArgs.compilerVersion}"
+            val commentedStackTrace =
+                if (bug.type == BugType.BACKEND || bug.type == BugType.FRONTEND) {
+                    "// STACKTRACE:\n${bug.msg.split("\n").joinToString("\n") { "// $it" }}"
+                } else {
+                    ""
+                }
             if (bug.type == BugType.DIFFABI) {
                 File(newPath.replaceAfter('.', "html")).writeText(bug.msg)
             }
             if (isFrontendBug) {
                 val pathForOriginal =
                     "$resDir${bug.compilerVersion.filter { it != ' ' }}/${bug.type.name}_${name}_ORIGINAL.kt"
-                File(pathForOriginal).writeText(bugs.first().crashedProject.moveAllCodeInOneFile())
+                File(pathForOriginal).writeText("$info\n${bugs.first().crashedProject.moveAllCodeInOneFile()}\n$commentedStackTrace")
             }
-            File(newPath).writeText("$info\n${bug.crashedProject.moveAllCodeInOneFile()}")
+            File(newPath).writeText("$info\n${bug.crashedProject.moveAllCodeInOneFile()}\n$commentedStackTrace")
         }
     }
 

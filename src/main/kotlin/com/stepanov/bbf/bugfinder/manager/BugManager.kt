@@ -7,6 +7,7 @@ import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
 import com.stepanov.bbf.bugfinder.util.StatisticCollector
 import org.apache.log4j.Logger
 import java.io.File
+import kotlin.system.exitProcess
 
 enum class BugType {
     BACKEND,
