@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.util
 
 import com.intellij.psi.PsiElement
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.resolve.source.PsiSourceElement
@@ -51,6 +52,12 @@ fun ClassDescriptor.isFunInterface(): Boolean {
     if (this.kind != ClassKind.INTERFACE) return false
     return this.unsubstitutedMemberScope.getDescriptorsFiltered { true }.size == 4
 }
+
+fun KotlinType.isIterable() =
+    this.memberScope.getDescriptorsFiltered { true }.any {
+        it.toString().contains("operator fun iterator")
+    }
+
 
 //fun TypeParameterDescriptor.getAllTypeArgs(): List<KotlinType> {
 //    val res = mutableListOf<KotlinType>()

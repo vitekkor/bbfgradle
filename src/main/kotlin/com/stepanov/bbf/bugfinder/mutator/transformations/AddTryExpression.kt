@@ -4,6 +4,7 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerato
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getTrue
 import com.stepanov.bbf.bugfinder.util.subList
+import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtExpression
 import kotlin.random.Random
 import org.jetbrains.kotlin.psi.KtFile
@@ -22,8 +23,10 @@ class AddTryExpression : Transformation() {
         val tryBlock = "try {\n${randomNode.text}\n}"
         val catchBlocks = mutableListOf<String>()
         repeat(Random.nextInt(0, 3)) {
+            val randomExpressionToInsertInCatch =
+                (file.getAllPSIChildrenOfType<KtExpression>().randomOrNull()?.text ?: "")
             val catchBlock = "catch(e: ${listOfRandomExceptions.random()}){\n" +
-                    (file.getAllPSIChildrenOfType<KtExpression>().randomOrNull()?.text ?: "") +
+                    randomExpressionToInsertInCatch +
                     "\n}"
             catchBlocks.add(catchBlock)
         }
@@ -87,5 +90,5 @@ class AddTryExpression : Transformation() {
     private val fileText: String
         get() = file.text
     private val listOfRandomExceptions = StdLibraryGenerator.getListOfExceptionsFromStdLibrary()
-    private val randomConst = Random.nextInt(100, 500)
+    private val randomConst = Random.nextInt(25, 50)
 }

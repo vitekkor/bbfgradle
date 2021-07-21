@@ -285,6 +285,12 @@ inline fun <reified T : PsiElement, reified U : PsiElement, reified S : PsiEleme
     this.node.getAllChildrenNodes().asSequence().filter { it.psi is T || it.psi is U || it.psi is S }.map { it.psi }
         .toList()
 
+inline fun <reified T : PsiElement, reified U : PsiElement, reified S : PsiElement, reified R : PsiElement>
+        PsiElement.getAllPSIChildrenOfFourTypes(): List<PsiElement> =
+    this.node.getAllChildrenNodes().asSequence().filter { it.psi is T || it.psi is U || it.psi is S || it.psi is R }
+        .map { it.psi }
+        .toList()
+
 inline fun <reified T : PsiElement, reified U : PsiElement>
         PsiElement.getAllPSIChildrenOfTwoTypes(crossinline filterFun: (PsiElement) -> Boolean): List<PsiElement> =
     this.node.getAllChildrenNodes().asSequence().filter { it.psi is T || it.psi is U }.map { it.psi }

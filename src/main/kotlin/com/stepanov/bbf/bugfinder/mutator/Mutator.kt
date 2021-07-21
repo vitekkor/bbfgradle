@@ -57,6 +57,25 @@ class Mutator(val project: Project) {
 
     private fun startKotlinMutations() {
         PSICreator.analyze(checker.curFile.psiFile, checker.project) ?: return
+        val mut1 = listOf(
+            ChangeRandomASTNodesFromAnotherTrees() to 75,
+            AddTryExpression() to 100,
+            AddRandomControlStatements() to 100,
+            AddLoop() to 100,
+            AddLabels() to 100,
+            ChangeRandomASTNodes() to 75,
+            ChangeTypes() to 75
+
+        ).shuffled()
+        for (i in 0 until Random.nextInt(1, 3)) {
+            mut1.forEach { executeMutation(it.first, it.second) }
+        }
+        exitProcess(0)
+//        executeMutation(AddTryExpression(), 100)
+//        executeMutation(AddRandomControlStatements(), 100)
+//        executeMutation(AddLoop(), 100)
+//        println("AFTER = ${checker.curFile.psiFile.text}")
+//        exitProcess(0)
         val mut = listOf(
             ShuffleFunctionArguments() to 50,
             ExpressionObfuscator() to 75,
@@ -73,7 +92,7 @@ class Mutator(val project: Project) {
             ChangeTypes() to 75,
             ChangeModifiers() to 50,
             ChangeRandomASTNodesFromAnotherTrees() to 80,
-            AddTryExpression() to 20,
+            AddTryExpression() to 5,
             ChangeArgToAnotherValue() to 50,
             AddInheritance() to 75
         ).shuffled()
