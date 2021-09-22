@@ -4,15 +4,10 @@ import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.reduktor.executor.KotlincInvokeStatus
 import org.apache.commons.exec.*
-import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
-import org.jetbrains.kotlin.psi.KtFile
-import java.io.BufferedWriter
 import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileWriter
 
-data class CompilingResult(val status: Int, val pathToCompiled: String)
+data class CompilationResult(val status: Int, val pathToCompiled: String)
 
 enum class COMPILE_STATUS {
     OK, ERROR, BUG
@@ -25,7 +20,7 @@ abstract class CommonCompiler {
     abstract fun getErrorMessageWithLocation(project: Project): Pair<String, List<CompilerMessageSourceLocation>>
     abstract fun tryToCompile(project: Project): KotlincInvokeStatus
     abstract fun isCompilerBug(project: Project): Boolean
-    abstract fun compile(project: Project, includeRuntime: Boolean = true): CompilingResult
+    abstract fun compile(project: Project, includeRuntime: Boolean = true): CompilationResult
     abstract fun exec(path: String, streamType: Stream = Stream.INPUT, mainClass: String = ""): String
 
     abstract val compilerInfo: String
@@ -33,7 +28,7 @@ abstract class CommonCompiler {
 
     fun getErrorMessage(project: Project): String = getErrorMessageWithLocation(project).first
     fun getErrorMessageForText(text: String): String = getErrorMessageForTextWithLocation(text).first
-    fun getErrorMessageForTextWithLocation(text: String) : Pair<String, List<CompilerMessageSourceLocation>> =
+    fun getErrorMessageForTextWithLocation(text: String): Pair<String, List<CompilerMessageSourceLocation>> =
         getErrorMessageWithLocation(Project.createFromCode(text))
 
     fun tryToCompileWithStatus(project: Project): COMPILE_STATUS {
@@ -44,6 +39,18 @@ abstract class CommonCompiler {
             status.isCompileSuccess -> COMPILE_STATUS.OK
             else -> COMPILE_STATUS.ERROR
         }
+    }
+
+    fun tryToCompileWithStatusAndExecutionTime(project: Project): Pair<COMPILE_STATUS, Long> {
+        val kotlincInvokeStatus = tryToCompile(project)
+        val compilationStatus =
+            when {
+                kotlincInvokeStatus.hasException -> COMPILE_STATUS.BUG
+                kotlincInvokeStatus.hasCompilationError() || kotlincInvokeStatus.hasTimeout -> COMPILE_STATUS.ERROR
+                kotlincInvokeStatus.isCompileSuccess -> COMPILE_STATUS.OK
+                else -> COMPILE_STATUS.ERROR
+            }
+        return compilationStatus to kotlincInvokeStatus.compilerExecTimeInMlls
     }
 
     fun isCompilerBug(text: String): Boolean {
@@ -81,6 +88,13 @@ abstract class CommonCompiler {
             Stream.BOTH -> "OUTPUTSTREAM:\n$outputStream ERRORSTREAM:\n$errorStream"
         }
     }
+
+    fun getExecutionTime(path: String, streamType: Stream = Stream.BOTH, mainClass: String = ""): Pair<String, Long> {
+        val startTime = System.currentTimeMillis()
+        val execRes = exec(path, streamType, mainClass)
+        return execRes to System.currentTimeMillis() - startTime
+    }
+
 
     override fun toString(): String = compilerInfo
 }

@@ -18,11 +18,12 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import java.io.File
 
 class KotlincInvokeStatus(
-        val combinedOutput: String,
-        val isCompileSuccess: Boolean,
-        val hasException: Boolean,
-        val hasTimeout: Boolean,
-        val locations: List<CompilerMessageSourceLocation> = listOf()
+    val combinedOutput: String,
+    val isCompileSuccess: Boolean,
+    val hasException: Boolean,
+    val hasTimeout: Boolean,
+    val compilerExecTimeInMlls: Long,
+    val locations: List<CompilerMessageSourceLocation> = listOf()
 ) {
     fun hasCompilerCrash(): Boolean = hasTimeout || hasException
 

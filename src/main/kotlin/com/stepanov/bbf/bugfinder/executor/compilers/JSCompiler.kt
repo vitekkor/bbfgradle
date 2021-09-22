@@ -2,11 +2,9 @@ package com.stepanov.bbf.bugfinder.executor.compilers
 
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.CompilingResult
+import com.stepanov.bbf.bugfinder.executor.CompilationResult
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.Stream
-import com.stepanov.bbf.bugfinder.util.copyFullJarImpl
-import com.stepanov.bbf.bugfinder.util.writeRuntimeToJar
 import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
 import org.jetbrains.kotlin.cli.js.K2JSCompiler
 import org.jetbrains.kotlin.config.Services
@@ -14,17 +12,11 @@ import com.stepanov.bbf.reduktor.executor.KotlincInvokeStatus
 import com.stepanov.bbf.reduktor.util.MsgCollector
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.Logger
-import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
-import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
-import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import java.io.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import java.util.jar.JarInputStream
-import java.util.jar.JarOutputStream
-import kotlin.system.exitProcess
 
 class JSCompiler(override val arguments: String = "") : CommonCompiler() {
 
@@ -46,12 +38,12 @@ class JSCompiler(override val arguments: String = "") : CommonCompiler() {
     override fun isCompilerBug(project: Project): Boolean =
         tryToCompile(project).hasException
 
-    override fun compile(project: Project, includeRuntime: Boolean): CompilingResult {
+    override fun compile(project: Project, includeRuntime: Boolean): CompilationResult {
         val projectWithMainFun = project.addMain()
         val path = projectWithMainFun.saveOrRemoveToTmp(true)
         val args = prepareArgs(projectWithMainFun, path, pathToCompiled)
         val status = executeCompiler(projectWithMainFun, args)
-        if (status.hasException || status.hasTimeout || !status.isCompileSuccess) return CompilingResult(-1, "")
+        if (status.hasException || status.hasTimeout || !status.isCompileSuccess) return CompilationResult(-1, "")
         val oldStr = FileReader(File(pathToCompiled)).readText()
         val newStr = "const kotlin = require(\"${CompilerArgs.pathToJsKotlinLib}kotlin.js\");\n" +
                 "this['kotlin-test'] = require(\"${CompilerArgs.pathToJsKotlinLib}kotlin-test.js\");" +
@@ -60,7 +52,7 @@ class JSCompiler(override val arguments: String = "") : CommonCompiler() {
         val bw = BufferedWriter(fw)
         bw.write(newStr)
         bw.close()
-        return CompilingResult(0, pathToCompiled)
+        return CompilationResult(0, pathToCompiled)
     }
 
     private fun prepareArgs(project: Project, path: String, destination: String): K2JSCompilerArguments {
@@ -87,8 +79,11 @@ class JSCompiler(override val arguments: String = "") : CommonCompiler() {
             compiler.exec(MsgCollector, services, args)
         }
         var hasTimeout = false
+        var compilerWorkingTime: Long = -1
         try {
+            val startTime = System.currentTimeMillis()
             futureExitCode.get(10L, TimeUnit.SECONDS)
+            compilerWorkingTime = System.currentTimeMillis() - startTime
         } catch (ex: TimeoutException) {
             hasTimeout = true
             futureExitCode.cancel(true)
@@ -101,6 +96,7 @@ class JSCompiler(override val arguments: String = "") : CommonCompiler() {
             !MsgCollector.hasCompileError,
             MsgCollector.hasException,
             hasTimeout,
+            compilerWorkingTime,
             MsgCollector.locations.toMutableList()
         )
         return status

@@ -82,9 +82,12 @@ class JVMBackend(private val arguments: String) : CommonBackend {
             compiler.exec(msgCollector, services, compilerArgs)
         }
         var hasTimeout = false
+        var compilerWorkingTime: Long = -1
         if (!CompilerArgs.isProject) {
             try {
-                futureExitCode.get(10L, TimeUnit.SECONDS)
+                val startTime = System.currentTimeMillis()
+                futureExitCode.get(5L, TimeUnit.SECONDS)
+                compilerWorkingTime = System.currentTimeMillis() - startTime
             } catch (ex: TimeoutException) {
                 hasTimeout = true
             }
@@ -98,7 +101,8 @@ class JVMBackend(private val arguments: String) : CommonBackend {
                     msgCollector.compileErrorMessages.joinToString("\n"),
             !msgCollector.hasCompileError,
             msgCollector.hasException,
-            hasTimeout
+            hasTimeout,
+            compilerWorkingTime
         )
     }
 

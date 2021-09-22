@@ -3,6 +3,8 @@ package com.stepanov.bbf.bugfinder
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.checkers.CoverageGuider
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
+import com.stepanov.bbf.bugfinder.executor.checkers.PerformanceOracle
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
@@ -57,16 +59,18 @@ class SingleFileBugFinder(pathToFile: String) : BugFinder(pathToFile) {
         log.debug("Start to mutate")
         log.debug("BEFORE = $project")
 //            CompilerArgs.isInstrumentationMode = false
+        //ProjectPreprocessor.preprocess(project, null)
+        if (compilers.any { !it.checkCompiling(project) }) {
+            log.debug("=(")
+            exitProcess(0)
+        }
         if (CompilerArgs.isGuidedByCoverage) {
             CoverageGuider.init("", project)
             CoverageGuider.getCoverage(project, compilers)
             MyMethodBasedCoverage.methodProbes.clear()
         }
-        //ProjectPreprocessor.preprocess(project, null)
-        val checker = MutationChecker(compilers, project, project.files.first())
-        if (!checker.checkCompiling()) {
-            log.debug("=(")
-            exitProcess(0)
+        if (CompilerArgs.isPerformanceMode) {
+            PerformanceOracle.init(project, CompilerArgs.getCompilersList())
         }
         //noLastLambdaInFinallyBlock temporary for avoiding duplicates bugs
         mutate(project, project.files.first(), compilers, listOf(::noBoxFunModifying, ::noLastLambdaInFinallyBlock))

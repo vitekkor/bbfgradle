@@ -2,7 +2,7 @@ package com.stepanov.bbf.bugfinder.executor.compilers
 
 import com.stepanov.bbf.bugfinder.util.decompiler.copyContentTo
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.CompilingResult
+import com.stepanov.bbf.bugfinder.executor.CompilationResult
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.Stream
 import java.io.File
@@ -26,10 +26,10 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
 
     override var pathToCompiled: String = "tmp/tmp.jar"
 
-    override fun compile(project: Project, includeRuntime: Boolean): CompilingResult {
+    override fun compile(project: Project, includeRuntime: Boolean): CompilationResult {
         val projectWithMain = project.addMain()
         val kotlinCompiled = super.compile(projectWithMain, includeRuntime)
-        if (kotlinCompiled.status == -1) return CompilingResult(-1, "")
+        if (kotlinCompiled.status == -1) return CompilationResult(-1, "")
         val path = projectWithMain.saveOrRemoveToTmp(true)
         val kotlinJar = ZipFile(kotlinCompiled.pathToCompiled, Charset.forName("CP866"))
         kotlinJar.copyContentTo(pathToTmpDir)
@@ -37,9 +37,9 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
         File(kotlinCompiled.pathToCompiled).let { if (it.exists()) it.delete() }
         projectWithMain.saveOrRemoveToTmp(false)
         return if (javaRes) {
-            CompilingResult(0, pathToTmpDir)
+            CompilationResult(0, pathToTmpDir)
         } else {
-            CompilingResult(-1, "")
+            CompilationResult(-1, "")
         }
     }
 

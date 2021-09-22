@@ -1,10 +1,14 @@
 package com.stepanov.bbf.bugfinder.mutator
 
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.FunInvocationGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
+import com.stepanov.bbf.bugfinder.manager.Bug
+import com.stepanov.bbf.bugfinder.manager.BugManager
+import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.LocalTCE
@@ -117,7 +121,7 @@ class Mutator(val project: Project) {
             AddRandomComponent() to 50,
             ExpressionReplacer() to 75,
             ChangeArgToAnotherValue() to 50,
-            //ExpressionObfuscator() to 75,
+            ExpressionObfuscator() to 50,
             ShuffleFunctionArguments() to 50,
             AddPossibleModifiers() to 50,
             AddInheritance() to 50
@@ -125,7 +129,14 @@ class Mutator(val project: Project) {
         for (i in 0 until Random.nextInt(1, 3)) {
             mut1.forEach { executeMutation(it.first, it.second) }
         }
-        println("RES = ${checker.project}")
+        BugManager.saveBug(
+            Bug(
+                CompilerArgs.getCompilersList(),
+                "",
+                checker.project,
+                BugType.PERFORMANCE
+            )
+        )
         exitProcess(0)
 //        executeMutation(AddTryExpression(), 100)
 //        executeMutation(AddRandomControlStatements(), 100)

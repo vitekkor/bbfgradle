@@ -9,7 +9,6 @@ import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.manager.Bug
-import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.tracer.Tracer
@@ -18,6 +17,7 @@ import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import coverage.MyMethodBasedCoverage
 import org.apache.log4j.Logger
+import kotlin.math.absoluteValue
 
 //Project adaptation
 open class CompilationChecker(private val compilers: List<CommonCompiler>) {
@@ -63,6 +63,25 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
         }
     }
 
+//    private fun compareCompilerWorkingTimes(compilerWorkingTimes: List<Long>, isExecution: Boolean): Boolean {
+//        if (isExecution) println("EXECUTION!!")
+//        for (i in compilers.indices) {
+//            for (j in i + 1 until compilers.size) {
+//                val fExTime = compilerWorkingTimes[i]
+//                val sExTime = compilerWorkingTimes[j]
+//                val slowerBackend = if (fExTime > sExTime) i else j
+//                val fasterBackend = i + j - slowerBackend
+//                val compilationTimeDifference = abs(fExTime - sExTime)
+//                val compilationTimeDifferenceInPercents =
+//                    if (fExTime == sExTime || fExTime == 0L || sExTime == 0L) 0.0
+//                    else maxOf(fExTime, sExTime).toDouble() / minOf(fExTime, sExTime) * 100.0
+//                println("BACKEND ${compilers[slowerBackend]} slower then ${compilers[fasterBackend]} on $compilationTimeDifference ms in percents $compilationTimeDifferenceInPercents")
+//                return true // TODO!!
+//            }
+//        }
+//        return true
+//    }
+
     fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null): Boolean {
         log.debug("Compilation checking started")
         val allTexts = project.files.map { it.psiFile.text }.joinToString()
@@ -74,9 +93,86 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
             checkedConfigurations[allTexts] = false
             return false
         }
-        val statuses = compileAndGetStatuses(project)
+        val (statuses, compilationTimes) =
+            compileAndGetStatusesWithExecutionTime(project).let { it.map { it.first } to it.map { it.second } }
         when {
             statuses.all { it == COMPILE_STATUS.OK } -> {
+                if (CompilerArgs.isPerformanceMode) {
+                    //-1 not interesting, 0 - ok, 1 - interesting
+                    var compilationRetValue = -1
+                    var executionRetValue = -1
+                    val compilationTimesDifferenceInPerc =
+                        kotlin.math.abs(compilationTimes.first()).toDouble() / compilationTimes.last().absoluteValue
+                    val compInterval = PerformanceOracle.compilationConfInterval.let { it.first..it.second }
+                    println("COMPILATION TIMES = $compilationTimes")
+                    println("COMPILATION TIME DIFFERENCE = $compilationTimesDifferenceInPerc")
+                    println("INTERVAL =  $compInterval")
+                    if (compilationTimesDifferenceInPerc !in compInterval) {
+                        if (compilationTimes.first() > compilationTimes.last() && compilationTimesDifferenceInPerc > compInterval.endInclusive) {
+                            val compSigma = PerformanceOracle.compilationSigma
+                            val compConfInterval = PerformanceOracle.compilationConfInterval
+                            val compTimeIntervalMedian = (compConfInterval.second + compConfInterval.first) / 2.0
+                            val newMed = compTimeIntervalMedian * 0.62  + compilationTimesDifferenceInPerc * 0.38
+                            val newInterval = newMed - compSigma to newMed + compSigma
+                            PerformanceOracle.compilationConfInterval = newInterval
+                            compilationRetValue = 1
+                        } else {
+                            compilationRetValue = -1
+                        }
+                    } else {
+                        compilationRetValue = 0
+                    }
+                    val executionTimes = mutableListOf<Long>()
+                    for (comp in compilers) {
+                        val compiled = comp.compile(project)
+                        if (compiled.status == -1) {
+                            checkedConfigurations[allTexts] = false
+                            return false
+                        }
+                        val execResult = comp.getExecutionTime(compiled.pathToCompiled)
+                        if (execResult.first.contains("Exception")) {
+                            checkedConfigurations[allTexts] = false
+                            return false
+                        }
+                        executionTimes.add(execResult.second)
+                    }
+                    val executionTimesDifferenceInPerc =
+                        kotlin.math.abs(executionTimes.first()).toDouble() / executionTimes.last().absoluteValue
+                    val execInterval = PerformanceOracle.executionConfInterval.let { it.first..it.second }
+                    println("EXECUTION TIMES = $executionTimes")
+                    println("EXECUTION TIME DIFFERENCE = $executionTimesDifferenceInPerc")
+                    println("EXEC INTERVAL =  $execInterval")
+                    if (executionTimesDifferenceInPerc !in execInterval) {
+                        if (executionTimes.first() > executionTimes.last() && executionTimesDifferenceInPerc > execInterval.endInclusive) {
+                            val execSigma = PerformanceOracle.executionSigma
+                            val execConfInterval = PerformanceOracle.executionConfInterval
+                            val executionTimeIntervalMedian = (execConfInterval.second + execConfInterval.first) / 2.0
+                            val newMed = executionTimeIntervalMedian * 0.62  + executionTimesDifferenceInPerc * 0.38
+                            val newInterval = newMed - execSigma to newMed + execSigma
+                            PerformanceOracle.executionConfInterval = newInterval
+                            executionRetValue = 1
+                        } else {
+                            executionRetValue = -1
+                        }
+                    } else {
+                        executionRetValue = 0
+                    }
+                    println("----------------------------------------------------")
+                    return when {
+                        executionRetValue == 1 || compilationRetValue == 1 -> {
+                            checkedConfigurations[allTexts] = true
+                            true
+                        }
+                        compilationRetValue == -1 || executionRetValue == -1 -> {
+                            checkedConfigurations[allTexts] = false
+                            false
+                        }
+                        else -> {
+                            checkedConfigurations[allTexts] = true
+                            true
+                        }
+                    }
+                }
                 if (CompilerArgs.isGuidedByCoverage) {
                     if (isCoverageDecreases(project)) {
                         checkedConfigurations[allTexts] = false
@@ -98,7 +194,8 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
                 return false
             }
         }
-        checkAndGetCompilerBugs(project).forEach { BugManager.saveBug(it) }
+        //TODO!!
+        //checkAndGetCompilerBugs(project).forEach { BugManager.saveBug(it) }
         checkedConfigurations[allTexts] = false
         StatisticCollector.incField("Correct programs")
         return false
@@ -110,6 +207,9 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
 
     private fun compileAndGetStatuses(project: Project): List<COMPILE_STATUS> =
         compilers.map { it.tryToCompileWithStatus(project) }
+
+    private fun compileAndGetStatusesWithExecutionTime(project: Project): List<Pair<COMPILE_STATUS, Long>> =
+        compilers.map { it.tryToCompileWithStatusAndExecutionTime(project) }
 
 
     fun checkTraces(project: Project): Boolean {

@@ -42,6 +42,7 @@ object FileReporter : Reporter {
                 BugType.DIFFCOMPILE -> "$resDir/diffCompile/$name.kt"
                 BugType.DIFFBEHAVIOR -> "$resDir/diffBehavior/$name.kt"
                 BugType.DIFFABI -> "$resDir/diffABI/$name.kt"
+                BugType.PERFORMANCE -> "$resDir/performance/$name.kt"
                 else -> return
             }
             File(newPath.substringBeforeLast('/')).mkdirs()

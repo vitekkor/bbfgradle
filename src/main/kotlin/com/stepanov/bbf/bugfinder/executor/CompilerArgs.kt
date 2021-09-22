@@ -136,6 +136,7 @@ object CompilerArgs {
     //MODE
     var isMiscompilationMode = getPropAsBoolean("MISCOMPILATION_MODE")
     val isStrictMode = getPropAsBoolean("STRICT_MODE")
+    val isPerformanceMode = getPropAsBoolean("PERFORMANCE_MODE")
 
     //Instrumentation
     var isInstrumentationMode = getPropAsBoolean("WITH_INSTRUMENTATION")

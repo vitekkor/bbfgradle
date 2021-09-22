@@ -2,9 +2,8 @@ package com.stepanov.bbf.bugfinder.executor.compilers
 
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.CompilingResult
+import com.stepanov.bbf.bugfinder.executor.CompilationResult
 import com.stepanov.bbf.bugfinder.executor.project.Directives
-import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.bugfinder.util.copyFullJarImpl
@@ -15,11 +14,8 @@ import com.stepanov.bbf.reduktor.util.MsgCollector
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
-import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
-import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
-import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.Services
 import java.io.File
 import java.util.concurrent.Executors
@@ -27,7 +23,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.jar.JarInputStream
 import java.util.jar.JarOutputStream
-import kotlin.system.exitProcess
 
 open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
     override val compilerInfo: String
@@ -49,13 +44,13 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
     override fun isCompilerBug(project: Project): Boolean =
         tryToCompile(project).hasException
 
-    override fun compile(project: Project, includeRuntime: Boolean): CompilingResult {
+    override fun compile(project: Project, includeRuntime: Boolean): CompilationResult {
         val projectWithMainFun = project.addMain()
         val path = projectWithMainFun.saveOrRemoveToTmp(true)
         val tmpJar = "$pathToCompiled.jar"
         val args = prepareArgs(projectWithMainFun, path, tmpJar)
         val status = executeCompiler(projectWithMainFun, args)
-        if (status.hasException || status.hasTimeout || !status.isCompileSuccess) return CompilingResult(-1, "")
+        if (status.hasException || status.hasTimeout || !status.isCompileSuccess) return CompilationResult(-1, "")
         val res = File(pathToCompiled)
         val input = JarInputStream(File(tmpJar).inputStream())
         val output = JarOutputStream(res.outputStream(), input.manifest)
@@ -65,7 +60,7 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
         output.finish()
         input.close()
         File(tmpJar).delete()
-        return CompilingResult(0, pathToCompiled)
+        return CompilationResult(0, pathToCompiled)
     }
 
     private fun prepareArgs(project: Project, path: String, destination: String): K2JVMCompilerArguments {
@@ -115,8 +110,11 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
             compiler.exec(MsgCollector, services, args)
         }
         var hasTimeout = false
+        var compilerWorkingTime: Long = -1
         try {
+            val startTime = System.currentTimeMillis()
             futureExitCode.get(10L, TimeUnit.SECONDS)
+            compilerWorkingTime = System.currentTimeMillis() - startTime
         } catch (ex: TimeoutException) {
             hasTimeout = true
             futureExitCode.cancel(true)
@@ -132,6 +130,7 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
             !MsgCollector.hasCompileError,
             MsgCollector.hasException,
             hasTimeout,
+            compilerWorkingTime,
             MsgCollector.locations.toMutableList()
         )
         //println(status.combinedOutput)
