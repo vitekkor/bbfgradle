@@ -1,28 +1,33 @@
-// !JVM_DEFAULT_MODE: enable
-// TARGET_BACKEND: JVM
-// JVM_TARGET: 1.8
 // WITH_RUNTIME
+// WITH_COROUTINES
+import helpers.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 
-interface Test {
-    @JvmDefault
-    fun test(): String {
-        return inlineFun { "O" }
-    }
-
-    fun testDefaultImpls(): String {
-        return inlineFun { "K" }
-    }
-
-    @JvmDefault
-    private inline fun inlineFun(s: () -> String) = s()
-
+suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
+    x.resume(v)
+    COROUTINE_SUSPENDED
 }
 
-class TestClass : Test {
+suspend inline fun suspendHere(crossinline block: () -> String): String {
+    return suspendThere(block()) + suspendThere(block())
+}
 
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
 }
 
 fun box(): String {
-    val foo = TestClass()
-    return foo.test() + foo.testDefaultImpls()
+    var result = ""
+
+    builder {
+        var q = "O"
+        result = suspendHere {
+            val r = q
+            q = "K"
+            r
+        }
+    }
+
+    return result
 }

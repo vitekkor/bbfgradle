@@ -7,7 +7,7 @@ package test2
 
 import test.A
 
-public fun box(): String {
+fun box(): String {
     return B().test(B())
 }
 

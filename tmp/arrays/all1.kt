@@ -5,12 +5,14 @@
 
 import kotlin.coroutines.*
 
-class A : BlockingDoubleChain
+interface Foo {
+    private suspend fun test(): String {
+        return "OK"
+    }
 
-interface BlockingDoubleChain : BlockingBufferChain
-
-interface BlockingBufferChain {
-    suspend fun nextBuffer(): String = "OK"
+    suspend fun foo(): String {
+        return test()
+    }
 }
 
 fun builder(c: suspend () -> Unit) {
@@ -21,8 +23,11 @@ fun builder(c: suspend () -> Unit) {
 
 fun box(): String {
     var res = "FAIL"
+
     builder {
-        res = A().nextBuffer()
+        val foo: Foo = object : Foo{}
+        res = foo.foo()
     }
+
     return res
 }

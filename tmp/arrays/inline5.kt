@@ -1,16 +1,28 @@
+// TARGET_BACKEND: JVM
+// FULL_JDK
 // WITH_RUNTIME
 // WITH_COROUTINES
+// CHECK_TAIL_CALL_OPTIMIZATION
 import helpers.*
 import kotlin.coroutines.*
 import kotlin.coroutines.intrinsics.*
 
-suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
-    x.resume(v)
-    COROUTINE_SUSPENDED
+private var x = 100
+
+private inline fun inlineFun(
+    potentiallySuspendLambda: () -> Unit
+) {
+    if (x == 99) return
+    potentiallySuspendLambda()
 }
 
-suspend inline fun suspendHere(crossinline block: () -> String): String {
-    return suspendThere(block()) + suspendThere(block())
+suspend fun myFunWithTailCall() = inlineFun(
+    potentiallySuspendLambda = { suspendFun() }
+)
+
+suspend fun suspendFun(): Unit = suspendCoroutineUninterceptedOrReturn { x ->
+    TailCallOptimizationChecker.saveStackTrace(x)
+    COROUTINE_SUSPENDED
 }
 
 fun builder(c: suspend () -> Unit) {
@@ -18,16 +30,9 @@ fun builder(c: suspend () -> Unit) {
 }
 
 fun box(): String {
-    var result = ""
-
     builder {
-        var q = "O"
-        result = suspendHere {
-            val r = q
-            q = "K"
-            r
-        }
+        myFunWithTailCall()
     }
-
-    return result
+    TailCallOptimizationChecker.checkNoStateMachineIn("myFunWithTailCall")
+    return "OK"
 }
