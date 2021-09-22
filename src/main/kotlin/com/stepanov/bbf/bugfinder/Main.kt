@@ -4,10 +4,12 @@ import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.checkers.PerformanceOracle
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.util.getTrue
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
 import java.io.File
+import kotlin.random.Random
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
@@ -98,7 +100,15 @@ fun main(args: Array<String>) {
 //        }
 //    }
 //    println(sumCov.intersect(CoverageGuider.desiredCoverage))
-    val file = File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
+    val file =
+        if (Random.getTrue(10)) {
+            File("tmp/results/performance/").listFiles().randomOrNull() ?: exitProcess(0)
+        } else {
+            File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
+        }
+
+
+
     SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 //    val parser = ArgumentParsers.newFor("bbf").build()
