@@ -88,7 +88,11 @@ object Reducer {
     }
 
     private fun reduceFile(checker: CompilerTestChecker) {
-        TransformationManager(checker).doTransformationsForFile()
+        try {
+            TransformationManager(checker).doTransformationsForFile()
+        } catch (e: IllegalArgumentException) {
+            return
+        }
     }
 
     private fun reduceProject(checker: CompilerTestChecker) {

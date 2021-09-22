@@ -16,7 +16,7 @@ class AddPropertiesToClass : Transformation() {
             val ctx = PSICreator.analyze(file) ?: return
             val randomKlass = file.getAllPSIChildrenOfType<KtClass>().randomOrNull() ?: return
             val gClass = GClass.fromPsi(randomKlass)
-            val (genProp, rType) = RandomPropertyGenerator(file as KtFile, ctx, gClass).generateInterestingProperty()
+            val (genProp, rType) = RandomPropertyGenerator(file as KtFile, ctx, gClass).generateInterestingProperty(randomKlass)
                 ?: return@repeat
             var r = randomKlass.addPsiToBody(genProp) ?: return@repeat
             if (r is KtBlockExpression) {
@@ -32,7 +32,7 @@ class AddPropertiesToClass : Transformation() {
                     if (r is KtNamedFunction) r.addModifier(KtTokens.ABSTRACT_KEYWORD)
                     if (!checker.checkCompiling()) {
                         if (r is KtProperty && rType != null) {
-                            val expr = RandomInstancesGenerator(file as KtFile).generateValueOfType(rType)
+                            val expr = RandomInstancesGenerator(file as KtFile, ctx).generateValueOfType(rType)
                             val psiExpr = Factory.psiFactory.createExpression(expr)
                             r.initializer = psiExpr
                             if (!checker.checkCompiling()) {

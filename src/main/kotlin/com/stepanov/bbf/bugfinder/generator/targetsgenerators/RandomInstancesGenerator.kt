@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.descriptors.impl.EnumEntrySyntheticClassDescriptor
+import org.jetbrains.kotlin.ir.expressions.typeParametersCount
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
@@ -29,7 +30,9 @@ import kotlin.random.Random
 import kotlin.system.exitProcess
 
 //TODO add project
-open class RandomInstancesGenerator(private val file: KtFile) {
+open class RandomInstancesGenerator(private val file: KtFile, private var ctx: BindingContext?) {
+
+    constructor(file: KtFile) : this(file, PSICreator.analyze(file))
 
     //TODO rewrite this someday
     fun generateTopLevelFunctionCall(
@@ -203,6 +206,22 @@ open class RandomInstancesGenerator(private val file: KtFile) {
             null
         }
 
+    fun tryToGenerateValueOfType(
+        t: KotlinType,
+        numberOfTimes: Int,
+        depth: Int = 0,
+        onlyImpl: Boolean = false,
+        withoutParams: Boolean = false,
+        nullIsPossible: Boolean = true
+    ): String {
+        repeat(numberOfTimes) {
+            generateValueOfType(t, depth, onlyImpl, withoutParams, nullIsPossible).let {
+                if (it.isNotEmpty()) return it
+            }
+        }
+        return ""
+    }
+
     fun generateValueOfType(
         t: KotlinType,
         depth: Int = 0,
@@ -212,7 +231,12 @@ open class RandomInstancesGenerator(private val file: KtFile) {
     ): String {
         if (t.isUnit()) return "{}"
         if (t.isNullable() && nullIsPossible && Random.getTrue(5)) return "null"
-        val type = t.makeNotNullable()
+        val type =
+            if (t is FlexibleType) {
+                t.upperBound.makeNotNullable()
+            } else {
+                t.makeNotNullable()
+            }
         log.debug("generating value of type = $type ${type.isPrimitiveTypeOrNullablePrimitiveTypeOrString()} depth = $depth")
         if (depth > MAGIC_CONST) return ""
         //TODO deal with Any KReflection
@@ -275,7 +299,9 @@ open class RandomInstancesGenerator(private val file: KtFile) {
             else args
                 .mapIndexed { i, t -> "${'a' + i}: ${t.type.toString().substringAfter("] ")}" }
                 .joinToString() + " ->"
-            return "{$prefix ${generateValueOfType(type.arguments.last().type, depth + 1)}}"
+            val generatedValueOfLastTypeArg = generateValueOfType(type.arguments.last().type, depth + 1)
+            if (generatedValueOfLastTypeArg.isEmpty()) return ""
+            return "{$prefix ${generatedValueOfLastTypeArg}}"
         }
         return searchForImplementation(type, depth + 1, onlyImpl, withoutParams)
     }
@@ -289,23 +315,33 @@ open class RandomInstancesGenerator(private val file: KtFile) {
         var funcs = StdLibraryGenerator.searchForFunWithRetType(type.makeNotNullable())
         if (type.getAllTypeParams().any { it.type.isInterface() })
             funcs = funcs.filter { it.valueParameters.all { !it.type.isTypeParameter() } }
-        funcs = funcs.filterNot { it.annotations.any { it.fqName?.asString()?.contains("Deprecated") ?: false } }
-//        TODO!!!
-//        if (Random.getTrue(50)) {
-//            funcs = funcs.filter { it.extensionReceiverParameter != null }
-//        }
-//        //TODO
-//        funcs = funcs.filter { it.extensionReceiverParameter == null }
-//            .filterNot { it.annotations.any { it.fqName?.asString()?.contains("Deprecated") ?: false } }
-//        funcs = if (Random.getTrue(75))
-//            funcs.filter { it.extensionReceiverParameter == null }
-//        else
-//            funcs.filter { it.extensionReceiverParameter?.value?.type?.arguments?.isEmpty() ?: true } //TODO
+        funcs =
+            funcs
+                .filterNot { it.annotations.any { it.fqName?.asString()?.contains("Deprecated") ?: false } }
+                .sortedBy { it.valueParameters.size }
+        //.takeLast(1) //TODO!!!
         val implementations = StdLibraryGenerator.findImplementationOf(type.makeNotNullable())
         if (funcs.isEmpty() && implementations.isEmpty()) return ""
         //TODO fix this
         if (type.toString().startsWith("Sequence")) funcs = listOf(funcs[1], funcs.last())
         val prob = if (funcs.size > implementations.size) 75 else 25
+        val randomFunc =
+            if (depth > 2 && Random.getTrue(70) && funcs.isNotEmpty()) {
+                funcs.filter { it.valueParameters.size - funcs[0].valueParameters.size <= 1 }.randomOrNull()
+            } else if (depth > 5 && funcs.isNotEmpty()) {
+                //Choosing simplest implementation
+                val filteredFuncs = funcs
+                    .filter { it.extensionReceiverParameter == null }
+                    .filter { it.valueParameters.size == funcs[0].valueParameters.size }
+                    .sortedBy { it.typeParametersCount }
+                    .randomOrNull()
+                filteredFuncs
+//                filteredFuncs
+//                    .filter { it.typeParametersCount == filteredFuncs.first().typeParametersCount }
+//                    .randomOrNull()
+            } else {
+                funcs.randomOrNull()
+            }
         val el =
             if (CompilerArgs.isABICheckMode) {
                 val sortedFuncs = funcs.sortedBy { it.valueParameters.size }
@@ -317,24 +353,26 @@ open class RandomInstancesGenerator(private val file: KtFile) {
             } else {
                 when {
                     onlyImpl -> implementations.randomOrNull()
-                    Random.getTrue(prob) -> funcs.randomOrNull() ?: implementations.randomOrNull()
-                    else -> implementations.randomOrNull() ?: funcs.randomOrNull()
+                    Random.getTrue(prob) -> randomFunc ?: implementations.randomOrNull()
+                    else -> implementations.randomOrNull() ?: randomFunc
                 }
             }
         if (el is ClassDescriptor && el.defaultType.isPrimitiveTypeOrNullablePrimitiveTypeOrString())
             return generateDefValuesAsString(el.name.asString())
         ctx?.let { randomTypeGenerator.setFileAndContext(file, it) } ?: return ""
         val (resFunDescriptor, typeParams) = when (el) {
-            is SimpleFunctionDescriptor -> TypeParamsReplacer.throwTypeParams(type, el, randomTypeGenerator)
-            is ClassDescriptor -> TypeParamsReplacer.throwTypeParams(type, el, randomTypeGenerator, withoutParams)
+            is SimpleFunctionDescriptor -> TypeParamsReplacer.throwTypeParams(type, el)
+            is ClassDescriptor -> TypeParamsReplacer.throwTypeParams(type, el, withoutParams)
             else -> return ""
         } ?: return ""
-        val invocation = funInvocationGenerator.generateFunctionCallWithoutTypeParameters(resFunDescriptor, typeParams)
+        val invocation =
+            funInvocationGenerator.generateFunctionCallWithoutTypeParameters(resFunDescriptor, typeParams, depth)
         return invocation?.text ?: ""
     }
 
     private val fileCopy = file.copy() as KtFile
-    private var ctx: BindingContext? = PSICreator.analyze(file)
+
+    //private var ctx: BindingContext? = PSICreator.analyze(file)
     internal val classInstanceGenerator = ClassInstanceGenerator(file)
     internal val funInvocationGenerator = FunInvocationGenerator(file)
     val randomTypeGenerator = RandomTypeGenerator

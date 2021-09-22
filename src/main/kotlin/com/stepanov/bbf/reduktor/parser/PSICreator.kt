@@ -126,6 +126,8 @@ object PSICreator {
         } catch (e: Exception) {
             println(e)
             null
+        } catch (e: Error) {
+            null
         } finally {
             //project?.saveOrRemoveToTmp(false)
         }

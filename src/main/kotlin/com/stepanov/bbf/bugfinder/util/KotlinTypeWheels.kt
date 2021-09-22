@@ -1,12 +1,22 @@
 package com.stepanov.bbf.bugfinder.util
 
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
+import org.jetbrains.kotlin.backend.common.serialization.findPackage
+import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.*
+import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
+import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.resolve.source.PsiSourceElement
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isNullable
+import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 
 fun List<TypeParameterDescriptor>.sortedByTypeParams(): List<TypeParameterDescriptor> {
@@ -50,6 +60,7 @@ val KotlinType.name: String?
 
 fun ClassDescriptor.isFunInterface(): Boolean {
     if (this.kind != ClassKind.INTERFACE) return false
+    if (!this.isFun) return false
     return this.unsubstitutedMemberScope.getDescriptorsFiltered { true }.size == 4
 }
 
@@ -58,6 +69,39 @@ fun KotlinType.isIterable() =
         it.toString().contains("operator fun iterator")
     }
 
+fun KotlinType.isUserType(project: Project, module: ModuleDescriptor): Boolean {
+    val userClasses = StdLibraryGenerator.getUserClassesDescriptorsFromProject(project, module)
+    return userClasses.any { it.name == this.constructor.declarationDescriptor?.name }
+}
+
+fun getAllClassesFromPackage(pack: PackageViewDescriptor) =
+    pack.memberScope
+        .getDescriptorsFiltered { true }
+        .filterIsInstance<ClassDescriptor>()
+        .flatMap { getAllClassesFromPackage1(it) }
+
+fun getAllClassesFromPackage(pack: PackageFragmentDescriptor) =
+    pack.getMemberScope()
+        .getDescriptorsFiltered { true }
+        .filterIsInstance<ClassDescriptor>()
+        .flatMap { getAllClassesFromPackage1(it) }
+
+
+fun getAllClassesFromPackageWhichContainsType(type: KotlinType): List<ClassDescriptor> {
+    if (type.constructor.declarationDescriptor?.containingDeclaration == null) return emptyList()
+    val pack = type.constructor.declarationDescriptor?.findPackage() ?: return emptyList()
+    return getAllClassesFromPackage(pack)
+}
+
+fun ClassifierDescriptor.getAllSuperClassifiersWithoutAnyAndItself(): Sequence<ClassifierDescriptor> =
+    this.getAllSuperClassifiers().filter { it.name != this.name && !it.defaultType.isAnyOrNullableAny() }
+
+private fun getAllClassesFromPackage1(classDescriptor: ClassDescriptor): List<ClassDescriptor> {
+    val nestedClasses =
+        classDescriptor.unsubstitutedMemberScope.getDescriptorsFiltered { true }.filterIsInstance<ClassDescriptor>()
+    return if (nestedClasses.isEmpty()) listOf(classDescriptor)
+    else listOf(classDescriptor) + nestedClasses.flatMap { getAllClassesFromPackage1(it) }
+}
 
 //fun TypeParameterDescriptor.getAllTypeArgs(): List<KotlinType> {
 //    val res = mutableListOf<KotlinType>()

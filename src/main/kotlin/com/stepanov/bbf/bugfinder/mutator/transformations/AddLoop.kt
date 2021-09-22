@@ -46,7 +46,7 @@ class AddLoop : Transformation() {
             file.getNodesBetweenWhitespaces(placeToInsert.first, placeToInsert.first)
                 .firstOrNull { it !is PsiWhiteSpace } ?: return null
         val ctx = PSICreator.analyze(file, checker.project) ?: return null
-        val rig = RandomInstancesGenerator(file as KtFile)
+        val rig = RandomInstancesGenerator(file as KtFile, ctx)
         RandomTypeGenerator.setFileAndContext(file as KtFile, ctx)
         val scope = (file as KtFile).getAvailableValuesToInsertIn(beginningNode, ctx).filter { it.second != null }
         val nodesBetweenWhS = file.getNodesBetweenWhitespaces(placeToInsert.first, placeToInsert.second)
@@ -79,7 +79,7 @@ class AddLoop : Transformation() {
                 val right =
                     if (rightFromScope != null && Random.getTrue(50))
                         rightFromScope.first
-                    else RandomInstancesGenerator(file as KtFile).generateValueOfTypeAsExpression(randomVar.second!!)!!
+                    else RandomInstancesGenerator(file as KtFile, ctx).generateValueOfTypeAsExpression(randomVar.second!!)!!
                 Factory.psiFactory.createExpression("${left.text}..${right.text}")
             } else {
                 val randomType = RandomTypeGenerator.generateType(typesToIterate.random())!!

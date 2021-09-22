@@ -39,7 +39,7 @@ class AddArgumentToFunction : Transformation() {
                 //Add default value
                 val defaultValue =
                     if (Random.getTrue(20)) {
-                        RandomInstancesGenerator(ktFile).generateValueOfType(newType)
+                        RandomInstancesGenerator(ktFile, ctx).generateValueOfType(newType)
                     } else ""
                 val defaultValueAsString = if (defaultValue.isEmpty()) "" else " = $defaultValue"
                 val callers = ktFile.getAllPSIChildrenOfType<KtCallExpression>()
@@ -61,7 +61,7 @@ class AddArgumentToFunction : Transformation() {
                     val resolvedNewTypeAsKotlinType =
                         RandomTypeGenerator.generateType(resolvedNewType) ?: return@forEach
                     var generatedValue =
-                        RandomInstancesGenerator(ktFile).generateValueOfType(resolvedNewTypeAsKotlinType)
+                        RandomInstancesGenerator(ktFile, ctx).generateValueOfType(resolvedNewTypeAsKotlinType)
                     if (generatedValue.isNotEmpty()) {
                         if (resolvedNewType.trim() == "$newType".trim() && generatedValue.contains('<')) {
                             generatedValue =

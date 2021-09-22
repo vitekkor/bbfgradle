@@ -18,7 +18,7 @@ class AddRandomClass : Transformation() {
 
     private val ktFile = file as KtFile
     private val ctx = PSICreator.analyze(ktFile)
-    private val randomValueGenerator = RandomInstancesGenerator(ktFile)
+    private val randomValueGenerator = RandomInstancesGenerator(ktFile, ctx)
 
     override fun transform() {
         if (ctx == null) return

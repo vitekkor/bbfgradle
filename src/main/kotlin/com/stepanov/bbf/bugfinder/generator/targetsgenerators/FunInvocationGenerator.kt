@@ -2,10 +2,18 @@ package com.stepanov.bbf.bugfinder.generator.targetsgenerators
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.tryToCreateExpression
+import com.stepanov.bbf.bugfinder.util.getTrue
+import org.apache.log4j.Logger
+import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.ConstructorDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.load.java.descriptors.JavaClassConstructorDescriptor
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.calls.components.hasDefaultValue
 import org.jetbrains.kotlin.resolve.calls.components.isVararg
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.random.Random
@@ -14,11 +22,15 @@ internal class FunInvocationGenerator(file: KtFile) :
     TypeAndValueParametersGenerator(file) {
 
     private val MAX_DEPTH = 20
+    private val log = Logger.getLogger("mutatorLogger")
 
     fun generateFunctionCallWithoutTypeParameters(
         functionDescriptor: FunctionDescriptor,
-        typeParameters: Map<String, KotlinType?>
+        typeParameters: Map<String, KotlinType?>,
+        depth: Int
     ): PsiElement? {
+        val randomInstanceGenerator = RandomInstancesGenerator(file, rtg.ctx)
+        log.debug("Generating call of $functionDescriptor")
         val funcName =
             when (functionDescriptor) {
                 is JavaClassConstructorDescriptor -> functionDescriptor.constructedClass.name
@@ -30,24 +42,86 @@ internal class FunInvocationGenerator(file: KtFile) :
                 typeParameters[it.name.asString()] ?: "Any"
             }.let { if (it.isEmpty()) "" else "<${it.joinToString()}>" }
         val extRecValue =
-            functionDescriptor.extensionReceiverParameter?.type?.let {
-                RandomInstancesGenerator(file).generateValueOfType(it) + "."
-            } ?: ""
-        val valueParams = functionDescriptor.valueParameters.joinToString {
+            if (functionDescriptor.containingDeclaration is ClassDescriptor && functionDescriptor !is ConstructorDescriptor) {
+                ((functionDescriptor.containingDeclaration) as ClassDescriptor).name.asString() + "."
+            } else {
+                functionDescriptor.extensionReceiverParameter?.type?.let {
+                    randomInstanceGenerator.generateValueOfType(it, depth) + "."
+                } ?: ""
+            }
+        val valueParams = functionDescriptor.valueParameters.map {
             if (it.isVararg) {
                 val randomSize = Random.nextInt(1, 4)
                 val elType = it.varargElementType!!
-                List(randomSize) { RandomInstancesGenerator(file).generateValueOfType(elType) }.joinToString()
+                List(randomSize) { "" }.map {
+                    randomInstanceGenerator.generateValueOfType(elType, depth).let { it.ifEmpty { return null } }
+                }.joinToString()
             } else {
-                RandomInstancesGenerator(file).generateValueOfType(it.type)
+                randomInstanceGenerator.generateValueOfType(it.type, depth).let { it.ifEmpty { return null } }
             }
-        }
+        }.joinToString()
+//        val valueParams = functionDescriptor.valueParameters.joinToString {
+//            if (it.isVararg) {
+//                val randomSize = Random.nextInt(1, 4)
+//                val elType = it.varargElementType!!
+//                List(randomSize) {
+//                    RandomInstancesGenerator(file).generateValueOfType(elType)
+//                }.joinToString()
+//            } else {
+//                RandomInstancesGenerator(file).generateValueOfType(it.type)
+//            }
+//        }
         val callExpression = """$extRecValue$funcName$typeParamsAsString($valueParams)"""
         return try {
             Factory.psiFactory.createExpression(callExpression)
         } catch (e: Exception) {
             null
         }
+    }
+
+    fun generateTopLevelFunInvocation(func: KtNamedFunction, ctx: BindingContext, depth: Int = 0): PsiElement? {
+        val descriptor = func.getDeclarationDescriptorIncludingConstructors(ctx) as? FunctionDescriptor ?: return null
+        return generateTopLevelFunInvocation(descriptor, depth)
+    }
+
+    fun generateTopLevelFunInvocation(func: FunctionDescriptor, depth: Int = 0): PsiElement? {
+        val randomInstanceGenerator = RandomInstancesGenerator(file, rtg.ctx)
+        val (descriptorWithoutTypeParams, realTypeParams) = TypeParamsReplacer.throwTypeParams(null, func)
+            ?: return null
+        val extensionReceiverType = descriptorWithoutTypeParams.extensionReceiverParameter?.value?.type
+        val realTypeParamsAsString =
+            if (func.typeParameters.isEmpty()) ""
+            else func.typeParameters.map { realTypeParams[it.name.asString()] }
+                .joinToString(prefix = "<", postfix = ">")
+        val generatedExtensionReceiver =
+            if (extensionReceiverType == null) {
+                ""
+            } else {
+                randomInstanceGenerator.tryToGenerateValueOfType(extensionReceiverType, 2).ifEmpty { return null } + "."
+            }
+        val valueParamsAsString =
+            if (descriptorWithoutTypeParams.valueParameters.isEmpty()) {
+                "()"
+            } else {
+                descriptorWithoutTypeParams.valueParameters
+                    .map { valueParam ->
+                        val valueParamType =
+                            if (valueParam.isVararg) {
+                                valueParam.varargElementType ?: return null
+                            } else {
+                                valueParam.type
+                            }
+//                        if (valueParam.hasDefaultValue() && Random.getTrue(30)) {
+//                            ""
+//                        }
+//                         else {
+                             randomInstanceGenerator.tryToGenerateValueOfType(valueParamType, 2).ifEmpty { return null }
+//                        }
+                    }.filter { it.isNotEmpty() }.joinToString(prefix = "(", postfix = ")")
+            }
+        val callExpressionAsString =
+            "$generatedExtensionReceiver${func.name}$realTypeParamsAsString$valueParamsAsString"
+        return Factory.psiFactory.tryToCreateExpression(callExpressionAsString)
     }
 
 //    fun generateTopLevelFunInvocation(func: KtNamedFunction, depth: Int = 0): PsiElement? {

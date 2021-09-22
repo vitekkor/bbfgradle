@@ -44,7 +44,11 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
                     .getDescriptorsFiltered { true }
                     .filterIsInstance<ClassDescriptor>()
                     .find { it.name == parentClasses[i + 1].name } ?: break
-                curClassAsKType = childClassType.defaultType.replace(resultType.arguments)
+                val newArgsAmount = childClassType.defaultType.arguments.size - resultType.arguments.size
+                val newTypeArgs =
+                    if (newArgsAmount <= 0) listOf()
+                    else childClassType.defaultType.arguments.take(newArgsAmount) + resultType.arguments
+                curClassAsKType = childClassType.defaultType.replace(newTypeArgs)
             } else {
                 res.add("${parentClasses[i].name}")
                 curClassAsKType = parentClasses[i + 1].defaultType
@@ -80,9 +84,12 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
         }
         if (classDescriptor.constructors.isNotEmpty() &&
             classDescriptor.constructors.all { !it.visibility.isPublicAPI }
-        ) return null
+        ) return generateImplementation(
+            klOrObjType,
+            depth
+        )
+        //return null
         if (classDescriptor.kind == ClassKind.ANNOTATION_CLASS) return null
-        if (classDescriptor.isSealed()) return null
         if (!rtg.isInitialized()) {
             rtg.setFileAndContext(file)
         }
@@ -93,7 +100,7 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
             val expr = Factory.psiFactory.createExpression(psiClassOrObj.name!!)
             return expr to klOrObjType
         }
-        if (klOrObjType.isInterface() || klOrObjType.isAbstractClass()) return generateInterfaceImplementation(
+        if (klOrObjType.isInterface() || klOrObjType.isAbstractClass() || classDescriptor.isSealed()) return generateImplementation(
             klOrObjType,
             depth
         )
@@ -133,15 +140,11 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
             val expr = Factory.psiFactory.createExpression(klOrObj.name!!)
             return expr to classType
         }
-        if (classType.isInterface() || classType.isAbstractClass()) return generateInterfaceImplementation(
+        if (classType.isInterface() || classType.isAbstractClass()) return generateImplementation(
             classType,
             depth
         )
         return unsafeGenerateRandomInstanceOfClass(classType, depth)
-    }
-
-    public fun generateEnumInstance(klDescriptor: ClassDescriptor): KtExpression? {
-        return null
     }
 
     private fun generateEnumInstance(klOrObj: KtClassOrObject): KtExpression? {
@@ -155,12 +158,16 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
         return Factory.psiFactory.createExpression("${klass.name}.${randomEnum.name}")
     }
 
-    private fun generateInterfaceImplementation(interfaceType: KotlinType, depth: Int): Pair<PsiElement?, KotlinType>? {
-        val implementations = StdLibraryGenerator.findImplementationFromFile(interfaceType, true)
+    private fun generateImplementation(implementedType: KotlinType, depth: Int): Pair<PsiElement?, KotlinType>? {
+        val implementations = StdLibraryGenerator.findImplementationFromFile(implementedType, true)
         val randomImpl = implementations.randomOrNull()?.defaultType ?: return null
-        val instance = unsafeGenerateRandomInstanceOfClass(randomImpl, depth + 1)
-        if (Random.getTrue(30)) {
-            val anObjImpl = generateAnonymousObjectImplementation(interfaceType, depth)
+        val instance =
+            generateRandomInstanceOfUserClass(randomImpl, depth + 1)?.let {
+                if (it.second == null) return null
+                else it.first to it.second!!
+            }
+        if (Random.getTrue(20)) {
+            val anObjImpl = generateAnonymousObjectImplementation(implementedType, depth)
             return listOfNotNull(instance, anObjImpl).randomOrNull()
         }
         return instance
@@ -184,7 +191,9 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
         val substConDescr = (subClassDescr
             ?.unsubstitutedMemberScope
             ?.getDescriptorsFiltered { true }
-            ?.lastOrNull() as? FunctionDescriptor)
+            ?.lastOrNull {
+                it.name.asString().let { it != "toString" && it != "hashCode" && it != "equals" }
+            } as? FunctionDescriptor)
             ?: return null
 
         val numberOfParams = substConDescr.valueParameters.size
@@ -210,7 +219,7 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
 
         val type = "Function$numberOfParams$substitutedTypeParamsAsString"
         val typeAsKotlinType = rtg.generateType(type) ?: return null
-        val generatedConstructor = RandomInstancesGenerator(file).generateValueOfType(typeAsKotlinType, depth + 1)
+        val generatedConstructor = RandomInstancesGenerator(file, rtg.ctx).generateValueOfType(typeAsKotlinType, depth + 1)
         val instance = "${classDescriptor.name}${typeParamsForDeclaration}$generatedConstructor"
         val psiInstance = Factory.psiFactory.createExpressionIfPossible(instance) ?: return null
         return psiInstance to subClassDescr.defaultType.replace(newTypeParameters.map { it.asTypeProjection() })
@@ -234,7 +243,7 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
             if (member is PropertyDescriptor) {
                 val rtv = member.type
                 val initialValue =
-                    RandomInstancesGenerator(file).generateValueOfType(rtv, depth + 1)
+                    RandomInstancesGenerator(file, rtg.ctx).generateValueOfType(rtv, depth + 1)
                         .let { if (it.isEmpty()) "TODO" else it }
                 res.appendLine("override $memberToString: $rtv = $initialValue")
             } else if (member is FunctionDescriptor) {
@@ -242,7 +251,7 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
                 if (psi != null && psi.hasBody() && Random.getTrue(85)) continue
                 val rtv = member.returnType ?: continue
                 val initialValue =
-                    RandomInstancesGenerator(file).generateValueOfType(rtv, depth + 1)
+                    RandomInstancesGenerator(file, rtg.ctx).generateValueOfType(rtv, depth + 1)
                         .let { if (it.isEmpty()) "TODO" else it }
                 res.appendLine("override $memberToString: $rtv = $initialValue")
             }

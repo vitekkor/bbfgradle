@@ -21,7 +21,7 @@ abstract class DSGenerator(
 
     init {
         randomTypeGenerator.setFileAndContext(file, ctx)
-        randomInstancesGenerator = RandomInstancesGenerator(file)
+        randomInstancesGenerator = RandomInstancesGenerator(file, ctx)
     }
 
     protected open fun generateTypeParams(withModifiers: Boolean): List<String> {

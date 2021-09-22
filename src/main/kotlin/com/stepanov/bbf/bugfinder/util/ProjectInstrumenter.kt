@@ -16,7 +16,7 @@ import java.nio.file.Paths
 object ProjectInstrumenter {
 
     fun instrument() {
-        Files.walk(Paths.get("/home/zver/IdeaProjects/kotlin/compiler/ir/backend.jvm/src/org/jetbrains/kotlin/backend/jvm/lower/PropertyReferenceLowering.kt")).forEach {
+        Files.walk(Paths.get("/home/zver/IdeaProjects/kotlin/compiler/backend/")).forEach {
             val file = it.toFile()
             if (file.name == "CoverageEntry.kt" || file.name == "MyMethodBasedCoverage.kt") return@forEach
             var lang = ""
@@ -42,12 +42,18 @@ object ProjectInstrumenter {
                 val factory = PsiElementFactory.getInstance(psi.project)
                 for (m in methods) {
                     val parentClasses =
-                        m.parents.toList().filterIsInstance<PsiClass>().mapNotNull { it.name }
+                        m.parents.toList().filterIsInstance<PsiClass>().mapNotNull { it.name }.reversed()
                     val parentClass = m.parents.firstOrNull { it is PsiClass } as? PsiClass
                     val isConstructorCall = parentClass != null && m.name == parentClass.name
                     if (isConstructorCall) continue
                     val methodName = m.name
-                    val pathToMethod = (packageDirective + parentClasses).joinToString(".").trim()
+                    val parentClassesStr =
+                        if (parentClasses.isEmpty()) {
+                            ""
+                        } else {
+                            "." + parentClasses.joinToString("\\\\$").trim()
+                        }
+                    val pathToMethod = packageDirective.joinToString(".").trim() + parentClassesStr
                     val params = m.parameters.map { "${it.type}".substringAfterLast("PsiType:").substringBefore('<') }
                         .joinToString(";")
                     val returnType =
@@ -88,16 +94,22 @@ object ProjectInstrumenter {
                 for (m in methods) {
                     val methodName = m.name ?: continue
                     if (m.bodyExpression == null) continue
-                    val parentClasses = m.parents.filterIsInstance<KtClassOrObject>().mapNotNull { it.name }
-                    val pathToMethod = (packageDirective + parentClasses).joinToString(".")
+                    val parentClasses = m.parents.filterIsInstance<KtClassOrObject>().mapNotNull { it.name }.toList().reversed()
+                    val parentClassesStr =
+                        if (parentClasses.isEmpty()) {
+                            ".${ktFile.name.substringBefore(".kt").substringAfterLast('/')}Kt"
+                        } else {
+                            "." + parentClasses.joinToString("\\$").trim()
+                        }
+                    val pathToMethod = packageDirective.joinToString(".").trim() + parentClassesStr
                     val params =
-                        m.valueParameters.map { it.typeReference?.text?.substringBefore('<') ?: "Any" }.toMutableList()
+                        m.valueParameters.map { it.typeReference?.text?.substringBefore('<')?.substringBefore('?') ?: "Any" }.toMutableList()
                     if (m.receiverTypeReference != null) {
                         params.add(0, m.receiverTypeReference!!.text.substringBefore('<'))
                     }
                     val strParams = params.joinToString(";")
                     val reserveRtv = if (m.isUnit()) "Unit" else "Any"
-                    val returnType = m.typeReference?.text?.substringBefore('<') ?: reserveRtv
+                    val returnType = m.typeReference?.text?.substringBefore('<')?.substringBefore('?') ?: reserveRtv
                     println("METHOD = $pathToMethod NAME = $methodName PARAMS = $strParams RET = $returnType")
                     val insertion = """
                     val covEn153 = CoverageEntry("$pathToMethod", "$methodName", "$strParams", "$returnType");

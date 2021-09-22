@@ -126,7 +126,7 @@ class AddInheritance : Transformation() {
                     (parent as KtNamedFunction).typeReference?.getAbbreviatedTypeOrType(ctx)
                 } ?: continue
             //Getting value of needed type
-            val value = RandomInstancesGenerator(file as KtFile).generateValueOfTypeAsExpression(returnType) ?: continue
+            val value = RandomInstancesGenerator(file as KtFile, ctx).generateValueOfTypeAsExpression(returnType) ?: continue
             checker.replaceNodeIfPossible(todo, value)
         }
         return

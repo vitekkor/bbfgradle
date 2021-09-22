@@ -17,10 +17,7 @@ import org.jetbrains.kotlin.ir.expressions.typeParametersCount
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.descriptorUtil.classId
-import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
-import org.jetbrains.kotlin.resolve.descriptorUtil.isPublishedApi
-import org.jetbrains.kotlin.resolve.descriptorUtil.module
+import org.jetbrains.kotlin.resolve.descriptorUtil.*
 import org.jetbrains.kotlin.resolve.scopes.computeAllNames
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedTypeAliasDescriptor
 import org.jetbrains.kotlin.types.*
@@ -31,8 +28,10 @@ object StdLibraryGenerator {
 
     val descriptorDecl: List<DeclarationDescriptor>
     val klasses: List<ClassDescriptor>
+    val funDescriptors: List<SimpleFunctionDescriptor>
     private val maxDepth = 2
     private val blockList = listOf("hashCode", "toString")
+    private val userClasses: MutableList<ClassDescriptor> = mutableListOf()
 
     //TODO
     init {
@@ -50,7 +49,9 @@ object StdLibraryGenerator {
                         listOf(
                             FqName("kotlin"),
                             FqName("java.util"),
-                            FqName("java.math")
+                            FqName("java.math"),
+                            FqName("java.nio.file"),
+                            FqName("java.nio")
                         )
             }
 
@@ -66,11 +67,27 @@ object StdLibraryGenerator {
                     else -> null
                 }
             }
+        val blockListOfFuncNames =
+            listOf("toString", "hashCode", "equals", "valueOf", "values", "of", "copyOf", "enumValues")
+        val funDescriptorsInsideClasses =
+            klasses.flatMap { it.staticScope.getDescriptorsFiltered { true } }
+                .flatMap {
+                    if (it is SimpleFunctionDescriptor && it.visibility.isPublicAPI) {
+                        listOf(it)
+                    } else if (it is ClassDescriptor) {
+                        it.unsubstitutedMemberScope.getDescriptorsFiltered { true }
+                            .filterIsInstance<SimpleFunctionDescriptor>()
+                    } else listOf(null)
+                }.filterNotNull()
+
+        val allFunDescriptors =
+            (descriptorDecl.filterIsInstance<SimpleFunctionDescriptor>() + funDescriptorsInsideClasses)
+        funDescriptors = allFunDescriptors.filter { it.name.asString() !in blockListOfFuncNames }
     }
 
-    fun generateForStandardType(type: KotlinType, needType: KotlinType): List<List<CallableDescriptor>> {
-        val resForType = gen(type, needType)
-        val resForSuperTypes = type.supertypes().getAllWithoutLast().flatMap { gen(it, needType) }.toList()
+    fun generateCallSequenceToGetType(fromType: KotlinType, toType: KotlinType): List<List<CallableDescriptor>> {
+        val resForType = gen(fromType, toType)
+        val resForSuperTypes = fromType.supertypes().getAllWithoutLast().flatMap { gen(it, toType) }.toList()
         val res = resForType + resForSuperTypes
         return res.filterDuplicatesBy { it.joinToString { it.name.asString() } }
     }
@@ -404,10 +421,8 @@ object StdLibraryGenerator {
                 .filterDuplicatesBy { it.name }
                 .map { it.name.asString().substringBefore('<') }.toMutableSet()
         implementations.add(type.toString().substringBefore('<'))
-        val funDescriptors =
-            descriptorDecl.filterIsInstance<SimpleFunctionDescriptor>()
         return funDescriptors.asSequence()
-            .filter { it.returnType?.toString()?.substringBefore('<') in implementations }
+            .filter { it.returnType?.getNameWithoutError()?.substringBefore('<') in implementations }
             .filter { it.returnType?.let { checkTypeParams(type, it) } ?: false }
             .filter {
                 it.extensionReceiverParameter?.value?.type?.let { !it.compareStringRepOfTypesWithoutTypeParams(type) }
@@ -484,9 +499,7 @@ object StdLibraryGenerator {
     }
 
     fun findImplementationFromFile(type: KotlinType, withoutInterfaces: Boolean = true): List<ClassDescriptor> =
-        type.constructor.declarationDescriptor!!
-            .findPackage().getMemberScope()
-            .getDescriptorsFiltered { true }.filterIsInstance<ClassDescriptor>()
+        getAllClassesFromPackageWhichContainsType(type)
             .filter { it.name.asString() != type.toString().substringBefore('<') }
             .filter { it.getAllSuperClassifiers().any { it.name.asString() == type.toString().substringBefore('<') } }
             .filter { (!it.defaultType.isInterface() && !it.defaultType.isAbstractClass()) || !withoutInterfaces }
@@ -521,10 +534,15 @@ object StdLibraryGenerator {
                 if (it is KtFile) it.getAllPSIChildrenOfType<KtClassOrObject>().map { it.name }
                 else it.getAllPSIChildrenOfType<PsiClass>().map { it.name }
             }.filterNotNull()
-        return packages.flatMap { it.memberScope.getDescriptorsFiltered { true } }
-            .filterIsInstance<ClassDescriptor>()
+        val classDescriptorsFromPackage = packages.flatMap { getAllClassesFromPackage(it) }
+        classDescriptorsFromPackage
             .filter { it.name.asString() in classesFromProject }
+            .forEach { userClasses.add(it) }
+        return userClasses
     }
+
+    fun getAllDescendantsFromStdLibrary(classDescriptor: ClassDescriptor): Set<ClassDescriptor> =
+        klasses.filter { it.getAllSuperClassifiers().any { it.name == classDescriptor.name } }.toSet()
 
     fun getDeclDescriptorOf(klassName: String): DeclarationDescriptor? =
         klasses.firstOrNull { it.name.asString() == klassName }

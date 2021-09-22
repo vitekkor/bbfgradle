@@ -12,21 +12,19 @@ import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
-import org.jetbrains.kotlin.resolve.calls.callUtil.getFunctionResolvedCallWithAssert
+import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.calls.callUtil.getResolvedCall
 import org.jetbrains.kotlin.resolve.calls.model.ExpressionValueArgument
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isNullable
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 class ChangeArgToAnotherValue : Transformation() {
 
-    val ctx = Transformation.ctx
 
     override fun transform() {
-        ctx ?: return
-        val randomInstancesGenerator = RandomInstancesGenerator(file as KtFile)
+        val ctx = PSICreator.analyze(file, project) ?: return
+        val randomInstancesGenerator = RandomInstancesGenerator(file as KtFile, ctx)
         for (func in file.getAllPSIChildrenOfType<KtNamedFunction>()) {
             val funcDescriptor =
                 func.getDeclarationDescriptorIncludingConstructors(ctx) as? FunctionDescriptor ?: continue
@@ -40,7 +38,7 @@ class ChangeArgToAnotherValue : Transformation() {
                         (arg.value as? ExpressionValueArgument)?.valueArgument?.getArgumentExpression() ?: continue
                     val replacement =
                         if (Random.getTrue(60)) {
-                            getAvailablePropsAndExpressionsOfCompTypes(argPSI, argType)
+                            getAvailablePropsAndExpressionsOfCompTypes(argPSI, argType, ctx)
                         } else {
                             null
                         } ?: randomInstancesGenerator.generateValueOfTypeAsExpression(argType)
@@ -53,9 +51,10 @@ class ChangeArgToAnotherValue : Transformation() {
 
     private fun getAvailablePropsAndExpressionsOfCompTypes(
         node: PsiElement,
-        type: KotlinType
+        type: KotlinType,
+        ctx: BindingContext
     ): KtExpression? {
-        val fillerGenerator = FillerGenerator(file as KtFile, ctx!!, mutableListOf())
+        val fillerGenerator = FillerGenerator(file as KtFile, ctx, mutableListOf())
         val potentialReplacement =
             (file as KtFile).getAvailableValuesToInsertIn(node, ctx)
                 .filter { it.second != null }
@@ -65,7 +64,7 @@ class ChangeArgToAnotherValue : Transformation() {
             return potentialReplacement.first
         }
         log.debug("Trying to get $type from ${potentialReplacement.second}")
-        val callDescriptors = StdLibraryGenerator.generateForStandardType(potentialReplacement.second, type)
+        val callDescriptors = StdLibraryGenerator.generateCallSequenceToGetType(potentialReplacement.second, type)
         return callDescriptors
             .take(2)
             .mapNotNull { fillerGenerator.handleCallSeq(it) }

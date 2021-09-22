@@ -10,7 +10,7 @@ data class CoverageEntry(
     constructor(pathToFun: String, methodName: String, parameters: String, returnType: String) : this(
         pathToFun,
         methodName,
-        parameters.split(";"),
+        parameters.let { if (it.isEmpty()) listOf() else it.split(";") },
         returnType
     )
 

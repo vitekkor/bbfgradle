@@ -1,76 +1,61 @@
 package com.stepanov.bbf.bugfinder.generator.targetsgenerators
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.util.*
-import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
-import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
-import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
-import org.jetbrains.kotlin.types.TypeProjectionImpl
-import org.jetbrains.kotlin.types.TypeSubstitutor
+import org.jetbrains.kotlin.types.*
+import org.jetbrains.kotlin.types.typeUtil.*
 
 object TypeParamsReplacer {
 
     fun throwTypeParams(
-        fromType: KotlinType,
-        targetDescriptor: FunctionDescriptor,
-        typeGenerator: RandomTypeGenerator
+        fromType: KotlinType?,
+        targetDescriptor: FunctionDescriptor
     ): Pair<FunctionDescriptor, Map<String, KotlinType?>>? {
         val retType = targetDescriptor.returnType!!
-        val realTypeParams = fromType.arguments.map { it.type }
-        val implSupertypeTypeParams = retType.arguments.map { it.type.toString() }
-        val typeParams = targetDescriptor.typeParameters.map {
-            val name = it.name.asString()
+        val realTypeParams = fromType?.arguments?.map { it.type.upperIfFlexible() } ?: emptyList()
+        val implSupertypeTypeParams = retType.arguments.map { it.type.name.toString() }
+        val oldToRealTypeParams = mutableMapOf<String, KotlinType?>()
+        for (tp in targetDescriptor.typeParameters) {
+            val name = tp.name.asString()
             val index = implSupertypeTypeParams
                 .indexOf(name)
                 .let { if (it == -1) implSupertypeTypeParams.indexOf("$name?") else it }
-            if (index != -1) {
-                realTypeParams[index]
-            } else {
-                typeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull())
-                //name
+            val upperBound = tp.upperBounds.firstOrNull()?.let { oldToRealTypeParams[it.name] ?: it }
+            val newTypeParameter =
+                if (index != -1 && !realTypeParams[index].isAnyOrNullableAny()) {
+                    realTypeParams[index]
+                } else {
+                    RandomTypeGenerator.generateRandomTypeWithCtx(upperBound)
+                }
+            if (newTypeParameter != null && upperBound != null && !weakCheckTypeParamsBounds(newTypeParameter, upperBound)) {
+                return null
             }
+            oldToRealTypeParams[name] = newTypeParameter
         }
-        val oldToRealTypeParams = targetDescriptor.typeParameters.map { it.name.asString() }.zip(typeParams).toMap()
+//        val typeParams = targetDescriptor.typeParameters.map {
+//            val name = it.name.asString()
+//            val index = implSupertypeTypeParams
+//                .indexOf(name)
+//                .let { if (it == -1) implSupertypeTypeParams.indexOf("$name?") else it }
+//            if (index != -1) {
+//                realTypeParams[index]
+//            } else {
+//                typeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull())
+//                //name
+//            }
+//        }
+        //val oldToRealTypeParams = targetDescriptor.typeParameters.map { it.name.asString() }.zip(typeParams).toMap()
         val substitutedDescriptor = substituteTypeParams(targetDescriptor, oldToRealTypeParams) ?: return null
         return substitutedDescriptor to oldToRealTypeParams
-
-
-//        val substituted = TypeSubstitutor.create(
-//            targetDescriptor.typeParameters
-//                .withIndex()
-//                .associateBy({ it.value.typeConstructor }) {
-//                    TypeProjectionImpl(oldToRealTypeParams[it.value.name.asString()]!!)
-//                }
-//        ).let { targetDescriptor.substitute(it) }!!
-//        val valueParams = substituted.valueParameters.joinToString { "${it.name}: ${it.type.getNameWithoutError()}" }
-//        val extRecAsString =
-//            substituted.extensionReceiverParameter?.let { " " + it.type.getNameWithoutError() + "." } ?: ""
-//        val res = StringBuilder().apply {
-//            append("fun")
-//            if (targetDescriptor.typeParameters.isNotEmpty()) {
-//                append(targetDescriptor.typeParameters.joinToString(prefix = " <", postfix = ">") {
-//                    it.name.asString()
-//                })
-//            }
-//            append(extRecAsString)
-//            append(" ${targetDescriptor.name}")
-//            append("($valueParams): ")
-//            append(fromType.getNameWithoutError())
-//            append(" = TODO()")
-//        }
-//        val func = Factory.psiFactory.createFunction(res.toString())
-//        return func to oldToRealTypeParams
     }
 
     fun throwTypeParams(
         fromType: KotlinType,
         targetDescriptor: ClassDescriptor,
-        typeGenerator: RandomTypeGenerator,
         withoutParams: Boolean = false
     ): Pair<FunctionDescriptor, Map<String, KotlinType?>>? {
         val implConstr =
@@ -86,19 +71,32 @@ object TypeParamsReplacer {
         val implSupertype =
             targetDescriptor.getAllSuperClassifiers()
                 .find { it.name.asString() == fromType.constructor.toString() } as? ClassDescriptor
-        val realTypeParams = fromType.arguments
+        val realTypeParams = fromType.arguments.map {
+            if (it is FlexibleType) {
+                it.upperBound.asTypeProjection()
+            } else {
+                it.type.asTypeProjection()
+            }
+        }
         val implSupertypeTypeParams = implSupertype!!.declaredTypeParameters.map { it.name }
-        val typeParams = targetDescriptor.declaredTypeParameters.map {
-            val name = it.name
+        val oldToRealTypeParams = mutableMapOf<String, KotlinType?>()
+        for (tp in targetDescriptor.declaredTypeParameters) {
+            val name = tp.name
             val index = implSupertypeTypeParams
                 .indexOf(name)
                 .let { if (it == -1) implSupertypeTypeParams.map { it.asString() }.indexOf("$name?") else it }
-            if (index != -1 && realTypeParams.size > index)
-                realTypeParams[index].type
-            else typeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull())
+            val upperBound = tp.upperBounds.firstOrNull()?.let { oldToRealTypeParams[it.name] ?: it }
+            val newTypeParameter =
+                if (index != -1 && realTypeParams.size > index && !realTypeParams[index].type.isAnyOrNullableAny()) {
+                    realTypeParams[index].type
+                } else {
+                    RandomTypeGenerator.generateRandomTypeWithCtx(upperBound)
+                }
+            if (newTypeParameter != null && upperBound != null && !weakCheckTypeParamsBounds(newTypeParameter, upperBound)) {
+                return null
+            }
+            oldToRealTypeParams[name.asString()] = newTypeParameter
         }
-        val oldToRealTypeParams =
-            targetDescriptor.declaredTypeParameters.map { it.name.asString() }.zip(typeParams).toMap()
         val substitutedDescriptor = substituteTypeParams(implConstr, oldToRealTypeParams) ?: return null
         return substitutedDescriptor to oldToRealTypeParams
 
@@ -129,6 +127,14 @@ object TypeParamsReplacer {
                 }
         )
     )
+
+    private fun weakCheckTypeParamsBounds(type: KotlinType, upperBound: KotlinType): Boolean {
+        val typeDescriptor = type.constructor.declarationDescriptor?.defaultType ?: return false
+        val upperBoundDescriptor = upperBound.constructor.declarationDescriptor?.defaultType ?: return false
+        if (typeDescriptor.name == "Any" && upperBoundDescriptor.name == "Any") return true
+        if (typeDescriptor.name == upperBoundDescriptor.name) return true
+        return typeDescriptor.supertypes().any { it.name == upperBoundDescriptor.name }
+    }
 
 
 //    private fun produceValueParamsForConstructor(

@@ -8,7 +8,7 @@ import java.io.File
 import java.util.*
 
 
-val COMMAND = if (CompilerArgs.isGuidedByCoverage) "gradle runBBFWithCoverage" else "gradle runBBF"
+val COMMAND = "gradle runBBF"//if (CompilerArgs.isGuidedByCoverage) "gradle runBBFWithCoverage" else "gradle runBBF"
 val TIMEOUT_SEC = Properties()
     .also { it.load(File("./bbf.conf").inputStream()) }
     .getProperty("BBF_TIMEOUT")?.toLongOrNull() ?: throw IllegalArgumentException("Can't init timeout value")

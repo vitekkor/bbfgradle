@@ -8,6 +8,7 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
+import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllChildrenOfCurLevel
@@ -30,6 +31,8 @@ import com.stepanov.bbf.bugfinder.util.kcheck.nextInRange
 import com.stepanov.bbf.bugfinder.util.kcheck.nextString
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -572,4 +575,16 @@ fun KtProperty.getVisibility() =
     }
 
 fun KtNamedFunction.getReturnType(context: BindingContext): KotlinType? =
+    if (this.isUnit()) DefaultKotlinTypes.unitType
+    else this.typeReference?.getAbbreviatedTypeOrType(context) ?: this.initializer?.getType(context)
+
+fun KtProperty.getPropertyType(context: BindingContext): KotlinType? =
     this.typeReference?.getAbbreviatedTypeOrType(context) ?: this.initializer?.getType(context)
+
+fun KtForExpression.getLoopParameterType(context: BindingContext): KotlinType? {
+    val loopRangeType = this.loopRange?.getType(context) ?: return null
+    val memberScope = loopRangeType.memberScope.getDescriptorsFiltered { true }
+    val member = memberScope.firstOrNull { it.name.asString() == "first" } as? PropertyDescriptor
+        ?: memberScope.firstOrNull { it.name.asString() == "get" } as? FunctionDescriptor
+    return member?.returnType
+}

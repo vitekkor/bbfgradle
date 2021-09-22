@@ -13,7 +13,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 import kotlin.system.exitProcess
 
-class SingleFileBugFinder(dir: String) : BugFinder(dir) {
+class SingleFileBugFinder(pathToFile: String) : BugFinder(pathToFile) {
 
     fun findBugsInFile() {
         println("Let's go")
@@ -55,7 +55,7 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
             return
         }
         log.debug("Start to mutate")
-        log.debug("BEFORE = ${project.files.first().text}")
+        log.debug("BEFORE = $project")
 //            CompilerArgs.isInstrumentationMode = false
         if (CompilerArgs.isGuidedByCoverage) {
             CoverageGuider.init("", project)

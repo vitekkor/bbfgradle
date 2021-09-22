@@ -25,7 +25,7 @@ class AddRandomComponent : Transformation() {
 
     private val ktFile = file as KtFile
     private val ctx = PSICreator.analyze(ktFile)
-    private val randomValueGenerator = RandomInstancesGenerator(ktFile)
+    private val randomValueGenerator = RandomInstancesGenerator(ktFile, ctx)
     private val rtg = RandomTypeGenerator
     private lateinit var table: FileFieldsTable
 
@@ -57,7 +57,7 @@ class AddRandomComponent : Transformation() {
     private fun addRandomProperty(psiClass: KtClassOrObject, gClass: GClass) {
         val randomPropertyGenerator = RandomPropertyGenerator(ktFile, ctx!!, gClass)
         val generatedProp =
-            if (Random.getTrue(30)) randomPropertyGenerator.generateInterestingProperty()?.first as? KtProperty
+            if (Random.getTrue(30)) randomPropertyGenerator.generateInterestingProperty(psiClass)?.first as? KtProperty
             else randomPropertyGenerator.generate() as? KtProperty
         if (generatedProp == null) return
         println(generatedProp.text + "\n")

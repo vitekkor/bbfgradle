@@ -270,6 +270,8 @@ inline fun <reified T : PsiElement> List<PsiElement>.getAllPSIChildrenOfType(): 
 
 fun PsiElement.getAllChildren(): List<PsiElement> = this.node.getAllChildrenNodes().map { it.psi }
 
+fun PsiElement.getAllChildrenWithItself(): List<PsiElement> = listOf(this) + this.getAllChildren()
+
 inline fun <reified T : PsiElement> PsiElement.containsChildOfType(): Boolean = this.node.children().any { it is T }
 
 fun ASTNode.isEqual(other: ASTNode): Boolean {

@@ -1,7 +1,7 @@
 buildscript {
     //Do not forget to update intellij core
-    ext.kotlin_version = '1.6.0-dev-1139'
-    ext.kotlin_plugin_version = '1.5.10'
+    ext.kotlin_version = '1.6.20-dev-1404'
+    ext.kotlin_plugin_version = '1.5.30'
 
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_plugin_version"
@@ -17,8 +17,6 @@ plugins {
 
 group 'com.stepanov.bbf'
 version '1.0'
-
-sourceCompatibility = 15
 
 repositories {
     mavenCentral()
@@ -63,7 +61,7 @@ ext {
 
 dependencies {
     //Intellij core
-    implementation group: 'com.android.tools.external.com-intellij', name: 'intellij-core', version: '30.1.0-alpha03'
+    implementation group: 'com.android.tools.external.com-intellij', name: 'intellij-core', version: '30.1.0-alpha10'
 
     //Log
     implementation "log4j:log4j:1.2.17"

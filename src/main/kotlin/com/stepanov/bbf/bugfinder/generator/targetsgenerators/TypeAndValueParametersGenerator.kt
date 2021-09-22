@@ -48,7 +48,7 @@ open class TypeAndValueParametersGenerator(val file: KtFile) {
     fun generateValueParameters(valueParameters: List<ValueParameterDescriptor>, depth: Int): List<String> {
         val res = mutableListOf<String>()
         for (param in valueParameters) {
-            val instance = RandomInstancesGenerator(file).generateValueOfType(param.type, depth + 1)
+            val instance = RandomInstancesGenerator(file, rtg.ctx).generateValueOfType(param.type, depth + 1)
             res.add(instance)
         }
         return res.filter { it.isNotEmpty() }

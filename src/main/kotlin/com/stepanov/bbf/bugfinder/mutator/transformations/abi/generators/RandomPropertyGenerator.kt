@@ -7,6 +7,7 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GStruc
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.backend.common.serialization.findPackage
+import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
@@ -80,20 +81,22 @@ class RandomPropertyGenerator(
     }
 
     //RTV: psi to prop type
-    fun generateInterestingProperty(): Pair<PsiElement, KotlinType?>? {
+    fun generateInterestingProperty(klass: KtClassOrObject): Pair<PsiElement, KotlinType?>? {
         if (Random.getTrue(20)) return generateDelegate()
         //Get classes which are supertypes of us
-        val klasses = file.getAllPSIChildrenOfType<KtTypeReference>()
-            .mapNotNull { it.getAbbreviatedTypeOrType(ctx)?.constructor?.declarationDescriptor?.findPackage() }
-            .firstOrNull { it.fqName == file.packageFqName }
-            ?.getMemberScope()?.getDescriptorsFiltered { true }
-            ?.filterIsInstance<ClassDescriptor>() ?: return null
+//        val superClasses = file.getAllPSIChildrenOfType<KtTypeReference>()
+//            .mapNotNull { it.getAbbreviatedTypeOrType(ctx)?.constructor?.declarationDescriptor?.findPackage() }
+//            .firstOrNull { it.fqName == file.packageFqName }
+//            ?.getMemberScope()?.getDescriptorsFiltered { true }
+//            ?.filterIsInstance<ClassDescriptor>() ?: return null
+        val classDescriptor = klass.getDeclarationDescriptorIncludingConstructors(ctx) as? ClassDescriptor ?: return null
+        val superClasses = classDescriptor.getAllSuperClassifiersWithoutAnyAndItself().toList().mapNotNull { it as? ClassDescriptor }
         val children =
-            klasses.filter {
+            superClasses.filter {
                 it.name.asString() != gClass.name &&
                         it.getAllSuperClassifiers().any { it.name.asString() == gClass.name }
             }
-        if (Random.getTrue(30) || children.isEmpty()) return generateInterestingProperty1(klasses)
+        if (Random.getTrue(30) || children.isEmpty()) return generateInterestingProperty1(superClasses)
         val child = children.randomOrNull() ?: return null
         val overrides =
             child.defaultType.memberScope.getDescriptorsFiltered { true }

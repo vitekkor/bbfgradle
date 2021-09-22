@@ -1,30 +1,33 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.checkers.CoverageGuider
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.checkers.TracesChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
-import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
-import com.stepanov.bbf.bugfinder.util.addAtTheEnd
-import com.stepanov.bbf.bugfinder.util.debugPrint
-import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
+import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import coverage.CoverageEntry
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
-import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
-import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtProperty
-import org.jetbrains.kotlin.psi.KtSimpleNameExpression
+import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.types.TypeSubstitutor
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
@@ -37,7 +40,68 @@ fun main(args: Array<String>) {
         Logger.getLogger("reducerLogger").level = Level.OFF
         Logger.getLogger("transformationManagerLog").level = Level.OFF
     }
-
+//    var fl = false
+//    for (f in File("tmp/arrays").listFiles().filter { it.isFile && it.path.endsWith("kt") }) {
+//        if (f.name == "typeToStringInnerGeneric.kt") fl = true
+//        if (!fl) continue
+//        println(f.name)
+//        //val p = Project.createFromCode(f.readText())
+//        val p = Project.createFromCode(File("tmp/myTest.kt").readText())
+//        val ktFile = p.files.first().psiFile as? KtFile ?: continue
+//        val ctx = PSICreator.analyze(ktFile, p) ?: continue
+//        val classes = ktFile.getAllPSIChildrenOfType<KtClass>()
+//        val cl = classes.last().getDeclarationDescriptorIncludingConstructors(ctx) as ClassDescriptor
+//        val randomInstanceGenerator = RandomInstancesGenerator(ktFile)
+//        val rtg = RandomTypeGenerator
+//        rtg.setFileAndContext(ktFile, ctx)
+//        //check flatMap
+//        val type = rtg.generateType("ArrayDeque<Boolean?>")!!
+//        repeat(500) {
+//            println(randomInstanceGenerator.generateValueOfType(type))
+//        }
+//        exitProcess(0)
+//        classes.forEach { cl ->
+//            if (cl.isAnnotation()) return@forEach
+//            val interfaceType = (cl.getDeclarationDescriptorIncludingConstructors(ctx) as? ClassDescriptor)?.defaultType
+//            if (interfaceType == null) {
+//                println("CANT GET TYPE FOR ${cl.text}")
+//                return@forEach
+//            }
+//            val instance = randomInstanceGenerator.generateValueOfType(interfaceType)
+//            println("INSTANCE = ${instance}")
+//            if (instance.isEmpty()) {
+//                println("CANT GET INSTANCE FOR ${cl.text}")
+//            }
+//        }
+//    }
+//    exitProcess(0)
+//
+//    exitProcess(0)
+//    println(JVMCompiler("-Xuse-old-backend").checkCompiling(p))
+//    //ProjectInstrumenter.instrument()
+//    exitProcess(0)
+//    val p = Project.createFromCode(File("/home/zver/IdeaProjects/bbfgradle/tmp/arrays/all-compatibility.kt").readText())
+//    println(JVMCompiler("-Xuse-old-backend").checkCompiling(p))
+//    val files = File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }!!.toList()
+//    val sumCov = mutableSetOf<CoverageEntry>()
+//    for (f in files) {
+//        println(f.name)
+//        //if (f.name != "slowHtmlLikeDsl.kt") continue
+//        val p = Project.createFromCode(f.readText())
+//        //println(f.name)
+//        CoverageGuider.init("", p)
+//        val cov = CoverageGuider.getCoverage(p, listOf(JVMCompiler()))
+//        sumCov += cov.keys.toList()
+//        val intersect = sumCov.intersect(CoverageGuider.desiredCoverage)
+//        println("INTERSECT = ${intersect.size}")
+//        val diff = CoverageGuider.desiredCoverage - sumCov
+//        println("DIFF = ${diff.size}")
+//        if (diff.isEmpty()) {
+//            println("EEEE")
+//            exitProcess(0)
+//        }
+//    }
+//    println(sumCov.intersect(CoverageGuider.desiredCoverage))
     val file = File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
     SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)

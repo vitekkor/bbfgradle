@@ -41,7 +41,7 @@ object UsagesSamplesGenerator {
     ): List<Triple<KtExpression, String, KotlinType?>> {
         file = _file
         ctx = _ctx
-        instanceGenerator = RandomInstancesGenerator(file)
+        instanceGenerator = RandomInstancesGenerator(file, ctx)
         randomTypeGenerator.setFileAndContext(file, ctx)
         val res = mutableListOf<KtExpression>()
         generateForKlasses(file, project, res)
@@ -102,7 +102,7 @@ object UsagesSamplesGenerator {
     ): List<Pair<KtExpression, KotlinType?>> {
         file = _file as KtFile
         ctx = _ctx
-        instanceGenerator = RandomInstancesGenerator(file)
+        instanceGenerator = RandomInstancesGenerator(file, ctx)
         randomTypeGenerator.setFileAndContext(file, ctx)
         val (instanceOfClass, classType) =
             instanceGenerator.classInstanceGenerator.generateRandomInstanceOfUserClass(classDescriptor.defaultType)
@@ -145,7 +145,7 @@ object UsagesSamplesGenerator {
             val openFuncsAndProps = mutableListOf<String>()
             val genRes =
                 instanceGenerator.classInstanceGenerator.generateRandomInstanceOfUserClass(klassDescriptor.defaultType)
-                    ?: null to null
+                    ?: (null to null)
             val instanceOfKlass = genRes.first ?: continue
             res.add(instanceOfKlass as KtExpression)
             var klassType = genRes.second

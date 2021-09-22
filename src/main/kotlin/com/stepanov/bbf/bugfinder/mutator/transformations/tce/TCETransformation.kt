@@ -102,6 +102,7 @@ class TCETransformation : Transformation() {
                 .shuffled()
         log.debug("Trying to change ${nodesForChange.size} nodes")
         for (i in nodesForChange.indices) {
+            if (i >= nodesForChange.size) break
             if (Random.getTrue(50)) continue
             val node = nodesForChange.randomOrNull() ?: continue
             log.debug("replacing ${node.first.text to node.second?.toString()}")

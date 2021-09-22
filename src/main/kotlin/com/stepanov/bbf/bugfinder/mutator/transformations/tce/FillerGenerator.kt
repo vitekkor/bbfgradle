@@ -36,7 +36,7 @@ class FillerGenerator(
     fun generateExpressionOfType(type: KotlinType, depth: Int = 0): KtExpression? {
         val randomUsage = generatedUsages.randomOrNull() ?: return null
         val isNullable = randomUsage.third!!.isNullable()
-        return StdLibraryGenerator.generateForStandardType(randomUsage.third!!, type)
+        return StdLibraryGenerator.generateCallSequenceToGetType(randomUsage.third!!, type)
             .random()
             .let { handleCallSeq(it) }
             ?.let {
@@ -109,7 +109,7 @@ class FillerGenerator(
             log.debug("GETTING ${neededType} from ${el.third.toString()}")
             if (checkedTypes.contains(el.third!!.toString())) continue
             checkedTypes.add(el.third!!.toString())
-            StdLibraryGenerator.generateForStandardType(el.third!!, neededType)
+            StdLibraryGenerator.generateCallSequenceToGetType(el.third!!, neededType)
                 .filter { it.isNotEmpty() }
                 .shuffled()
                 .take(10)
@@ -159,7 +159,7 @@ class FillerGenerator(
         val valueParams = func.valueParameters.map { vp ->
             val fromUsages = generatedUsages.filter { usage -> "${vp.type}".trim() == "${usage.third}".trim() }
             if (fromUsages.isNotEmpty() && Random.getTrue(70)) fromUsages.random().second
-            else RandomInstancesGenerator(psi).generateValueOfType(vp.type)
+            else RandomInstancesGenerator(psi, ctx).generateValueOfType(vp.type)
             //getInsertableExpressions(Pair(it, it.typeReference?.getAbbreviatedTypeOrType()), 1).randomOrNull()
         }
         if (valueParams.any { it.isEmpty() }) {
