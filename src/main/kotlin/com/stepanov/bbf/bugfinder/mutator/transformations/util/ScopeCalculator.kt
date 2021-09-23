@@ -2,14 +2,16 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.util
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.tryToCreateExpression
+import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllChildrenWithItself
 import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
-import org.jetbrains.kotlin.descriptors.ClassDescriptor
-import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
+import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.isPropertyParameter
 import org.jetbrains.kotlin.psi.psiUtil.isTopLevelKtOrJavaMember
@@ -20,6 +22,7 @@ import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.collections.flatMap
+import kotlin.random.Random
 
 class ScopeCalculator(private val file: KtFile, private val project: Project) {
 
@@ -146,7 +149,59 @@ class ScopeCalculator(private val file: KtFile, private val project: Project) {
         return true
     }
 
-    data class ScopeComponent(val psiElement: PsiElement, val declaration: DeclarationDescriptor?, val type: KotlinType)
+    data class ScopeComponent(
+        val psiElement: PsiElement,
+        val declaration: DeclarationDescriptor?,
+        val type: KotlinType
+    ) {
+
+        fun makeExpressionToInsertFromPsiElement(randomInstancesGenerator: RandomInstancesGenerator): ScopeComponent {
+            val expressionToCall =
+                when (declaration) {
+                    is PropertyDescriptor -> {
+                        declaration.name.asString()
+                    }
+                    is ParameterDescriptor -> {
+                        declaration.name.asString()
+                    }
+                    is VariableDescriptor -> {
+                        declaration.name.asString()
+                    }
+                    is FunctionDescriptor -> {
+                        generateCallExpr(declaration, listOf(), randomInstancesGenerator)?.text ?: ""
+                    }
+                    else -> {
+                        psiElement.text
+                    }
+                }.let { Factory.psiFactory.tryToCreateExpression(it) }
+            return ScopeComponent(psiElement, declaration, type)
+        }
+
+        //We are not expecting typeParams
+        private fun generateCallExpr(
+            func: CallableDescriptor,
+            scopeElements: List<ScopeCalculator.ScopeComponent>,
+            rig: RandomInstancesGenerator
+        ): KtExpression? {
+            Transformation.log.debug("GENERATING call of type $func")
+            val name = func.name
+            val valueParams = func.valueParameters.map { vp ->
+                val fromUsages = scopeElements.filter { usage ->
+                    vp.type.getNameWithoutError().trim() == usage.type.getNameWithoutError().trim()
+                }
+                if (fromUsages.isNotEmpty() && Random.getTrue(80)) fromUsages.random().psiElement.text
+                else rig.generateValueOfType(vp.type)
+                //getInsertableExpressions(Pair(it, it.typeReference?.getAbbreviatedTypeOrType()), 1).randomOrNull()
+            }
+            if (valueParams.any { it.isEmpty() }) {
+                Transformation.log.debug("CANT GENERATE PARAMS FOR $func")
+                return null
+            }
+            val inv = "$name(${valueParams.joinToString()})"
+            return Factory.psiFactory.tryToCreateExpression(inv)
+        }
+
+    }
 
 
 }

@@ -50,7 +50,7 @@ class ExpressionReplacer : Transformation() {
         }
     }
 
-    fun replaceExpression(exp: KtExpression, expType: KotlinType): Boolean {
+    private fun replaceExpression(exp: KtExpression, expType: KotlinType): Boolean {
         if (expType.getNameWithoutError() in blockListOfTypes) return false
         val scope = ScopeCalculator(file as KtFile, project).calcScope(exp).shuffled()
         val processedScope = mutableListOf<ScopeCalculator.ScopeComponent>()

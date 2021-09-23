@@ -22,5 +22,6 @@ object DefaultKotlinTypes {
     val unitType = rtg.generateType("Unit")!!
     val anyType = rtg.generateType("Any")
     val nullableAny = rtg.generateType("Any?")
+    val intType = rtg.generateType("Int")!!
 
 }

@@ -23,11 +23,9 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.descriptorUtil.parentsWithSelf
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
-import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typeUtil.*
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 //TODO add project
 open class RandomInstancesGenerator(private val file: KtFile, private var ctx: BindingContext?) {
@@ -306,24 +304,36 @@ open class RandomInstancesGenerator(private val file: KtFile, private var ctx: B
         return searchForImplementation(type, depth + 1, onlyImpl, withoutParams)
     }
 
-    fun searchForImplementation(
+    //TODO!!!
+    private fun replaceTypeParamsByRandomGenerated(type: KotlinType): KotlinType? {
+        val classDescriptor = type.constructor.declarationDescriptor as? ClassDescriptor ?: return null
+        return null
+    }
+
+    private fun searchForImplementation(
         type: KotlinType,
         depth: Int,
         onlyImpl: Boolean = false,
         withoutParams: Boolean = false
     ): String {
-        var funcs = StdLibraryGenerator.searchForFunWithRetType(type.makeNotNullable())
-        if (type.getAllTypeParams().any { it.type.isInterface() })
+        val typeWOTypeParams =
+            if (type.arguments.any { it.type.isTypeParameter() }) {
+                replaceTypeParamsByRandomGenerated(type) ?: return ""
+            }
+            else {
+                type
+            }
+        var funcs = StdLibraryGenerator.searchForFunWithRetType(typeWOTypeParams.makeNotNullable())
+        if (typeWOTypeParams.getAllTypeParams().any { it.type.isInterface() })
             funcs = funcs.filter { it.valueParameters.all { !it.type.isTypeParameter() } }
         funcs =
             funcs
                 .filterNot { it.annotations.any { it.fqName?.asString()?.contains("Deprecated") ?: false } }
                 .sortedBy { it.valueParameters.size }
-        //.takeLast(1) //TODO!!!
-        val implementations = StdLibraryGenerator.findImplementationOf(type.makeNotNullable())
+        val implementations = StdLibraryGenerator.findImplementationOf(typeWOTypeParams.makeNotNullable())
         if (funcs.isEmpty() && implementations.isEmpty()) return ""
         //TODO fix this
-        if (type.toString().startsWith("Sequence")) funcs = listOf(funcs[1], funcs.last())
+        if (typeWOTypeParams.toString().startsWith("Sequence")) funcs = listOf(funcs[1], funcs.last())
         val prob = if (funcs.size > implementations.size) 75 else 25
         val randomFunc =
             if (depth > 2 && Random.getTrue(70) && funcs.isNotEmpty()) {
@@ -361,8 +371,8 @@ open class RandomInstancesGenerator(private val file: KtFile, private var ctx: B
             return generateDefValuesAsString(el.name.asString())
         ctx?.let { randomTypeGenerator.setFileAndContext(file, it) } ?: return ""
         val (resFunDescriptor, typeParams) = when (el) {
-            is SimpleFunctionDescriptor -> TypeParamsReplacer.throwTypeParams(type, el)
-            is ClassDescriptor -> TypeParamsReplacer.throwTypeParams(type, el, withoutParams)
+            is SimpleFunctionDescriptor -> TypeParamsReplacer.throwTypeParams(typeWOTypeParams, el)
+            is ClassDescriptor -> TypeParamsReplacer.throwTypeParams(typeWOTypeParams, el, withoutParams)
             else -> return ""
         } ?: return ""
         val invocation =

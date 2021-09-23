@@ -72,59 +72,30 @@ class Mutator(val project: Project) {
         val ktx = PSICreator.analyze(checker.curFile.psiFile, checker.project) ?: return
         val ktFile = checker.curFile.psiFile as KtFile
         RandomTypeGenerator.setFileAndContext(ktFile, ktx)
-//        val randomInstancesGenerator = RandomInstancesGenerator(ktFile, ktx)
-//        val funInvocationGenerator = FunInvocationGenerator(ktFile)
-//        val func = ktFile.getAllPSIChildrenOfType<KtNamedFunction>().filter { it.isTopLevel }
-//        for (f in func) {
-//            //if (f.name != "foo3") continue
-//            println("CALL OF FUNC ${f.text} is:\n")
-//            //println(randomInstancesGenerator.generateTopLevelFunctionCall(f)?.first?.text)
-//            repeat(100) {
-//                println(funInvocationGenerator.generateTopLevelFunInvocation(f, ktx)?.text)
-//            }
-//            println("-------------------------------")
-//            exitProcess(0)
-//        }
-//        //executeMutation(ExpressionReplacer(), 100)
-//        exitProcess(0)
-//        RandomTypeGenerator.setFileAndContext(ktFile, ktx)
-//        val rig = RandomInstancesGenerator(ktFile, ktx)
-//        repeat(500) {
-//            val randomType = RandomTypeGenerator.generateRandomTypeWithCtx() ?: return@repeat
-//            //println("Type: $randomType")
-//            val value = rig.generateValueOfType(randomType)
-//            println(value)
-//            //println("Value: $value")
-//            //println("----------------------------------------------")
-//        }
-//        exitProcess(0)
-//        executeMutation(ExpressionReplacer(), 100)
-//        executeMutation(AddRandomComponent(), 100)
-//        println("RES = ${checker.project}")
-//        println("CHECK COMP = ${checker.checkCompiling()}")
-//        exitProcess(0)
         val mut1 = listOf(
             ChangeRandomASTNodesFromAnotherTrees() to 75,
-            AddTryExpression() to 100,
-            AddRandomControlStatements() to 100,
-            AddLoop() to 100,
-            AddLabels() to 100,
+            AddTryExpression() to 50,
+            AddRandomControlStatements() to 50,
+            AddLoop() to 75,
+            AddLabels() to 50,
             ChangeRandomASTNodes() to 75,
             ChangeTypes() to 75,
-            ChangeRandomASTNodes() to 25,
-            LocalTCE() to 75,
+            //ChangeRandomASTNodes() to 25,
+            LocalTCE() to 100,
             TCETransformation() to 25,
-            AddFunInvocations() to 75,
+            AddFunInvocations() to 50,
             AddCasts() to 75,
             AddDefaultValueToArg() to 50,
-            AddCallableReference() to 50,
+            AddCallableReference() to 25,
             AddRandomComponent() to 50,
-            ExpressionReplacer() to 75,
+            ExpressionReplacer() to 100,
             ChangeArgToAnotherValue() to 50,
-            ExpressionObfuscator() to 50,
-            ShuffleFunctionArguments() to 50,
+            //ExpressionObfuscator() to 50,
+            //ShuffleFunctionArguments() to 50,
             AddPossibleModifiers() to 50,
-            AddInheritance() to 50
+            AddInheritance() to 25,
+            ReplaceDotExpression() to 50,
+            AddExpressionToLoop() to 50
         ).shuffled()
         for (i in 0 until Random.nextInt(1, 3)) {
             mut1.forEach { executeMutation(it.first, it.second) }

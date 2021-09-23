@@ -22,7 +22,7 @@ object PerformanceOracle {
         if (compilers.size != 2) return
         val firstCompiler = compilers.first()
         val secondCompiler = compilers.last()
-        println("COMP INITIALIZING")
+        println("COMP INITIALIZATION")
         val compilationTimes =
             Array(10) { 0 }.map {
                 firstCompiler.tryToCompileWithStatusAndExecutionTime(project).second to
@@ -34,27 +34,73 @@ object PerformanceOracle {
         println(diffOfCompilationTimes)
         val averageCompilationDeviation = diffOfCompilationTimes.average()
         val compilationVariance = diffOfCompilationTimes.map { (it - averageCompilationDeviation).pow(2) }.average()
-        compilationSigma = sqrt(compilationVariance)
+        compilationSigma = sqrt(compilationVariance) * 3
         compilationConfInterval =
             averageCompilationDeviation - compilationSigma to averageCompilationDeviation + compilationSigma
-        println("COMP INITIALIZING DONE")
-        println("EXECUTUION INITIALIZING")
+        println("COMP INITIALIZATION DONE")
+        println("EXECUTUION INITIALIZATION")
         val executionTimes =
             compilers.map { compiler ->
                 val compiled = compiler.compile(project)
-                Array(20) { 0 }.map {
+                Array(5) { 0 }.map {
                     compiler.getExecutionTime(compiled.pathToCompiled).second
                 }
             }
+        executionTimes.forEach { println(it) }
         val diffOfExecutionTimes =
             executionTimes.first()
                 .mapIndexed { index, l -> l to executionTimes.last()[index] }
                 .map { abs(it.first.toDouble() / it.second) }
+        println(diffOfExecutionTimes)
         val averageExecutionDeviation = diffOfExecutionTimes.average()
         val executionVariance = diffOfExecutionTimes.map { (it - averageExecutionDeviation).pow(2) }.average()
-        executionSigma = sqrt(executionVariance)
+        executionSigma = sqrt(executionVariance) * 2
         executionConfInterval = averageExecutionDeviation - executionSigma to averageExecutionDeviation + executionSigma
-        println("EXECUTUION INITIALIZING DONE")
+        println("EXECUTUION INITIALIZATION DONE")
+    }
+
+    fun initWithAverageResults(project: Project, compilers: List<CommonCompiler>): Pair<Double, Double>? {
+        this.project = project
+        this.compilers = compilers
+        if (compilers.size != 2) return null
+        val firstCompiler = compilers.first()
+        val secondCompiler = compilers.last()
+        println("COMP INITIALIZATION")
+        val compilationTimes =
+            Array(10) { 0 }.map {
+                firstCompiler.tryToCompileWithStatusAndExecutionTime(project).second to
+                        secondCompiler.tryToCompileWithStatusAndExecutionTime(project).second
+            }.drop(3)
+        println(compilationTimes)
+        val diffOfCompilationTimes =
+            compilationTimes.map { abs(it.first.toDouble() / it.second) }
+        println(diffOfCompilationTimes)
+        val averageCompilationDeviation = diffOfCompilationTimes.average()
+        val compilationVariance = diffOfCompilationTimes.map { (it - averageCompilationDeviation).pow(2) }.average()
+        compilationSigma = sqrt(compilationVariance) * 3
+        compilationConfInterval =
+            averageCompilationDeviation - compilationSigma to averageCompilationDeviation + compilationSigma
+        println("COMP INITIALIZATION DONE")
+        println("EXECUTUION INITIALIZATION")
+        val executionTimes =
+            compilers.map { compiler ->
+                val compiled = compiler.compile(project)
+                Array(5) { 0 }.map {
+                    compiler.getExecutionTime(compiled.pathToCompiled).second
+                }
+            }
+        executionTimes.forEach { println(it) }
+        val diffOfExecutionTimes =
+            executionTimes.first()
+                .mapIndexed { index, l -> l to executionTimes.last()[index] }
+                .map { abs(it.first.toDouble() / it.second) }
+        println(diffOfExecutionTimes)
+        val averageExecutionDeviation = diffOfExecutionTimes.average()
+        val executionVariance = diffOfExecutionTimes.map { (it - averageExecutionDeviation).pow(2) }.average()
+        executionSigma = sqrt(executionVariance) * 2
+        executionConfInterval = averageExecutionDeviation - executionSigma to averageExecutionDeviation + executionSigma
+        println("EXECUTUION INITIALIZATION DONE")
+        return averageCompilationDeviation to averageExecutionDeviation
     }
 
 

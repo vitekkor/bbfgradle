@@ -22,6 +22,30 @@ fun main(args: Array<String>) {
         Logger.getLogger("reducerLogger").level = Level.OFF
         Logger.getLogger("transformationManagerLog").level = Level.OFF
     }
+    val file =
+        if (Random.getTrue(10)) {
+            File("tmp/results/performance/").listFiles().randomOrNull() ?: exitProcess(0)
+        } else {
+            File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
+        }
+    SingleFileBugFinder(file.absolutePath).findBugsInFile()
+    exitProcess(0)
+//    val results = mutableMapOf<String, Pair<Double, Double>>()
+//    for (f in File("/home/zver/IdeaProjects/kotlinBugs/performance/").listFiles()) {
+//        if (f.name != "xonreqs_PROJECT.kt") continue
+//        println(f.name)
+//        val p = Project.createFromCode(f.readText())
+//        if (!JVMCompiler().checkCompiling(p)) continue
+//        val (a, b) = PerformanceOracle.initWithAverageResults(p, CompilerArgs.getCompilersList()) ?: (-1.0 to -1.0)
+//        println("AVERAGE COMP DEVIATION = $a")
+//        println("AVERAGE EXEC DEVIATION = $b")
+//        results[f.name] = a to b
+//        println("---------------------------------------")
+//    }
+//    results.entries.sortedByDescending { it.value.first }.forEach(::println)
+//    println("EXECUTION:")
+//    results.entries.sortedByDescending { it.value.second }.forEach(::println)
+//    exitProcess(0)
 //    JVMCompiler("").tryToCompile(Project.createFromCode("fun main(){ val a = 1 } "))
 //    for (f in File("tmp/arrays").listFiles().filter { it.isFile && it.path.endsWith("kt") }) {
 //        println(f.name)
@@ -100,16 +124,6 @@ fun main(args: Array<String>) {
 //        }
 //    }
 //    println(sumCov.intersect(CoverageGuider.desiredCoverage))
-    val file =
-        if (Random.getTrue(10)) {
-            File("tmp/results/performance/").listFiles().randomOrNull() ?: exitProcess(0)
-        } else {
-            File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
-        }
-
-
-
-    SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 //    val parser = ArgumentParsers.newFor("bbf").build()
 //    parser.addArgument("-r", "--reduce")

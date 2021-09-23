@@ -1,15 +1,24 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.tryToCreateExpression
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.util.ScopeCalculator
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import org.jetbrains.kotlin.fir.StandardTypes
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.types.replace
+import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
+import org.jetbrains.kotlin.types.typeUtil.isBoolean
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 class AddLoop : Transformation() {
 
@@ -44,14 +53,18 @@ class AddLoop : Transformation() {
     private fun generateRandomLoop(placeToInsert: Pair<Int, Int>): KtExpression? {
         val beginningNode =
             file.getNodesBetweenWhitespaces(placeToInsert.first, placeToInsert.first)
-                .firstOrNull { it !is PsiWhiteSpace } ?: return null
+                .firstOrNull { it is KtExpression } ?: return null
         val ctx = PSICreator.analyze(file, checker.project) ?: return null
         val rig = RandomInstancesGenerator(file as KtFile, ctx)
         RandomTypeGenerator.setFileAndContext(file as KtFile, ctx)
-        val scope = (file as KtFile).getAvailableValuesToInsertIn(beginningNode, ctx).filter { it.second != null }
+        val scope =
+            ScopeCalculator(file as KtFile, project)
+                .calcScope(beginningNode)
+                .map { it.psiElement to it.type }
+        //val scope = (file as KtFile).getAvailableValuesToInsertIn(beginningNode, ctx).filter { it.second != null }
         val nodesBetweenWhS = file.getNodesBetweenWhitespaces(placeToInsert.first, placeToInsert.second)
         val body = nodesBetweenWhS.filter { it.parent !in nodesBetweenWhS }.joinToString("") { it.text }
-        return if (Random.getTrue(65)) {
+        return if (Random.getTrue(75)) {
             generateForExpression(scope, rig, body)
         } else {
             generateWhileExpression(scope, rig, body)
@@ -59,7 +72,7 @@ class AddLoop : Transformation() {
     }
 
     private fun generateForExpression(
-        scope: List<Pair<KtExpression, KotlinType?>>,
+        scope: List<Pair<PsiElement, KotlinType?>>,
         rig: RandomInstancesGenerator,
         body: String
     ): KtExpression? {
@@ -70,7 +83,7 @@ class AddLoop : Transformation() {
         val loopRange =
             if (containerFromScopeToIterate.isNotEmpty() && Random.getTrue(50)) {
                 containerFromScopeToIterate.random().first
-            } else if (variablesFromScopeToIterate.isNotEmpty() && Random.getTrue(60)) {
+            } else if (variablesFromScopeToIterate.isNotEmpty() && Random.getTrue(20)) {
                 val randomVar = variablesFromScopeToIterate.random()
                 val left = randomVar.first
                 val rightFromScope =
@@ -79,16 +92,21 @@ class AddLoop : Transformation() {
                 val right =
                     if (rightFromScope != null && Random.getTrue(50))
                         rightFromScope.first
-                    else RandomInstancesGenerator(file as KtFile, ctx).generateValueOfTypeAsExpression(randomVar.second!!)!!
+                    else rig.generateValueOfTypeAsExpression(randomVar.second!!)!!
                 Factory.psiFactory.createExpression("${left.text}..${right.text}")
             } else {
-                val randomType = RandomTypeGenerator.generateType(typesToIterate.random())!!
-                val left = rig.generateValueOfType(randomType)
-                val right = rig.generateValueOfType(randomType)
-                Factory.psiFactory.createExpression("$left..$right")
+                var resExpr: KtExpression? = null
+                for (i in 0 until 10) {
+                    val randomClassToIterate = getRandomClassToIterate()
+                    val instance = rig.generateValueOfType(randomClassToIterate)
+                    resExpr = Factory.psiFactory.tryToCreateExpression(instance)
+                    if (resExpr != null) break
+                }
+                resExpr
             }
+        if (loopRange == null) return null
         val label =
-            if (Random.getTrue(50)) "${Random.getRandomVariableName(1)}@"
+            if (Random.getTrue(25)) "${Random.getRandomVariableName(1)}@"
             else ""
         val loopParameter = Random.getRandomVariableName(1)
         val forExpression = "$label for ($loopParameter in ${loopRange.text}) { $body\n}"
@@ -102,25 +120,25 @@ class AddLoop : Transformation() {
     }
 
     private fun generateWhileExpression(
-        scope: List<Pair<KtExpression, KotlinType?>>,
+        scope: List<Pair<PsiElement, KotlinType?>>,
         rig: RandomInstancesGenerator,
         body: String
     ): KtExpression? {
         val label =
             if (Random.getTrue(50)) "${Random.getRandomVariableName(1)}@"
             else ""
-        val randomExpression = scope.filter { it.second != null }.randomOrNull()
-        val whileCondition =
-            if (randomExpression != null && Random.getTrue(80)) {
-                val newExpression = rig.generateValueOfTypeAsExpression(randomExpression.second!!)
-                if (newExpression == null) {
-                    "${randomExpression.first.text} != ${randomExpression.first.text}"
-                } else {
-                    "${randomExpression.first.text} != ${newExpression.text}"
-                }
-            } else {
-                "true == true"
-            }
+        val randomExpression = scope.filter { it.second?.isBoolean() == true }.randomOrNull()
+        val whileCondition = randomExpression?.first?.text
+//            if (randomExpression != null && Random.getTrue(80)) {
+//                val newExpression = rig.generateValueOfTypeAsExpression(randomExpression.second!!)
+//                if (newExpression == null) {
+//                    "${randomExpression.first.text} != ${randomExpression.first.text}"
+//                } else {
+//                    "${randomExpression.first.text} != ${newExpression.text}"
+//                }
+//            } else {
+//                "true == true"
+//            }
         return try {
             val strWhile =
                 if (Random.getTrue(70)) {
@@ -128,12 +146,30 @@ class AddLoop : Transformation() {
                 } else {
                     "$label do {\n$body\n} while($whileCondition)"
                 }
-            Factory.psiFactory.createExpression(strWhile)
+            Factory.psiFactory.tryToCreateExpression(strWhile)
         } catch (e: Exception) {
             null
         }
     }
 
+    private fun getRandomClassToIterate(): KotlinType {
+        val randomClass = randomClassesToIterate.random()
+        //Substitute type parameters
+        val realTypeParams = randomClass.typeConstructor.parameters.map {
+            RandomTypeGenerator.generateRandomTypeWithCtx(it.upperBounds.firstOrNull()) ?: DefaultKotlinTypes.intType
+        }
+        return randomClass.defaultType.replace(realTypeParams.map { it.asTypeProjection() })
+    }
+
+    private val randomClassesToIterate =
+        StdLibraryGenerator.klasses
+            .filter {
+                it.getAllSuperClassifiersWithoutAnyAndItself()
+                    .map { it.name.asString() }
+                    .let { it.contains("Iterable") || it.contains("ClosedRange") }
+            }
+            .filterDuplicatesBy { it.name }
+
     private val typesToIterate = listOf("Byte", "UByte", "Char", "Int", "UInt", "Long", "ULong", "Short", "UShort")
-    private val RANDOM_CONST = Random.nextInt(100, 150)
+    private val RANDOM_CONST = Random.nextInt(25, 50)
 }

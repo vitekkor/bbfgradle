@@ -75,11 +75,15 @@ abstract class CommonCompiler {
             executor.execute(cmdLine)
         } catch (e: ExecuteException) {
             executor.watchdog.destroyProcess()
-            return when (streamType) {
+            var streamOutput =  when (streamType) {
                 Stream.INPUT -> ""
                 Stream.ERROR -> errorStream.toString()
                 else -> "" + errorStream.toString()
             }
+            if (streamOutput.trim().isEmpty()) {
+                streamOutput = "Exception timeout"
+            }
+            return streamOutput
             //return outputStream.toString()
         }
         return when (streamType) {

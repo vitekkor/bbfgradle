@@ -56,7 +56,7 @@ class LocalTCE : Transformation() {
         log.debug("Trying to change ${nodesForChange.size} nodes")
         for (i in nodesForChange.indices) {
             log.debug("Node $i from ${nodesForChange.size}")
-            if (Random.getTrue(70)) continue
+            if (Random.getTrue(60)) continue
             if (i >= nodesForChange.size) break
             val node = nodesForChange.randomOrNull() ?: continue
             log.debug("trying to replace ${node} ${node.first.text}")

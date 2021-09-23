@@ -15,3 +15,20 @@ fun PsiFile.addMain(boxFuncs: List<KtNamedFunction>) {
     this.add(KtPsiFactory(this.project).createWhiteSpace("\n\n"))
     this.add(mainFun)
 }
+
+fun PsiFile.addMainForPerformanceTesting(boxFuncs: List<KtNamedFunction>) {
+    val m = StringBuilder()
+    m.append("fun main(args: Array<String>) {\n")
+    for (func in boxFuncs) {
+        m.append(
+            """
+        repeat(1000) { println(${func.name}() as String) }
+        """.trimIndent()
+        )
+        m.append("\n")
+    }
+    m.append("}")
+    val mainFun = KtPsiFactory(this.project).createFunction(m.toString())
+    this.add(KtPsiFactory(this.project).createWhiteSpace("\n\n"))
+    this.add(mainFun)
+}
