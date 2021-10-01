@@ -55,6 +55,10 @@ class JSCompiler(override val arguments: String = "") : CommonCompiler() {
         return CompilationResult(0, pathToCompiled)
     }
 
+    override fun compile(project: Project, numberOfExecutions: Int, includeRuntime: Boolean): CompilationResult {
+        TODO("Not yet implemented")
+    }
+
     private fun prepareArgs(project: Project, path: String, destination: String): K2JSCompilerArguments {
         val destFile = File(destination)
         if (destFile.isFile) destFile.delete()

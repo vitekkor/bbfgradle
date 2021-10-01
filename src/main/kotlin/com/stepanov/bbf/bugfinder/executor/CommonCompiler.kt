@@ -21,6 +21,7 @@ abstract class CommonCompiler {
     abstract fun tryToCompile(project: Project): KotlincInvokeStatus
     abstract fun isCompilerBug(project: Project): Boolean
     abstract fun compile(project: Project, includeRuntime: Boolean = true): CompilationResult
+    abstract fun compile(project: Project, numberOfExecutions: Int = 1, includeRuntime: Boolean = true): CompilationResult
     abstract fun exec(path: String, streamType: Stream = Stream.INPUT, mainClass: String = ""): String
 
     abstract val compilerInfo: String
@@ -76,11 +77,11 @@ abstract class CommonCompiler {
         } catch (e: ExecuteException) {
             executor.watchdog.destroyProcess()
             var streamOutput =  when (streamType) {
-                Stream.INPUT -> ""
+                Stream.INPUT -> outputStream.toString()
                 Stream.ERROR -> errorStream.toString()
                 else -> "" + errorStream.toString()
             }
-            if (streamOutput.trim().isEmpty()) {
+            if (streamOutput.trim().isEmpty() && errorStream.toString().isEmpty()) {
                 streamOutput = "Exception timeout"
             }
             return streamOutput

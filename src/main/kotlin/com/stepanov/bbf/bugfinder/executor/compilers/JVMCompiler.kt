@@ -44,8 +44,17 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
     override fun isCompilerBug(project: Project): Boolean =
         tryToCompile(project).hasException
 
+    override fun compile(project: Project, numberOfExecutions: Int, includeRuntime: Boolean): CompilationResult {
+        val projectWithMainFun = project.addMainAndExecBoxNTimes(numberOfExecutions)
+        return getCompilationResult(projectWithMainFun, includeRuntime)
+    }
+
     override fun compile(project: Project, includeRuntime: Boolean): CompilationResult {
         val projectWithMainFun = project.addMain()
+        return getCompilationResult(projectWithMainFun, includeRuntime)
+    }
+
+    private fun getCompilationResult(projectWithMainFun: Project, includeRuntime: Boolean): CompilationResult {
         val path = projectWithMainFun.saveOrRemoveToTmp(true)
         val tmpJar = "$pathToCompiled.jar"
         val args = prepareArgs(projectWithMainFun, path, tmpJar)

@@ -18,11 +18,10 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as 
 
 class AddDefaultValueToArg : Transformation() {
 
-    val generator = RandomInstancesGenerator(file as KtFile)
-
     //TODO MAYBE INIT AND REINIT SOME PROPERTIES
     override fun transform() {
         val ctx = PSICreator.analyze(file) ?: return
+        val generator = RandomInstancesGenerator(file as KtFile, ctx)
         val prevParams = mutableListOf<Triple<KtExpression, String, KotlinType?>>()
         file.getAllPSIChildrenOfType<KtParameterList>()
             .filter { it.parameters.isNotEmpty() }

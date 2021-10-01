@@ -17,10 +17,12 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.util.ExpressionReplace
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.apache.log4j.Logger
+import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
+import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.calls.util.getType
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
@@ -72,6 +74,7 @@ class Mutator(val project: Project) {
         val ktx = PSICreator.analyze(checker.curFile.psiFile, checker.project) ?: return
         val ktFile = checker.curFile.psiFile as KtFile
         RandomTypeGenerator.setFileAndContext(ktFile, ktx)
+        if (!checker.checkCompiling()) return
         val mut1 = listOf(
             ChangeRandomASTNodesFromAnotherTrees() to 75,
             AddTryExpression() to 50,
@@ -95,19 +98,20 @@ class Mutator(val project: Project) {
             AddPossibleModifiers() to 50,
             AddInheritance() to 25,
             ReplaceDotExpression() to 50,
-            AddExpressionToLoop() to 50
+            AddExpressionToLoop() to 50,
+            AddRandomClass() to 50
         ).shuffled()
         for (i in 0 until Random.nextInt(1, 3)) {
             mut1.forEach { executeMutation(it.first, it.second) }
         }
-        BugManager.saveBug(
-            Bug(
-                CompilerArgs.getCompilersList(),
-                "",
-                checker.project,
-                BugType.PERFORMANCE
-            )
-        )
+//        BugManager.saveBug(
+//            Bug(
+//                CompilerArgs.getCompilersList(),
+//                "",
+//                checker.project,
+//                BugType.PERFORMANCE
+//            )
+//        )
         exitProcess(0)
 //        executeMutation(AddTryExpression(), 100)
 //        executeMutation(AddRandomControlStatements(), 100)

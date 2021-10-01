@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.replace
 import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
+import kotlin.system.exitProcess
 
 open class TypeAndValueParametersGenerator(val file: KtFile) {
 
@@ -17,7 +18,7 @@ open class TypeAndValueParametersGenerator(val file: KtFile) {
 
     init {
         if (!rtg.isInitialized()) {
-            val ctx = PSICreator.analyze(file)!!
+            val ctx = PSICreator.analyze(file) ?: exitProcess(0)
             rtg.setFileAndContext(file, ctx)
         }
     }
@@ -46,9 +47,10 @@ open class TypeAndValueParametersGenerator(val file: KtFile) {
         }
 
     fun generateValueParameters(valueParameters: List<ValueParameterDescriptor>, depth: Int): List<String> {
+        val rig = RandomInstancesGenerator(file, rtg.ctx)
         val res = mutableListOf<String>()
         for (param in valueParameters) {
-            val instance = RandomInstancesGenerator(file, rtg.ctx).generateValueOfType(param.type, depth + 1)
+            val instance = rig.generateValueOfType(param.type, depth + 1)
             res.add(instance)
         }
         return res.filter { it.isNotEmpty() }

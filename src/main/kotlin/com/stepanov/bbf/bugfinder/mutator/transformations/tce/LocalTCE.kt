@@ -11,7 +11,7 @@ import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getReceiverExpression
 import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.calls.util.getType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isError
 import org.jetbrains.kotlin.types.typeUtil.isUnit
@@ -34,14 +34,16 @@ class LocalTCE : Transformation() {
     }
 
     private fun addRandomUnitCalls() {
-        val unitCalls = usageExamples.filter { it.third?.isUnit() ?: false }
+        val unitCalls = usageExamples.filter { it.third?.isUnit() ?: false }.filter { Random.getTrue(80) }
         for (call in unitCalls) {
-            repeat(Random.nextInt(0, 3)) {
-                val randomPlaceToInsert =
-                    psi.getAllPSIChildrenOfType<PsiElement>()
-                        .filter { it.nextSibling.let { it is PsiWhiteSpace && it.text.contains("\n") }}
-                        .randomOrNull() ?: return@repeat
-                randomPlaceToInsert.addAfterThisWithWhitespace(call.first.copy(), "\n")
+            val backupFile = psi.copy() as KtFile
+            val randomPlaceToInsert =
+                psi.getAllPSIChildrenOfType<PsiElement>()
+                    .filter { it.nextSibling.let { it is PsiWhiteSpace && it.text.contains("\n") } }
+                    .randomOrNull() ?: continue
+            randomPlaceToInsert.addAfterThisWithWhitespace(call.first.copy(), "\n")
+            if (!checker.checkCompilingWithFileReplacement(psi, checker.curFile)) {
+                psi = backupFile
             }
         }
     }
@@ -102,8 +104,18 @@ class LocalTCE : Transformation() {
             sameTypeExpression?.let {
                 log.debug("TRYING TO REPLACE CONSTANT ${constant.first.text}")
                 if (constant.first.parent is KtPrefixExpression) {
-                    checker.replacePSINodeIfPossibleWithFileReplacement(psi, checker.curFile, constant.first.parent, it.first)
-                } else checker.replacePSINodeIfPossibleWithFileReplacement(psi, checker.curFile, constant.first, it.first)
+                    checker.replacePSINodeIfPossibleWithFileReplacement(
+                        psi,
+                        checker.curFile,
+                        constant.first.parent,
+                        it.first
+                    )
+                } else checker.replacePSINodeIfPossibleWithFileReplacement(
+                    psi,
+                    checker.curFile,
+                    constant.first,
+                    it.first
+                )
             }
         }
     }

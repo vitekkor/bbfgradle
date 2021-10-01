@@ -28,108 +28,11 @@ import org.jetbrains.kotlin.types.typeUtil.*
 import kotlin.random.Random
 
 //TODO add project
-open class RandomInstancesGenerator(private val file: KtFile, private var ctx: BindingContext?) {
-
-    constructor(file: KtFile) : this(file, PSICreator.analyze(file))
-
-    //TODO rewrite this someday
-    fun generateTopLevelFunctionCall(
-        function: KtNamedFunction,
-        typeParamsToRealTypeParams: Map<String, String> = mapOf(),
-        withTypeParams: Boolean = true,
-        depth: Int = 0
-    ): Pair<KtExpression, List<KtParameter>>? {
-        var lTypeParamsToRealTypeParams = typeParamsToRealTypeParams
-        if (function.name == null) return null
-        if (function.receiverTypeReference == null && function.typeParameters.isEmpty() && function.valueParameters.isEmpty()) {
-            return Factory.psiFactory.createExpression("${function.name}()") to listOf()
-        }
-        ctx = PSICreator.analyze(file) ?: return null
-        log.debug("GENERATING CALL OF ${function.text}")
-        val addedFun =
-            if (!file.getAllChildren().contains(function)) {
-                file.addAtTheEnd(function) as KtNamedFunction
-            } else {
-                function
-            }
-        var func = function.copy() as KtNamedFunction
-        if (withTypeParams && func.typeParameterList != null) {
-            if (typeParamsToRealTypeParams.isEmpty())
-                lTypeParamsToRealTypeParams = generateRandomTypeParams(
-                    function.typeParameters,
-                    func.valueParameters,
-                    func.bodyExpression?.let { func.text.substringBefore(it.text) } ?: func.text,
-                    ctx!!,
-                    func = func
-                )?.second ?: mapOf()
-        }
-        log.debug("WITHOUT TYPE PARAMS = ${func.text}")
-        addedFun.replaceThis(func)
-        val creator = PSICreator
-        val newFile = creator.getPSIForText(file.text)
-        val ctx = creator.analyze(newFile) ?: return null
-        func.replaceThis(addedFun)
-        if (addedFun != function) addedFun.delete()
-        func = newFile.getAllChildren().find { it.text.trim() == func.text.trim() } as? KtNamedFunction ?: return null
-        val generatedParams = func.valueParameters
-            .map { param ->
-                if (param.typeReference == null) return null
-                param.typeReference?.getAbbreviatedTypeOrType(ctx)?.makeNotNullable()?.let {
-                    if (it.isError) return null
-                    if ("$it" != param.typeReference!!.text.trim())
-                        randomTypeGenerator.generateType(param.typeReference!!.text)
-                    else it
-                }
-            }
-            .map {
-                it?.let {
-                    generateValueOfType(it, depth + 1).let {
-                        if (it.trim().isEmpty()) return null else it
-                    }
-                } ?: return null
-            }
-            .joinToString(", ")
-        val generatedReciever =
-            func.receiverTypeReference?.getAbbreviatedTypeOrType(ctx)?.let {
-                val valueOfType = generateValueOfType(it, depth + 1)
-                if (valueOfType.isNotEmpty())
-                    "$valueOfType."
-                else ""
-            } ?: ""
-        val typeParams =
-            func.typeParameters.map { lTypeParamsToRealTypeParams.getOrDefault(it.name!!, it.name!!) }
-                .let { if (it.isNotEmpty()) it.joinToString(prefix = "<", postfix = ">") else "" }
-        log.debug("Trying to generate $generatedReciever${func.name}$typeParams($generatedParams)")
-        try {
-            val expr =
-                Factory.psiFactory.createExpressionIfPossible("$generatedReciever${func.name}$typeParams($generatedParams)")
-                    ?: return null
-            log.debug("GENERATED = ${expr.text}")
-            return expr to func.valueParameters
-        } catch (e: Exception) {
-            return null
-        }
-    }
+open class RandomInstancesGenerator(private val file: KtFile, private var ctx: BindingContext) {
 
     //Type parameters will be replaced by randomly generated types
     fun generateFunctionCall(desc: FunctionDescriptor): PsiElement? {
-        //val funDef = desc.toString().substringAfter("fun").substringBefore(" defined").split(" = ...").joinToString(" ")
-        val name = desc.name.asString()
-        val tp =
-            if (desc.typeParameters.isEmpty()) ""
-            else desc.typeParameters.joinToString(", ", prefix = "<", postfix = ">") { it.name.asString() }
-        val valueParams =
-            if (desc.valueParameters.isEmpty()) ""
-            else desc.valueParameters.joinToString(
-                ", ",
-                "(",
-                ")"
-            ) { "${it.name.asString()}: ${it.returnType?.getNameWithoutError() ?: "Any"}" }
-        val returnType = desc.returnType?.getNameWithoutError() ?: "Any"
-        val funDef = "$tp $name$valueParams: $returnType"
-        val ktFun = Factory.psiFactory.createFunction("fun $funDef")
-        val res = generateTopLevelFunctionCall(ktFun)
-        return res?.first
+        return funInvocationGenerator.generateTopLevelFunInvocation(desc)
     }
 
     private fun generateRandomTypeParams(
@@ -287,7 +190,7 @@ open class RandomInstancesGenerator(private val file: KtFile, private var ctx: B
         }
         if (type.isPrimitiveTypeOrNullablePrimitiveTypeOrString())
             generateDefValuesAsString(type.toString()).let { if (it.isNotEmpty()) return it }
-        if (type.isKType()) return RandomReflectionInstanceGenerator(file, type).generateReflection()
+        if (type.isKType()) return RandomReflectionInstanceGenerator(file, type, ctx).generateReflection()
         if (type.isFunctionOrSuspendFunctionType) {
             if (type.arguments.isEmpty()) return ""
             val args =
@@ -304,10 +207,16 @@ open class RandomInstancesGenerator(private val file: KtFile, private var ctx: B
         return searchForImplementation(type, depth + 1, onlyImpl, withoutParams)
     }
 
-    //TODO!!!
     private fun replaceTypeParamsByRandomGenerated(type: KotlinType): KotlinType? {
-        val classDescriptor = type.constructor.declarationDescriptor as? ClassDescriptor ?: return null
-        return null
+        val replacedArgs =
+            type.arguments.map {
+                if (it.type.isTypeParameter()) {
+                    RandomTypeGenerator.generateRandomTypeWithCtx()?.asTypeProjection() ?: return null
+                } else {
+                    it
+                }
+            }
+        return type.replace(replacedArgs)
     }
 
     private fun searchForImplementation(
@@ -318,9 +227,9 @@ open class RandomInstancesGenerator(private val file: KtFile, private var ctx: B
     ): String {
         val typeWOTypeParams =
             if (type.arguments.any { it.type.isTypeParameter() }) {
-                replaceTypeParamsByRandomGenerated(type) ?: return ""
-            }
-            else {
+                val withoutTypeParams = replaceTypeParamsByRandomGenerated(type) ?: return ""
+                return generateValueOfType(withoutTypeParams, depth + 1, onlyImpl, withoutParams)
+            } else {
                 type
             }
         var funcs = StdLibraryGenerator.searchForFunWithRetType(typeWOTypeParams.makeNotNullable())
@@ -382,9 +291,8 @@ open class RandomInstancesGenerator(private val file: KtFile, private var ctx: B
 
     private val fileCopy = file.copy() as KtFile
 
-    //private var ctx: BindingContext? = PSICreator.analyze(file)
-    internal val classInstanceGenerator = ClassInstanceGenerator(file)
-    internal val funInvocationGenerator = FunInvocationGenerator(file)
+    internal val classInstanceGenerator = ClassInstanceGenerator(file, ctx)
+    internal val funInvocationGenerator = FunInvocationGenerator(file, ctx)
     val randomTypeGenerator = RandomTypeGenerator
     private val MAGIC_CONST = 15
     private val log = Logger.getLogger("mutatorLogger")

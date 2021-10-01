@@ -30,9 +30,9 @@ object FileReporter : Reporter {
     }
 
     override fun dump(bugs: List<Bug>) {
-        val isFrontendBug = bugs.size == 2 && bugs.first().type == BugType.FRONTEND
+        val isFrontendOrBackendBug = bugs.size == 2 && (bugs.first().type == BugType.FRONTEND || bugs.first().type == BugType.BACKEND)
         val withoutDuplicates =
-            if (isFrontendBug) bugs.drop(1) else bugs
+            if (isFrontendOrBackendBug) bugs.drop(1) else bugs
         for (bug in withoutDuplicates) {
             val resDir = CompilerArgs.resultsDir
             val name = Random().getRandomVariableName(7) +
@@ -56,7 +56,7 @@ object FileReporter : Reporter {
             if (bug.type == BugType.DIFFABI) {
                 File(newPath.replaceAfter('.', "html")).writeText(bug.msg)
             }
-            if (isFrontendBug) {
+            if (isFrontendOrBackendBug) {
                 val pathForOriginal =
                     "$resDir${bug.compilerVersion.filter { it != ' ' }}/${bug.type.name}_${name}_ORIGINAL.kt"
                 File(pathForOriginal).writeText("$info\n${bugs.first().crashedProject.moveAllCodeInOneFile()}\n$commentedStackTrace")

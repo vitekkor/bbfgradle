@@ -6,6 +6,7 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerato
 import com.stepanov.bbf.bugfinder.util.addImport
 import com.stepanov.bbf.bugfinder.util.addToTheTop
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfTwoTypes
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.backend.common.serialization.findPackage
 import org.jetbrains.kotlin.descriptors.ClassKind
@@ -18,7 +19,8 @@ import kotlin.random.Random
 
 class AddRandomAnnotation : Transformation() {
 
-    private val randomInstancesGenerator = RandomInstancesGenerator(file as KtFile)
+    private var randomInstancesGenerator: RandomInstancesGenerator? = null
+
     private val annClassesFromLib =
         StdLibraryGenerator.klasses
             .filter {
@@ -32,8 +34,8 @@ class AddRandomAnnotation : Transformation() {
     private fun insert(t: PsiElement, type: KotlinType?, kl: KtClass?) {
         //println("trying to insert ${type ?: kl!!.name}")
         val instance =
-            type?.let { randomInstancesGenerator.generateValueOfType(type) }
-                ?: randomInstancesGenerator.generateRandomInstanceOfClass(kl!!)?.first?.text
+            type?.let { randomInstancesGenerator!!.generateValueOfType(type) }
+                ?: randomInstancesGenerator!!.generateRandomInstanceOfClass(kl!!)?.first?.text
         //println("instance = $instance")
         if (instance == null || instance.isEmpty()) return
         val newNode: PsiElement
@@ -83,6 +85,8 @@ class AddRandomAnnotation : Transformation() {
     }
 
     override fun transform() {
+        val ctx = PSICreator.analyze(file, project) ?: return
+        randomInstancesGenerator = RandomInstancesGenerator(file as KtFile, ctx)
         repeat(RANDOM_CONST) { tryToInsertAnn() }
     }
 

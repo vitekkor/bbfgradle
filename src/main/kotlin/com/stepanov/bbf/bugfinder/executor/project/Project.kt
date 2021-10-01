@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.executor.project
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.addMain
+import com.stepanov.bbf.bugfinder.executor.addMainForPerformanceTesting
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.*
@@ -177,6 +178,26 @@ class Project(
             listOf(newFirstFile) + files.getAllWithout(indOfFile).map { BBFFile(it.name, it.psiFile.copy() as PsiFile) }
         return Project(configuration, newFiles, language)
     }
+
+    fun addMainAndExecBoxNTimes(times: Int): Project {
+        if (files.map { it.text }.any { it.contains("fun main(") }) return Project(configuration, files, language)
+        val boxFuncs =
+            files.flatMap { it.psiFile.getAllPSIChildrenOfType<KtNamedFunction> { it.name?.contains("box") == true } }
+        if (boxFuncs.isEmpty()) return Project(configuration, files, language)
+        val indOfFile =
+            files.indexOfFirst {
+                it.psiFile.getAllPSIChildrenOfType<KtNamedFunction>().any { it.name?.contains("box") == true }
+            }
+        if (indOfFile == -1) return Project(configuration, files, language)
+        val file = files[indOfFile]
+        val psiCopy = file.psiFile.copy() as PsiFile
+        psiCopy.addMainForPerformanceTesting(boxFuncs, times)
+        val newFirstFile = BBFFile(file.name, psiCopy)
+        val newFiles =
+            listOf(newFirstFile) + files.getAllWithout(indOfFile).map { BBFFile(it.name, it.psiFile.copy() as PsiFile) }
+        return Project(configuration, newFiles, language)
+    }
+
 
     fun copy(): Project {
         return Project(configuration, files.map { it.copy() }, language)

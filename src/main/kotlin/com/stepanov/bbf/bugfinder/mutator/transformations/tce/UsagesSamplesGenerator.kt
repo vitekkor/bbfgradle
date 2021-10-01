@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.FunInvocationGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.findFunByName
@@ -13,6 +14,7 @@ import com.stepanov.bbf.bugfinder.util.getBoxFuncs
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.load.java.descriptors.JavaClassDescriptor
@@ -20,7 +22,7 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.calls.util.getType
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.KotlinType
@@ -46,7 +48,7 @@ object UsagesSamplesGenerator {
         val res = mutableListOf<KtExpression>()
         generateForKlasses(file, project, res)
         val withTypes = generateTypes(file, res.joinToString("\n") { it.text })
-        generateForFuncs(file, res, withTypes)
+        generateForFuncs(file, ctx, res, withTypes)
         generateForProps(file, res, withTypes)
         val resToStr = res.joinToString("\n") { it.text }
         return generateTypes(file, resToStr)
@@ -75,23 +77,26 @@ object UsagesSamplesGenerator {
 
     private fun generateForFuncs(
         file: KtFile,
+        ctx: BindingContext,
         res: MutableList<KtExpression>,
         klassInstances: List<Triple<KtExpression, String, KotlinType?>>
     ) {
         for (func in file.getAllPSIChildrenOfType<KtNamedFunction>().filter { it.isTopLevel }) {
-            if (func.name?.startsWith("box") == true) continue
-            val (instance, valueParams) = instanceGenerator.generateTopLevelFunctionCall(func) ?: continue
-            val valueArgs =
-                if (instance is KtCallExpression) instance.valueArguments
-                else null
-            for ((valueArg, param) in valueArgs?.zip(valueParams) ?: listOf()) {
-                if (param.typeReference == null) continue
-                val anotherExpr = klassInstances.getValueOfType(param.typeReference!!.text)
-                if (anotherExpr != null && Random.nextBoolean()) {
-                    valueArg.replaceThis(anotherExpr.copy())
-                }
-            }
-            res.add(instance)
+//            if (func.name?.startsWith("box") == true) continue
+//            val (instance, valueParams) = functionGenerator.generateTopLevelFunInvocation(func)
+//            instanceGenerator.generateTopLevelFunctionCall(func) ?: continue
+//            val valueArgs =
+//                if (instance is KtCallExpression) instance.valueArguments
+//                else null
+//            for ((valueArg, param) in valueArgs?.zip(valueParams) ?: listOf()) {
+//                if (param.typeReference == null) continue
+//                val anotherExpr = klassInstances.getValueOfType(param.typeReference!!.text)
+//                if (anotherExpr != null && Random.nextBoolean()) {
+//                    valueArg.replaceThis(anotherExpr.copy())
+//                }
+//            }
+            val funcDescriptor = func.getDeclarationDescriptorIncludingConstructors(ctx) as? FunctionDescriptor ?: continue
+            instanceGenerator.funInvocationGenerator.generateTopLevelFunInvocation(funcDescriptor)?.let { res.add(it) }
         }
     }
 
@@ -178,9 +183,10 @@ object UsagesSamplesGenerator {
                             "${parentInstance.text}.${it.text}" to desc.returnType
                         )
                     }
-            } else if (desc is PropertyDescriptor && desc.visibility.isPublicAPI) {
-                openFuncsAndProps.add("${parentInstance.text}.${desc.name}" to desc.type)
             }
+//            else if (desc is PropertyDescriptor && desc.visibility.isPublicAPI) {
+//                openFuncsAndProps.add("${parentInstance.text}.${desc.name}" to desc.type)
+//            }
         }
         return openFuncsAndProps
     }

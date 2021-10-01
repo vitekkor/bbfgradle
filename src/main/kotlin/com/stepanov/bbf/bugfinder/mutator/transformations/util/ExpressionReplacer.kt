@@ -19,7 +19,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtSimpleNameExpression
 import org.jetbrains.kotlin.psi.psiUtil.getReceiverExpression
 import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.calls.util.getType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isError
 import org.jetbrains.kotlin.types.isNullable
@@ -34,11 +34,12 @@ class ExpressionReplacer : Transformation() {
 
     private val blockListOfTypes = listOf("Nothing", "Nothing?")
     private val generatedFunCalls = mutableMapOf<FunctionDescriptor, KtExpression?>()
-    private val rig = RandomInstancesGenerator(file as KtFile)
+    private var rig: RandomInstancesGenerator? = null
 
     override fun transform() {
         val ktFile = file as KtFile
         val ctx = PSICreator.analyze(checker.curFile.psiFile, checker.project) ?: return
+        rig = RandomInstancesGenerator(ktFile, ctx)
         RandomTypeGenerator.setFileAndContext(ktFile, ctx)
         var nodesToChange = updateReplacement(ktFile.getAllChildren(), ctx).shuffled()
         for (ind in nodesToChange.indices) {
@@ -178,7 +179,7 @@ class ExpressionReplacer : Transformation() {
                 vp.type.getNameWithoutError().trim() == usage.type.getNameWithoutError().trim()
             }
             if (fromUsages.isNotEmpty() && Random.getTrue(80)) fromUsages.random().psiElement.text
-            else rig.generateValueOfType(vp.type)
+            else rig!!.generateValueOfType(vp.type)
             //getInsertableExpressions(Pair(it, it.typeReference?.getAbbreviatedTypeOrType()), 1).randomOrNull()
         }
         if (valueParams.any { it.isEmpty() }) {

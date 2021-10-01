@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.isPrivate
 import org.jetbrains.kotlin.psi.psiUtil.parents
+import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.descriptorUtil.parentsWithSelf
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.*
@@ -19,7 +20,7 @@ import org.jetbrains.kotlin.types.typeUtil.isInterface
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 import kotlin.random.Random
 
-internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGenerator(file) {
+internal class ClassInstanceGenerator(file: KtFile, val ctx: BindingContext) : TypeAndValueParametersGenerator(file) {
 
     private val log = Logger.getLogger("mutatorLogger")
     private val MAX_DEPTH = 10
@@ -161,12 +162,16 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
     private fun generateImplementation(implementedType: KotlinType, depth: Int): Pair<PsiElement?, KotlinType>? {
         val implementations = StdLibraryGenerator.findImplementationFromFile(implementedType, true)
         val randomImpl = implementations.randomOrNull()?.defaultType ?: return null
+        val classDescriptor = randomImpl.constructor.declarationDescriptor as? ClassDescriptor ?: return null
+        val typeParamsToRealTypes = TypeParamsReplacer.throwTypeParams(implementedType, classDescriptor)?.second ?: return null
+        val replacedTypeArgs = randomImpl.arguments.map { typeParamsToRealTypes[it.type.getNameWithoutError()]?.asTypeProjection() ?: it }
+        val typeToImplement = randomImpl.replace(replacedTypeArgs)
         val instance =
-            generateRandomInstanceOfUserClass(randomImpl, depth + 1)?.let {
+            generateRandomInstanceOfUserClass(typeToImplement, depth + 1)?.let {
                 if (it.second == null) return null
                 else it.first to it.second!!
             }
-        if (Random.getTrue(20)) {
+        if (Random.getTrue(10)) {
             val anObjImpl = generateAnonymousObjectImplementation(implementedType, depth)
             return listOfNotNull(instance, anObjImpl).randomOrNull()
         }
@@ -219,12 +224,13 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
 
         val type = "Function$numberOfParams$substitutedTypeParamsAsString"
         val typeAsKotlinType = rtg.generateType(type) ?: return null
-        val generatedConstructor = RandomInstancesGenerator(file, rtg.ctx).generateValueOfType(typeAsKotlinType, depth + 1)
+        val generatedConstructor = RandomInstancesGenerator(file, ctx).generateValueOfType(typeAsKotlinType, depth + 1)
         val instance = "${classDescriptor.name}${typeParamsForDeclaration}$generatedConstructor"
         val psiInstance = Factory.psiFactory.createExpressionIfPossible(instance) ?: return null
         return psiInstance to subClassDescr.defaultType.replace(newTypeParameters.map { it.asTypeProjection() })
     }
 
+    //TODO fix for interfaces with type parameters
     private fun generateAnonymousObjectImplementation(
         interfaceType: KotlinType,
         depth: Int
@@ -243,7 +249,7 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
             if (member is PropertyDescriptor) {
                 val rtv = member.type
                 val initialValue =
-                    RandomInstancesGenerator(file, rtg.ctx).generateValueOfType(rtv, depth + 1)
+                    RandomInstancesGenerator(file, ctx).generateValueOfType(rtv, depth + 1)
                         .let { if (it.isEmpty()) "TODO" else it }
                 res.appendLine("override $memberToString: $rtv = $initialValue")
             } else if (member is FunctionDescriptor) {
@@ -251,7 +257,7 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
                 if (psi != null && psi.hasBody() && Random.getTrue(85)) continue
                 val rtv = member.returnType ?: continue
                 val initialValue =
-                    RandomInstancesGenerator(file, rtg.ctx).generateValueOfType(rtv, depth + 1)
+                    RandomInstancesGenerator(file, ctx).generateValueOfType(rtv, depth + 1)
                         .let { if (it.isEmpty()) "TODO" else it }
                 res.appendLine("override $memberToString: $rtv = $initialValue")
             }
@@ -304,119 +310,3 @@ internal class ClassInstanceGenerator(file: KtFile) : TypeAndValueParametersGene
 
 
 }
-
-
-//    private fun generateRandomInstanceOfClass1(
-//        klOrObj: KtClassOrObject,
-//        typeArgs: List<TypeProjection> = listOf(),
-//        depth: Int = 0
-//    ): PsiElement? {
-//        if (klOrObj is KtObjectDeclaration) {
-//            return Factory.psiFactory.createExpression(klOrObj.prefix + klOrObj.name)
-//        }
-//        val kl = klOrObj as KtClass
-//        if (kl.isInterface() && kl.hasModifier(KtTokens.FUN_KEYWORD)) {
-//            //TODO FUNINTEFACES
-//            return Factory.psiFactory.createExpression("TODO()")
-//        }
-//        //IF ENUM
-//        if (kl.isEnum()) {
-//            val randomEnum = kl.body?.enumEntries?.randomOrNull() ?: return null
-//            return Factory.psiFactory.createExpression("${kl.name}.${randomEnum.name}")
-//        }
-//        if (kl.primaryConstructor == null && !(kl.isAbstract() || kl.isInterface())) {
-//            val genTypeParams =
-//                if (kl.typeParameters.isNotEmpty()) {
-//                    ctx = PSICreator.analyze(file)!!
-//                    generateRandomTypeParams(
-//                        kl.typeParameters,
-//                        listOf(),
-//                        kl.name!!,
-//                        ctx,
-//                        typeArgs
-//                    )?.first?.joinToString(prefix = "<", postfix = ">") { it.text } ?: ""
-//                } else ""
-//            return Factory.psiFactory.createExpression(
-//                "${kl.name}$genTypeParams()"
-//            )
-//        }
-//        val klass = kl.copy() as KtClassOrObject
-//        kl.replaceThis(klass)
-//        ctx = PSICreator.analyze(file)!!
-//        val generatedTypeParams =
-//            if (klass.typeParameters.isEmpty()) listOf()
-//            else generateRandomTypeParams(
-//                klass.typeParameters,
-//                klass.getValueParameters(),
-//                klass.name!!,
-//                ctx,
-//                typeArgs
-//            )?.first
-//                ?: return null
-//        if (kl.isInterface() || kl.isAbstract()) {
-//            val typeParams = generatedTypeParams.let {
-//                if (it.isEmpty()) ""
-//                else it.joinToString(prefix = "<", postfix = ">") { it.text }
-//            }
-//            val strRepresentation = klass.name + typeParams
-//            val kType = KotlinTypeCreator.createType(file, strRepresentation)!!
-//            val impl =
-//                StdLibraryGenerator.findImplementationFromFile(kType, true).randomOrNull()
-//                    ?: return Factory.psiFactory.createExpression("TODO()")
-//            val superTypeEntry =
-//                impl.typeConstructor.supertypes.find { it.toString().substringBefore('<') == klass.name }
-//                    ?: return Factory.psiFactory.createExpression("TODO()")
-//            val genTypeParamsToTypeParams =
-//                superTypeEntry.arguments
-//                    .filter { it.type.isTypeParameter() }
-//                    .map { it.toString() }
-//                    .zip(kType.arguments)
-//                    .toMap()
-//            val newArgs = impl.defaultType.arguments.map { arg ->
-//                arg.substitute { genTypeParamsToTypeParams.getOrDefault(arg.toString().substringBefore('<'), arg).type }
-//            }
-//            val newImpl = impl.defaultType.replace(newArgs)
-//            val generated = generateValueOfType(newImpl, depth + 1)
-//            if (generated.trim().isEmpty()) return null
-//            return Factory.psiFactory.createExpression(generated)
-//            //findImplementationAndGenerateInstance(kl)?.let { return it }
-//        }
-//        log.debug("Type params = ${generatedTypeParams.map { it.text }}")
-//        if (kl.primaryConstructor == null && !kl.isInterface() && !kl.isAbstract()) {
-//            val typeParams =
-//                if (kl.typeParameters.isEmpty()) ""
-//                else generatedTypeParams.joinToString(prefix = "<", postfix = ">") { it.text }
-//            klass.replaceThis(kl)
-//            return Factory.psiFactory.createExpression("${kl.name}$typeParams()")
-//        }
-//        val listOfParams = klass.allConstructors.filter { !it.isPrivate() }.map { it.valueParameters }
-//        if (listOfParams.isEmpty()) return null
-//        val res = mutableListOf<String>()
-//        ctx = PSICreator.analyze(file)!!
-//        var withName = false
-//        for (param in /*listOfParams.random()*/ listOfParams[0]) {
-//            require(param.typeReference != null)
-//            var realType = param.typeReference!!.getAbbreviatedTypeOrType(ctx) ?: return null
-//            if (realType.isErrorType() || realType.arguments.flatten<TypeProjection>().any { it.type.isErrorType() }) {
-//                realType = recreateType(file, param.typeReference!!) ?: return null
-//            }
-//            if (realType.constructor.declarationDescriptor!!.name.asString() == kl.name) return null
-//            //if (realType.toString().contains("${klass.name}")) return null
-//            val instance = generateValueOfType(realType, depth + 1)
-//            if (param.isVarArg) {
-//                withName = true
-//                res.add(instance)
-//                continue
-//            }
-//            if (withName) res.add("${param.name} = $instance")
-//            else res.add(instance)
-//        }
-//        val constructor =
-//            if (klass.typeParameters.size == 0)
-//                klass.name
-//            else
-//                "${klass.name}<${generatedTypeParams.joinToString { it.text }}>"
-//        val r = Factory.psiFactory.createExpression("${klass.prefix + constructor}(${res.joinToString()})")
-//        klass.replaceThis(kl)
-//        return r
-//    }

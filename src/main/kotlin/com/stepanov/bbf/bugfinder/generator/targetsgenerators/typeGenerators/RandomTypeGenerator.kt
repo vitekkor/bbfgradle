@@ -17,7 +17,7 @@ import org.jetbrains.kotlin.psi.psiUtil.modalityModifierType
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.calls.util.getType
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyPackageDescriptor
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.KotlinType
@@ -34,11 +34,11 @@ object RandomTypeGenerator {
     lateinit var ctx: BindingContext
     var minVisibility = "public"
 
-    fun isInitialized() = ::file.isInitialized
+    fun isInitialized() = ::file.isInitialized && ::ctx.isInitialized
 
     fun setFileAndContext(file: KtFile, project: Project? = null) {
         RandomTypeGenerator.file = file
-        RandomTypeGenerator.ctx = PSICreator.analyze(file, project) ?: return
+        ctx = PSICreator.analyze(file, project) ?: exitProcess(0)
     }
 
     fun setFileAndContext(file: KtFile, ctx: BindingContext) {

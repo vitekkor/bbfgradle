@@ -1,6 +1,5 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomExpressionGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators.RandomFunctionGenerator
@@ -19,26 +18,20 @@ import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 class AddRandomComponent : Transformation() {
 
     private val ktFile = file as KtFile
-    private val ctx = PSICreator.analyze(ktFile)
-    private val randomValueGenerator = RandomInstancesGenerator(ktFile, ctx)
+    private val ctx = PSICreator.analyze(ktFile, project)
+    private var randomInstanceGenerator: RandomInstancesGenerator? = null
     private val rtg = RandomTypeGenerator
     private lateinit var table: FileFieldsTable
 
     override fun transform() {
         if (ctx == null) return
+        randomInstanceGenerator = RandomInstancesGenerator(ktFile, ctx)
         table = FileFieldsTable(ktFile, ctx)
         rtg.setFileAndContext(ktFile, ctx)
-//        val tmpType = rtg.generateType("List<B<Byte>>")!!
-//        repeat(100) {
-//            val gen = randomValueGenerator.generateValueOfType(tmpType)
-//            println(gen)
-//        }
-//        exitProcess(0)
         repeat(Random.nextInt(20, 50)) {
             val randomClass = file.getAllPSIChildrenOfType<KtClassOrObject>()/*.first()*/.randomOrNull() ?: return
             val gRandomClass = GClass.fromPsi(randomClass)
@@ -50,7 +43,7 @@ class AddRandomComponent : Transformation() {
     private fun addRandomTopLevelFunction() {
         val randomFunctionGenerator = RandomFunctionGenerator(ktFile, ctx!!)
         val generatedFunc = randomFunctionGenerator.generate() as? KtNamedFunction ?: return
-        println(generatedFunc.text)
+        //println(generatedFunc.text)
         return
     }
 
@@ -60,10 +53,10 @@ class AddRandomComponent : Transformation() {
             if (Random.getTrue(30)) randomPropertyGenerator.generateInterestingProperty(psiClass)?.first as? KtProperty
             else randomPropertyGenerator.generate() as? KtProperty
         if (generatedProp == null) return
-        println(generatedProp.text + "\n")
+        //println(generatedProp.text + "\n")
         val addedProperty = psiClass.addPsiToBody(generatedProp) as? KtProperty ?: return
         if (!checker.checkCompiling()) {
-            println("CANT COMPILE =(")
+            //println("CANT COMPILE =(")
             addedProperty.delete()
             return
         }
@@ -88,7 +81,7 @@ class AddRandomComponent : Transformation() {
     }
 
     private fun generateValueOfType(type: KotlinType): KtExpression? {
-        val newValue = randomValueGenerator.generateValueOfType(type)
+        val newValue = randomInstanceGenerator!!.generateValueOfType(type)
         return try {
             Factory.psiFactory.createExpressionIfPossible(newValue)
         } catch (e: Exception) {
@@ -102,7 +95,7 @@ class AddRandomComponent : Transformation() {
     private fun addRandomFunction(psiClass: KtClassOrObject, gClass: GClass) {
         val randomFunctionGenerator = RandomFunctionGenerator(ktFile, ctx!!, gClass)
         val generatedFunc = randomFunctionGenerator.generate() as? KtNamedFunction ?: return
-        println(generatedFunc.text)
+        //println(generatedFunc.text)
         val addedGeneratedFunc = psiClass.addPsiToBody(generatedFunc) as? KtNamedFunction ?: return
         if (!checker.checkCompiling()) {
             addedGeneratedFunc.delete()
@@ -124,8 +117,8 @@ class AddRandomComponent : Transformation() {
                         .randomOrNull()
                         ?.value as? KtNamedDeclaration
                 randomFieldWithSameType?.name ?: ""
-            } else randomValueGenerator.generateValueOfType(rtvType)
-        println("BODY = $funBody")
+            } else randomInstanceGenerator!!.generateValueOfType(rtvType)
+        //println("BODY = $funBody")
         if (funBody.isEmpty()) return
         try {
             addedGeneratedFunc.initBodyByValue(Factory.psiFactory, funBody)

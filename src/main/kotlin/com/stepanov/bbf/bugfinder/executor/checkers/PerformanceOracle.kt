@@ -5,6 +5,7 @@ import com.stepanov.bbf.bugfinder.executor.project.Project
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.sqrt
+import kotlin.system.exitProcess
 
 
 object PerformanceOracle {
@@ -82,6 +83,38 @@ object PerformanceOracle {
             averageCompilationDeviation - compilationSigma to averageCompilationDeviation + compilationSigma
         println("COMP INITIALIZATION DONE")
         println("EXECUTUION INITIALIZATION")
+        var prevRes = 0.0
+        var averageExecutionDeviation = 0.0
+        repeat(10) { ind ->
+            println("NUMBER OF EXECUTIONS: = ${10.0.pow(ind).toInt()}")
+            val executionTimes =
+                compilers.map { compiler ->
+                    val compiled = compiler.compile(project, 10.0.pow(ind).toInt())
+                    Array(3) { 0 }.map {
+                        compiler.getExecutionTime(compiled.pathToCompiled).second
+                    }
+                }
+            executionTimes.forEach { println(it) }
+            val diffOfExecutionTimes =
+                executionTimes.first()
+                    .mapIndexed { index, l -> l to executionTimes.last()[index] }
+                    .map { abs(it.first.toDouble() / it.second) }
+            println(diffOfExecutionTimes)
+            prevRes = averageExecutionDeviation
+            averageExecutionDeviation = diffOfExecutionTimes.average()
+            val executionVariance = diffOfExecutionTimes.map { (it - averageExecutionDeviation).pow(2) }.average()
+            executionSigma = sqrt(executionVariance) * 2
+            executionConfInterval =
+                averageExecutionDeviation - executionSigma to averageExecutionDeviation + executionSigma
+            val maxExecutionTime = executionTimes.maxOf { it.maxOf { it } }
+            if (maxExecutionTime in 1000..4500 || ind == 9) {
+                println("EXECUTUION INITIALIZATION DONE")
+                return averageCompilationDeviation to averageExecutionDeviation
+            } else if (maxExecutionTime > 4500) {
+                return averageCompilationDeviation to prevRes
+            }
+        }
+        return averageCompilationDeviation to averageExecutionDeviation
         val executionTimes =
             compilers.map { compiler ->
                 val compiled = compiler.compile(project)
@@ -95,7 +128,7 @@ object PerformanceOracle {
                 .mapIndexed { index, l -> l to executionTimes.last()[index] }
                 .map { abs(it.first.toDouble() / it.second) }
         println(diffOfExecutionTimes)
-        val averageExecutionDeviation = diffOfExecutionTimes.average()
+        averageExecutionDeviation = diffOfExecutionTimes.average()
         val executionVariance = diffOfExecutionTimes.map { (it - averageExecutionDeviation).pow(2) }.average()
         executionSigma = sqrt(executionVariance) * 2
         executionConfInterval = averageExecutionDeviation - executionSigma to averageExecutionDeviation + executionSigma

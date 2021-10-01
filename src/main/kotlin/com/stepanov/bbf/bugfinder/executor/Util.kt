@@ -16,13 +16,13 @@ fun PsiFile.addMain(boxFuncs: List<KtNamedFunction>) {
     this.add(mainFun)
 }
 
-fun PsiFile.addMainForPerformanceTesting(boxFuncs: List<KtNamedFunction>) {
+fun PsiFile.addMainForPerformanceTesting(boxFuncs: List<KtNamedFunction>, times: Int) {
     val m = StringBuilder()
     m.append("fun main(args: Array<String>) {\n")
     for (func in boxFuncs) {
         m.append(
             """
-        repeat(1000) { println(${func.name}() as String) }
+        repeat($times) { ${func.name}() }
         """.trimIndent()
         )
         m.append("\n")

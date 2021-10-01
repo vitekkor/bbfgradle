@@ -26,7 +26,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
     }
 
     fun checkBehavior(project: Project, saveFoundBugs: Boolean = true): Boolean {
-        val groupedRes = checkTest(project)
+        val (groupedRes, didCrash) = checkTest(project)
         if (groupedRes.size > 1) {
             if (groupedRes.keys.first().split("\n").any { it.matches(Regex(""".+@[0-9a-z]+""")) }) {
                 val comment = Factory.psiFactory.createComment("// DIFF_ONLY_IN_ADDRESSES")
@@ -45,14 +45,17 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
             return false
         }
         if (CompilerArgs.isStrictMode) {
-            if (groupedRes.keys.firstOrNull() == "-1Exception") {
+            if (didCrash) {
+                return false
+            }
+            if (groupedRes.isEmpty() || groupedRes.keys.any { it.contains("Exception", true) }) {
                 return false
             }
         }
         return true
     }
 
-    private fun checkTest(project: Project): Map<String, List<CommonCompiler>> {
+    private fun checkTest(project: Project): Pair<Map<String, List<CommonCompiler>>, Boolean> {
         //log.debug("Trying to compile with main function:")
         println("Trying to compile with main function:")
         //val extendedCompilerList = compilers + listOf(JVMCompiler("-Xno-optimize"))
@@ -60,7 +63,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         if (!extendedCompilerList.checkCompilingForAllBackends(project)) {
             println("Cannot compile with main + \n$project")
             log.debug("Cannot compile with main + \n$project")
-            return mapOf()
+            return mapOf<String, List<CommonCompiler>>() to false
         }
 
         //println("Executing traced code:\n$project")
@@ -68,19 +71,21 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         val results = mutableListOf<Pair<CommonCompiler, String>>()
         val errorsMap = mutableListOf<Pair<CommonCompiler, String>>()
         var jvmCrashed = false
+        var hasErrors = false
         for (comp in extendedCompilerList) {
             val status = comp.compile(project)
             if (status.status == -1)
-                return mapOf()
+                return mapOf<String, List<CommonCompiler>>() to false
             val res = comp.exec(status.pathToCompiled)
             val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
+            if (errors.isNotEmpty()) hasErrors = true
             File(status.pathToCompiled).let { if (it.exists()) it.deleteRecursively() }
             println("Result of ${comp.compilerInfo}: $res\n")
             println("Errors: $errors")
             log.debug("Result of ${comp.compilerInfo}: $res\n")
             log.debug("Errors: $errors")
             if (exclErrorMessages.any { errors.contains(it) })
-                return mapOf()
+                return mapOf<String, List<CommonCompiler>>() to false
             results.add(comp to res.trim())
             if (errors.contains("java.lang.VerifyError: Bad type on operand stack")) {
                 errorsMap.add(comp to "Bytecode by $comp is incorrect\n${errors.trim()}")
@@ -90,10 +95,10 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
             }
         }
         if (jvmCrashed) {
-            return errorsMap.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap()
+            return errorsMap.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap() to false
         }
         if (results.all { it.second.trim().isEmpty() }) {
-            return mapOf("-1Exception" to listOf())
+            return mapOf<String, List<CommonCompiler>>("Exception" to listOf()) to true
         }
 //        //Compare with java
 //        if (CompilerArgs.useJavaAsOracle) {
@@ -108,7 +113,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
 //                log.debug("Exception with Java compilation")
 //            }
 //        }
-        return results.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap()
+        return results.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap() to hasErrors
     }
 
     private val log = Logger.getLogger("bugFinderLogger")

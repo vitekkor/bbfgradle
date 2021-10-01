@@ -156,7 +156,7 @@ object BugManager {
             }
             if (ReportProperties.getPropAsBoolean("FILE_REPORTER") == true) {
                 val bugList =
-                    if (bug.type == BugType.FRONTEND)
+                    if (bug.type == BugType.FRONTEND || bug.type == BugType.BACKEND)
                         listOf(bug, newestBug)
                     else listOf(newestBug)
                 FileReporter.dump(bugList)

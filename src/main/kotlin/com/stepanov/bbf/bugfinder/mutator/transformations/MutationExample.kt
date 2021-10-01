@@ -11,15 +11,17 @@ import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtConstantExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.calls.util.getType
 import org.jetbrains.kotlin.types.typeUtil.isInt
 
 class MutationExample : Transformation() {
     private val currentFile = file as KtFile
-    private val bindingContext = PSICreator.analyze(file, project)!!
-    private val rig = RandomInstancesGenerator(currentFile)
+    private val bindingContext = PSICreator.analyze(file, project)
+    private var rig: RandomInstancesGenerator? = null
 
     override fun transform() {
+        bindingContext ?: return
+        rig = RandomInstancesGenerator(currentFile, bindingContext)
         replaceStringConstant()
         replaceIntConstantWithClassValue()
     }
@@ -27,13 +29,13 @@ class MutationExample : Transformation() {
     private fun replaceIntConstantWithClassValue() {
         val intConstant =
             currentFile.getAllPSIChildrenOfType<KtConstantExpression>()
-                .map { it to it.getType(bindingContext) }
+                .map { it to it.getType(bindingContext!!) }
                 .first { it.second != null && it.second!!.isInt() }
                 .first
         val constantCopy = intConstant.copy()
         val userClass = currentFile.getAllPSIChildrenOfType<KtClass>().first()
         val userClassDescriptor =
-            userClass.getDeclarationDescriptorIncludingConstructors(bindingContext) as ClassDescriptor
+            userClass.getDeclarationDescriptorIncludingConstructors(bindingContext!!) as ClassDescriptor
         val usageOfIntType =
             UsagesSamplesGenerator.generateClassUsages(currentFile, bindingContext, userClassDescriptor)
                 .first { it.second?.isInt() == true }
@@ -49,9 +51,9 @@ class MutationExample : Transformation() {
             file.getAllPSIChildrenOfType<KtStringTemplateExpression>()
                 .first()
                 .let {
-                    it to it.getType(bindingContext)!!
+                    it to it.getType(bindingContext!!)!!
                 }
-        val newValue = rig.generateValueOfTypeAsExpression(stringConstantType)!!
+        val newValue = rig!!.generateValueOfTypeAsExpression(stringConstantType)!!
         checker.replaceNodeIfPossible(stringConstant, newValue)
     }
 }

@@ -16,8 +16,9 @@ import kotlin.system.exitProcess
 //TODO finish it'
 class RandomReflectionInstanceGenerator(
     private val file: KtFile,
-    private val type: KotlinType
-) : RandomInstancesGenerator(file) {
+    private val type: KotlinType,
+    private val ctx: BindingContext
+) : RandomInstancesGenerator(file, ctx) {
 
     private fun getParentClassesNames(kl: KtClass) =
         kl.parents.toList()

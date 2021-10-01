@@ -1,9 +1,14 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.checkers.PerformanceOracle
+import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.generator.StructureGenerator
+import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.bugfinder.util.getTrue
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
@@ -22,17 +27,14 @@ fun main(args: Array<String>) {
         Logger.getLogger("reducerLogger").level = Level.OFF
         Logger.getLogger("transformationManagerLog").level = Level.OFF
     }
-    val file =
-        if (Random.getTrue(10)) {
-            File("tmp/results/performance/").listFiles().randomOrNull() ?: exitProcess(0)
-        } else {
-            File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
-        }
+    val file = File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
     SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 //    val results = mutableMapOf<String, Pair<Double, Double>>()
-//    for (f in File("/home/zver/IdeaProjects/kotlinBugs/performance/").listFiles()) {
-//        if (f.name != "xonreqs_PROJECT.kt") continue
+//    var fl = false
+//    for (f in File("/home/zver/IdeaProjects/kotlinBugs/performance/tmp").listFiles()) {
+//        //if (f.name == "oalqvzn_FILE.kt") fl = true
+//        //if (!fl) continue
 //        println(f.name)
 //        val p = Project.createFromCode(f.readText())
 //        if (!JVMCompiler().checkCompiling(p)) continue

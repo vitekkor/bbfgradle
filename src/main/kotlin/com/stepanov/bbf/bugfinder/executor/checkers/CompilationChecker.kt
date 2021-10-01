@@ -9,6 +9,7 @@ import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.manager.Bug
+import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.tracer.Tracer
@@ -195,7 +196,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
             }
         }
         //TODO!!
-        //checkAndGetCompilerBugs(project).forEach { BugManager.saveBug(it) }
+        checkAndGetCompilerBugs(project).forEach { BugManager.saveBug(it) }
         checkedConfigurations[allTexts] = false
         StatisticCollector.incField("Correct programs")
         return false

@@ -19,7 +19,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.calls.util.getType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isNullable
 import org.jetbrains.kotlin.types.typeUtil.isNothing
@@ -34,9 +34,12 @@ class ExpressionObfuscator : Transformation() {
 
     lateinit var usageExamples: MutableList<Triple<KtExpression, String, KotlinType?>>
     lateinit var availableVars: List<Pair<KtProperty, KotlinType?>>
+    var randomInstanceGenerator: RandomInstancesGenerator? = null
 
     override fun transform() {
         var ctx = PSICreator.analyze(file) ?: return
+        val ktFile = file as? KtFile ?: return
+        randomInstanceGenerator = RandomInstancesGenerator(ktFile, ctx)
         usageExamples = TCEUsagesCollector.collectUsageCases(file as KtFile, ctx, checker.project).toMutableList()
         //TODO make dependent from size of program
         repeat(Random.nextInt(10, 20)) { it ->
@@ -118,7 +121,7 @@ class ExpressionObfuscator : Transformation() {
             if (newVPValue == null) {
                 newVPValue =
                     if (fromUsages != null && Random.getTrue(75)) fromUsages.first.text
-                    else RandomInstancesGenerator(file as KtFile).generateValueOfType(vp.type).ifEmpty { "TODO()" }
+                    else randomInstanceGenerator!!.generateValueOfType(vp.type).ifEmpty { "TODO()" }
             }
             newVPValue ?: "TODO()"
         }
