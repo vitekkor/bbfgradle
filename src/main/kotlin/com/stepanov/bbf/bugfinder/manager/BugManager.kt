@@ -137,7 +137,12 @@ object BugManager {
             //Check if bug is real project bug
             val newBug = bug.copy()//checkIfBugIsProject(bug)
             log.debug("Start to reduce ${newBug.crashedProject}")
-            val reduced = Reducer.reduce(newBug)
+            val reduced =
+                try {
+                    Reducer.reduce(newBug)
+                } catch (e: Exception) {
+                    newBug.crashedProject.copy()
+                }
             val reducedBug = Bug(newBug.compilers, newBug.msg, reduced, newBug.type)
             log.debug("Reduced: ${reducedBug.crashedProject}")
             val newestBug = reducedBug//checkIfBugIsProject(reducedBug)

@@ -38,13 +38,14 @@ class AddInheritance : Transformation() {
     private fun transform1() {
         val ktFile = file as KtFile
         val rtg = RandomTypeGenerator
-        rtg.setFileAndContext(ktFile, ctx!!)
+        val ctx = PSICreator.analyze(ktFile, project) ?: return
+        rtg.setFileAndContext(ktFile, ctx)
         val currentModule =
-            ktFile.getBoxFuncs()?.first().getDeclarationDescriptorIncludingConstructors(ctx!!)?.module ?: return
+            ktFile.getBoxFuncs()?.firstOrNull().getDeclarationDescriptorIncludingConstructors(ctx)?.module ?: return
         val userClassesDescriptors = StdLibraryGenerator.getUserClassesDescriptorsFromProject(project, currentModule)
         val randomClass = file.getAllPSIChildrenOfType<KtClassOrObject>().randomOrNull() ?: return
         val randomClassDescriptor =
-            randomClass.getDeclarationDescriptorIncludingConstructors(ctx!!) as? ClassDescriptor ?: return
+            randomClass.getDeclarationDescriptorIncludingConstructors(ctx) as? ClassDescriptor ?: return
         val randomClassCopy = randomClass.copy() as KtClassOrObject
         val randomClassTypeParams = randomClassDescriptor.typeConstructor.parameters
         val randomGClass = GClass.fromPsi(randomClass)
@@ -66,7 +67,7 @@ class AddInheritance : Transformation() {
         val replacedUserClassForInheritance =
             userClassForInheritance.defaultType.replace(typeParams.map { it!!.asTypeProjection() })
         randomClassCopy.addSuperTypeListEntry(Factory.psiFactory.createSuperTypeEntry(replacedUserClassForInheritance.getNameWithoutError()))
-        val bodyGenerator = ClassBodyGenerator(ktFile, ctx!!, randomGClass, 0)
+        val bodyGenerator = ClassBodyGenerator(ktFile, ctx, randomGClass, 0)
         val overridings = bodyGenerator
             .getMembersToOverride(randomGClass, listOf(replacedUserClassForInheritance))
         val intersectionByNames =

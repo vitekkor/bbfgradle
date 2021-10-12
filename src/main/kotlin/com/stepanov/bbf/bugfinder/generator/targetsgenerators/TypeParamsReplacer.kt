@@ -26,7 +26,7 @@ object TypeParamsReplacer {
                 .let { if (it == -1) implSupertypeTypeParams.indexOf("$name?") else it }
             val upperBound = tp.upperBounds.firstOrNull()?.let { oldToRealTypeParams[it.name] ?: it }
             val newTypeParameter =
-                if (index != -1 && !realTypeParams[index].isAnyOrNullableAny()) {
+                if (realTypeParams.isNotEmpty() && index != -1 && !realTypeParams[index].isAnyOrNullableAny()) {
                     realTypeParams[index]
                 } else {
                     RandomTypeGenerator.generateRandomTypeWithCtx(upperBound)
@@ -67,7 +67,7 @@ object TypeParamsReplacer {
                 targetDescriptor.constructors
                     .filter { it.visibility.isPublicAPI }
                     .filter { it.valueParameters.all { !it.type.hasTypeParam() } || !withoutParams }
-                    .random()
+                    .randomOrNull() ?: return null
         val implSupertype =
             targetDescriptor.getAllSuperClassifiers()
                 .find { it.name.asString() == fromType.constructor.toString() } as? ClassDescriptor

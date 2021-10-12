@@ -1,20 +1,11 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
-import com.stepanov.bbf.bugfinder.executor.checkers.PerformanceOracle
-import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
-import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.generator.StructureGenerator
-import com.stepanov.bbf.bugfinder.util.Stream
-import com.stepanov.bbf.bugfinder.util.getTrue
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
 import java.io.File
-import kotlin.random.Random
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
@@ -162,26 +153,3 @@ fun main(args: Array<String>) {
 //        exitProcess(0)
 //    }
 }
-
-//fun checkDiffBehTests() {
-//
-//    for (f in File("/home/zver/IdeaProjects/kotlinBugs/diffBehavior/tmp/").listFiles()) {
-//        println("NAME = ${f.name}")
-//        val project = Project.createFromCode(f.readText())
-//        val backends = f.readText().split("\n")
-//            .first { it.startsWith("// Bug happens on ") }
-//            .substringAfter("// Bug happens on ").split(", ").map { it.trim() }
-//            .map {
-//                var (backend, args) = it.substringBefore(" ") to it.substringAfter(" ")
-//                if (args.trim() == backend.trim()) args = ""
-//                when (backend) {
-//                    "JVM" -> JVMCompiler(args)
-//                    "KJVM" -> KJCompiler(args)
-//                    else -> JSCompiler(args)
-//                }
-//            }
-//        val tracer = TracesChecker(backends)
-//        tracer.checkBehavior(project, false)
-//    }
-//    exitProcess(0)
-//}

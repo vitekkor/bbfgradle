@@ -81,7 +81,7 @@ abstract class CommonCompiler {
                 Stream.ERROR -> errorStream.toString()
                 else -> "" + errorStream.toString()
             }
-            if (streamOutput.trim().isEmpty() && errorStream.toString().isEmpty()) {
+            if (errorStream.toString().isEmpty() || errorStream.toString().contains("StackOverflow", true)) {
                 streamOutput = "Exception timeout"
             }
             return streamOutput

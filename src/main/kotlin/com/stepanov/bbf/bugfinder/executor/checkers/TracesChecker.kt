@@ -57,11 +57,11 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
 
     private fun checkTest(project: Project): Pair<Map<String, List<CommonCompiler>>, Boolean> {
         //log.debug("Trying to compile with main function:")
-        println("Trying to compile with main function:")
+        log.debug("Trying to compile with main function:")
         //val extendedCompilerList = compilers + listOf(JVMCompiler("-Xno-optimize"))
         val extendedCompilerList = compilers
         if (!extendedCompilerList.checkCompilingForAllBackends(project)) {
-            println("Cannot compile with main + \n$project")
+            log.debug("Cannot compile with main + \n$project")
             log.debug("Cannot compile with main + \n$project")
             return mapOf<String, List<CommonCompiler>>() to false
         }
@@ -80,8 +80,6 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
             val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
             if (errors.isNotEmpty()) hasErrors = true
             File(status.pathToCompiled).let { if (it.exists()) it.deleteRecursively() }
-            println("Result of ${comp.compilerInfo}: $res\n")
-            println("Errors: $errors")
             log.debug("Result of ${comp.compilerInfo}: $res\n")
             log.debug("Errors: $errors")
             if (exclErrorMessages.any { errors.contains(it) })
@@ -95,7 +93,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
             }
         }
         if (jvmCrashed) {
-            return errorsMap.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap() to false
+            return errorsMap.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap() to true
         }
         if (results.all { it.second.trim().isEmpty() }) {
             return mapOf<String, List<CommonCompiler>>("Exception" to listOf()) to true
@@ -116,5 +114,5 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         return results.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap() to hasErrors
     }
 
-    private val log = Logger.getLogger("bugFinderLogger")
+    private val log = Logger.getLogger("mutatorLogger")
 }

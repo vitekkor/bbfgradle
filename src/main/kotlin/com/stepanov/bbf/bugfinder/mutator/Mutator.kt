@@ -93,7 +93,7 @@ class Mutator(val project: Project) {
             AddRandomComponent() to 50,
             ExpressionReplacer() to 100,
             ChangeArgToAnotherValue() to 50,
-            //ExpressionObfuscator() to 50,
+            ExpressionObfuscator() to 50,
             //ShuffleFunctionArguments() to 50,
             AddPossibleModifiers() to 50,
             AddInheritance() to 25,
