@@ -7,7 +7,7 @@ import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.resolve.calls.util.getType
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
@@ -16,8 +16,8 @@ class AddExpressionToLoop : Transformation() {
         val ctx = PSICreator.analyze(file) ?: return
         val expressions = file.getAllPSIChildrenOfType<KtExpression>().filter { it.getType(ctx) != null }
         file.getAllPSIChildrenOfType<KtLoopExpression>()
-            .reversed()
-            .filter { Random.getTrue(20) }
+            .shuffled()
+            .take(1)
             .filter { it.body is KtBlockExpression }
             .forEach { loop ->
                 repeat(5) {

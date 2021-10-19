@@ -7,7 +7,7 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GStruc
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.backend.common.serialization.findPackage
-import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
+import com.stepanov.bbf.bugfinder.util.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*

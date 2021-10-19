@@ -31,7 +31,7 @@ import com.stepanov.bbf.bugfinder.util.kcheck.nextInRange
 import com.stepanov.bbf.bugfinder.util.kcheck.nextString
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.calls.util.getType
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import java.io.BufferedReader
 import java.io.File
@@ -540,9 +540,26 @@ fun KotlinType.getMinModifier() =
         .let { listOf(it) + it.getAllTypeParams().map { it.type } }
         .map { it.constructor.declarationDescriptor }
         .mapNotNull { (it as? ClassDescriptor)?.visibility }
-        .minWithOrNull { t: DescriptorVisibility, t2: DescriptorVisibility -> t.compareTo(t2) ?: 0 }
+        .minWithOrNull { t: Visibility, t2: Visibility -> compareLocal(t, t2) ?: 0 } //t.compareTo(t2) ?: 0 }
         ?.name ?: "public"
 
+private var ORDERED_VISIBILITIES: Map<Visibility, Int> =
+    mapOf(
+        Visibilities.PRIVATE_TO_THIS to 0,
+        Visibilities.PRIVATE to 0,
+        Visibilities.INTERNAL to 1,
+        Visibilities.PROTECTED to 1,
+        Visibilities.PUBLIC to 2
+    )
+
+fun compareLocal(first: Visibility, second: Visibility): Int? {
+    if (first === second) return 0
+    val firstIndex: Int? = ORDERED_VISIBILITIES.get(first)
+    val secondIndex: Int? = ORDERED_VISIBILITIES.get(second)
+    return if (firstIndex == null || secondIndex == null || firstIndex == secondIndex) {
+        null
+    } else firstIndex - secondIndex
+}
 
 fun compareDescriptorVisibilitiesAsStrings(v1: String, v2: String): Int {
     return when {

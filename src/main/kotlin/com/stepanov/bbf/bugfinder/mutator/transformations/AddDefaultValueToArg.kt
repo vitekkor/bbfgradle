@@ -16,43 +16,39 @@ import kotlin.random.Random
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 
-class AddDefaultValueToArg : Transformation() {
+object AddDefaultValueToArg : Transformation() {
 
     //TODO MAYBE INIT AND REINIT SOME PROPERTIES
     override fun transform() {
         val ctx = PSICreator.analyze(file) ?: return
         val generator = RandomInstancesGenerator(file as KtFile, ctx)
         val prevParams = mutableListOf<Triple<KtExpression, String, KotlinType?>>()
-        file.getAllPSIChildrenOfType<KtParameterList>()
+        val randomParameterList = file.getAllPSIChildrenOfType<KtParameterList>()
             .filter { it.parameters.isNotEmpty() }
-            .forEach { f ->
-                for ((ind, valueParam) in f.parameters.withIndex()) {
-                    //if (Random.getTrue(75)) continue
-                    val vpType = valueParam.typeReference?.getAbbreviatedTypeOrType(ctx) ?: continue
-                    if (valueParam.name == null) continue
-                    prevParams.add(Triple(psiFactory.createExpression(valueParam.name!!), valueParam.name!!, vpType))
-                    if (valueParam.hasDefaultValue() && Random.getTrue(50)) continue
-                    if (vpType.isTypeParameter()) continue
-                    val emptyConstructor = vpType.hasTypeParam()
-                    val fillGenerator = FillerGenerator(file as KtFile, ctx, prevParams.getAllWithoutLast().toMutableList())
-                    var value =
-                        if (vpType.isNullable() && Random.getTrue(20)) {
-                            "null"
-                        } else if (!emptyConstructor && Random.getTrue(50)) {
-                            val l = fillGenerator.getFillExpressions(valueParam to vpType)
-                            l.randomOrNull()?.text
-                        } else {
-                            generator.generateValueOfType(vpType, withoutParams = emptyConstructor)
-                        }
-                    if (value == null) continue
-                    if (value.trim().isEmpty()) continue
-                    if (emptyConstructor) value = value.substringBefore('<') + value.substringAfterLast('>')
-                    val psiValue = psiFactory.createParameter("${valueParam.text.substringBefore('=')} = $value")
-                    checker.replaceNodeIfPossible(valueParam, psiValue)
+            .randomOrNull() ?: return
+
+        for ((ind, valueParam) in randomParameterList.parameters.withIndex()) {
+            val vpType = valueParam.typeReference?.getAbbreviatedTypeOrType(ctx) ?: continue
+            if (valueParam.name == null) continue
+            prevParams.add(Triple(psiFactory.createExpression(valueParam.name!!), valueParam.name!!, vpType))
+            if (valueParam.hasDefaultValue() && Random.getTrue(50)) continue
+            if (vpType.isTypeParameter()) continue
+            val emptyConstructor = vpType.hasTypeParam()
+            val fillGenerator = FillerGenerator(file as KtFile, ctx, prevParams.getAllWithoutLast().toMutableList())
+            var value =
+                if (vpType.isNullable() && Random.getTrue(20)) {
+                    "null"
+                } else if (!emptyConstructor && Random.getTrue(50)) {
+                    val l = fillGenerator.getFillExpressions(valueParam to vpType)
+                    l.randomOrNull()?.text
+                } else {
+                    generator.generateValueOfType(vpType, withoutParams = emptyConstructor)
                 }
-            }
+            if (value == null) continue
+            if (value.trim().isEmpty()) continue
+            if (emptyConstructor) value = value.substringBefore('<') + value.substringAfterLast('>')
+            val psiValue = psiFactory.createParameter("${valueParam.text.substringBefore('=')} = $value")
+            checker.replaceNodeIfPossible(valueParam, psiValue)
+        }
     }
-
-
-    private val randomConst = 5
 }

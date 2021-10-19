@@ -15,7 +15,7 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 object CoverageGuider {
-    lateinit var desiredCoverage: Set<CoverageEntry>
+    lateinit var desiredCoverage: List<CoverageEntry>
     var initCoef = 0
     private val commits =
         File("commits.txt")
@@ -49,11 +49,22 @@ object CoverageGuider {
 
     fun init(commit: String, project: Project) {
         //println("PATCHES = ${patches.size}")
-        this.desiredCoverage = signatures.toSet()
+        this.desiredCoverage = signatures
         val initCoverage = getCoverage(project, CompilerArgs.getCompilersList())
         initCoef = calcKoefOfCoverageUsage(initCoverage)
         println("INIT K = $initCoef\n")
     }
+
+
+    fun init(desiredCoverage: Map<CoverageEntry, Int>, project: Project) {
+        //println("PATCHES = ${patches.size}")
+        this.desiredCoverage = desiredCoverage.keys.toList()
+        val initCoverage = getCoverage(project, CompilerArgs.getCompilersList())
+        println("init Coverage size = ${initCoverage.size}")
+        initCoef = calcKoefOfCoverageUsage(initCoverage)
+        println("INIT K = $initCoef\n")
+    }
+
 
     fun getCoverage(project: Project, compilers: List<CommonCompiler>): Map<CoverageEntry, Int> {
         CompilerArgs.isInstrumentationMode = true

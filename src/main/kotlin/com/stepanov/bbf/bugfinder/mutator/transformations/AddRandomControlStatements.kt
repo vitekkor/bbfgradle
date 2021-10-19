@@ -12,9 +12,9 @@ import org.jetbrains.kotlin.psi.psiUtil.parents
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
-class AddRandomControlStatements : Transformation() {
+object AddRandomControlStatements : Transformation() {
     override fun transform() {
-        repeat(RANDOM_CONST) { insertRandomStatement() }
+        insertRandomStatement()
     }
 
     private fun insertRandomStatement() {
@@ -49,6 +49,5 @@ class AddRandomControlStatements : Transformation() {
         }
     }
 
-    private val RANDOM_CONST = Random.nextInt(50, 51)
     private val listOfRandomExceptions = StdLibraryGenerator.getListOfExceptionsFromStdLibrary()
 }

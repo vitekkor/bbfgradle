@@ -1,5 +1,8 @@
 package coverage
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class CoverageEntry(
     val pathToFun: String,
     val methodName: String,
@@ -52,16 +55,16 @@ data class CoverageEntry(
             return CoverageEntry(path.joinToString("\$"), methodName, params, rtv)
         }
 
-        private val jvmTypeToName = mapOf(
-            "V" to "void",
-            "B" to "byte",
-            "C" to "char",
-            "D" to "double",
-            "F" to "float",
-            "I" to "int",
-            "J" to "long",
-            "S" to "short",
-            "Z" to "boolean"
+        val jvmTypeToName = mapOf(
+            "V" to "Void",
+            "B" to "Byte",
+            "C" to "Char",
+            "D" to "Double",
+            "F" to "Float",
+            "I" to "Int",
+            "J" to "Long",
+            "S" to "Short",
+            "Z" to "Boolean"
         )
     }
 

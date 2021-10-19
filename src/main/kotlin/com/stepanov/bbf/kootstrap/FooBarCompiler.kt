@@ -92,18 +92,20 @@ object FooBarCompiler {
             cfg,
             EnvironmentConfigFiles.JVM_CONFIG_FILES
         )
-        val project = env.project as MockProject
+//        val project = env.project as MockProject
         class MyPomModelImpl(env: KotlinCoreEnvironment) : PomModelImpl(env.project) {
             override fun runTransaction(pt: PomTransaction) = pt.run()
         }
-        project.registerService(
-            TreeAspect::class.java,
-            TreeAspect()
-        )
+//        project.registerService(
+//            TreeAspect::class.java,
+//            TreeAspect()
+//        )
 
         val pomModel = MyPomModelImpl(env)
 
+        TreeAspect(pomModel)
 
+        val project = env.project as MockProject
         project.registerService(
             PomModel::class.java,
             pomModel

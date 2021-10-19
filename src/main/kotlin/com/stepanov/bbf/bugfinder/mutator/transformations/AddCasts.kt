@@ -5,17 +5,17 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerato
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
-import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
+import com.stepanov.bbf.bugfinder.util.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.resolve.calls.util.getType
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.random.Random
 
 
-class AddCasts : Transformation() {
+object AddCasts : Transformation() {
     override fun transform() {
         val ktFile = file as KtFile
         val ctx = PSICreator.analyze(ktFile, project) ?: return
@@ -25,25 +25,18 @@ class AddCasts : Transformation() {
         val uninterestingTypes = listOf("Nothing", "Unit")
         val userClassesDescriptors =
             StdLibraryGenerator.getUserClassesDescriptorsFromProject(project, currentModule)
-        val numberOfTries =
-            ktFile.getAllPSIChildrenOfType<KtExpression>()
-                .map { it to it.getType(ctx) }
-                .filter { it.second != null && "${it.second}" !in uninterestingTypes }
-                .size / 3
 
-        repeat(numberOfTries) {
-            val typedExpressions = ktFile.getAllPSIChildrenOfType<KtExpression>()
-                .map { it to it.getType(ctx) }
-                .filter { it.second != null && "${it.second}" !in uninterestingTypes }.randomOrNull() ?: return
-            val randomTypeToCast =
-                if (Random.getTrue(10)) {
-                    val randomType = RandomTypeGenerator.generateRandomTypeWithCtx()
-                    randomType?.constructor?.declarationDescriptor as? ClassDescriptor
-                } else {
-                    chooseRandomTypeToCast(typedExpressions.second!!, userClassesDescriptors)
-                } ?: return@repeat
-            tryToCast(typedExpressions.first, typedExpressions.second!!, randomTypeToCast)
-        }
+        val typedExpressions = ktFile.getAllPSIChildrenOfType<KtExpression>()
+            .map { it to it.getType(ctx) }
+            .filter { it.second != null && "${it.second}" !in uninterestingTypes }.randomOrNull() ?: return
+        val randomTypeToCast =
+            if (Random.getTrue(10)) {
+                val randomType = RandomTypeGenerator.generateRandomTypeWithCtx()
+                randomType?.constructor?.declarationDescriptor as? ClassDescriptor
+            } else {
+                chooseRandomTypeToCast(typedExpressions.second!!, userClassesDescriptors)
+            } ?: return
+        tryToCast(typedExpressions.first, typedExpressions.second!!, randomTypeToCast)
     }
 
     private fun chooseRandomTypeToCast(

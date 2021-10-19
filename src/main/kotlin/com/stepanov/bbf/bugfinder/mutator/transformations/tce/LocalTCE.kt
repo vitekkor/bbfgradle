@@ -11,30 +11,31 @@ import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getReceiverExpression
 import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.resolve.calls.util.getType
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isError
 import org.jetbrains.kotlin.types.typeUtil.isUnit
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
-class LocalTCE : Transformation() {
+object LocalTCE : Transformation() {
 
     private val blockListOfTypes = listOf("Unit", "Nothing", "Nothing?")
     private var psi = file.copy() as KtFile
-    lateinit var usageExamples: MutableList<Triple<KtExpression, String, KotlinType?>>
+    val ctx = PSICreator.analyze(psi)
+    var usageExamples: MutableList<Triple<KtExpression, String, KotlinType?>> =
+        TCEUsagesCollector.collectUsageCases(psi, ctx, checker.project).toMutableList()
 
     override fun transform() {
-        val ctx = PSICreator.analyze(psi) ?: return
+        if (ctx == null) return
         RandomTypeGenerator.setFileAndContext(file as KtFile, ctx)
-        usageExamples = TCEUsagesCollector.collectUsageCases(psi, ctx, checker.project).toMutableList()
         addRandomUnitCalls()
         replaceNodesOfFile(psi.getAllPSIChildrenOfType(), ctx)
         checker.curFile.changePsiFile(psi.text)
     }
 
     private fun addRandomUnitCalls() {
-        val unitCalls = usageExamples.filter { it.third?.isUnit() ?: false }.filter { Random.getTrue(80) }
+        val unitCalls = usageExamples.filter { it.third?.isUnit() ?: false }.filter { Random.getTrue(10) }
         for (call in unitCalls) {
             val backupFile = psi.copy() as KtFile
             val randomPlaceToInsert =
@@ -58,7 +59,7 @@ class LocalTCE : Transformation() {
         log.debug("Trying to change ${nodesForChange.size} nodes")
         for (i in nodesForChange.indices) {
             log.debug("Node $i from ${nodesForChange.size}")
-            if (Random.getTrue(60)) continue
+            if (Random.getTrue(90)) continue
             if (i >= nodesForChange.size) break
             val node = nodesForChange.randomOrNull() ?: continue
             log.debug("trying to replace ${node} ${node.first.text}")

@@ -10,8 +10,8 @@ import kotlin.system.exitProcess
 
 class ReplaceDotExpression: Transformation() {
     override fun transform() {
-        file.getAllPSIChildrenOfType<KtDotQualifiedExpression>().reversed()
-            .filter { Random.getTrue(15) }
+        file.getAllPSIChildrenOfType<KtDotQualifiedExpression>().shuffled()
+            .take(1)
             .forEach {
                 val left = it.receiverExpression.text
                 val right = it.selectorExpression?.text ?: return@forEach

@@ -9,16 +9,18 @@ import org.jetbrains.kotlin.builtins.isFunctionType
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableReferenceExpression
 import org.jetbrains.kotlin.psi.KtReferenceExpression
-import org.jetbrains.kotlin.resolve.calls.util.getType
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
-class AddCallableReference : Transformation() {
+object AddCallableReference : Transformation() {
+
     override fun transform() {
         var ctx = PSICreator.analyze(file) ?: return
         val callsWithFunTypes =
             file.getAllPSIChildrenOfType<KtCallExpression>()
                 .filter { it.valueArguments.any { it.getArgumentExpression()?.getType(ctx)?.isFunctionType == true } }
+                .shuffled().take(2)
         val potentialCallableReferences =
             checker.project.files.flatMap {
                 it.psiFile.getAllPSIChildrenOfType<KtReferenceExpression>()
@@ -47,10 +49,10 @@ class AddCallableReference : Transformation() {
                 if (!argType.isFunctionType) return@forEach
                 for (ref in potentialCallableReferences.shuffled()) {
                     val newCallable = Factory.psiFactory.createCallableReferenceExpression("::${ref.text}")
-                    print("TRYING TO REPLACE ${arg.text} on ${newCallable?.text} ")
+                    log.debug("TRYING TO REPLACE ${arg.text} on ${newCallable?.text} ")
                     if (newCallable != null) {
                         val res = checker.replaceNodeIfPossible(arg, newCallable)
-                        println(res)
+                        log.debug(res)
                     }
                 }
             }
@@ -58,7 +60,7 @@ class AddCallableReference : Transformation() {
     }
 
     private fun tryToReplaceCallableReferences(potentialCallableReferences: List<KtReferenceExpression>) {
-        val callableReferences = file.getAllPSIChildrenOfType<KtCallableReferenceExpression>()
+        val callableReferences = file.getAllPSIChildrenOfType<KtCallableReferenceExpression>().shuffled().take(2)
         val potentialCallableReferencesAsCallableReferences =
             potentialCallableReferences.mapNotNull { Factory.psiFactory.createCallableReferenceExpression("::${it.text}") }
         for (c in callableReferences) {

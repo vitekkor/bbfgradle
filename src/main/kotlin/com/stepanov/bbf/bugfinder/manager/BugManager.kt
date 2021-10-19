@@ -125,6 +125,7 @@ object BugManager {
 
     fun saveBug(bug: Bug) {
         try {
+            if (bug.type == BugType.FRONTEND) return
             val field = when (bug.type) {
                 BugType.BACKEND -> "Backend"
                 BugType.FRONTEND -> "Frontend"

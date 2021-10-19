@@ -3,26 +3,18 @@ package com.stepanov.bbf.bugfinder.mutator
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.generator.targetsgenerators.FunInvocationGenerator
-import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
-import com.stepanov.bbf.bugfinder.manager.Bug
-import com.stepanov.bbf.bugfinder.manager.BugManager
-import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.LocalTCE
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.TCETransformation
 import com.stepanov.bbf.bugfinder.mutator.transformations.util.ExpressionReplacer
+import com.stepanov.bbf.bugfinder.util.getTrue
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.apache.log4j.Logger
-import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
-import org.jetbrains.kotlin.descriptors.FunctionDescriptor
-import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtNamedFunction
-import org.jetbrains.kotlin.resolve.calls.util.getType
+import kotlin.math.abs
+import kotlin.math.ln
+import kotlin.math.sqrt
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
@@ -54,7 +46,12 @@ class Mutator(val project: Project) {
             Transformation.checker.curFile = bbfFile
             when (bbfFile.getLanguage()) {
                 //LANGUAGE.JAVA -> startJavaMutations()
-                LANGUAGE.KOTLIN -> startKotlinMutations()
+                LANGUAGE.KOTLIN ->
+                    if (CompilerArgs.isGuidedByCoverage) {
+                        startGuidedKotlinMutations()
+                    } else {
+                        startKotlinMutations()
+                    }
             }
             log.debug("End")
         }
@@ -70,40 +67,126 @@ class Mutator(val project: Project) {
         return
     }
 
+    private fun startGuidedKotlinMutations() {
+        val mutationList = mutableListOf(
+            ChangeRandomASTNodesFromAnotherTrees,
+            AddTryExpression,
+            AddRandomControlStatements,
+            AddLoop,
+            AddLabels,
+            ChangeRandomASTNodes,
+            ChangeTypes,
+            //ChangeRandomASTNodes() to 25,
+            LocalTCE,
+            //TCETransformation to 25, //TODO ???
+            AddFunInvocations,
+            AddCasts,
+            AddDefaultValueToArg,
+            AddCallableReference,
+            AddRandomComponent(),
+            ExpressionReplacer(),
+            ChangeArgToAnotherValue(),
+            ExpressionObfuscator,
+            //ShuffleFunctionArguments(),
+            AddPossibleModifiers(),
+            AddInheritance(),
+            ReplaceDotExpression(),
+            AddExpressionToLoop()
+        )
+        val KOEF = 10.0
+        val EPSILON = 80
+        val k = 100.0 / mutationList.size
+        val directedMutations =
+            mutationList.mapIndexed { i, m -> DirectedMutation(m, mutableListOf(), k) }.toMutableList()
+        checker.currentScore = 0
+        repeat(Random.nextInt(200, 300)) { iteration ->
+            val transformationToExecute =
+                if (Random.getTrue(EPSILON)) {
+                    val transformationsToMetrics = directedMutations.map { tr ->
+                        val averageScore = if (tr.scores.isEmpty()) 0.0 else tr.scores.average()
+                        val div = if (tr.scores.isEmpty()) 1 else tr.scores.size
+                        val metric = averageScore + sqrt(2 * ln(iteration.toDouble()) / div)
+                        tr to metric
+                    }
+//                    transformationsToMetrics.map {
+//                        "${it.first.transformation}".substringAfterLast('.').substringBefore('@') to it.second
+//                    }.forEach(::println)
+                    val maxMetric = transformationsToMetrics.maxOf { it.second }
+                    transformationsToMetrics.filter { abs(it.second - maxMetric) <= 0.01 }.randomOrNull()?.first ?: return@repeat
+                } else {
+                    directedMutations.randomOrNull() ?: return@repeat
+                }
+            println("Mutation ${transformationToExecute.transformation} started")
+            executeMutation(transformationToExecute.transformation, 100)
+            val score = checker.currentScore / KOEF
+            transformationToExecute.scores.add(score)
+            println("SCORE = $score")
+            println("------------------------------")
+//            directedMutations.map {
+//                Triple(
+//                    "${it.transformation}".substringAfterLast('.').substringBefore('@'),
+//                    it.probability,
+//                    it.scores
+//                )
+//            }.forEach(::println)
+            println("------------------------------")
+            //Reset scores
+            checker.currentScore = 0
+        }
+        println("LOL---------------------------")
+        directedMutations.sortedBy { it.scores.size }.map {
+            Pair(
+                "${it.transformation}".substringAfterLast('.').substringBefore('@'),
+                it.scores
+            )
+        }.forEach(::println)
+        println("LOL---------------------------")
+        exitProcess(0)
+    }
+
     private fun startKotlinMutations() {
         val ktx = PSICreator.analyze(checker.curFile.psiFile, checker.project) ?: return
         val ktFile = checker.curFile.psiFile as KtFile
         RandomTypeGenerator.setFileAndContext(ktFile, ktx)
         if (!checker.checkCompiling()) return
         val mut1 = listOf(
-            ChangeRandomASTNodesFromAnotherTrees() to 75,
-            AddTryExpression() to 50,
-            AddRandomControlStatements() to 50,
-            AddLoop() to 75,
-            AddLabels() to 50,
-            ChangeRandomASTNodes() to 75,
-            ChangeTypes() to 75,
+            ChangeRandomASTNodesFromAnotherTrees to 75,
+            AddTryExpression to 50,
+            AddRandomControlStatements to 50,
+            AddLoop to 75,
+            AddLabels to 50,
+            ChangeRandomASTNodes to 75,
+            ChangeTypes to 75,
             //ChangeRandomASTNodes() to 25,
-            LocalTCE() to 100,
-            TCETransformation() to 25,
-            AddFunInvocations() to 50,
-            AddCasts() to 75,
-            AddDefaultValueToArg() to 50,
-            AddCallableReference() to 25,
+            LocalTCE to 100,
+            //TCETransformation to 25, //TODO ???
+            AddFunInvocations to 50,
+            AddCasts to 75,
+            AddDefaultValueToArg to 50,
+            AddCallableReference to 25,
             AddRandomComponent() to 50,
             ExpressionReplacer() to 100,
             ChangeArgToAnotherValue() to 50,
-            ExpressionObfuscator() to 50,
+            ExpressionObfuscator to 50,
             //ShuffleFunctionArguments() to 50,
             AddPossibleModifiers() to 50,
             AddInheritance() to 25,
             ReplaceDotExpression() to 50,
-            AddExpressionToLoop() to 50,
-            AddRandomClass() to 50
+            AddExpressionToLoop() to 50
+            //AddRandomClass() to 50
         ).shuffled()
-        for (i in 0 until Random.nextInt(1, 3)) {
-            mut1.forEach { executeMutation(it.first, it.second) }
+        println("BEFORE = $project")
+        repeat(100) {
+            val randomMutation =
+                mut1.random()
+            println("EXECUTING ${randomMutation.first}")
+            randomMutation.first.transform()
         }
+        println("AFTER = $project")
+        exitProcess(0)
+//        for (i in 0 until Random.nextInt(1, 3)) {
+//            mut1.forEach { executeMutation(it.first, it.second) }
+//        }
 //        BugManager.saveBug(
 //            Bug(
 //                CompilerArgs.getCompilersList(),

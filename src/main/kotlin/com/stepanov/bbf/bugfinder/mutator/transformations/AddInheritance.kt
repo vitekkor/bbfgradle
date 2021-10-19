@@ -12,7 +12,7 @@ import com.stepanov.bbf.bugfinder.util.getTrue
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.replaceThis
-import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
+import com.stepanov.bbf.bugfinder.util.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.Modality
@@ -31,9 +31,8 @@ import kotlin.random.Random
 
 class AddInheritance : Transformation() {
 
-    private val RANDOM_CONST = 2
 
-    override fun transform() = repeat(RANDOM_CONST) { transform1() }
+    override fun transform() = repeat(1) { transform1() }
 
     private fun transform1() {
         val ktFile = file as KtFile

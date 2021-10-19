@@ -1,6 +1,5 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory
 import com.stepanov.bbf.bugfinder.util.filterDuplicatesBy
 import com.stepanov.bbf.bugfinder.util.getNameWithoutError
@@ -12,20 +11,20 @@ import org.jetbrains.kotlin.psi.KtTypeReference
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import kotlin.random.Random
 
-class ChangeTypes : Transformation() {
+object ChangeTypes : Transformation() {
 
     override fun transform() {
-        val typeReferences = file.getAllPSIChildrenOfType<KtTypeReference>()
+        val ctx = PSICreator.analyze(file, project) ?: return
+        val (typeRef, type) = file.getAllPSIChildrenOfType<KtTypeReference>()
             .filterDuplicatesBy { it.text }
-            .map { it to it.getAbbreviatedTypeOrType(ctx!!) }
-            .filter { it.second != null && Random.getTrue(20) }
-        for ((typeRef, type) in typeReferences) {
-            val replacement =
-                type!!.supertypesWithoutAny()
-                    .randomOrNull()
-                    ?.let { psiFactory.createTypeIfPossible(it.getNameWithoutError()) }
-                    ?: continue
-            checker.replaceNodeIfPossible(typeRef, replacement)
-        }
+            .map { it to it.getAbbreviatedTypeOrType(ctx) }
+            .filter { it.second != null }
+            .randomOrNull() ?: return
+        val replacement =
+            type!!.supertypesWithoutAny()
+                .randomOrNull()
+                ?.let { psiFactory.createTypeIfPossible(it.getNameWithoutError()) }
+                ?: return
+        checker.replaceNodeIfPossible(typeRef, replacement)
     }
 }

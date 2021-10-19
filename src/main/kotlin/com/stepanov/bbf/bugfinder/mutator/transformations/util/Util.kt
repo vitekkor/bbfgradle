@@ -9,7 +9,7 @@ import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.bugfinder.util.flatMap
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.backend.common.serialization.findPackage
-import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
+import com.stepanov.bbf.bugfinder.util.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents

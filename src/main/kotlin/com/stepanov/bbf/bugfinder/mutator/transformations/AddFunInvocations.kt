@@ -15,19 +15,17 @@ import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 import kotlin.random.Random
-import org.jetbrains.kotlin.resolve.calls.util.getType as ktGetType
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType as ktGetType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as psiFactory
 
 //TODO lib calls
-class AddFunInvocations : Transformation() {
+object AddFunInvocations : Transformation() {
 
     override fun transform() {
-        for (i in 0 until randomConst) {
-            val res = tryToAddCalls()
-            if (file.text.trim() != res.text) {
-                checker.curFile.changePsiFile(res.copy() as KtFile)
-                //file = res.copy() as KtFile
-            }
+        val res = tryToAddCalls()
+        if (file.text.trim() != res.text) {
+            checker.curFile.changePsiFile(res.copy() as KtFile)
+            //file = res.copy() as KtFile
         }
     }
 

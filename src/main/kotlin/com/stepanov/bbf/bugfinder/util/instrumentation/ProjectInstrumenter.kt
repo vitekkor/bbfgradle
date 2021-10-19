@@ -1,10 +1,14 @@
-package com.stepanov.bbf.bugfinder.util
+package com.stepanov.bbf.bugfinder.util.instrumentation
 
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElementFactory
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiPackageStatement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.util.addImport
+import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
+import com.stepanov.bbf.bugfinder.util.isUnit
+import com.stepanov.bbf.bugfinder.util.replaceThis
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFile

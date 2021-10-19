@@ -4,7 +4,7 @@ import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.getParents
 import com.stepanov.bbf.bugfinder.mutator.transformations.getReturnTypeForCallableAndClasses
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
-import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
+import com.stepanov.bbf.bugfinder.util.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.BindingContext

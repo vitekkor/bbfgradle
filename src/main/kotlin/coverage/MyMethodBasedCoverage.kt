@@ -1,6 +1,5 @@
 package coverage
 
-import org.jetbrains.kotlin.utils.createConcurrentMultiMap
 import java.util.concurrent.ConcurrentHashMap
 
 object MyMethodBasedCoverage {

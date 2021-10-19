@@ -10,7 +10,10 @@ import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import coverage.CoverageEntry
 import coverage.MyMethodBasedCoverage
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 import kotlin.system.exitProcess
@@ -64,9 +67,27 @@ class SingleFileBugFinder(pathToFile: String) : BugFinder(pathToFile) {
             log.debug("=(")
             exitProcess(0)
         }
+//        if (CompilerArgs.isGuidedByCoverage) {
+//            CoverageGuider.init("", project)
+//            CoverageGuider.getCoverage(project, compilers)
+//            MyMethodBasedCoverage.methodProbes.clear()
+//        }
         if (CompilerArgs.isGuidedByCoverage) {
-            CoverageGuider.init("", project)
-            CoverageGuider.getCoverage(project, compilers)
+            //CoverageGuider.init("", project)
+            //CoverageGuider.getCoverage(project, compilers)
+            val coverageText = File("/home/zver/IdeaProjects/testsForExperiments/1_SamConversions/coverage.txt").readText()
+            val json = Json { allowStructuredMapKeys = true }
+            val targetCoverage =
+                json.decodeFromString<Map<CoverageEntry, Int>>(coverageText)
+                    .filter { "${it.key}".contains("sam", true) }
+            println("TARGET COVERAGE = $targetCoverage")
+//            for (f in File("/home/zver/IdeaProjects/testsForExperiments/1_SamConversions/").listFiles().filter { it.path.endsWith("kt") }) {
+//                println(f.name)
+//                val p = Project.createFromCode(f.readText())
+//                CoverageGuider.init(targetCoverage, p)
+//            }
+//            exitProcess(0)
+            CoverageGuider.init(targetCoverage, project)
             MyMethodBasedCoverage.methodProbes.clear()
         }
         if (CompilerArgs.isPerformanceMode) {

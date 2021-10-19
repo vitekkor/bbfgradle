@@ -5,17 +5,16 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import kotlin.random.Random
 
-class AddLabels : Transformation() {
+object AddLabels : Transformation() {
+
     override fun transform() {
-        val randomLoops =
+        val randomLoop =
             file.getAllPSIChildrenOfFourTypes<KtForExpression, KtWhileExpression, KtDoWhileExpression, KtLambdaExpression>()
-                .filter { Random.getTrue(25) && it.parent !is KtLabeledExpression }
-                .map { it as KtExpression }
-                .reversed()
-        for (randomLoop in randomLoops) {
-            val labelRandomName = Random.getRandomVariableName(1).toLowerCaseAsciiOnly()
-            val newLabeledExpression = Factory.psiFactory.createLabeledExpression("$labelRandomName@${randomLoop.text}")
-            checker.replaceNodeIfPossible(randomLoop, newLabeledExpression)
-        }
+                .filter { it.parent !is KtLabeledExpression }
+                .randomOrNull() as? KtExpression ?: return
+        val labelRandomName = Random.getRandomVariableName(1).toLowerCaseAsciiOnly()
+        val newLabeledExpression = Factory.psiFactory.createLabeledExpression("$labelRandomName@${randomLoop.text}")
+        checker.replaceNodeIfPossible(randomLoop, newLabeledExpression)
     }
+
 }

@@ -19,6 +19,8 @@ import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import coverage.MyMethodBasedCoverage
 import org.apache.log4j.Logger
 import kotlin.math.absoluteValue
+import kotlin.math.exp
+import kotlin.random.Random
 
 //Project adaptation
 open class CompilationChecker(private val compilers: List<CommonCompiler>) {
@@ -220,13 +222,19 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
     }
 
 
-    fun isCoverageDecreases(project: Project): Boolean {
+    private fun isCoverageDecreases(project: Project): Boolean {
         val sumCoverage = CoverageGuider.getCoverage(project, compilers)
         MyMethodBasedCoverage.methodProbes.clear()
         val k = CoverageGuider.calcKoefOfCoverageUsage(sumCoverage)
-        println("k = $k")
-        if (k > CoverageGuider.initCoef) CoverageGuider.initCoef = k
-        return k < CoverageGuider.initCoef
+        println("K = $k")
+        val probabilityOfAcceptance = minOf(1.0, exp(0.01 * CoverageGuider.desiredCoverage.size * (k - CoverageGuider.initCoef)))
+        println("Probability = $probabilityOfAcceptance")
+        if (k > CoverageGuider.initCoef) {
+            currentScore += k - CoverageGuider.initCoef
+            CoverageGuider.initCoef = k
+        }
+        //Is coverage decreasing?
+        return Random.nextDouble(0.0, 1.0) > probabilityOfAcceptance
     }
 
     private fun checkAndGetCompilerBugs(project: Project): List<Bug> {
@@ -280,6 +288,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
 //        }
 
     val additionalConditions: MutableList<(PsiFile) -> Boolean> = mutableListOf()
+    var currentScore = 0
 
     private val checkedConfigurations = hashMapOf<String, Boolean>()
     private val log = Logger.getLogger("mutatorLogger")

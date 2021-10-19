@@ -1,7 +1,15 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.checkers.CoverageGuider
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.util.Stream
+import com.stepanov.bbf.bugfinder.util.instrumentation.JarInstrumenter
+import coverage.CoverageEntry
+import coverage.MyMethodBasedCoverage
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
@@ -18,9 +26,20 @@ fun main(args: Array<String>) {
         Logger.getLogger("reducerLogger").level = Level.OFF
         Logger.getLogger("transformationManagerLog").level = Level.OFF
     }
-    val file = File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
+    //val file = File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
+    val file = File("/home/zver/IdeaProjects/bbfgradle/tmp/testsForExperiments/1_SamConversions/").listFiles().random()
     SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
+//    val p = Project.createFromCode(File("tmp/myTest.kt").readText())
+//    val coverageText = File("/home/zver/IdeaProjects/testsForExperiments/1_SamConversions/coverage.txt").readText()
+//    val json = Json { allowStructuredMapKeys = true }
+//    val targetCoverage =
+//        json.decodeFromString<Map<CoverageEntry, Int>>(coverageText)
+//            .filter { "${it.key}".contains("sam", true) }
+//    println("TARGET COVERAGE = $targetCoverage")
+//    //CoverageGuider.init(targetCoverage, p)
+//    JarInstrumenter().instrument("tmp/lib/kotlin-compiler-1.4.0.jar", "tmp/lib/modified-kotlin-compiler-1.4.0.jar", targetCoverage)
+//    exitProcess(0)
 //    val results = mutableMapOf<String, Pair<Double, Double>>()
 //    var fl = false
 //    for (f in File("/home/zver/IdeaProjects/kotlinBugs/performance/tmp").listFiles()) {

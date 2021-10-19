@@ -10,7 +10,6 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerato
 import com.stepanov.bbf.bugfinder.mutator.transformations.util.ScopeCalculator
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import org.jetbrains.kotlin.fir.StandardTypes
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.replace
@@ -20,16 +19,14 @@ import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
-class AddLoop : Transformation() {
+object AddLoop : Transformation() {
 
     override fun transform() {
-        repeat(RANDOM_CONST) {
-            val backup = file.copy() as PsiFile
-            try {
-                addRandomLoops()
-            } catch (e: Exception) {
-                checker.curFile.changePsiFile(backup, false)
-            }
+        val backup = file.copy() as PsiFile
+        try {
+            addRandomLoops()
+        } catch (e: Exception) {
+            checker.curFile.changePsiFile(backup, false)
         }
     }
 

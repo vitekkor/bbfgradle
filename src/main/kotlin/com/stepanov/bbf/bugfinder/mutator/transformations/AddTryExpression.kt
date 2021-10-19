@@ -11,11 +11,9 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtTryExpression
 import kotlin.system.exitProcess
 
-class AddTryExpression : Transformation() {
+object AddTryExpression : Transformation() {
     override fun transform() {
-        for (i in 0 until randomConst) {
-            addTryExpressionAsPsi()
-        }
+        addTryExpressionAsPsi()
     }
 
     private fun addTryExpressionAsPsi() {

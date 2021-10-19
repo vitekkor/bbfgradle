@@ -19,7 +19,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtSimpleNameExpression
 import org.jetbrains.kotlin.psi.psiUtil.getReceiverExpression
 import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.resolve.calls.util.getType
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isError
 import org.jetbrains.kotlin.types.isNullable
@@ -41,11 +41,11 @@ class ExpressionReplacer : Transformation() {
         val ctx = PSICreator.analyze(checker.curFile.psiFile, checker.project) ?: return
         rig = RandomInstancesGenerator(ktFile, ctx)
         RandomTypeGenerator.setFileAndContext(ktFile, ctx)
-        var nodesToChange = updateReplacement(ktFile.getAllChildren(), ctx).shuffled()
+        var nodesToChange = updateReplacement(ktFile.getAllChildren(), ctx).shuffled().take(2)
         for (ind in nodesToChange.indices) {
             if (ind >= nodesToChange.size) break
-            if (nodesToChange[ind].second!!.isUnit() && Random.getTrue(80)) continue
-            else if (Random.getTrue(60)) continue
+//            if (nodesToChange[ind].second!!.isUnit()) continue
+//            else if (Random.getTrue(60)) continue
             replaceExpression(nodesToChange[ind].first, nodesToChange[ind].second!!)
             nodesToChange = updateReplacement(ktFile.getAllChildren(), ctx).shuffled()
         }

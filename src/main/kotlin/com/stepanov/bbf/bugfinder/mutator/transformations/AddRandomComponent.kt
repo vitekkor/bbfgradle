@@ -10,7 +10,7 @@ import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.initBodyByTODO
-import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
+import com.stepanov.bbf.bugfinder.util.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.isPrivate
@@ -32,12 +32,10 @@ class AddRandomComponent : Transformation() {
         randomInstanceGenerator = RandomInstancesGenerator(ktFile, ctx)
         table = FileFieldsTable(ktFile, ctx)
         rtg.setFileAndContext(ktFile, ctx)
-        repeat(Random.nextInt(20, 50)) {
-            val randomClass = file.getAllPSIChildrenOfType<KtClassOrObject>()/*.first()*/.randomOrNull() ?: return
-            val gRandomClass = GClass.fromPsi(randomClass)
-            if (Random.nextBoolean()) addRandomProperty(randomClass, gRandomClass)
-            else addRandomFunction(randomClass, gRandomClass)
-        }
+        val randomClass = file.getAllPSIChildrenOfType<KtClassOrObject>()/*.first()*/.randomOrNull() ?: return
+        val gRandomClass = GClass.fromPsi(randomClass)
+        if (Random.nextBoolean()) addRandomProperty(randomClass, gRandomClass)
+        else addRandomFunction(randomClass, gRandomClass)
     }
 
     private fun addRandomTopLevelFunction() {

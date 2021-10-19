@@ -19,7 +19,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.calls.util.getType
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isNullable
 import org.jetbrains.kotlin.types.typeUtil.isNothing
@@ -30,9 +30,9 @@ import java.util.ArrayList
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
-class ExpressionObfuscator : Transformation() {
+object ExpressionObfuscator : Transformation() {
 
-    lateinit var usageExamples: MutableList<Triple<KtExpression, String, KotlinType?>>
+    var usageExamples: MutableList<Triple<KtExpression, String, KotlinType?>> = mutableListOf()
     lateinit var availableVars: List<Pair<KtProperty, KotlinType?>>
     var randomInstanceGenerator: RandomInstancesGenerator? = null
 
@@ -40,9 +40,11 @@ class ExpressionObfuscator : Transformation() {
         var ctx = PSICreator.analyze(file) ?: return
         val ktFile = file as? KtFile ?: return
         randomInstanceGenerator = RandomInstancesGenerator(ktFile, ctx)
-        usageExamples = TCEUsagesCollector.collectUsageCases(file as KtFile, ctx, checker.project).toMutableList()
+        if (usageExamples.isEmpty()) {
+            usageExamples = TCEUsagesCollector.collectUsageCases(file as KtFile, ctx, checker.project).toMutableList()
+        }
         //TODO make dependent from size of program
-        repeat(Random.nextInt(10, 20)) { it ->
+        repeat(1) { it ->
             ctx = PSICreator.analyze(file) ?: return
             val (expr, exprType) = getRandomExpressionForObfuscation(ctx) ?: return@repeat
             calcAvailableVariables(expr, ctx)
