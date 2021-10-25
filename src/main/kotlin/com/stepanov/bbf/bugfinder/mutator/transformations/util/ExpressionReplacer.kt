@@ -7,11 +7,11 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.tryToCreateExpression
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.util.ScopeCalculator.Companion.processScope
 import com.stepanov.bbf.bugfinder.util.getNameWithoutError
 import com.stepanov.bbf.bugfinder.util.getTrue
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
-import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
@@ -27,7 +27,6 @@ import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
 import org.jetbrains.kotlin.types.typeUtil.isUnit
 import java.lang.StringBuilder
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 //Class which trying to replace expression of one type by expressions from available context
 class ExpressionReplacer : Transformation() {
@@ -53,40 +52,28 @@ class ExpressionReplacer : Transformation() {
 
     private fun replaceExpression(exp: KtExpression, expType: KotlinType): Boolean {
         if (expType.getNameWithoutError() in blockListOfTypes) return false
-        val scope = ScopeCalculator(file as KtFile, project).calcScope(exp).shuffled()
-        val processedScope = mutableListOf<ScopeCalculator.ScopeComponent>()
-        for (scopeEl in scope) {
-            val expressionToCall =
-                when (scopeEl.declaration) {
-                    is PropertyDescriptor -> {
-                        scopeEl.declaration.name.asString()
-                    }
-                    is ParameterDescriptor -> {
-                        scopeEl.declaration.name.asString()
-                    }
-                    is VariableDescriptor -> {
-                        scopeEl.declaration.name.asString()
-                    }
-                    is FunctionDescriptor -> {
-                        val serialized = generatedFunCalls[scopeEl.declaration]
-                        if (serialized == null) {
-                            val generatedCall = generateCallExpr(scopeEl.declaration, processedScope)
-                            generatedFunCalls[scopeEl.declaration] = generatedCall
-                            generatedCall?.text ?: ""
-                        } else {
-                            serialized.text ?: ""
-                        }
-                    }
-                    else -> {
-                        scopeEl.psiElement.text
-                    }
-                }.let { Factory.psiFactory.tryToCreateExpression(it) }
-            if (expressionToCall != null && expressionToCall.text.isNotEmpty()) {
-                processedScope.add(ScopeCalculator.ScopeComponent(expressionToCall, scopeEl.declaration, scopeEl.type))
-            }
+        val processedScope = ScopeCalculator(file as KtFile, project).run {
+            processScope(rig!!, calcScope(exp).shuffled(), generatedFunCalls)
         }
         val randomExpressionToReplace = getRandomExpressionToReplace(expType, processedScope) ?: return false
         return checker.replaceNodeIfPossible(exp, randomExpressionToReplace)
+    }
+
+    private fun handleCallSeq(postfix: List<CallableDescriptor>, scope: List<ScopeCalculator.ScopeComponent>): KtExpression? {
+        val res = StringBuilder()
+        var prefix = ""
+        postfix.map { desc ->
+            val expr = when (desc) {
+                is PropertyDescriptor -> desc.name.asString()
+                is FunctionDescriptor -> ScopeCalculator.generateCallExpr(rig!!, desc, scope)?.text
+                else -> ""
+            }
+            expr ?: return null
+            res.append(prefix)
+            prefix = if (desc.returnType?.isNullable() == true) "?." else "."
+            res.append(expr)
+        }
+        return Factory.psiFactory.createExpression(res.toString())
     }
 
     private fun getRandomExpressionToReplace(
@@ -150,45 +137,45 @@ class ExpressionReplacer : Transformation() {
         return null
     }
 
-    fun handleCallSeq(postfix: List<CallableDescriptor>, scope: List<ScopeCalculator.ScopeComponent>): KtExpression? {
-        val res = StringBuilder()
-        var prefix = ""
-        postfix.map { desc ->
-            val expr = when (desc) {
-                is PropertyDescriptor -> desc.name.asString()
-                is FunctionDescriptor -> generateCallExpr(desc, scope)?.text
-                else -> ""
-            }
-            expr ?: return null
-            res.append(prefix)
-            prefix = if (desc.returnType?.isNullable() == true) "?." else "."
-            res.append(expr)
-        }
-        return Factory.psiFactory.createExpression(res.toString())
-    }
-
-    //We are not expecting typeParams
-    private fun generateCallExpr(
-        func: CallableDescriptor,
-        scopeElements: List<ScopeCalculator.ScopeComponent>
-    ): KtExpression? {
-        log.debug("GENERATING call of type $func")
-        val name = func.name
-        val valueParams = func.valueParameters.map { vp ->
-            val fromUsages = scopeElements.filter { usage ->
-                vp.type.getNameWithoutError().trim() == usage.type.getNameWithoutError().trim()
-            }
-            if (fromUsages.isNotEmpty() && Random.getTrue(80)) fromUsages.random().psiElement.text
-            else rig!!.generateValueOfType(vp.type)
-            //getInsertableExpressions(Pair(it, it.typeReference?.getAbbreviatedTypeOrType()), 1).randomOrNull()
-        }
-        if (valueParams.any { it.isEmpty() }) {
-            log.debug("CANT GENERATE PARAMS FOR $func")
-            return null
-        }
-        val inv = "$name(${valueParams.joinToString()})"
-        return Factory.psiFactory.tryToCreateExpression(inv)
-    }
+//    fun handleCallSeq(postfix: List<CallableDescriptor>, scope: List<ScopeCalculator.ScopeComponent>): KtExpression? {
+//        val res = StringBuilder()
+//        var prefix = ""
+//        postfix.map { desc ->
+//            val expr = when (desc) {
+//                is PropertyDescriptor -> desc.name.asString()
+//                is FunctionDescriptor -> generateCallExpr(desc, scope)?.text
+//                else -> ""
+//            }
+//            expr ?: return null
+//            res.append(prefix)
+//            prefix = if (desc.returnType?.isNullable() == true) "?." else "."
+//            res.append(expr)
+//        }
+//        return Factory.psiFactory.createExpression(res.toString())
+//    }
+//
+//    //We are not expecting typeParams
+//    private fun generateCallExpr(
+//        func: CallableDescriptor,
+//        scopeElements: List<ScopeCalculator.ScopeComponent>
+//    ): KtExpression? {
+//        log.debug("GENERATING call of type $func")
+//        val name = func.name
+//        val valueParams = func.valueParameters.map { vp ->
+//            val fromUsages = scopeElements.filter { usage ->
+//                vp.type.getNameWithoutError().trim() == usage.type.getNameWithoutError().trim()
+//            }
+//            if (fromUsages.isNotEmpty() && Random.getTrue(80)) fromUsages.random().psiElement.text
+//            else rig!!.generateValueOfType(vp.type)
+//            //getInsertableExpressions(Pair(it, it.typeReference?.getAbbreviatedTypeOrType()), 1).randomOrNull()
+//        }
+//        if (valueParams.any { it.isEmpty() }) {
+//            log.debug("CANT GENERATE PARAMS FOR $func")
+//            return null
+//        }
+//        val inv = "$name(${valueParams.joinToString()})"
+//        return Factory.psiFactory.tryToCreateExpression(inv)
+//    }
 
     private fun updateReplacement(nodes: List<PsiElement>, ctx: BindingContext) =
         nodes

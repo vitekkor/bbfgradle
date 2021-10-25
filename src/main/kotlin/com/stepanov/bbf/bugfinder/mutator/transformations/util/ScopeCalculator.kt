@@ -21,6 +21,8 @@ import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.types.isNullable
+import java.lang.StringBuilder
 import kotlin.collections.flatMap
 import kotlin.random.Random
 
@@ -34,6 +36,73 @@ class ScopeCalculator(private val file: KtFile, private val project: Project) {
         //res.map { it.psiElement.text + " ${it.type} \n__________________________\n" }.forEach(::println)
         return res
     }
+
+    companion object {
+
+        fun processScope(
+            rig: RandomInstancesGenerator,
+            scope: List<ScopeComponent>,
+            generatedFunCalls: MutableMap<FunctionDescriptor, KtExpression?>
+        ): List<ScopeComponent> {
+            val processedScope = mutableListOf<ScopeComponent>()
+            for (scopeEl in scope) {
+                val expressionToCall =
+                    when (scopeEl.declaration) {
+                        is PropertyDescriptor -> {
+                            scopeEl.declaration.name.asString()
+                        }
+                        is ParameterDescriptor -> {
+                            scopeEl.declaration.name.asString()
+                        }
+                        is VariableDescriptor -> {
+                            scopeEl.declaration.name.asString()
+                        }
+                        is FunctionDescriptor -> {
+                            val serialized = generatedFunCalls[scopeEl.declaration]
+                            if (serialized == null) {
+                                val generatedCall = generateCallExpr(rig, scopeEl.declaration, processedScope)
+                                generatedFunCalls[scopeEl.declaration] = generatedCall
+                                generatedCall?.text ?: ""
+                            } else {
+                                serialized.text ?: ""
+                            }
+                        }
+                        else -> {
+                            scopeEl.psiElement.text
+                        }
+                    }.let { Factory.psiFactory.tryToCreateExpression(it) }
+                if (expressionToCall != null && expressionToCall.text.isNotEmpty()) {
+                    processedScope.add(ScopeComponent(expressionToCall, scopeEl.declaration, scopeEl.type))
+                }
+            }
+            return processedScope
+        }
+
+        //We are not expecting typeParams
+        fun generateCallExpr(
+            rig: RandomInstancesGenerator,
+            func: CallableDescriptor,
+            scopeElements: List<ScopeCalculator.ScopeComponent>
+        ): KtExpression? {
+            Transformation.log.debug("GENERATION of call of type $func")
+            val name = func.name
+            val valueParams = func.valueParameters.map { vp ->
+                val fromUsages = scopeElements.filter { usage ->
+                    vp.type.getNameWithoutError().trim() == usage.type.getNameWithoutError().trim()
+                }
+                if (fromUsages.isNotEmpty() && Random.getTrue(80)) fromUsages.random().psiElement.text
+                else rig.generateValueOfType(vp.type)
+                //getInsertableExpressions(Pair(it, it.typeReference?.getAbbreviatedTypeOrType()), 1).randomOrNull()
+            }
+            if (valueParams.any { it.isEmpty() }) {
+                Transformation.log.debug("CANT GENERATE PARAMS FOR $func")
+                return null
+            }
+            val inv = "$name(${valueParams.joinToString()})"
+            return Factory.psiFactory.tryToCreateExpression(inv)
+        }
+    }
+
 
     private fun calcVariablesAndFunctionsFromScope(node: PsiElement): List<ScopeComponent> {
         val res = mutableSetOf<ScopeComponent>()
@@ -180,7 +249,7 @@ class ScopeCalculator(private val file: KtFile, private val project: Project) {
         //We are not expecting typeParams
         private fun generateCallExpr(
             func: CallableDescriptor,
-            scopeElements: List<ScopeCalculator.ScopeComponent>,
+            scopeElements: List<ScopeComponent>,
             rig: RandomInstancesGenerator
         ): KtExpression? {
             Transformation.log.debug("GENERATING call of type $func")
