@@ -1,5 +1,8 @@
-// IGNORE_BACKEND_FIR: JVM_IR
+// TARGET_BACKEND: JVM
 // WITH_RUNTIME
+// SAM_CONVERSIONS: CLASS
+//   ^ test checks reflection for synthetic classes
+// MODULE: lib
 // FILE: Promise.java
 import org.jetbrains.annotations.NotNull;
 
@@ -12,6 +15,7 @@ public abstract class Promise<T> {
     public abstract Promise<T> done(@NotNull Consumer<? super T> done);
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 class User {
     fun use(promise: Promise<*>): Promise<*> {
@@ -31,7 +35,7 @@ fun box(): String {
             }
     )
 
-    if (result != "Consumer<java.lang.Object>") return "fail: $result"
+    if (result != "interface Consumer") return "fail: $result"
 
     return "OK"
 }

@@ -3,24 +3,13 @@
 import helpers.*
 import kotlin.coroutines.*
 
-var result = "FAIL"
-
 fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(handleExceptionContinuation {
-        result = it.message!!
-    })
+    c.startCoroutine(EmptyContinuation)
 }
 
 @Suppress("UNSUPPORTED_FEATURE")
 inline class Result<T>(val a: Any?) {
     fun getOrThrow(): T = a as T
-}
-
-var c: Continuation<Any>? = null
-
-suspend fun <T> suspendMe(): T = suspendCoroutine {
-    @Suppress("UNCHECKED_CAST")
-    c = it as Continuation<Any>
 }
 
 abstract class ResultReceiver<T> {
@@ -37,20 +26,19 @@ inline fun <T> ResultReceiver(crossinline f: (Result<T>) -> Unit): ResultReceive
 fun test() {
     var invoked = false
     val receiver = ResultReceiver<String> { result ->
+        val intResult = result.getOrThrow()
         invoked = true
-        result.getOrThrow()
     }
 
     builder  {
-        receiver.receive(Result(suspendMe()))
+        receiver.receive(Result("42"))
     }
-    c?.resumeWithException(IllegalStateException("OK"))
-    if (invoked) {
+    if (!invoked) {
         throw RuntimeException("Fail")
     }
 }
 
 fun box(): String {
     test()
-    return result
+    return "OK"
 }

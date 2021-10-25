@@ -16,18 +16,17 @@ import org.apache.log4j.Logger
 
 open class BugFinder(protected val dir: String) {
 
-    protected val compilers = CompilerArgs.getCompilersList()
-
     fun mutate(
         project: Project,
         curFile: BBFFile,
+        compilers: List<CommonCompiler>,
         conditions: List<(PsiFile) -> Boolean> = listOf()
     ) {
         Transformation.checker = MutationChecker(
-                compilers,
-                project,
-                curFile
-            ).also { checker -> conditions.forEach { checker.additionalConditions.add(it) } }
+            compilers,
+            project,
+            curFile
+        ).also { checker -> conditions.forEach { checker.additionalConditions.add(it) } }
         Mutator(project).startMutate()
     }
 

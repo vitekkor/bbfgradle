@@ -10,8 +10,9 @@ import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtPsiFactory
+import java.lang.Exception
 
-class FunInliner: SimplificationPass() {
+class FunInliner : SimplificationPass() {
 
     override fun simplify() {
         val funcs = file.getAllPSIChildrenOfType<KtNamedFunction>()
@@ -21,7 +22,7 @@ class FunInliner: SimplificationPass() {
                 if (calledFunc.size == 1) {
                     val called = calledFunc.first()
                     val lines = called.getAllPSIChildrenOfType<PsiWhiteSpace>()
-                            .fold(0, { acc, next -> acc + next.text.count { it == '\n' } })
+                        .fold(0, { acc, next -> acc + next.text.count { it == '\n' } })
                     if (called != f && lines < 10 && called.valueParameters.size == c.valueArguments.size) {
                         performInlining(c, called)
                     }
@@ -32,22 +33,29 @@ class FunInliner: SimplificationPass() {
 
     private fun performInlining(call: KtCallExpression, f: KtNamedFunction) {
         val funCopy = f.copy() as KtNamedFunction
-        funCopy.bodyExpression?.let { body ->
-            for ((i, arg) in call.valueArguments.withIndex()) {
-                val par = f.valueParameters[i]
-                val argCopy = factory.createExpression(arg.text)
+        try {
+            funCopy.bodyExpression?.let { body ->
+                for ((i, arg) in call.valueArguments.withIndex()) {
+                    val par = f.valueParameters[i]
+                    val argCopy = factory.createExpressionIfPossible(arg.text) ?: return
 
-                body.node.getAllChildrenNodes()
+                    body.node.getAllChildrenNodes()
                         .filter { it.elementType == KtTokens.IDENTIFIER }
                         .filter { it.text == par.nameIdentifier?.text }
                         .forEach { it.psi.replaceThis(argCopy) }
+                }
+                if (f.hasBlockBody()) {
+                    KtPsiFactory(file.project).createExpressionIfPossible("run ${body.text}")
+                } else {
+                    KtPsiFactory(file.project).createExpressionIfPossible("run {${body.text}}")
+                }?.let {
+                    checker.replaceNodeIfPossible(call.node, it.node)
+                }
             }
-            val runExpression = if (f.hasBlockBody()) {
-                KtPsiFactory(file.project).createExpression("run ${body.text}")
-            } else {
-                KtPsiFactory(file.project).createExpression("run {${body.text}}")
-            }
-            checker.replaceNodeIfPossible(call.node, runExpression.node)
+        } catch (e: Exception) {
+            return
+        } catch (e: Error) {
+            return
         }
     }
 

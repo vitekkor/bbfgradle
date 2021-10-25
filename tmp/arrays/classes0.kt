@@ -1,7 +1,6 @@
-// !USE_EXPERIMENTAL: kotlin.ExperimentalStdlibApi
-// !LANGUAGE: +NewInference
-// TARGET_BACKEND: JVM
-// WITH_RUNTIME
+// IGNORE_BACKEND: JS, JS_IR
+// IGNORE_BACKEND: JS_IR_ES6
+// WITH_REFLECT
 
 package test
 
@@ -12,31 +11,31 @@ import kotlin.test.assertEquals
 class C
 
 fun check(expected: String, actual: KType) {
-    assertEquals(expected + " (Kotlin reflection is not available)", actual.toString())
+    assertEquals(expected, actual.toString())
 }
 
 fun box(): String {
-    check("java.lang.Object", typeOf<Any>())
-    check("java.lang.String", typeOf<String>())
-    check("java.lang.String?", typeOf<String?>())
+    check("kotlin.Any", typeOf<Any>())
+    check("kotlin.String", typeOf<String>())
+    check("kotlin.String?", typeOf<String?>())
     check("kotlin.Unit", typeOf<Unit>())
 
     check("test.C", typeOf<C>())
     check("test.C?", typeOf<C?>())
 
-    check("java.util.List<java.lang.String>", typeOf<List<String>>())
-    check("java.util.Map<in java.lang.Number, *>?", typeOf<Map<in Number, *>?>())
-    check("java.lang.Enum<*>", typeOf<Enum<*>>())
-    check("java.lang.Enum<kotlin.annotation.AnnotationRetention>", typeOf<Enum<AnnotationRetention>>())
+    check("kotlin.collections.List<kotlin.String>", typeOf<List<String>>())
+    check("kotlin.collections.Map<in kotlin.Number, *>?", typeOf<Map<in Number, *>?>())
+    check("kotlin.Enum<*>", typeOf<Enum<*>>())
+    check("kotlin.Enum<kotlin.annotation.AnnotationRetention>", typeOf<Enum<AnnotationRetention>>())
 
-    check("kotlin.Array<java.lang.Object>", typeOf<Array<Any>>())
+    check("kotlin.Array<kotlin.Any>", typeOf<Array<Any>>())
     check("kotlin.Array<*>", typeOf<Array<*>>())
     check("kotlin.Array<kotlin.IntArray>", typeOf<Array<IntArray>>())
     check("kotlin.Array<in kotlin.Array<test.C>?>", typeOf<Array<in Array<C>?>>())
 
-    check("int", typeOf<Int>())
-    check("java.lang.Integer?", typeOf<Int?>())
-    check("boolean", typeOf<Boolean>())
+    check("kotlin.Int", typeOf<Int>())
+    check("kotlin.Int?", typeOf<Int?>())
+    check("kotlin.Boolean", typeOf<Boolean>())
 
     return "OK"
 }

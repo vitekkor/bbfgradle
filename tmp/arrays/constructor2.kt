@@ -1,35 +1,21 @@
 // TARGET_BACKEND: JVM
+// MODULE: lib
+// FILE: A.java
 
-// WITH_REFLECT
+class A {
+    public A() {}
 
-import kotlin.reflect.*
-import kotlin.reflect.jvm.*
+    public A(String x) {}
 
-class K {
-    class Nested
-    inner class Inner
+    public A(long l, double z) {}
 }
 
-class Secondary {
-    constructor(x: Int) {}
-}
-
-fun check(f: KFunction<Any>) {
-    assert(f.javaMethod == null) { "Fail f method" }
-    assert(f.javaConstructor != null) { "Fail f constructor" }
-    val c = f.javaConstructor!!
-
-    assert(c.kotlinFunction != null) { "Fail m function" }
-    val ff = c.kotlinFunction!!
-
-    assert(f == ff) { "Fail f != ff" }
-}
+// MODULE: main(lib)
+// FILE: 1.kt
 
 fun box(): String {
-    check(::K)
-    check(K::Nested)
-    check(K::Inner)
-    check(::Secondary)
-
+    A()
+    A("")
+    A(0.toLong(), 0.0)
     return "OK"
 }

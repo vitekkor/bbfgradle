@@ -1,23 +1,20 @@
-// FILE: 1.kt
+// TARGET_BACKEND: JVM
+// WITH_RUNTIME
 
-package test
+// FILE: foo.kt
 
-inline fun foo(x: String, y: String) = x + y
+@file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
+@file:JvmPackageName("baz.foo.quux.bar")
+package foo.bar
 
-class A {
-    fun test(s: String) = s
-}
+fun f(): String = "O"
 
-inline fun processRecords(block: (String) -> String): String {
-    return A().test(block(foo("O", foo("K", "1"))))
-}
+val g: String? get() = "K"
 
-// FILE: 2.kt
+inline fun <T> i(block: () -> T): T = block()
 
-import test.*
+// FILE: bar.kt
 
-fun box(): String {
-    val result = processRecords { "B" + it }
+import foo.bar.*
 
-    return if (result == "BOK1") "OK" else "fail: $result"
-}
+fun box(): String = i { f() + g }

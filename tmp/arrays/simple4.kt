@@ -1,20 +1,17 @@
-// FILE: 1.kt
+// MODULE: lib
+// FILE: A.kt
 
-package test
+package aaa
 
-inline fun foo(x: String) = x
+fun hello() = 17
 
-fun test(a: String, s: String) = s
-
-
-inline fun processRecords(block: (String, String) -> String): String {
-    return test("stub", block(foo("O"), foo("K")))
-}
-
-// FILE: 2.kt
-
-import test.*
+// MODULE: main(lib)
+// FILE: B.kt
 
 fun box(): String {
-    return processRecords { a, b -> a + b}
+    val h = aaa.hello()
+    if (h != 17) {
+        throw Exception()
+    }
+    return "OK"
 }

@@ -1,17 +1,19 @@
-// TARGET_BACKEND: JVM
-// WITH_RUNTIME
-// FILE: A.kt
+open class A<T> {
+    var size: T = 56 as T
+}
 
-@file:kotlin.jvm.JvmMultifileClass
-@file:kotlin.jvm.JvmName("A")
+interface C {
+    var size: Int
+}
 
-package test
+class B : C, A<Int>()
 
-public val <T> Array<out T>.foo: String
-    get() = this[0].toString() + this[1].toString()
+fun box(): String {
+    val b = B()
+    if (b.size != 56) return "fail 1: ${b.size}"
 
-// FILE: B.kt
+    b.size = 55
+    if (b.size != 55) return "fail 2: ${b.size}"
 
-import test.foo
-
-fun box(): String = arrayOf('O', "K").foo
+    return "OK"
+}

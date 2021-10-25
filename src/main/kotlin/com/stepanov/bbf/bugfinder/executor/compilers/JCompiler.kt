@@ -1,18 +1,5 @@
 package com.stepanov.bbf.bugfinder.executor.compilers
 
-import com.stepanov.bbf.bugfinder.executor.CommonCompiler
-import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.CompilingResult
-import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.util.Stream
-import com.stepanov.bbf.reduktor.executor.KotlincInvokeStatus
-import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
-import java.io.File
-import javax.tools.Diagnostic
-import javax.tools.DiagnosticCollector
-import javax.tools.JavaFileObject
-import javax.tools.ToolProvider
-
 //class JCompiler : CommonCompiler() {
 //    override fun checkCompiling(pathToFile: String): Boolean {
 //        return true

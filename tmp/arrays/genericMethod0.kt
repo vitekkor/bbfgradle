@@ -1,22 +1,21 @@
-open class A<T> {
-    open fun <U> foo(t: T, u: U) = "A"
-}
+interface A<T> {
+    val property : T
 
-open class B : A<String>()
-
-class Z : B() {
-    override fun <U> foo(t: String, u: U) = "Z"
-}
-
-
-fun box(): String {
-    val z = Z()
-    val b: B = z
-    val a: A<String> = z
-    return when {
-        z.foo("", 0) != "Z" -> "Fail #1"
-        b.foo("", 0) != "Z" -> "Fail #2"
-        a.foo("", 0) != "Z" -> "Fail #3"
-        else -> "OK"
+    open  fun a() : T {
+        return property
     }
+}
+
+open class B : A<Any> {
+
+    override val property: Any = "fail"
+}
+
+open class C : B(), A<Any> {
+
+    override val property: Any = "OK"
+}
+
+fun box() : String {
+    return C().a() as String
 }

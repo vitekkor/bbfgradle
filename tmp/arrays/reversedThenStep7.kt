@@ -6,18 +6,18 @@ import kotlin.test.*
 
 fun box(): String {
     val uintList = mutableListOf<UInt>()
-    val uintProgression = 1u until 9u
+    val uintProgression = 8u downTo 1u
     for (i in uintProgression.reversed() step 2) {
         uintList += i
     }
-    assertEquals(listOf(8u, 6u, 4u, 2u), uintList)
+    assertEquals(listOf(1u, 3u, 5u, 7u), uintList)
 
     val ulongList = mutableListOf<ULong>()
-    val ulongProgression = 1uL until 9uL
+    val ulongProgression = 8uL downTo 1uL
     for (i in ulongProgression.reversed() step 2L) {
         ulongList += i
     }
-    assertEquals(listOf(8uL, 6uL, 4uL, 2uL), ulongList)
+    assertEquals(listOf(1uL, 3uL, 5uL, 7uL), ulongList)
 
     return "OK"
 }

@@ -4,17 +4,19 @@
 
 import kotlin.reflect.*
 import kotlin.reflect.full.*
-import kotlin.reflect.jvm.*
+import kotlin.reflect.jvm.isAccessible
 import kotlin.test.*
 
-class K(private var value: Long)
+class A(private var result: String)
 
 fun box(): String {
-    val p = K::class.declaredMemberProperties.single() as KMutableProperty1<K, Long>
+    val a = A("abc")
 
-    assertNotNull(p.javaField, "Fail p field")
-    assertNull(p.javaGetter, "Fail p getter")
-    assertNull(p.javaSetter, "Fail p setter")
+    val p = A::class.declaredMemberProperties.single() as KMutableProperty1<A, String>
+    p.isAccessible = true
+    assertEquals("abc", p.call(a))
+    assertEquals(Unit, p.setter.call(a, "def"))
+    assertEquals("def", p.getter.call(a))
 
     return "OK"
 }

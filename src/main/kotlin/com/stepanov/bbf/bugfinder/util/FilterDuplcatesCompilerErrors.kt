@@ -4,6 +4,7 @@ import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.manager.Bug
+import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.apache.log4j.Logger
 import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch
@@ -13,32 +14,54 @@ import java.io.File
 //TODO need to be rewrited
 object FilterDuplcatesCompilerErrors {
 
-    fun simpleIsSameErrs(proj: Project, path2: String, compiler: CommonCompiler): Boolean {
-        val errorMsg = compiler.getErrorMessage(proj)
+    private fun getBugType(errorMsg: String) =
+        if (errorMsg.contains("Exception while analyzing expression")) BugType.FRONTEND else BugType.BACKEND
+
+    fun simpleIsSameErrs(errorMsg: String, path2: String, compiler: CommonCompiler): Boolean {
+        val originalBugType = getBugType(errorMsg)
         val proj2 = Project.createFromCode(File(path2).readText())
         val errorMsgForFile = compiler.getErrorMessage(proj2)
+        val potentialDuplBugType = getBugType(errorMsgForFile)
+        if (originalBugType != potentialDuplBugType) return false
         val k = newCheckErrsMatching(
             errorMsg,
             errorMsgForFile
         )
+        if (k > 0.49) {
+            log.debug("bug and $path2 are duplicates!!!")
+            return true
+        }
         val kStacktraces = newCheckErrsMatching(
             getStacktrace2(errorMsg),
             getStacktrace2(errorMsgForFile)
         )
-        log.debug("Comparing bug with $path2 $k stacks: $kStacktraces")
-        if (k > 0.49 || kStacktraces == 0.5)
+        if (kStacktraces == 0.5) {
             log.debug("bug and $path2 are duplicates!!!")
-        return k > 0.49 || kStacktraces == 0.5
+            return true
+        }
+        log.debug("Comparing bug with $path2 $k stacks: $kStacktraces")
+        return false
     }
 
-    fun simpleHaveDuplicatesErrors(proj: Project, dir: String, compiler: CommonCompiler): Boolean =
-        File(dir).listFiles().filter { it.path.endsWith(".kt") || it.path.endsWith(".java") }.any {
+    fun simpleHaveDuplicatesErrors(
+        proj: Project,
+        dir: String,
+        compiler: CommonCompiler,
+        excludedFileNames: List<String> = listOf()
+    ): Boolean {
+        val errorMsg = compiler.getErrorMessage(proj)
+        return File(dir).listFiles()
+            ?.filter { it.path.endsWith(".kt") || it.path.endsWith(".java") }
+            ?.filter { it.name !in excludedFileNames }
+            ?.filter { !it.name.contains("ORIGINAL") }
+            ?.any {
             simpleIsSameErrs(
-                proj,
+                errorMsg,
                 it.absolutePath,
                 compiler
             )
-        }
+        } ?: false
+    }
 
     fun haveSameDiffCompileErrors(
         proj: Project,
@@ -116,7 +139,7 @@ object FilterDuplcatesCompilerErrors {
         return res
     }
 
-    private fun getStacktrace2(msg: String): String =
+    fun getStacktrace2(msg: String): String =
         msg
             .split("Cause:")
             .last()

@@ -1,16 +1,31 @@
-// IGNORE_BACKEND: JS
-// FILE: 1.kt
-inline fun run(f: () -> Unit) = f()
-inline fun withAny(f: Any.() -> Unit) = Any().f()
+// KJS_WITH_FULL_RUNTIME
+// WITH_RUNTIME
+import kotlin.coroutines.*
 
-// FILE: 2.kt
-fun foo(x: Any?, y: Any?) {}
+suspend fun coroutineScope(c: suspend () -> Unit) {
+    c()
+}
 
-fun box(): String {
-    run outer@{
-        withAny inner@{
-            foo(null, null ?: return@outer)
+var counter = 0
+
+suspend fun whatever() = coroutineScope {
+    repeat(10) { // repeat hides a loop, that plays a part in the compiler crash
+        run {
+            counter++
+            return@repeat // required to reproduce the crash
         }
     }
-    return "OK"
+}
+
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(Continuation(EmptyCoroutineContext) {
+        it.getOrThrow()
+    })
+}
+
+fun box(): String {
+    builder {
+        whatever()
+    }
+    return if (counter != 10) "FAIL $counter" else "OK"
 }

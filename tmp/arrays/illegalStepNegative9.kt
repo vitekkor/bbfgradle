@@ -8,12 +8,12 @@ import kotlin.test.*
 
 fun box(): String {
     assertFailsWith<IllegalArgumentException> {
-        for (i in 7u downTo 1u step -1) {
+        for (i in 1u until 8u step -1) {
         }
     }
 
     assertFailsWith<IllegalArgumentException> {
-        for (i in 7uL downTo 1uL step -1L) {
+        for (i in 1uL until 8uL step -1L) {
         }
     }
 

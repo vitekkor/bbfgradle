@@ -1,14 +1,8 @@
-// !DIAGNOSTICS: -UNUSED_PARAMETER
-
-// DONT_RUN_GENERATED_CODE: JS
-
-tailrec infix fun Int.foo(x: Int) {
-    if (x == 0) return
-    val xx = x - 1
-    return 1 foo xx
+infix fun Int.test(x : Int) : Int {
+    if (this > 1) {
+        return (this - 1) test x
+    }
+    return this
 }
 
-fun box(): String {
-    1 foo 1000000
-    return "OK"
-}
+fun box() : String = if (10.test(10) == 1) "OK" else "FAIL"

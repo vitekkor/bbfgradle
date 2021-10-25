@@ -1,8 +1,13 @@
-fun <T : Number?> foo(t: T) {
-    t?.toInt()
+
+fun <T> foo(t: T) {
+    t!!
 }
 
 fun box(): String {
-    foo<Int?>(null)
-    return "OK"
+    try {
+        foo<Any?>(null)
+    } catch (e: Exception) {
+        return "OK"
+    }
+    return "Fail"
 }

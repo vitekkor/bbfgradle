@@ -1,9 +1,9 @@
-fun box() {
-    val x = Array(1) { "" }
-}
+// WITH_RUNTIME
 
-// 0 IFNULL
-// 0 IFNONNULL
-// 0 ATHROW
-// 0 throwNpe
-// 0 checkNotNull
+fun g(b: (Int, (Int) -> String) -> Array<String>): Array<String> =
+    b(1) { "O" }
+
+inline fun h(b: (Int, (Int) -> String) -> Array<String>): Array<String> =
+    b(1) { "K" }
+
+fun box(): String = g(::Array)[0] + h(::Array)[0]

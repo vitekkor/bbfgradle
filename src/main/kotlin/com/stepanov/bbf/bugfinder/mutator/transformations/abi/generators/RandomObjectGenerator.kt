@@ -1,7 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
+import com.stepanov.bbf.bugfinder.util.ModifierSets
 import com.stepanov.bbf.bugfinder.util.getTrue
-import org.jetbrains.kotlin.fir.lightTree.fir.modifier.ModifierSets
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.random.Random

@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 import com.stepanov.bbf.reduktor.util.replaceThis
 
 import com.stepanov.bbf.bugfinder.util.*
+import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.resolve.BindingContext
@@ -94,5 +95,5 @@ class AddSameFunctions() : Transformation() {
     private val containers = listOf("List" to 1, "ArrayList" to 1, "Array" to 1, "Set" to 1, "Map" to 2,
             "Pair" to 2, "HashMap" to 2, "HashSet" to 1)
 
-    private val context = checker.curFile.ctx
+    private val context = PSICreator.analyze(checker.curFile.psiFile)//checker.curFile.ctx
 }

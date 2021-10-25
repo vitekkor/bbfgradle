@@ -1,12 +1,9 @@
 package com.stepanov.bbf.bugfinder.mutator.projectTransformations
 
-import com.stepanov.bbf.bugfinder.executor.project.BBFFile
-import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
-import com.stepanov.bbf.bugfinder.util.addToTheEnd
+import com.stepanov.bbf.bugfinder.util.addAtTheEnd
 import com.stepanov.bbf.reduktor.util.getAllChildren
-import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.psiUtil.isTopLevelKtOrJavaMember
 import kotlin.system.exitProcess
 
@@ -29,7 +26,7 @@ class ProjectSplitter : Transformation() {
                 .toMutableList()
         repeat(topLevelObjects.size) {
             val randomEl = topLevelObjects.randomOrNull() ?: return@repeat
-            newFiles.random().addToTheEnd(randomEl)
+            newFiles.random().addAtTheEnd(randomEl)
             topLevelObjects.remove(randomEl)
         }
         exitProcess(0)

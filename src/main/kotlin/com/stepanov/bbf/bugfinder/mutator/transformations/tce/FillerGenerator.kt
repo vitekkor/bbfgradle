@@ -1,14 +1,15 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.tce
 
 import com.intellij.psi.PsiElement
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGenerator
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
+import com.stepanov.bbf.bugfinder.util.getNameWithoutError
 import com.stepanov.bbf.bugfinder.util.getTrue
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
-import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtProperty
@@ -21,7 +22,7 @@ import kotlin.random.Random
 class FillerGenerator(
     private val psi: KtFile,
     private val ctx: BindingContext,
-    private val generatedUsages: List<Triple<KtExpression, String, KotlinType?>>
+    private val generatedUsages: MutableList<Triple<KtExpression, String, KotlinType?>>
 ) {
 
     private val randomTypeGenerator = RandomTypeGenerator
@@ -32,72 +33,95 @@ class FillerGenerator(
         randomTypeGenerator.setFileAndContext(psi, ctx)
     }
 
+    fun generateExpressionOfType(type: KotlinType, depth: Int = 0): KtExpression? {
+        val randomUsage = generatedUsages.randomOrNull() ?: return null
+        val isNullable = randomUsage.third!!.isNullable()
+        return StdLibraryGenerator.generateCallSequenceToGetType(randomUsage.third!!, type)
+            .random()
+            .let { handleCallSeq(it) }
+            ?.let {
+                val prefix = if (isNullable) "(${randomUsage.second})?." else "(${randomUsage.second})."
+                Factory.psiFactory.createExpressionIfPossible("$prefix${it.text}")
+            }
+    }
+
+    //TODO repair for Sam<(FT..FT?), (FR..FR?)>
     fun getFillExpressions(node: Pair<KtExpression, KotlinType?>, depth: Int = 0): List<KtExpression> {
         log.debug("replacing ${node.first.text} ${node.second}")
         //Nullable or most common types
         val res = mutableListOf<KtExpression>()
-        val nodeType = node.second ?: return emptyList()
-        log.debug("Getting value of type $nodeType")
-        val strNodeType = nodeType.toString().let { if (it.endsWith("?")) it.substring(0, it.length - 1) else it }
-        val isNullable = nodeType.isNullable()
-        val generated = RandomInstancesGenerator(psi).generateValueOfType(nodeType)
-        log.debug("GENERATED VALUE OF TYPE $nodeType = $generated")
-        if (generated.isNotEmpty()) {
-            Factory.psiFactory.createExpressionIfPossible(generated)?.let {
-                log.debug("GENERATED IS CALL =${it is KtCallExpression}")
-                res.add(it)
-            }
-        }
+        val neededType = node.second ?: return emptyList()
+        val needTypeDescriptor = neededType.constructor.declarationDescriptor
+        log.debug("Getting value of type $neededType")
+        val isNullable = neededType.isNullable()
+//        val generated = RandomInstancesGenerator(psi).generateValueOfType(nodeType)
+//        log.debug("GENERATED VALUE OF TYPE $nodeType = $generated")
+//        if (generated.isNotEmpty()) {
+//            Factory.psiFactory.createExpressionIfPossible(generated)?.let {
+//                log.debug("GENERATED IS CALL =${it is KtCallExpression}")
+//                res.add(it)
+//            }
+//        }
         //Generate instance of random type and try to get needed type from it
-        val randomType = randomTypeGenerator.generateRandomTypeWithCtx()!!
-        log.debug("randomType = $randomType")
-        val ins = RandomInstancesGenerator(psi).generateValueOfType(randomType)
-        val variants = UsageSamplesGeneratorWithStLibrary.generateForStandardType(randomType, strNodeType)
-        variants.randomOrNull()?.let { variant ->
-            val prefix = if (randomType.isNullable())
-                "($ins)?."
-            else "($ins)."
-            val callSeq = handleCallSeq(variant)
-            val postfix = if (variant.any { it.returnType?.isNullable() == true } && !isNullable) "!!" else ""
-            Factory.psiFactory.createExpressionIfPossible("$prefix${callSeq?.text}$postfix")?.let {
-                log.debug("Generated call from random type = ${it.text}")
-                if (Random.getTrue(20)) return listOf(it)
-                res.add(it)
-            }
-        }
-
+//        val randomType = randomTypeGenerator.generateRandomTypeWithCtx()
+//        log.debug("randomType = $randomType")
+//        if (randomType != null && !randomType.isAbstractClass() && !randomType.isInterface()) {
+//            val ins = RandomInstancesGenerator(psi).generateValueOfType(randomType, nullIsPossible = false)
+//            val variants = StdLibraryGenerator.generateForStandardType(randomType, neededType.makeNotNullable())
+//            variants.randomOrNull()?.let { variant ->
+//                val prefix = if (randomType.isNullable())
+//                    "($ins)?."
+//                else "($ins)."
+//                val callSeq = handleCallSeq(variant)
+//                val postfix = if (variant.any { it.returnType?.isNullable() == true } && !isNullable) "!!" else ""
+//                Factory.psiFactory.createExpressionIfPossible("$prefix${callSeq?.text}$postfix")?.let {
+//                    log.debug("Generated call from random type = ${it.text}")
+//                    if (Random.getTrue(20)) return listOf(it)
+//                    res.add(it)
+//                }
+//            }
+//        }
         val localRes = mutableListOf<PsiElement>()
         val checkedTypes = mutableListOf<String>()
 
         for (el in generatedUsages.filter { it.first !is KtProperty }.shuffled()) {
-            if (el.third.toString() in blockListOfTypes) continue
+            if (el.third?.getNameWithoutError() in blockListOfTypes) continue
+            val elCopy = el.first.copy()
+            val typeDescriptorOfUsage = el.third?.constructor?.declarationDescriptor
+            if (typeDescriptorOfUsage?.defaultType == needTypeDescriptor?.defaultType) {
+                localRes.add(elCopy)
+            }
             when {
-                el.third?.toString() == strNodeType -> {
-                    localRes.add(el.first)
+                el.third?.getNameWithoutError() == "$neededType" -> {
+                    localRes.add(elCopy)
                 }
-                el.third?.toString() == "$nodeType?" -> {
-                    localRes.add(el.first)
+                el.third?.getNameWithoutError() == "$neededType?" -> {
+                    localRes.add(elCopy)
                 }
-                UsageSamplesGeneratorWithStLibrary.isImplementation(nodeType, el.third) -> {
-                    localRes.add(el.first)
+                StdLibraryGenerator.isImplementation(neededType, el.third) -> {
+                    localRes.add(elCopy)
                 }
                 //commonTypesMap[strNodeType]?.contains(el.third?.toString()) ?: false -> localRes.add(el.first)
             }
-            val notNullableType = if (strNodeType.last() == '?') strNodeType.substringBeforeLast('?') else strNodeType
-            if (notNullableType != strNodeType) res.add(Factory.psiFactory.createExpression("null"))
+            if (neededType.isNullable()) res.add(Factory.psiFactory.createExpression("null"))
             if (depth > 0) continue
             //val deeperCases = UsageSamplesGeneratorWithStLibrary.generateForStandardType(el.third!!, nodeType)
-            log.debug("GETTING ${nodeType} from ${el.third.toString()}")
+            log.debug("GETTING ${neededType} from ${el.third.toString()}")
             if (checkedTypes.contains(el.third!!.toString())) continue
             checkedTypes.add(el.third!!.toString())
-            UsageSamplesGeneratorWithStLibrary.generateForStandardType(el.third!!, strNodeType)
+            StdLibraryGenerator.generateCallSequenceToGetType(el.third!!, neededType)
+                .filter { it.isNotEmpty() }
                 .shuffled()
                 .take(10)
                 .forEach { list ->
                     log.debug("Case = ${list.map { it }}")
                     handleCallSeq(list)?.let {
+                        val rtvType = list.last().returnType
                         val prefix = if (isNullable) "(${el.second})?." else "(${el.second})."
-                        Factory.psiFactory.createExpressionIfPossible("$prefix${it.text}")?.let {
+                        val exp = "$prefix${it.text}"
+                        val postfix = if (exp.contains("?.") && !neededType.isNullable()) "!!" else ""
+                        log.debug("Trying to generate expression: $exp$postfix")
+                        Factory.psiFactory.createExpressionIfPossible("$exp$postfix")?.let {
                             log.debug("GENERATED CALL = ${it.text}")
                             localRes.add(it)
                         }
@@ -111,7 +135,7 @@ class FillerGenerator(
         return res
     }
 
-    private fun handleCallSeq(postfix: List<CallableDescriptor>): KtExpression? {
+    fun handleCallSeq(postfix: List<CallableDescriptor>): KtExpression? {
         val res = StringBuilder()
         var prefix = ""
         postfix.map { desc ->
@@ -132,8 +156,10 @@ class FillerGenerator(
     private fun generateCallExpr(func: CallableDescriptor): KtExpression? {
         log.debug("GENERATING call of type $func")
         val name = func.name
-        val valueParams = func.valueParameters.map {
-            RandomInstancesGenerator(psi).generateValueOfType(it.type)
+        val valueParams = func.valueParameters.map { vp ->
+            val fromUsages = generatedUsages.filter { usage -> "${vp.type}".trim() == "${usage.third}".trim() }
+            if (fromUsages.isNotEmpty() && Random.getTrue(70)) fromUsages.random().second
+            else RandomInstancesGenerator(psi, ctx).generateValueOfType(vp.type)
             //getInsertableExpressions(Pair(it, it.typeReference?.getAbbreviatedTypeOrType()), 1).randomOrNull()
         }
         if (valueParams.any { it.isEmpty() }) {
@@ -141,7 +167,7 @@ class FillerGenerator(
             return null
         }
         val inv = "$name(${valueParams.joinToString()})"
-        return Factory.psiFactory.createExpression(inv)
+        return Factory.psiFactory.createExpressionIfPossible(inv)
     }
 
 }

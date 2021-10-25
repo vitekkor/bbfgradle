@@ -1,18 +1,11 @@
-// FILE: b.kt
+data class A<T, F>(val x: T, val y: F)
 
-class Foo<T>(val minus0: T, val plus0: T) {
-
-}
+fun <X, Y> foo(a: A<X, Y>, block: (A<X, Y>) -> String) = block(a)
 
 fun box(): String {
-    val foo = Foo<Double>(-0.0, 0.0)
-    val fooF = Foo<Float>(-0.0F, 0.0F)
+    val x = foo(A("OK", 1)) { (x, y) -> x + (y.toString()) }
 
-    if (foo.minus0 < foo.plus0) return "fail 0"
-    if (fooF.minus0 < fooF.plus0) return "fail 1"
-
-    if (foo.minus0 != foo.plus0) return "fail 3"
-    if (fooF.minus0 != fooF.plus0) return "fail 4"
+    if (x != "OK1") return "fail1: $x"
 
     return "OK"
 }

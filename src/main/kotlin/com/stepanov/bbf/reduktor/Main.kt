@@ -1,12 +1,8 @@
 package com.stepanov.bbf.reduktor
 
-import com.stepanov.bbf.reduktor.executor.CommonCompilerCrashTestChecker
+
 import com.stepanov.bbf.reduktor.executor.CompilerArgs
-import com.stepanov.bbf.reduktor.executor.backends.JSBackend
-import com.stepanov.bbf.reduktor.executor.backends.JVMBackend
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.manager.TransformationManager
-import com.stepanov.bbf.reduktor.util.ReduKtorProperties
 import net.sourceforge.argparse4j.ArgumentParsers
 import org.apache.log4j.PropertyConfigurator
 
@@ -79,16 +75,16 @@ fun main(args: Array<String>) {
     }
 
     //Create PSI
-    val creator = PSICreator(debugProjectDir)
-    val targetFiles = creator.getPSI()
-    if (targetFiles.isEmpty())
-        return
-
-    //Check classpath and delete all sources from jar
-    if (classpath.isNotEmpty()) {
-        //CompilerArgs.classpath = RemoveSourcesFromJar.transform(targetFiles, classpath).name
-        CompilerArgs.classpath = classpath
-    }
+//    val creator = PSICreator(debugProjectDir)
+//    val targetFiles = creator.getPSI()
+//    if (targetFiles.isEmpty())
+//        return
+//
+//    //Check classpath and delete all sources from jar
+//    if (classpath.isNotEmpty()) {
+//        //CompilerArgs.classpath = RemoveSourcesFromJar.transform(targetFiles, classpath).name
+//        CompilerArgs.classpath = classpath
+//    }
 //    val manager = TransformationManager(targetFiles.map { it to it.name })
 //    val backendProperty = ReduKtorProperties.getStringGroup("BACKEND_FOR_REDUCE").entries.first()
 //    val backend = when (backendProperty.key) {

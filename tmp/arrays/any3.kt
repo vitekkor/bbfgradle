@@ -1,47 +1,28 @@
-// !LANGUAGE: +InlineClasses
+inline class Value(val value: Any)
 
-// FILE: inline.kt
+object Foo {
+    fun foo(value: Value) {
+        res = value.value as String
+    }
 
-inline class IC(val value: Any) {
-    inline fun <T> dispatchInline(): T = value as T
+    fun bar(value: Value?) {
+        res = value?.value as String?
+    }
 }
 
-inline fun <T> IC.extensionInline(): T = value as T
-
-inline fun <T> normalInline(a: IC): T = a.value as T
-
-// FILE: box.kt
-// NO_CHECK_LAMBDA_INLINING
-
-fun <T> extension(a: IC): T = bar(a) {
-    it.extensionInline()
-}
-
-fun <T> dispatch(a: IC): T = bar(a) {
-    it.dispatchInline()
-}
-
-fun <T> normal(a: IC): T = bar(a) {
-    normalInline(it)
-}
-
-fun interface FunIFace<T, R> {
-    fun call(ic: T): R
-}
-
-fun <T, R> bar(value: T, f: FunIFace<T, R>): R {
-    return f.call(value)
-}
+var res: String? = "FAIL"
 
 fun box(): String {
-    var res = extension<Int>(IC(40)) + 3
-    if (res != 43) return "FAIL 2: $res"
+    Value("OK").let(Foo::foo)
+    if (res != "OK") return "FAIL 1: $res"
+    res = "FAIL 2"
 
-    res = dispatch<Int>(IC(40)) + 4
-    if (res != 44) return "FAIL 3: $res"
+    Value("OK").let(Foo::bar)
+    if (res != "OK") return "FAIL 3: $res"
+    res = "FAIL 4"
 
-    res = normal<Int>(IC(40)) + 5
-    if (res != 45) return "FAIL 4: $res"
+    null.let(Foo::bar)
+    if (res != null) return "FAIL 5: $res"
 
     return "OK"
 }

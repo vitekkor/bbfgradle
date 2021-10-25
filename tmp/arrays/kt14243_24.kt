@@ -1,3 +1,6 @@
+// TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+
 interface Z<T> {
     fun test(p: T): T {
         return p

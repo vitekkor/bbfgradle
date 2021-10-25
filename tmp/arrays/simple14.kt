@@ -1,26 +1,7 @@
-// WITH_RUNTIME
-// WITH_COROUTINES
-import helpers.*
-import kotlin.coroutines.*
-import kotlin.coroutines.intrinsics.*
+typealias S = String
 
-suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
-    x.resume(v)
-    COROUTINE_SUSPENDED
-}
+typealias SF<T> = (T) -> S
 
-suspend fun suspendHere(): String = suspendThere("O") + suspendThere("K")
+val f: SF<S> = { it }
 
-fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(EmptyContinuation)
-}
-
-fun box(): String {
-    var result = ""
-
-    builder {
-        result = suspendHere()
-    }
-
-    return result
-}
+fun box(): S = f("OK")

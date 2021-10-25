@@ -1,22 +1,22 @@
-// TARGET_BACKEND: JVM
+// Inside of the companion we have to access the instance through the local Companion field,
+// not by indirection through the Companion field of the enclosing class.
+// Class initialization might not have finished yet.
+var result = ""
 
-// WITH_RUNTIME
-
-interface KInt {
+interface A {
 
     companion object {
-        const val a = "a"
-        const val b = "b$a"
+
+        val prop = test()
+
+        fun test(): String {
+            result += "OK"
+            return result
+        }
     }
 }
 
 fun box(): String {
-    val a = KInt::class.java.getField("a").get(null)
-    val b = KInt::class.java.getField("b").get(null)
-
-    if (a !== KInt.a) return "fail 1: KInt.a !== KInt.Companion.a"
-    if (b !== KInt.b) return "fail 2: KInt.b !== KInt.Companion.b"
-    if (b !== "ba") return "fail 2: 'ba' !== KInt.Companion.b"
-
-    return "OK"
+    if (A.prop != "OK") return "fail ${A.prop}"
+    return result
 }

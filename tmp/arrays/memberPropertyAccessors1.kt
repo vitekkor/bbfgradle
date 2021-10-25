@@ -1,52 +1,22 @@
 // IGNORE_BACKEND: JS_IR
 // IGNORE_BACKEND: JS_IR_ES6
-// TODO: investigate should it be ran for JS or not
+// TODO: muted automatically, investigate should it be ran for JS or not
 // IGNORE_BACKEND: JS, NATIVE
 
 // WITH_REFLECT
 
-import kotlin.reflect.*
 import kotlin.test.assertEquals
 
-class C(val x: Int, var y: Int) {
-    val xx: Int
-        get() = x
-
-    var yy: Int
-        get() = y
-        set(value) { y = value }
-}
-
-val c = C(1, 2)
-
-val c_x = c::x
-val c_xx = c::xx
-val c_y = c::y
-val c_yy = c::yy
+class C(var state: String)
 
 fun box(): String {
-    assertEquals(1, c_x.getter())
-    assertEquals(1, c_x.getter.call())
-    assertEquals(1, c_xx.getter())
-    assertEquals(1, c_xx.getter.call())
-    assertEquals(2, c_y.getter())
-    assertEquals(2, c_y.getter.call())
-    assertEquals(2, c_yy.getter())
-    assertEquals(2, c_yy.getter.call())
+    val prop = C::state
 
-    c_y.setter(10)
-    assertEquals(10, c_y.getter())
-    assertEquals(10, c_yy.getter())
+    val c = C("1")
+    assertEquals("1", prop.getter.invoke(c))
+    assertEquals("1", prop.getter(c))
 
-    c_yy.setter(20)
-    assertEquals(20, c_y.getter())
-    assertEquals(20, c_yy.getter())
+    prop.setter(c, "OK")
 
-    c_y.setter.call(100)
-    assertEquals(100, c_yy.getter.call())
-
-    c_yy.setter.call(200)
-    assertEquals(200, c_y.getter.call())
-
-    return "OK"
+    return prop.get(c)
 }

@@ -1,20 +1,27 @@
-// FILE: klib.kt
-package fromKlib
+// IGNORE_BACKEND: JS_IR
+// IGNORE_BACKEND: JS_IR_ES6
+// TODO: muted automatically, investigate should it be ran for JS or not
+// IGNORE_BACKEND: JS, NATIVE
 
-class C {
-    val inClass = "O"
+// WITH_REFLECT
+
+import kotlin.test.assertTrue
+import kotlin.test.assertFalse
+
+const val const = "const"
+val nonConst = "nonConst"
+
+class A {
+    lateinit var lateinit: Unit
+    var nonLateinit = Unit
 }
 
-val toplevel get() = "K"
-
-fun referByDescriptor(s: String) = s.length
-
-// FILE: test.kt
-import fromKlib.C
-import fromKlib.referByDescriptor
-import fromKlib.toplevel
-
 fun box(): String {
-    referByDescriptor("heh")
-    return C().inClass + toplevel
+    assertTrue(::const.isConst)
+    assertFalse(::nonConst.isConst)
+
+    assertTrue(A::lateinit.isLateinit)
+    assertFalse(A::nonLateinit.isLateinit)
+
+    return "OK"
 }

@@ -1,4 +1,6 @@
+// TARGET_BACKEND: JVM
 // WITH_RUNTIME
+// MODULE: lib
 // FILE: Foo.java
 
 class Foo {
@@ -10,6 +12,7 @@ class Foo {
     public static final byte b = -2;
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 @Ann(Foo.i, Foo.s, Foo.f, Foo.d, Foo.l, Foo.b) class MyClass

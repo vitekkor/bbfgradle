@@ -1,19 +1,18 @@
-// !LANGUAGE: +NewInference +SamConversionPerArgument
-// TARGET_BACKEND: JVM
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: SAM_CONVERSIONS
+// !LANGUAGE: +NewInference +FunctionalInterfaceConversion +SamConversionPerArgument +SamConversionForKotlinFunctions
 // WITH_RUNTIME
-// FILE: Fn.java
-public interface Fn<T, R> {
-    R run(String s, int i, T t);
+
+fun interface Fn<T, R> {
+    fun run(s: String, i: Int, t: T): R
 }
 
-// FILE: J.java
-public class J {
-    public int runConversion(Fn<String, Integer> f1, Fn<Integer, String> f2) {
-        return f1.run("Bar", 1, f2.run("Foo", 42, 239));
+class J {
+    fun runConversion(f1: Fn<String, Int>, f2: Fn<Int, String>): Int {
+        return f1.run("Bar", 1, f2.run("Foo", 42, 239))
     }
 }
 
-// FILE: 1.kt
 fun box(): String {
     val j = J()
     var x = ""

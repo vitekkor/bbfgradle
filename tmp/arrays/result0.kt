@@ -5,12 +5,8 @@ fun <T> foo(a: Result<T>): T = bar(a) {
     it.getOrThrow()
 }
 
-fun interface FunIFace<T, R> {
-    fun call(ic: T): R
-}
-
-fun <T, R> bar(value: T, f: FunIFace<T, R>): R {
-    return f.call(value)
+fun <T, R> bar(value: T, f: (T) -> R): R {
+    return f(value)
 }
 
 fun box(): String {

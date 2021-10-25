@@ -1,3 +1,5 @@
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: Foo.java
 
 import java.util.Set;
@@ -8,6 +10,7 @@ public class Foo {
     public interface B extends Set<String> {}
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 import Foo.*

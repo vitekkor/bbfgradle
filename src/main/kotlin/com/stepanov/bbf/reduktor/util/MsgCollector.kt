@@ -11,6 +11,7 @@ object MsgCollector : MessageCollector {
     var crashMessages = mutableListOf<String>()
     var compileErrorMessages = mutableListOf<String>()
     val locations = mutableListOf<CompilerMessageSourceLocation>()
+    val warnings = mutableListOf<String>()
 
     override fun clear() {
         hasException = false
@@ -18,6 +19,7 @@ object MsgCollector : MessageCollector {
         crashMessages.clear()
         compileErrorMessages.clear()
         locations.clear()
+        warnings.clear()
     }
 
     override fun hasErrors(): Boolean {
@@ -25,15 +27,20 @@ object MsgCollector : MessageCollector {
     }
 
     override fun report(severity: CompilerMessageSeverity, message: String, location: CompilerMessageSourceLocation?) {
-        if (severity == CompilerMessageSeverity.EXCEPTION) {
-            hasException = true
-            crashMessages.add(message)
-            location?.let { locations.add(it) }
-        }
-        if (severity == CompilerMessageSeverity.ERROR) {
-            compileErrorMessages.add(message)
-            hasCompileError = true
-            location?.let { locations.add(it) }
+        when (severity) {
+            CompilerMessageSeverity.EXCEPTION -> {
+                hasException = true
+                crashMessages.add(message)
+                location?.let { locations.add(it) }
+            }
+            CompilerMessageSeverity.ERROR -> {
+                compileErrorMessages.add(message)
+                hasCompileError = true
+                location?.let { locations.add(it) }
+            }
+            CompilerMessageSeverity.WARNING, CompilerMessageSeverity.STRONG_WARNING -> {
+                warnings.add(message)
+            }
         }
     }
 }

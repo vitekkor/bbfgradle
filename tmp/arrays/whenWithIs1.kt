@@ -1,6 +1,10 @@
+// WITH_RUNTIME
+// WITH_COROUTINES
 // DONT_RUN_GENERATED_CODE: JS
+import helpers.*
+import kotlin.coroutines.*
 
-tailrec fun withWhen(counter : Int, d : Any) : Int =
+tailrec suspend fun withWhen(counter : Int, d : Any) : Int =
     if (counter == 0) {
         0
     }
@@ -14,4 +18,14 @@ tailrec fun withWhen(counter : Int, d : Any) : Int =
             else -> throw IllegalStateException()
         }
 
-fun box() : String = if (withWhen(100000, "test") == 0) "OK" else "FAIL"
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
+}
+
+fun box() : String {
+    var res = -1
+    builder {
+        res = withWhen(100000, "test")
+    }
+    return if (res == 0) "OK" else "FAIL"
+}

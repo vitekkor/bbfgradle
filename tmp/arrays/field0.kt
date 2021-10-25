@@ -1,18 +1,22 @@
+// TARGET_BACKEND: JVM
+
 // WITH_RUNTIME
 
-interface Result
+package test
 
-interface Foo {
-    val Result.value: Any
-        get() = TODO()
+internal val noMangling = 1;
+
+class Z {
+    internal var noMangling = 1;
 }
 
-fun use(c: suspend Foo.() -> Unit) {}
+fun box(): String {
+    val clazz = Z::class.java
+    val classField = clazz.getDeclaredField("noMangling")
+    if (classField == null) return "Class internal backing field should exist"
 
-fun generate(): Result = TODO()
+    val topLevel = Class.forName("test.FieldKt").getDeclaredField("noMangling")
+    if (topLevel == null) return "Top level internal backing field should exist"
 
-fun test() {
-    use {
-        val value = generate().value
-    }
+    return "OK"
 }

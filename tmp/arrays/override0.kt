@@ -1,40 +1,21 @@
-// TARGET_BACKEND: JVM
-// FULL_JDK
-// WITH_RUNTIME
-// WITH_COROUTINES
-
-import helpers.*
-import kotlin.coroutines.*
-
-var c: Continuation<*>? = null
-
-suspend fun <T> tx(lambda: () -> T): T = suspendCoroutine { c = it; lambda() }
-
-object Dummy
-
-interface Base<T> {
-    suspend fun generic(): T
+interface Intf {
+    val str: String
 }
 
-class Derived: Base<Unit> {
-    override suspend fun generic(): Unit {
-        tx { Dummy }
+class A : Intf {
+    override lateinit var str: String
+
+    fun setMyStr() {
+        str = "OK"
     }
-}
 
-fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(EmptyContinuation)
+    fun getMyStr(): String {
+        return str
+    }
 }
 
 fun box(): String {
-    var res: Any? = null
-
-    builder {
-        val base: Base<*> = Derived()
-        res = base.generic()
-    }
-
-    (c as? Continuation<Dummy>)?.resume(Dummy)
-
-    return if (res != Unit) "$res" else "OK"
+    val a = A()
+    a.setMyStr()
+    return a.getMyStr()
 }

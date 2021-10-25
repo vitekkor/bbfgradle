@@ -1,5 +1,7 @@
+// TARGET_BACKEND: JVM
 // WITH_REFLECT
 // FULL_JDK
+// MODULE: lib
 // FILE: J.java
 
 public class J {
@@ -12,6 +14,7 @@ public class J {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 import java.lang.reflect.*

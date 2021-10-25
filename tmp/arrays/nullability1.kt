@@ -1,46 +1,47 @@
 // WITH_RUNTIME
-// CHECK_CASES_COUNT: function=foo1 count=0
-// CHECK_IF_COUNT: function=foo1 count=2
-// CHECK_CASES_COUNT: function=foo2 count=0
-// CHECK_IF_COUNT: function=foo2 count=2
+// CHECK_CASES_COUNT: function=foo1 count=2
+// CHECK_IF_COUNT: function=foo1 count=1
+// CHECK_CASES_COUNT: function=foo2 count=4
+// CHECK_IF_COUNT: function=foo2 count=0
 
 import kotlin.test.assertEquals
 
-enum class Season {
-    WINTER,
-    SPRING,
-    SUMMER,
-    AUTUMN
-}
-
-fun foo1(x : Season?) : String {
-    when(x) {
-        Season.AUTUMN, Season.SPRING -> return "autumn_or_spring";
-        Season.SUMMER, null -> return "summer_or_null"
+fun foo1(x : String?) : String {
+    when (x) {
+        "abc", "cde" -> return "abc_cde"
+        "efg", "ghi", null -> return "efg_ghi"
     }
 
     return "other"
 }
 
-fun foo2(x : Season?) : String {
-    when(x) {
-        Season.AUTUMN, Season.SPRING -> return "autumn_or_spring";
-        Season.SUMMER -> return "summer"
+fun foo2(x : String?) : String {
+    when (x) {
+        "abc", "cde" -> return "abc_cde"
+        "efg", "ghi" -> return "efg_ghi"
+        else -> return "other"
     }
-
-    return "other"
 }
 
 fun box() : String {
-    assertEquals("autumn_or_spring", foo1(Season.AUTUMN))
-    assertEquals("autumn_or_spring", foo1(Season.SPRING))
-    assertEquals("summer_or_null", foo1(Season.SUMMER))
-    assertEquals("summer_or_null", foo1(null))
+    //foo1
+    assertEquals("abc_cde", foo1("abc"))
+    assertEquals("abc_cde", foo1("cde"))
+    assertEquals("efg_ghi", foo1("efg"))
+    assertEquals("efg_ghi", foo1("ghi"))
+    assertEquals("efg_ghi", foo1(null))
 
-    assertEquals("autumn_or_spring", foo2(Season.AUTUMN))
-    assertEquals("autumn_or_spring", foo2(Season.SPRING))
-    assertEquals("summer", foo2(Season.SUMMER))
-    assertEquals("other", foo2(null))
+    assertEquals("other",   foo1("xyz"))
+
+    //foo2
+    assertEquals("abc_cde", foo2("abc"))
+    assertEquals("abc_cde", foo2("cde"))
+    assertEquals("efg_ghi", foo2("efg"))
+    assertEquals("efg_ghi", foo2("ghi"))
+
+
+    assertEquals("other",   foo2("xyz"))
+    assertEquals("other",   foo2(null))
 
     return "OK"
 }

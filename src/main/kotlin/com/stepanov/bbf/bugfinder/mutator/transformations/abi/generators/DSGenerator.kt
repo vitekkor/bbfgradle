@@ -2,16 +2,15 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GStructure
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.RandomInstancesGenerator
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsageSamplesGeneratorWithStLibrary
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.addImport
-import com.stepanov.bbf.bugfinder.util.addToTheEnd
-import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGenerator
+import com.stepanov.bbf.bugfinder.util.addAtTheEnd
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.util.getTrue
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 abstract class DSGenerator(
     private val file: KtFile,
@@ -22,7 +21,7 @@ abstract class DSGenerator(
 
     init {
         randomTypeGenerator.setFileAndContext(file, ctx)
-        randomInstancesGenerator = RandomInstancesGenerator(file)
+        randomInstancesGenerator = RandomInstancesGenerator(file, ctx)
     }
 
     protected open fun generateTypeParams(withModifiers: Boolean): List<String> {
@@ -41,7 +40,7 @@ abstract class DSGenerator(
             if (Random.getTrue(50)) {
                 var upperBoundsClass =
                     if (Random.nextBoolean())
-                        UsageSamplesGeneratorWithStLibrary.generateOpenClassType(false)
+                        StdLibraryGenerator.generateOpenClassType(false)
                     else
                         randomTypeGenerator.generateOpenClassType()
                 //TODO!! BUG WITH INLINE CLASS AS TYPE BOUND
@@ -66,12 +65,12 @@ abstract class DSGenerator(
         }
     }
 
-    fun calcImports(): List<String> = UsageSamplesGeneratorWithStLibrary.calcImports(file)
+    fun calcImports(): List<String> = StdLibraryGenerator.calcImports(file)
 
     protected abstract fun simpleGeneration(): PsiElement?
     protected abstract fun partialGeneration(initialStructure: GStructure): PsiElement?
-    abstract fun afterGeneration(psi: PsiElement)
-    abstract fun beforeGeneration()
+    protected abstract fun afterGeneration(psi: PsiElement)
+    protected abstract fun beforeGeneration()
 
     fun generate(): PsiElement? {
         beforeGeneration()
@@ -89,7 +88,7 @@ abstract class DSGenerator(
 
     fun generateAndAddToFile(): PsiElement? {
         generate()?.let {
-            val added = file.addToTheEnd(it)
+            val added = file.addAtTheEnd(it)
             calcImports().forEach { file.addImport(it.substringBeforeLast('.'), true) }
             return added
         } ?: return null

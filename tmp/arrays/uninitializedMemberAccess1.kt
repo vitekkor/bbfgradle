@@ -1,11 +1,13 @@
-// DONT_TARGET_EXACT_BACKEND: WASM
-// WASM_MUTE_REASON: EXCEPTIONS_NOT_IMPLEMENTED
 // WITH_RUNTIME
+
+// IGNORE_BACKEND: WASM
+// WASM_MUTE_REASON: REFLECTION
 
 import kotlin.UninitializedPropertyAccessException
 
+lateinit var str: String
+
 fun box(): String {
-    lateinit var str: String
     var i: Int = 0
     try {
         i = str.length

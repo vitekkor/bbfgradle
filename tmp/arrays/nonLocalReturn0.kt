@@ -1,181 +1,77 @@
 // TARGET_BACKEND: JVM
-
+// ASSERTIONS_MODE: jvm
 // WITH_RUNTIME
-// FULL_JDK
 
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.Executors
-import java.util.concurrent.Callable
-import java.util.concurrent.Future
+package nonLocalReturn
 
-val count: Int = 10;
-var index: Int = 0;
-val doneSignal = CountDownLatch(count)
-val startSignal = CountDownLatch(1);
-val mutex: Any = Object()
-val results = arrayListOf<Int>()
-val executorService = Executors.newFixedThreadPool(count)
-
-class MyException(message: String): Exception(message)
-
-enum class ExecutionType {
-    LOCAL,
-    NON_LOCAL_SIMPLE,
-    NON_LOCAL_EXCEPTION,
-    NON_LOCAL_FINALLY,
-    NON_LOCAL_EXCEPTION_AND_FINALLY,
-    NON_LOCAL_EXCEPTION_AND_FINALLY_WITH_RETURN,
-    NON_LOCAL_NESTED
+interface Checker {
+    fun checkTrueWithMessage(): Boolean
+    fun checkFalseWithMessage(): Boolean
 }
 
-class TestLocal(val name: String, val executionType: ExecutionType) : Callable<String> {
+class ShouldBeDisabled : Checker {
+    override fun checkTrueWithMessage(): Boolean {
+        var hit = false
+        val l = { hit = true; true }
 
-    override fun call(): String {
-        startSignal.await()
-        return when (executionType) {
-            ExecutionType.LOCAL -> local()
-            ExecutionType.NON_LOCAL_SIMPLE -> nonLocalSimple()
-            ExecutionType.NON_LOCAL_EXCEPTION -> nonLocalWithException()
-            ExecutionType.NON_LOCAL_FINALLY -> nonLocalWithFinally()
-            ExecutionType.NON_LOCAL_EXCEPTION_AND_FINALLY -> nonLocalWithExceptionAndFinally()
-            ExecutionType.NON_LOCAL_EXCEPTION_AND_FINALLY_WITH_RETURN -> nonLocalWithExceptionAndFinallyWithReturn()
-            ExecutionType.NON_LOCAL_NESTED -> nonLocalNested()
-            else -> "fail"
+        assert(l()) {
+            throw RuntimeException("FAIL 1")
         }
+
+        return hit
     }
 
-    private fun underMutexFun() {
-        results.add(++index);
-        doneSignal.countDown()
-    }
+    override fun checkFalseWithMessage(): Boolean {
+        var hit = false
+        val l = { hit = true; false }
 
-    fun local(): String {
-        synchronized(mutex) {
-            underMutexFun()
+        assert(l()) {
+            throw RuntimeException("FAIL 3")
         }
-        return executionType.toString()
-    }
 
-
-    fun nonLocalSimple(): String {
-        synchronized(mutex) {
-            underMutexFun()
-            return executionType.name
-        }
-        return "fail"
-    }
-
-    fun nonLocalWithException(): String {
-        synchronized(mutex) {
-            try {
-                underMutexFun()
-                throw MyException(executionType.name)
-            } catch (e: MyException) {
-                return e.message!!
-            }
-        }
-        return "fail"
-    }
-
-    fun nonLocalWithFinally(): String {
-        synchronized(mutex) {
-            try {
-                underMutexFun()
-                return "fail"
-            } finally {
-                return executionType.name
-            }
-        }
-        return "fail"
-    }
-
-    fun nonLocalWithExceptionAndFinally(): String {
-        synchronized(mutex) {
-            try {
-                underMutexFun()
-                throw MyException(executionType.name)
-            } catch (e: MyException) {
-                return e.message!!
-            } finally {
-                "123"
-            }
-        }
-        return "fail"
-    }
-
-    fun nonLocalWithExceptionAndFinallyWithReturn(): String {
-        synchronized(mutex) {
-            try {
-                underMutexFun()
-                throw MyException(executionType.name)
-            } catch (e: MyException) {
-                return "fail1"
-            } finally {
-                return executionType.name
-            }
-        }
-        return "fail"
-    }
-
-    fun nonLocalNested(): String {
-        synchronized(mutex) {
-            try {
-                try {
-                    underMutexFun()
-                    throw MyException(executionType.name)
-                } catch (e: MyException) {
-                    return "fail1"
-                } finally {
-                    return executionType.name
-                }
-            } finally {
-                val p = 1 + 1
-            }
-        }
-        return "fail"
+        return hit
     }
 }
 
-fun testTemplate(type: ExecutionType, producer: (Int) -> Callable<String>): String {
+class ShouldBeEnabled : Checker {
+    override fun checkTrueWithMessage(): Boolean {
+        var hit = false
+        val l = { hit = true; true }
 
-    try {
-        val futures = arrayListOf<Future<String>>()
-        for (i in 1..count) {
-            futures.add(executorService.submit (producer(i)))
+        assert(l()) {
+            throw RuntimeException("FAIL 5")
         }
 
-        startSignal.countDown()
-        val b = doneSignal.await(10, TimeUnit.SECONDS)
-        if (!b) return "fail: processes not finished"
-
-        for (i in 1..count) {
-            if (results[i - 1] != i)
-                return "fail $i != ${results[i]}: synchronization not works : " + results.joinToString()
-        }
-
-        for (f in futures) {
-            if (f.get() != type.name) return "failed result ${f.get()} != ${type.name}"
-        }
-    } finally {
-
+        return hit
     }
 
-    return "OK"
+    override fun checkFalseWithMessage(): Boolean {
+        var hit = false
+        val l = { hit = true; false }
+
+        assert(l()) {
+            return hit
+            "BOOYA"
+        }
+
+        throw RuntimeException("FAIL 7")
+    }
 }
 
-fun runTest(type: ExecutionType): String {
-    return testTemplate (type) { TestLocal(it.toString(), type) }
+fun setDesiredAssertionStatus(v: Boolean): Checker {
+    val loader = Checker::class.java.classLoader
+    loader.setPackageAssertionStatus("nonLocalReturn", v)
+    val c = loader.loadClass(if (v) "nonLocalReturn.ShouldBeEnabled" else "nonLocalReturn.ShouldBeDisabled")
+    return c.newInstance() as Checker
 }
 
 fun box(): String {
-    try {
-        for (type in ExecutionType.values()) {
-            val result = runTest(type)
-            if (result != "OK") return "fail on $type execution: $result"
-        }
-    } finally {
-        executorService.shutdown()
-    }
+    var c = setDesiredAssertionStatus(false)
+    if (c.checkTrueWithMessage()) return "FAIL 2"
+    if (c.checkFalseWithMessage()) return "FAIL 4"
+    c = setDesiredAssertionStatus(true)
+    if (!c.checkTrueWithMessage()) return "FAIL 6"
+    if (!c.checkFalseWithMessage()) return "FAIL 8"
+
     return "OK"
 }

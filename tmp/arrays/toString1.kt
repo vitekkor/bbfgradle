@@ -1,6 +1,12 @@
-enum class State {
-  O,
-  K
+class A (val p: String) {
+
+    val _kind: String = "$p"
+
 }
 
-fun box() = "${State.O}${State.K}"
+fun box(): String {
+
+    if (A("OK")._kind != "OK") return "fail"
+
+    return "OK"
+}

@@ -1,8 +1,11 @@
+// TARGET_BACKEND: JVM
 // WITH_RUNTIME
+// MODULE: lib
 // FILE: J.java
 
 public class J {}
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 import kotlin.test.assertEquals

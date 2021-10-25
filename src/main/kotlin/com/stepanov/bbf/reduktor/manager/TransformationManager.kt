@@ -195,7 +195,7 @@ class TransformationManager(val checker: CompilerTestChecker) {
 //                executePass(MinorSimplifyings())
 ////                //Get context
 //                File(rFile.name).writeText(rFile.text)
-//                val creator = PSICreator("")
+//                val creator = PSICreator
 //                rFile = creator.getPSIForFile(rFile.name, true)
 //                if (creator.ctx != null) {
 //                    MinorSimplifyings(rFile, checker, creator.ctx!!).transform()

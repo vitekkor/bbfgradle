@@ -1,6 +1,6 @@
-// !USE_EXPERIMENTAL: kotlin.ExperimentalStdlibApi
-// TARGET_BACKEND: JVM
-// WITH_RUNTIME
+// IGNORE_BACKEND: JS, JS_IR
+// IGNORE_BACKEND: JS_IR_ES6
+// WITH_REFLECT
 
 package test
 
@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 inline class Z(val value: String)
 
 fun check(expected: String, actual: KType) {
-    assertEquals(expected + " (Kotlin reflection is not available)", actual.toString())
+    assertEquals(expected, actual.toString())
 }
 
 fun box(): String {

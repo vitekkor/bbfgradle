@@ -1,7 +1,33 @@
-typealias S = String
+// !JVM_DEFAULT_MODE: all-compatibility
+// IGNORE_BACKEND_FIR: JVM_IR
+// TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// WITH_RUNTIME
 
-typealias SF<T> = (T) -> S
+interface Test {
+    @JvmDefault
+    fun test(): String {
+        return "O"
+    }
 
-val f: SF<S> = { it }
+    fun delegatedTest(): String {
+        return "fail"
+    }
+}
 
-fun box(): S = f("OK")
+class Delegate : Test {
+    override fun test(): String {
+        return "Fail"
+    }
+
+    override fun delegatedTest(): String {
+        return "K"
+    }
+}
+
+class TestClass(val foo: Test) : Test by foo
+
+fun box(): String {
+    val testClass = TestClass(Delegate())
+    return testClass.test() + testClass.delegatedTest()
+}

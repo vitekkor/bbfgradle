@@ -1,24 +1,14 @@
-// FILE: JavaClass.java
 
-class JavaClass {
-    private String myX;
-
-    public String getX() {
-        return myX;
+open class A {
+    class B : A() {
+        val a = "FAIL"
     }
 
-    public void setX(String x) {
-        myX = x;
+    fun foo(): String {
+        if (this is B) return a
+        return "OK"
     }
 }
 
-// FILE: 1.kt
 
-fun box(): String {
-    return JavaClass().doIt()
-}
-
-internal fun JavaClass.doIt(): String {
-    x = "OK"
-    return x
-}
+fun box(): String = A().foo()

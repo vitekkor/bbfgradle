@@ -1,20 +1,14 @@
-// TARGET_BACKEND: JVM
 // WITH_RUNTIME
 
-// FILE: foo.kt
+import kotlin.test.assertEquals
 
-@file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
-@file:JvmPackageName("baz.foo.quux.bar")
-package foo.bar
+inline fun <R> foo(x : R, block : (R) -> R) : R {
+    return block(x)
+}
 
-fun f(): String = "O"
+fun box() : String {
+    val result = foo(1) { x -> x + 1 }
+    assertEquals(2, result)
 
-val g: String? get() = "K"
-
-inline fun <T> i(block: () -> T): T = block()
-
-// FILE: bar.kt
-
-import foo.bar.*
-
-fun box(): String = i { f() + g }
+    return "OK"
+}

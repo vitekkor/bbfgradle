@@ -1,21 +1,19 @@
-enum class SimpleEnum {
-    A, B, C
+// MODULE: lib
+// FILE: A.kt
+
+package aaa
+
+enum class E {
+    TRIVIAL_ENTRY,
+    SUBCLASS { }
 }
 
-enum class WithConstructor(val x: String) {
-    A("1"), B("2"), C("3")
-}
+// MODULE: main(lib)
+// FILE: B.kt
 
-enum class WithEntryClass {
-    A {
-        override fun foo() {}
-    }
-    ;
-    abstract fun foo()
-}
+import aaa.E
 
-annotation class Ann
-
-enum class WithAnnotations {
-    @Ann A, @Ann B
+fun box(): String {
+    if (E.TRIVIAL_ENTRY == E.SUBCLASS) return "Fail"
+    return "OK"
 }

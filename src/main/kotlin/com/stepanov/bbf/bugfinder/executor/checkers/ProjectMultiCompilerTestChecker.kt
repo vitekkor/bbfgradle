@@ -53,10 +53,10 @@ import com.stepanov.bbf.bugfinder.manager.BugType
 ////        val psiFiles =
 ////            otherFiles!!.texts.let { it.subList(0, filePos) + listOf(text) + it.subList(filePos, it.size) }.map {
 ////                if (it.getFileLanguageIfExist() == LANGUAGE.KOTLIN) {
-////                    PSICreator("").getPSIForText(it, false)
+////                    PSICreator.getPSIForText(it, false)
 ////                } else {
 ////                    haveJava = true
-////                    PSICreator("").getPsiForJava(it, Factory.file.project)
+////                    PSICreator.getPsiForJava(it, Factory.file.project)
 ////                }
 ////            }
 ////        //WE SHOULD'NT REMOVE COMMENT WITH FILE NAME

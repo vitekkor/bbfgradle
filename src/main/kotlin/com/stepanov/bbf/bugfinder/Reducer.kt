@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder
 
 import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.checkers.DiffBehaviorChecker
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.executor.checkers.DiffCompileChecker
 import com.stepanov.bbf.bugfinder.executor.checkers.MultiCompilerCrashChecker
@@ -41,7 +42,7 @@ object Reducer {
 //        val f = File(path)
 //        val files = if (f.isDirectory) f.listFiles().toList() else listOf(f)
 //        val res = files.asSequence()
-//            .map { PSICreator("").getPSIForFile(it.absolutePath, false) }
+//            .map { PSICreator.getPSIForFile(it.absolutePath, false) }
 //            .map {
 //                reduceFile(
 //                    it,
@@ -58,7 +59,7 @@ object Reducer {
 //    }
 //
 //    fun reduceDiffBehavior(pathToFile: String, compilers: List<CommonCompiler>, shouldSave: Boolean = false): String {
-//        val ktFile = PSICreator("").getPSIForFile(pathToFile, false)
+//        val ktFile = PSICreator.getPSIForFile(pathToFile, false)
 //        val res = reduceFile(
 //            ktFile,
 //            DiffBehaviorChecker(compilers)
@@ -68,7 +69,7 @@ object Reducer {
 //    }
 //
 //    fun reduceDiffCompile(pathToFile: String, compilers: List<CommonCompiler>, shouldSave: Boolean = false): String {
-//        val ktFile = PSICreator("").getPSIForFile(pathToFile, false)
+//        val ktFile = PSICreator.getPSIForFile(pathToFile, false)
 //        val res = reduceFile(
 //            ktFile,
 //            DiffCompileChecker(compilers)
@@ -87,7 +88,11 @@ object Reducer {
     }
 
     private fun reduceFile(checker: CompilerTestChecker) {
-        TransformationManager(checker).doTransformationsForFile()
+        try {
+            TransformationManager(checker).doTransformationsForFile()
+        } catch (e: IllegalArgumentException) {
+            return
+        }
     }
 
     private fun reduceProject(checker: CompilerTestChecker) {
@@ -103,8 +108,8 @@ object Reducer {
 //        val files =
 //            path.split(" ").map {
 //                if (it.endsWith(".java"))
-//                    PSICreator("").getPsiForJava(File(it).readText(), Factory.file.project) to it
-//                else PSICreator("").getPSIForFile(it) to it
+//                    PSICreator.getPsiForJava(File(it).readText(), Factory.file.project) to it
+//                else PSICreator.getPSIForFile(it) to it
 //            }
 //        log.debug("START TO REDUCE PROJECT")
 //        var oldText = files.map { it.first.text }.joinToString("\n").trim().filter { !it.isWhitespace() }

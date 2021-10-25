@@ -1,53 +1,60 @@
-// !LANGUAGE: +MultiPlatformProjects
-// IGNORE_BACKEND_FIR: JVM_IR
 // TARGET_BACKEND: JVM
+
 // WITH_RUNTIME
-// FILE: common.kt
+// FILE: Test.java
 
-expect annotation class A1(val x: Int, val y: String = "OK")
+import java.lang.annotation.Annotation;
 
-expect annotation class A2(val x: Int = 42, val y: String = "OK")
+class Test {
 
-expect annotation class A3(val x: Int, val y: String)
+    public static String test1() throws NoSuchMethodException {
+        Annotation[] test1s = A.class.getMethod("test1").getAnnotations();
+        for (Annotation test : test1s) {
+            String name = test.toString();
+            if (name.contains("testAnnotation")) {
+                return "OK";
+            }
+        }
+        return "fail";
+    }
 
-expect annotation class A4(val x: Int = 42, val y: String)
+    public static String test2() throws NoSuchMethodException {
+        Annotation[] test2s = B.class.getMethod("test1").getAnnotations();
+        for (Annotation test : test2s) {
+            String name = test.toString();
+            if (name.contains("testAnnotation")) {
+                return "OK";
+            }
+        }
+        return "fail";
+    }
 
-@A1(0)
-@A2
-@A3
-@A4
-fun test() {}
+}
 
-// FILE: jvm.kt
+// FILE: test.kt
 
-import kotlin.test.assertEquals
+@Retention(AnnotationRetention.RUNTIME)
+annotation class testAnnotation
 
-actual annotation class A1(actual val x: Int, actual val y: String)
+class A {
 
-actual annotation class A2(actual val x: Int, actual val y: String = "OK")
+    companion object {
+        val b: String = "OK"
 
-actual annotation class A3(actual val x: Int = 42, actual val y: String = "OK")
+        @JvmStatic @testAnnotation fun test1() = b
+    }
+}
 
-actual annotation class A4(actual val x: Int, actual val y: String = "OK")
+object B {
+    val b: String = "OK"
+
+    @JvmStatic @testAnnotation fun test1() = b
+}
 
 fun box(): String {
-    val anno = Class.forName("CommonKt").getDeclaredMethod("test").annotations
+    if (Test.test1() != "OK") return "fail 1"
 
-    val a1 = anno.single { it.annotationClass == A1::class } as A1
-    assertEquals(0, a1.x)
-    assertEquals("OK", a1.y)
-
-    val a2 = anno.single { it.annotationClass == A2::class } as A2
-    assertEquals(42, a2.x)
-    assertEquals("OK", a2.y)
-
-    val a3 = anno.single { it.annotationClass == A3::class } as A3
-    assertEquals(42, a3.x)
-    assertEquals("OK", a3.y)
-
-    val a4 = anno.single { it.annotationClass == A4::class } as A4
-    assertEquals(42, a4.x)
-    assertEquals("OK", a4.y)
+    if (Test.test2() != "OK") return "fail 2"
 
     return "OK"
 }

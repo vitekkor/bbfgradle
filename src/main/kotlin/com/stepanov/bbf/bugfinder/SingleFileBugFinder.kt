@@ -1,57 +1,80 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.checkers.CoverageGuider
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
-import com.stepanov.bbf.bugfinder.executor.checkers.TracesChecker
+import com.stepanov.bbf.bugfinder.executor.checkers.PerformanceOracle
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.tracer.Tracer
 import com.stepanov.bbf.bugfinder.util.*
-import org.jetbrains.kotlin.psi.KtClassOrObject
-import org.jetbrains.kotlin.psi.KtEnumEntry
-import org.jetbrains.kotlin.psi.KtNamedFunction
+import com.stepanov.bbf.reduktor.parser.PSICreator
+import coverage.MyMethodBasedCoverage
+import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 import kotlin.system.exitProcess
 
-class SingleFileBugFinder(dir: String) : BugFinder(dir) {
+class SingleFileBugFinder(pathToFile: String) : BugFinder(pathToFile) {
 
     fun findBugsInFile() {
-        try {
-            println("Let's go")
-            ++counter
-            log.debug("Name = $dir")
-            val project = Project.createFromCode(File(dir).readText())
-            if (project.language != LANGUAGE.KOTLIN) return
-            if (project.files.isEmpty() || project.files.size != 1) {
-                log.debug("Cant create project")
-                return
-            }
-            if (project.files.first().psiFile.getAllPSIChildrenOfType<KtNamedFunction> { it.isTopLevel }.size < 2) {
-                if (project.files.first().psiFile.getAllPSIChildrenOfTwoTypes<KtClassOrObject, KtEnumEntry>().isEmpty()) {
-                    log.debug("Uninteresting test")
-                    return
-                }
-            }
-            val compilersConf = BBFProperties.getStringGroupWithoutQuotes("BACKENDS")
-            val filterBackends = compilersConf.map { it.key }
-            if (filterBackends.any { project.isBackendIgnores(it) }) {
-                //TODO disable?
-                log.debug("Ignore some of backends")
-            }
-            if (compilers.any { !it.checkCompiling(project) }) {
-                log.debug("Can not compile $dir")
-                return
-            }
-            log.debug("Start to mutate")
-            log.debug("BEFORE = ${project.files.first().text}")
-            //ProjectPreprocessor.preprocess(project, null)
-            val checker = MutationChecker(listOf(JVMCompiler(""), JVMCompiler("-Xuse-ir")), project, project.files.first())
-            if (!checker.checkCompiling()) {
-                log.debug("=(")
-                exitProcess(0)
-            }
-            mutate(project, project.files.first(), listOf(/*::noBoxFunModifying*/))
+        println("Let's go")
+        ++counter
+        log.debug("Name = $dir")
+        var project = Project.createFromCode(File(dir).readText())
+        PSICreator.curProject = project
+        if (project.files.isEmpty()) {
+            log.debug("Cant create project")
+            return
+        }
+        //TODO fuzz with coroutines also
+        if (project.configuration.isWithCoroutines()) return
+        if (project.files.size > 1 && project.language == LANGUAGE.KOTLIN) {
+            project = project.convertToSingleFileProject()
+        }
+        //Add some imports
+        for (f in project.files.map { it.psiFile }) {
+            if (f !is KtFile) continue
+            f.addImport("kotlin.properties", true)
+            f.addImport("kotlin.reflect", true)
+            f.addImport("kotlin.math", true)
+        }
+        val compilers = CompilerArgs.getCompilersList().mapNotNull { compiler ->
+            if (project.language == LANGUAGE.KJAVA) {
+                if (compiler.compilerInfo.startsWith("JVM")) {
+                    KJCompiler(compiler.arguments)
+                } else null
+            } else compiler
+        }
+        val compilersConf = BBFProperties.getStringGroupWithoutQuotes("BACKENDS")
+        val filterBackends = compilersConf.map { it.key }
+        if (filterBackends.any { project.isBackendIgnores(it) }) {
+            //TODO disable?
+            log.debug("Ignore some of backends")
+        }
+        if (compilers.any { !it.checkCompiling(project) }) {
+            log.debug("Can not compile $dir")
+            return
+        }
+        log.debug("Start to mutate")
+        log.debug("BEFORE = $project")
+//            CompilerArgs.isInstrumentationMode = false
+        //ProjectPreprocessor.preprocess(project, null)
+        if (compilers.any { !it.checkCompiling(project) }) {
+            log.debug("=(")
+            exitProcess(0)
+        }
+        if (CompilerArgs.isGuidedByCoverage) {
+            CoverageGuider.init("", project)
+            CoverageGuider.getCoverage(project, compilers)
+            MyMethodBasedCoverage.methodProbes.clear()
+        }
+        if (CompilerArgs.isPerformanceMode) {
+            PerformanceOracle.init(project, CompilerArgs.getCompilersList())
+        }
+        //noLastLambdaInFinallyBlock temporary for avoiding duplicates bugs
+        mutate(project, project.files.first(), compilers, listOf(::noBoxFunModifying, ::noLastLambdaInFinallyBlock))
+        exitProcess(0)
 //            //Save mutated file
 //            if (CompilerArgs.shouldSaveMutatedFiles) {
 //                val pathToNewTests = CompilerArgs.dirForNewTests
@@ -59,18 +82,8 @@ class SingleFileBugFinder(dir: String) : BugFinder(dir) {
 //                val pathToSave = "$pathToNewTests/${Random().getRandomVariableName(10)}.kt"
 //                File(pathToSave).writeText(resultingMutant.text)
 //            }
-            log.debug("Mutated = $project")
-            if (!CompilerArgs.isMiscompilationMode) {
-                Tracer(compilers.first(), project).trace()
-                log.debug("Traced = $project")
-                TracesChecker(compilers).checkBehavior(project)
-            }
-            return
-        } catch (e: Error) {
-            log.debug("ERROR: ${e.localizedMessage}\n${e.stackTrace.map { it.toString() + "\n" }}")
-            return
-            //System.exit(0)
-        }
+        log.debug("Mutated = $project")
+        return
     }
 
     var counter = 0

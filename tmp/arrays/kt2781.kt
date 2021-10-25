@@ -1,3 +1,5 @@
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: J.java
 
 import java.lang.String;
@@ -10,6 +12,7 @@ class J {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 fun box() = J("OK").value

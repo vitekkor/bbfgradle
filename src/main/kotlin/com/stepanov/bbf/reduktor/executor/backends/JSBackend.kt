@@ -29,8 +29,11 @@ class JSBackend(private val arguments: String) : CommonBackend {
             compiler.exec(MsgCollector, services, compilerArgs)
         }
         var hasTimeout = false
+        var compilerWorkingTime: Long = -1
         try {
+            val startTime = System.currentTimeMillis()
             futureExitCode.get(5L, TimeUnit.SECONDS)
+            compilerWorkingTime = System.currentTimeMillis() - startTime
         } catch (ex: TimeoutException) {
             hasTimeout = true
             futureExitCode.cancel(true)
@@ -41,7 +44,8 @@ class JSBackend(private val arguments: String) : CommonBackend {
                     MsgCollector.compileErrorMessages.joinToString("\n"),
             !MsgCollector.hasCompileError,
             MsgCollector.hasException,
-            hasTimeout
+            hasTimeout,
+            compilerWorkingTime
         )
     }
 }

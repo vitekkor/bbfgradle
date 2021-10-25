@@ -1,23 +1,28 @@
-// !JVM_DEFAULT_MODE: all
-// TARGET_BACKEND: JVM
-// JVM_TARGET: 1.8
 // WITH_RUNTIME
+// WITH_COROUTINES
+// IGNORE_BACKEND: JVM
+// IGNORE_LIGHT_ANALYSIS
+// LANGUAGE: +SuspendFunctionsInFunInterfaces, +JvmIrEnabledByDefault
+// SKIP_DCE_DRIVEN
 
-interface Base {
-    fun f(o: String): String = g(o)
+import helpers.*
+import kotlin.coroutines.*
 
-    private fun g(o: String): String = o
+fun interface Action {
+    suspend fun run()
 }
-
-fun interface F : Base {
-    fun invoke(o: String): String
-
-    fun result(): String = invoke(f("O"))
+suspend fun runAction(a: Action) {
+    a.run()
 }
-
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
+}
 fun box(): String {
-    if (F { o -> o + "K" }.result() != "OK") return "Fail"
-
-    val lambda: (String) -> String = { o -> o + "K" }
-    return F(lambda).result()
+    var res = "FAIL"
+    builder {
+        runAction {
+            res = "OK"
+        }
+    }
+    return res
 }

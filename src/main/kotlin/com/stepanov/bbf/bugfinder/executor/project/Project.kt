@@ -1,28 +1,25 @@
 package com.stepanov.bbf.bugfinder.executor.project
 
-import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.addMain
+import com.stepanov.bbf.bugfinder.executor.addMainForPerformanceTesting
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.util.contains
-import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
-import com.stepanov.bbf.bugfinder.util.getAllWithoutLast
-import com.stepanov.bbf.reduktor.util.MsgCollector
+import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
+import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.util.getAllWithout
 import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.js.K2JSCompiler
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
-import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
-import com.stepanov.bbf.bugfinder.util.flatMap
+import org.jetbrains.kotlin.psi.KtFile
 
 class Project(
     var configuration: Header,
-    val files: List<BBFFile>,
+    var files: List<BBFFile>,
     val language: LANGUAGE = LANGUAGE.KOTLIN
 ) {
 
@@ -32,14 +29,54 @@ class Project(
         fun createFromCode(code: String): Project {
             val configuration = Header.createHeader(getCommentSection(code))
             val files = BBFFileFactory(code, configuration).createBBFFiles() ?: return Project(configuration, listOf())
-            val language = if (files.any { it.getLanguage() == LANGUAGE.JAVA }) LANGUAGE.KJAVA else LANGUAGE.KOTLIN
+            val language =
+                when {
+                    files.any { it.getLanguage() == LANGUAGE.UNKNOWN } -> LANGUAGE.UNKNOWN
+                    files.any { it.getLanguage() == LANGUAGE.JAVA } -> LANGUAGE.KJAVA
+                    else -> LANGUAGE.KOTLIN
+                }
             return Project(configuration, files, language)
         }
     }
 
-    fun saveOrRemoveToTmp(flag: Boolean): String {
+    fun addFile(file: BBFFile): List<BBFFile> {
+        files = files + listOf(file)
+        return files
+    }
+
+    fun removeFile(file: BBFFile): List<BBFFile> {
+        files = files.getAllWithout(file)
+        return files
+    }
+
+    fun saveOrRemoveToDirectory(trueSaveFalseDelete: Boolean, directory: String): String {
         files.forEach {
-            if (flag) {
+            val name = it.name.substringAfterLast('/')
+            val fullDir = directory +
+                    if (it.name.contains("/")) {
+                        "/${it.name.substringBeforeLast('/')}"
+                    } else {
+                        ""
+                    }
+            val fullName = "$fullDir/$name"
+            if (trueSaveFalseDelete) {
+                File(fullDir).mkdirs()
+                File(fullName).writeText(it.psiFile.text)
+            } else {
+                val createdDirectories = it.name.substringAfter(directory).substringBeforeLast('/')
+                if (createdDirectories.trim().isNotEmpty()) {
+                    File("$directory$createdDirectories").deleteRecursively()
+                } else {
+                    File(fullName).delete()
+                }
+            }
+        }
+        return files.joinToString(" ") { it.name }
+    }
+
+    fun saveOrRemoveToTmp(trueSaveFalseDelete: Boolean): String {
+        files.forEach {
+            if (trueSaveFalseDelete) {
                 File(it.name.substringBeforeLast("/")).mkdirs()
                 File(it.name).writeText(it.psiFile.text)
             } else {
@@ -61,6 +98,31 @@ class Project(
                 files.getAllWithoutLast().forEach { appendLine(it.toString()) }
             else files.forEach { appendLine(it.toString()) }
         }.toString()
+
+    fun convertToSingleFileProject(): Project {
+        if (this.files.size <= 1) return this.copy()
+        if (this.language != LANGUAGE.KOTLIN) return this.copy()
+        val configuration = this.configuration
+        val language = this.language
+        val projFiles = this.files.map { it.psiFile.copy() as KtFile }
+        val resFile = projFiles.first().copy() as KtFile
+        resFile.packageDirective?.delete()
+        resFile.importDirectives.forEach { it.delete() }
+        projFiles.getAllWithout(0).forEach {
+            it.packageDirective?.delete()
+            it.importList?.delete()
+            resFile.addAtTheEnd(it)
+        }
+        StdLibraryGenerator.calcImports(resFile)
+            .forEach { resFile.addImport(it.substringBeforeLast('.'), true) }
+        if (this.configuration.isWithCoroutines()) {
+            resFile.addImport("kotlin.coroutines.intrinsics", true)
+            resFile.addImport("kotlin.coroutines.jvm.internal.CoroutineStackFrame", false)
+        }
+        val pathToTmp = CompilerArgs.pathToTmpDir
+        val fileName = "$pathToTmp/tmp0.kt"
+        return Project(configuration, BBFFile(fileName, Factory.psiFactory.createFile(resFile.text)), language)
+    }
 
     fun saveInOneFile(pathToSave: String) {
         val text = moveAllCodeInOneFile()
@@ -117,6 +179,26 @@ class Project(
         return Project(configuration, newFiles, language)
     }
 
+    fun addMainAndExecBoxNTimes(times: Int): Project {
+        if (files.map { it.text }.any { it.contains("fun main(") }) return Project(configuration, files, language)
+        val boxFuncs =
+            files.flatMap { it.psiFile.getAllPSIChildrenOfType<KtNamedFunction> { it.name?.contains("box") == true } }
+        if (boxFuncs.isEmpty()) return Project(configuration, files, language)
+        val indOfFile =
+            files.indexOfFirst {
+                it.psiFile.getAllPSIChildrenOfType<KtNamedFunction>().any { it.name?.contains("box") == true }
+            }
+        if (indOfFile == -1) return Project(configuration, files, language)
+        val file = files[indOfFile]
+        val psiCopy = file.psiFile.copy() as PsiFile
+        psiCopy.addMainForPerformanceTesting(boxFuncs, times)
+        val newFirstFile = BBFFile(file.name, psiCopy)
+        val newFiles =
+            listOf(newFirstFile) + files.getAllWithout(indOfFile).map { BBFFile(it.name, it.psiFile.copy() as PsiFile) }
+        return Project(configuration, newFiles, language)
+    }
+
+
     fun copy(): Project {
         return Project(configuration, files.map { it.copy() }, language)
     }
@@ -124,6 +206,6 @@ class Project(
 
     override fun toString(): String = files.joinToString("\n\n") {
         it.name + "\n" +
-        it.psiFile.text
+                it.psiFile.text
     }
 }

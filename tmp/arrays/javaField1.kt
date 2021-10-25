@@ -1,18 +1,26 @@
 // TARGET_BACKEND: JVM
-// FILE: JClass.java
-public class JClass {
-    public String field;
+// WITH_RUNTIME
 
-    public JClass(String field){
-        this.field = field;
+// FILE: JClass.java
+
+import java.util.Arrays;
+import java.util.Set;
+import java.util.HashSet;
+
+public class JClass {
+    public final Set<String> field;
+
+    public JClass(String... ins) {
+        field = new HashSet<String>(Arrays.asList(ins));
     }
 }
 
 // FILE: main.kt
-inline fun call(s: () -> String): String {
-    return s()
+
+fun collect(lst: List<JClass>): String {
+    return lst.flatMap(JClass::field).joinToString(separator = "")
 }
 
 fun box(): String {
-    return call(JClass("OK")::field)
+    return collect(listOf(JClass("O"), JClass("K")))
 }

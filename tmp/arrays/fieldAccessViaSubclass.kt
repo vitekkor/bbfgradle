@@ -1,3 +1,5 @@
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: D.java
 
 public class D {
@@ -6,6 +8,7 @@ public class D {
     public static String fieldK;
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 // KT-3492

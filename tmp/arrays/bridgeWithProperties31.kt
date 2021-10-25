@@ -1,10 +1,12 @@
-// !JVM_DEFAULT_MODE: all
+// !JVM_DEFAULT_MODE: all-compatibility
 // TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// WITH_RUNTIME
 // FILE: Simple.java
 
 public interface Simple extends KInterface3 {
     default String test() {
-        return getBar();
+        return KInterface3.DefaultImpls.getBar(this);
     }
 }
 
@@ -14,8 +16,6 @@ public class Foo implements Simple {
 }
 
 // FILE: main.kt
-// JVM_TARGET: 1.8
-// WITH_RUNTIME
 
 interface KInterface<T>  {
 

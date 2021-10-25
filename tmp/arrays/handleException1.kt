@@ -49,65 +49,34 @@ fun commonThrow(t: Throwable) {
     throw t
 }
 
-suspend fun justContinue(): Unit = suspendCoroutineUninterceptedOrReturn { x ->
-    x.resume(Unit)
-
-    COROUTINE_SUSPENDED
-}
-
-suspend fun Controller.test1() {
-    justContinue()
-    throw RuntimeException("OK")
-}
-
-suspend fun Controller.test2() {
-    justContinue()
-    commonThrow(RuntimeException("OK"))
-}
-
-suspend fun Controller.test3() {
-    justContinue()
-    suspendWithException(RuntimeException("OK"))
-}
-
-suspend fun Controller.test4() {
-    justContinue()
-    try {
-        suspendWithException(RuntimeException("fail 1"))
-    } catch (e: RuntimeException) {
-        suspendWithException(RuntimeException("OK"))
-    }
-}
-
-suspend fun Controller.test5() {
-    justContinue()
-    try {
-        suspendWithException(Exception("OK"))
-    } catch (e: RuntimeException) {
-        suspendWithException(RuntimeException("fail 3"))
-        throw RuntimeException("fail 4")
-    }
-}
-
 fun box(): String {
     builder {
-        test1()
+        throw RuntimeException("OK")
     }
 
     builder {
-        test2()
+        commonThrow(RuntimeException("OK"))
     }
 
     builder {
-        test3()
+        suspendWithException(RuntimeException("OK"))
     }
 
     builder {
-        test4()
+        try {
+            suspendWithException(RuntimeException("fail 1"))
+        } catch (e: RuntimeException) {
+            suspendWithException(RuntimeException("OK"))
+        }
     }
 
     builder {
-        test5()
+        try {
+            suspendWithException(Exception("OK"))
+        } catch (e: RuntimeException) {
+            suspendWithException(RuntimeException("fail 3"))
+            throw RuntimeException("fail 4")
+        }
     }
 
     return "OK"

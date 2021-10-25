@@ -1,78 +1,62 @@
 // WITH_RUNTIME
-// WITH_COROUTINES
 
 import kotlin.coroutines.*
-import helpers.*
-
-var result = "FAIL"
 
 fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(handleExceptionContinuation {
-        result = it.message!!
+    c.startCoroutine(Continuation(EmptyCoroutineContext) {
+        it.getOrThrow()
     })
 }
 
 inline class IC(val a: Any?)
 
-var c: Continuation<Any>? = null
-
-suspend fun <T> suspendMe(): T = suspendCoroutine {
-    @Suppress("UNCHECKED_CAST")
-    c = it as Continuation<Any>
-}
-
 class GetResult {
-    suspend operator fun invoke(): IC = suspendMe()
+    suspend operator fun invoke() = IC("OK")
 }
 
 inline class IC1(val a: String) {
-    suspend operator fun invoke(): IC = suspendMe()
+    suspend operator fun invoke() = IC(a)
 }
 
 fun box(): String {
+    var res = "FAIL 1"
     builder {
         val getResult = GetResult()
-        getResult()
+        res = getResult().a as String
     }
-    c?.resumeWithException(IllegalStateException("OK"))
-    if (result != "OK") return "FAIL 1 $result"
+    if (res != "OK") return "FAIL 1 $res"
 
-    result = "FAIL 2"
+    res = "FAIL 2"
     builder {
         val getResult = GetResult()
-        getResult.invoke()
+        res = getResult.invoke().a as String
     }
-    c?.resumeWithException(IllegalStateException("OK"))
-    if (result != "OK") return "FAIL 2 $result"
+    if (res != "OK") return "FAIL 2 $res"
 
-    result = "FAIL 3"
+    res = "FAIL 3"
     builder {
-        GetResult()()
+        res = GetResult()().a as String
     }
-    c?.resumeWithException(IllegalStateException("OK"))
-    if (result != "OK") return "FAIL 3 $result"
+    if (res != "OK") return "FAIL 3 $res"
 
-    result = "FAIL 4"
+    res = "FAIL 4"
     builder {
         val getResult = IC1("OK")
-        getResult()
+        res = getResult().a as String
     }
-    c?.resumeWithException(IllegalStateException("OK"))
-    if (result != "OK") return "FAIL 4 $result"
+    if (res != "OK") return "FAIL 4 $res"
 
-    result = "FAIL 5"
+    res = "FAIL 5"
     builder {
         val getResult = IC1("OK")
-        getResult.invoke()
+        res = getResult.invoke().a as String
     }
-    c?.resumeWithException(IllegalStateException("OK"))
-    if (result != "OK") return "FAIL 5 $result"
+    if (res != "OK") return "FAIL 5 $res"
 
-    result = "FAIL 6"
+    res = "FAIL 6"
     builder {
-        IC1("OK")()
+        res = IC1("OK")().a as String
     }
-    c?.resumeWithException(IllegalStateException("OK"))
-    if (result != "OK") return "FAIL 6 $result"
-    return result
+    if (res != "OK") return "FAIL 6 $res"
+    return res
 }

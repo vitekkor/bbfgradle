@@ -1,7 +1,8 @@
 data class A(val x: Int) {
-  override fun hashCode(): Int = -3
+  override fun equals(other: Any?): Boolean = false
 }
 
 fun box(): String {
-  return if (A(0).hashCode() == -3) "OK" else "fail"
+  val a = A(0)
+  return if (a.equals(a)) "fail" else "OK"
 }

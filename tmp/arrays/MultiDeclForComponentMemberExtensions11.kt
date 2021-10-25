@@ -1,11 +1,8 @@
-class C(val i: Int) {
-}
-
 class M {
-  operator fun C.component1() = i + 1
-  operator fun C.component2() = i + 2
+  operator fun Long.component1() = this + 1
+  operator fun Long.component2() = this + 2
 
-  fun doTest(l : Array<C>): String {
+  fun doTest(l : Array<Long>): String {
       var s = ""
       for ((a, b) in l) {
         s += "$a:$b;"
@@ -15,7 +12,7 @@ class M {
 }
 
 fun box(): String {
-  val l = Array<C>(3, {x -> C(x)})
+  val l = Array<Long>(3, {x -> x.toLong()})
   val s = M().doTest(l)
   return if (s == "1:2;2:3;3:4;") "OK" else "fail: $s"
 }

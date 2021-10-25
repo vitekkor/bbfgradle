@@ -1,30 +1,32 @@
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: SAM_CONVERSIONS
 // !LANGUAGE: +InlineClasses
 
-fun <T> underlying(a: IC): T = bar(a, object : IFace<IC, T> {
-    override fun call(ic: IC): T = (ic.value as FooHolder).value as T
-})
+fun <T> underlying(a: IC): T = bar(a) {
+    (it.value as FooHolder).value as T
+}
 
-fun <T> extension(a: IC): T = bar(a, object : IFace<IC, T> {
-    override fun call(ic: IC): T = ic.extensionValue()
-})
+fun <T> extension(a: IC): T = bar(a) {
+    it.extensionValue()
+}
 
-fun <T> dispatch(a: IC): T = bar(a, object : IFace<IC, T> {
-    override fun call(ic: IC): T = ic.dispatchValue()
-})
+fun <T> dispatch(a: IC): T = bar(a) {
+    it.dispatchValue()
+}
 
-fun <T> normal(a: IC): T = bar(a, object : IFace<IC, T> {
-    override fun call(ic: IC): T = normalValue(ic)
-})
+fun <T> normal(a: IC): T = bar(a) {
+    normalValue(it)
+}
 
 fun <T> IC.extensionValue(): T = (value as FooHolder).value as T
 
 fun <T> normalValue(ic: IC): T = (ic.value as FooHolder).value as T
 
-interface IFace<T, R> {
+fun interface FunIFace<T, R> {
     fun call(ic: T): R
 }
 
-fun <T, R> bar(value: T, f: IFace<T, R>): R {
+fun <T, R> bar(value: T, f: FunIFace<T, R>): R {
     return f.call(value)
 }
 

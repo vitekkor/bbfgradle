@@ -1,6 +1,5 @@
-// !USE_EXPERIMENTAL: kotlin.ExperimentalStdlibApi
-// TARGET_BACKEND: JVM
-// WITH_RUNTIME
+// WITH_REFLECT
+// KJS_WITH_FULL_RUNTIME
 
 package test
 
@@ -19,8 +18,8 @@ class C<X> {
 
 fun box(): String {
     val z = C<Any>().D<Any>().createZ<Any>()
-    assertEquals("Y (Kotlin reflection is not available)", z.upperBounds.joinToString())
+    assertEquals("Y", z.upperBounds.joinToString())
     val y = z.upperBounds.single().classifier as KTypeParameter
-    assertEquals("X (Kotlin reflection is not available)", y.upperBounds.joinToString())
+    assertEquals("X", y.upperBounds.joinToString())
     return "OK"
 }

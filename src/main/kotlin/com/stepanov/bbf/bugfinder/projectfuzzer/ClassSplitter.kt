@@ -3,14 +3,14 @@ package com.stepanov.bbf.bugfinder.projectfuzzer
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
-import com.stepanov.bbf.bugfinder.executor.Checker
+import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
 import com.stepanov.bbf.reduktor.util.replaceThis
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.lexer.KtKeywordToken
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
 
-class ClassSplitter(private val files: List<KtFile>, private val checker: Checker) {
+class ClassSplitter(private val files: List<KtFile>, private val checker: CompilationChecker) {
 
     fun split(): List<KtFile> = TODO()
 //    {

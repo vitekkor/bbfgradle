@@ -1,8 +1,7 @@
-fun <T: Number?> foo(t: T) {
-    (t ?: 42).toInt()
-}
+data class A<T>(val t: T)
 
 fun box(): String {
-    foo<Int?>(null)
+    val h = A<String?>(null).hashCode()
+    if (h != 0) return "Fail $h"
     return "OK"
 }

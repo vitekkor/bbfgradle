@@ -1,36 +1,21 @@
-// FILE: 1.kt
+fun box(): String {
+    var res = "";
+    var call = test(b = {res += "K"; "K"}(), a = {res+="O"; "O"}(), c = {res += "L"; "L"})
+    if (res != "KOL" || call != "OKL") return "fail 1: $res != KOL or $call != OKL"
 
-package test
+    res = "";
+    call = test(b = {res += "K"; "K"}(), c = {res += "L"; "L"}, a = {res+="O"; "O"}())
+    if (res != "KOL" || call != "OKL") return "fail 2: $res != KOL or $call != OKL"
 
-fun calc() = "OK"
 
-/*open modifier for method handle check in default method*/
-open class A {
-    inline fun test(p: String = calc()): String {
-        return p
-    }
+    res = "";
+    call = test(c = {res += "L"; "L"}, b = {res += "K"; "K"}(), a = {res+="O"; "O"}())
+    if (res != "KOL" || call != "OKL") return "fail 3: $res != KOL or $call != OKL"
 
-    inline fun String.testExt(p: String = "K"): String {
-        return this + p
-    }
+    return "OK"
 
-    fun callExt(): String {
-        return "O".testExt()
-    }
-
-    fun callExt(arg: String): String {
-        return "O".testExt(arg)
-    }
 }
 
-// FILE: 2.kt
-
-import test.*
-
-fun box() : String {
-    if (A().callExt() != "OK") return "fail 1: ${A().callExt()}"
-    if (A().callExt("O") != "OO") return "fail 2: ${A().callExt("O")}"
-    if (A().test("KK") != "KK") return "fail 3: ${A().test("KK")}"
-
-    return A().test()
+fun test(a: String, b: String, c: () -> String): String {
+    return a + b + c();
 }

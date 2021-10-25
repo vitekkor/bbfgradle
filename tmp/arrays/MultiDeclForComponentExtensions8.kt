@@ -15,14 +15,14 @@ class It(val from: C, val to: C) {
 }
 
 class C(val i : Int) {
-    infix fun rangeTo(c: C) = Range(this, c)
+    fun rangeTo(c: C) = Range(this, c)
 }
 operator fun C.component1() = i + 1
 operator fun C.component2() = i + 2
 
 fun doTest(): String {
     var s = ""
-    for ((a, b) in C(0) rangeTo C(2)) {
+    for ((a, b) in C(0).rangeTo(C(2))) {
         s += "$a:$b;"
     }
     return s

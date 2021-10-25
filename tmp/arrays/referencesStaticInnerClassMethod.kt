@@ -1,3 +1,5 @@
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: R.java
 
 class R {
@@ -6,6 +8,7 @@ class R {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 fun box() =

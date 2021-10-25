@@ -1,10 +1,15 @@
-// WITH_SIGNATURES
-// FILE: t.kt
+// TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// SAM_CONVERSIONS: INDY
 
-fun interface Sam<T> {
-    fun get(): T
+// CHECK_BYTECODE_TEXT
+// JVM_IR_TEMPLATES
+// 1 java/lang/invoke/LambdaMetafactory
+
+fun interface IFoo<T> {
+    fun foo(x: T): T
 }
 
-fun <T> expectsSam(sam: Sam<T>) = sam.get()
+fun foo(fs: IFoo<String>) = fs.foo("O")
 
-fun <T> genericSam(f: () -> T): T = expectsSam(f)
+fun box() = foo { "${it}K" }

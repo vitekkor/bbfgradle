@@ -1,4 +1,5 @@
-// FILE: annotations.kt
+// MODULE: lib
+// FILE: 1.kt
 
 import kotlin.reflect.*
 
@@ -22,8 +23,6 @@ class C {
     }
 }
 
-// FILE: usage.kt
-
 interface I {
     @Anno(
         C.Nested1::class,
@@ -34,10 +33,11 @@ interface I {
     fun foo(): String = "OK"
 }
 
-// @I.class:
-// 5 INNERCLASS
-// 1 INNERCLASS C\$Nested1 C Nested1
-// 1 INNERCLASS C\$NestedEnum C NestedEnum
-// 1 INNERCLASS C\$NestedAnno C NestedAnno
-// 1 INNERCLASS C\$NestedAnno\$Nested2 C\$NestedAnno Nested2
-// 1 INNERCLASS I\$DefaultImpls I DefaultImpls
+// MODULE: main(lib)
+// FILE: 2.kt
+
+class D : I {
+    fun box(): String = foo()
+}
+
+fun box(): String = D().box()

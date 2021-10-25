@@ -1,16 +1,30 @@
-// IGNORE_BACKEND: JS
-// FILE: 1.kt
-inline fun run(f: () -> Unit) = f()
-inline fun withAny(f: Any.() -> Unit) = Any().f()
+// WITH_RUNTIME
+// IGNORE_BACKEND: JS_IR
 
-// FILE: 2.kt
-fun foo(x: Any?, y: Any?) {}
+import kotlin.coroutines.*
+
+fun <T> builder(c: suspend () -> T): T {
+    var res: T? = null
+    c.startCoroutine(Continuation(EmptyCoroutineContext) {
+        res = it.getOrThrow()
+    })
+    return res!!
+}
+
+suspend fun <T> runSuspend(c: suspend () -> T): T {
+    return c()
+}
+
+@Suppress("RESULT_CLASS_IN_RETURN_TYPE")
+suspend fun foo(): Result<String> = runSuspend {
+    run { return@runSuspend Result.failure<String>(RuntimeException("OK")) }
+}
 
 fun box(): String {
-    run outer@{
-        withAny inner@{
-            foo(null, null ?: return@inner)
-        }
+    return try {
+        builder { foo() }.getOrThrow()
+        "FAIL"
+    } catch (e: RuntimeException) {
+        e.message!!
     }
-    return "OK"
 }

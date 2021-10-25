@@ -1,33 +1,23 @@
-interface A
+// TARGET_BACKEND: JVM
+// WITH_REFLECT
 
-@Retention(AnnotationRetention.BINARY)
-annotation class Anno
+import kotlin.reflect.KProperty
+import kotlin.test.assertEquals
 
-interface B {
-    fun foo(a: String)
+object Delegate {
+    operator fun getValue(z: Any?, p: KProperty<*>): String? {
+        assertEquals("val x: kotlin.String?", p.toString())
+        return "OK"
+    }
 }
 
-interface C {
-    val bar: Int
+interface Foo {
+    fun bar(): String {
+        val x by Delegate
+        return x!!
+    }
 }
 
-@Anno
-interface D {
-    fun baz(p: String) = 5
-    private fun test(a: String) = "123"
-}
+object O : Foo
 
-interface E {
-    class InsideE
-}
-
-@Anno
-interface F {
-    var bar: String
-        get() = "123"
-        set(value) {}
-
-    private var baz: String
-        get() = "123"
-        set(value) {}
-}
+fun box(): String = O.bar()

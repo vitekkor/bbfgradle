@@ -1,16 +1,21 @@
-// DONT_TARGET_EXACT_BACKEND: WASM
-// WASM_MUTE_REASON: BINDING_RECEIVERS
-var x = 0
-
-class A {
-    fun f() = if (x == 1) "OK" else "Fail $x"
+// TARGET_BACKEND: JVM
+// WITH_RUNTIME
+// FILE: JavaRunner.java
+public class JavaRunner {
+    public static void runTwice(Runnable runnable) {
+        runnable.run();
+        runnable.run();
+    }
 }
 
-fun callTwice(f: () -> String): String {
-    f()
-    return f()
+// FILE: test.kt
+class A() {
+    fun f() {}
 }
 
 fun box(): String {
-    return callTwice(({ x++; A() }())::f)
+    var x = 0
+    JavaRunner.runTwice({ x++; A() }()::f)
+    if (x != 1) return "Fail"
+    return "OK"
 }

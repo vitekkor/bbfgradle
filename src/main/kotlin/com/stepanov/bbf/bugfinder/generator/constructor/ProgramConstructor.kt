@@ -1,6 +1,6 @@
 package com.stepanov.bbf.bugfinder.generator.constructor
 
-import com.stepanov.bbf.bugfinder.executor.Checker
+import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
@@ -13,7 +13,7 @@ import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.psiUtil.isTopLevelKtOrJavaMember
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 
-class ProgramConstructor(private val checker: Checker) {
+class ProgramConstructor(private val checker: CompilationChecker) {
 
     fun construct(): KtFile? {
         addDataStructures()

@@ -14,7 +14,7 @@ class ShuffleNodes : Transformation() {
 
     override fun transform() = TODO()
 //        val numOfSwaps = Random.nextInt(numOfSwaps.first, numOfSwaps.second)
-//        val othFiles = checker.otherFiles!!.texts.map { PSICreator("").getPSIForText(it) }
+//        val othFiles = checker.otherFiles!!.texts.map { PSICreator.getPSIForText(it) }
 //        val files = listOf(file) + othFiles
 //        for (i in 0 until numOfSwaps) {
 //            val children = files.flatMap { it.node.getAllChildrenNodes() }

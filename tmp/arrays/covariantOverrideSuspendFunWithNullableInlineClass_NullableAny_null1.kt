@@ -11,14 +11,19 @@ fun builder(c: suspend () -> Unit) {
 @Suppress("UNSUPPORTED_FEATURE")
 inline class IC(val s: Any?)
 
+var c: Continuation<Any>? = null
+
+suspend fun <T> suspendMe(): T = suspendCoroutine {
+    @Suppress("UNCHECKED_CAST")
+    c = it as Continuation<Any>
+}
+
 interface IBar {
     suspend fun bar(): IC?
 }
 
 class Test1() : IBar {
-    override suspend fun bar(): IC {
-        return IC(null)
-    }
+    override suspend fun bar(): IC = suspendMe()
 
     suspend fun test(): Any? {
         val b: IBar = this
@@ -27,9 +32,7 @@ class Test1() : IBar {
 }
 
 class Test2() : IBar {
-    override suspend fun bar(): IC {
-        return IC(null)
-    }
+    override suspend fun bar(): IC = suspendMe()
 
     suspend fun test(): IC {
         val b: IBar = this
@@ -43,12 +46,14 @@ fun box(): String {
     builder {
         result = Test1().test()
     }
+    c?.resume(IC(null))
     if (result != null) return "FAIL 1 $result"
 
     result = "FAIL 2"
     builder {
         result = Test2().test()
     }
+    c?.resume(IC(null))
     if (result != IC(null)) return "FAIL 2 $result"
 
     return "OK"

@@ -6,17 +6,17 @@ import kotlin.test.*
 
 fun box(): String {
     assertFailsWith<IllegalArgumentException> {
-        for (i in 7 downTo 1 step 0 step 2) {
+        for (i in 1 until 8 step 0 step 2) {
         }
     }
 
     assertFailsWith<IllegalArgumentException> {
-        for (i in 7L downTo 1L step 0L step 2L) {
+        for (i in 1L until 8L step 0L step 2L) {
         }
     }
 
     assertFailsWith<IllegalArgumentException> {
-        for (i in 'g' downTo 'a' step 0 step 2) {
+        for (i in 'a' until 'h' step 0 step 2) {
         }
     }
 

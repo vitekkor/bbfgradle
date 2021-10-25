@@ -1,33 +1,21 @@
-// !JVM_DEFAULT_MODE: compatibility
 // TARGET_BACKEND: JVM
-// FILE: Simple.java
-
-public interface Simple extends KInterface {
-    default String test() {
-        return KInterface.DefaultImpls.test2(this);
-    }
-}
-
-// FILE: Foo.java
-public class Foo implements Simple {
-
-}
-
-// FILE: main.kt
-// JVM_TARGET: 1.8
+// IGNORE_BACKEND: JVM
 // WITH_RUNTIME
+// FILE: 1.kt
+package a
 
-interface KInterface  {
-    @JvmDefault
-    fun test2(): String {
-        return "OK"
+open class A {
+    companion object {
+        @JvmStatic // Required to be accessible from subclasses of A in other packages.
+        protected fun foo() = "OK"
     }
 }
 
+// FILE: 2.kt
+import a.*
 
-fun box(): String {
-    val result = Foo().test()
-    if (result != "OK") return "fail 1: ${result}"
-
-    return Foo().test2()
+class B : A() {
+    fun bar() = foo() // calls static A.foo(), not inaccessible A.Companion.foo()
 }
+
+fun box() = B().bar()

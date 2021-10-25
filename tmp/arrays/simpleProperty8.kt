@@ -1,23 +1,30 @@
-// !JVM_DEFAULT_MODE: all-compatibility
+// !JVM_DEFAULT_MODE: all
+// IGNORE_BACKEND_FIR: JVM_IR
+// TARGET_BACKEND: JVM
 // JVM_TARGET: 1.8
+// WITH_RUNTIME
 
-interface KInterface {
+interface Test {
+    @JvmDefault
+    val test: String
+        get() = "O"
 
-    var bar: String
-        get() = "OK"
-        set(field) {}
+    val testDelegated: String
+        get() = "fail"
+
 }
 
-interface KInterface2 : KInterface {
+class Delegate : Test {
+    override val test: String
+        get() = "fail"
 
+    override val testDelegated: String
+        get() = "K"
 }
 
-// 1 INVOKESTATIC KInterface2.access\$getBar\$jd
-// 1 INVOKESTATIC KInterface2.access\$setBar\$jd
-// 1 INVOKESTATIC KInterface.access\$getBar\$jd
-// 1 INVOKESTATIC KInterface.access\$setBar\$jd
+class TestClass(val foo: Test) : Test by foo
 
-// 1 INVOKESPECIAL KInterface2.getBar
-// 1 INVOKESPECIAL KInterface2.setBar
-// 1 INVOKESPECIAL KInterface.getBar
-// 1 INVOKESPECIAL KInterface.setBar
+fun box(): String {
+    val testClass = TestClass(Delegate())
+    return testClass.test + testClass.testDelegated
+}

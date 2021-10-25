@@ -1,5 +1,7 @@
-// !JVM_DEFAULT_MODE: all
+// !JVM_DEFAULT_MODE: enable
 // TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// WITH_RUNTIME
 // FILE: JBase.java
 
 public interface JBase extends Base {
@@ -9,10 +11,9 @@ public interface JBase extends Base {
 }
 
 // FILE: main.kt
-// JVM_TARGET: 1.8
-// WITH_RUNTIME
 
 interface Base {
+    @JvmDefault
     fun test(): String = "Base"
 }
 

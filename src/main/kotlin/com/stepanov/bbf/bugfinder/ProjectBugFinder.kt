@@ -23,8 +23,8 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
 //                .filter { it.contains(".java") || it.contains(".kt") }
 //                .map { "// FILE$it" }
 //                .map {
-//                    if (it.getFileLanguageIfExist() == LANGUAGE.KOTLIN) PSICreator("").getPSIForText(it)
-//                    else PSICreator("").getPsiForJava(it, Factory.file.project)
+//                    if (it.getFileLanguageIfExist() == LANGUAGE.KOTLIN) PSICreator.getPSIForText(it)
+//                    else PSICreator.getPsiForJava(it, Factory.file.project)
 //                }
 //        val checker = CompilationChecker(compilers)
 //        val res = checker.isCompilationSuccessful(Project(files.map { it.text }, null, LANGUAGE.KJAVA))
@@ -36,7 +36,7 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
 //        for ((i, file) in files.withIndex()) {
 //            //if (file.text.getFileLanguageIfExist() == LANGUAGE.JAVA) continue
 //            log.debug("File $i from ${files.size - 1} mutations began")
-//            val creator = PSICreator("")
+//            val creator = PSICreator
 //            val psi =
 //                if (file.text.getFileLanguageIfExist() == LANGUAGE.JAVA) creator.getPsiForJava(
 //                    file.text,
@@ -69,7 +69,7 @@ class ProjectBugFinder(dir: String) : BugFinder(dir) {
 //        log.debug("Project:\n$mutants")
 //        for ((i, file) in preprocessedProject.withIndex()) {
 //            log.debug("File $i from ${preprocessedProject.size - 1} mutations began")
-//            val creator = PSICreator("")
+//            val creator = PSICreator
 //            val m = makeMutant(
 //                creator.getPSIForText(file.text),
 //                creator.ctx!!,

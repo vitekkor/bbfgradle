@@ -1,29 +1,19 @@
 // WITH_RUNTIME
-// WITH_COROUTINES
+// KJS_WITH_FULL_RUNTIME
+// IGNORE_BACKEND: JVM
+// IGNORE_BACKEND: WASM
 
-import helpers.*
-import kotlin.coroutines.*
-
-fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(EmptyContinuation)
+fun interface ResultHandler<T> {
+    @Suppress("RESULT_CLASS_IN_RETURN_TYPE")
+    fun onResult(): Result<T>
 }
 
-var continuation: Continuation<String>? = null
-
-suspend fun suspendMe() = suspendCoroutine<String> { continuation = it }
-
 @Suppress("RESULT_CLASS_IN_RETURN_TYPE")
-suspend fun signInFlowStepFirst(): Result<String> = try {
-    Result.success(suspendMe())
-} catch (e: Exception) {
-    Result.failure(e)
+fun doSmth(resultHandler: ResultHandler<Boolean>): Result<Boolean> {
+    return resultHandler.onResult()
 }
 
 fun box(): String {
-    builder {
-        val res: Result<String> = signInFlowStepFirst()
-        if (res.exceptionOrNull()!!.message != "BOOYA") error("FAIL")
-    }
-    continuation!!.resumeWithException(Exception("BOOYA"))
-    return "OK"
+    var res = doSmth { Result.success(true) }
+    return if (res.isSuccess) "OK" else "FAIL 1"
 }

@@ -1,55 +1,29 @@
-// TARGET_BACKEND: JVM
-// WITH_RUNTIME
+// MODULE: lib
+// FILE: A.kt
 
-import kotlin.reflect.*
+package a
 
-object Host {
-    var none: Int = 0
-        get() = field
-        set(value) { field = value }
-    
-    var get: Int = 0
-        @JvmStatic
-        get() = field
-        set(value) { field = value }
-    
-    var set: Int = 0
-        get() = field
-        @JvmStatic
-        set(value) { field = value }
+public var topLevel: Int = 42
 
-    var both: Int = 0
-        @JvmStatic
-        get() = field
-        @JvmStatic
-        set(value) { field = value }
+public val String.extension: Long
+    get() = length.toLong()
 
-    @JvmStatic    
-    var property: Int = 0
-        get() = field
-        set(value) { field = value }
-}
+// MODULE: main(lib)
+// FILE: B.kt
+
+import a.*
 
 fun box(): String {
-    val none = Host::none as KMutableProperty0<Int>
-    none.set(1)
-    if (none.get() != 1) return "Fail none: ${none.get()}"
-    
-    val get = Host::get as KMutableProperty0<Int>
-    get.set(1)
-    if (get.get() != 1) return "Fail get: ${get.get()}"
-    
-    val set = Host::set as KMutableProperty0<Int>
-    set.set(1)
-    if (set.get() != 1) return "Fail set: ${set.get()}"
+    val f = ::topLevel
+    val x1 = f.get()
+    if (x1 != 42) return "Fail x1: $x1"
+    f.set(239)
+    val x2 = f.get()
+    if (x2 != 239) return "Fail x2: $x2"
 
-    val both = Host::both as KMutableProperty0<Int>
-    both.set(1)
-    if (both.get() != 1) return "Fail both: ${both.get()}"
+    val g = String::extension
+    val y1 = g.get("abcde")
+    if (y1 != 5L) return "Fail y1: $y1"
 
-    val property = Host::property as KMutableProperty0<Int>
-    property.set(1)
-    if (property.get() != 1) return "Fail property: ${property.get()}"
-    
     return "OK"
 }

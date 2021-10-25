@@ -1,45 +1,54 @@
-fun unsupportedEx() {
-    if (true) throw UnsupportedOperationException()
-}
+var log = ""
 
-fun runtimeEx() {
-    if (true) throw RuntimeException()
-}
-
-fun test1WithFinally() : String {
-    var s = "";
+fun foo() {
     try {
-        try {
-            s += "Try";
-            unsupportedEx()
-        } finally {
-            s += "Finally"
-        }
-    } catch (x : RuntimeException) {
-        return s
+        log += "1"
+        mightThrow()
+        log += "2"
+    } finally {
+        log += "3"
+        "FINALLY"
     }
-    return s + "Failed"
-}
 
-
-fun test2WithFinally() : String {
-    var s = "";
-    try {
-        try {
-            s += "Try";
-            unsupportedEx()
-            return s
-        } finally {
-            s += "Finally"
-        }
-    } catch (x : RuntimeException) {
-        return s
+    val t = try {
+        log += "4"
+        mightThrow2()
+        log += "5"
+    } finally {
+        log += "6"
+        "FINALLY2"
     }
 }
 
-fun box() : String {
-    if (test1WithFinally() != "TryFinally") return "fail2: ${test1WithFinally()}"
+var throw1 = false
+var throw2 = false
 
-    if (test2WithFinally() != "TryFinally") return "fail4: ${test2WithFinally()}"
+fun mightThrow() {
+    if (throw1) throw Exception()
+}
+
+fun mightThrow2() {
+    if (throw2) throw Exception()
+}
+
+fun test() {
+    log += "a"
+    foo()
+    throw2 = true
+    log += " b"
+    foo()
+    // Never gets here.
+    throw1 = true
+    log += " c"
+    foo()
+}
+
+
+fun box(): String {
+    try {
+        test()
+    } catch (e: Exception) {}
+    if (log != "a123456 b12346")
+        return "Failed: $log"
     return "OK"
 }

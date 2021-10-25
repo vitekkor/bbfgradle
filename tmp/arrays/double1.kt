@@ -1,49 +1,7 @@
-// FILE: JavaClass.java
+data class A(val a: Double)
 
-public class JavaClass {
-
-    public Double minus0(){
-        return -0.0;
-    }
-
-    public Double plus0(){
-        return 0.0;
-    }
-
-    public Double null0(){
-        return null;
-    }
-
+fun box() : String {
+   val v1 = A(-10.toDouble()).hashCode()
+   val v2 = (-10.toDouble() as Double?)!!.hashCode()
+   return if( v1 == v2 ) "OK" else "$v1 $v2"
 }
-
-
-// FILE: b.kt
-
-fun box(): String {
-    val jClass = JavaClass()
-
-    if (jClass.minus0() < jClass.plus0()) return "fail 1"
-
-    //TODO: KT-14989
-    //if (jClass.null0() < jClass.plus0()) return "fail 2"
-
-
-    if (jClass.plus0() > jClass.minus0()) return "fail 3"
-
-    //TODO: KT-14989
-    //if (jClass.null0() < jClass.plus0()) return "fail 4"
-
-    if (jClass.minus0() != jClass.plus0()) return "fail 5"
-
-    var value = jClass.minus0() == jClass.plus0()
-    if (!value) return "fail 6"
-
-    if (jClass.null0() == jClass.plus0()) return "fail 7"
-    if (jClass.plus0() == jClass.null0()) return "fail 8"
-
-    value = jClass.null0() == jClass.null0()
-    if (!value) return "fail 9"
-
-    return "OK"
-}
-

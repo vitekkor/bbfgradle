@@ -6,16 +6,16 @@ import kotlin.test.*
 
 fun box(): String {
     val uintList = mutableListOf<UInt>()
-    for (i in 6u downTo 1u step 2 step 1) {
+    for (i in 1u until 7u step 2 step 1) {
         uintList += i
     }
-    assertEquals(listOf(6u, 5u, 4u, 3u, 2u), uintList)
+    assertEquals(listOf(1u, 2u, 3u, 4u, 5u), uintList)
 
     val ulongList = mutableListOf<ULong>()
-    for (i in 6uL downTo 1uL step 2L step 1L) {
+    for (i in 1uL until 7uL step 2L step 1L) {
         ulongList += i
     }
-    assertEquals(listOf(6uL, 5uL, 4uL, 3uL, 2uL), ulongList)
+    assertEquals(listOf(1uL, 2uL, 3uL, 4uL, 5uL), ulongList)
 
     return "OK"
 }

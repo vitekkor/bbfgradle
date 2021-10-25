@@ -4,7 +4,7 @@
 //import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 //import com.stepanov.bbf.reduktor.util.generateDefValuesAsString
 //import org.jetbrains.kotlin.psi.KtProperty
-//import ru.spbstu.kotlin.generate.util.nextInRange
+//import com.stepanov.bbf.bugfinder.util.kcheck.nextInRange
 //import java.lang.StringBuilder
 //import java.util.*
 //

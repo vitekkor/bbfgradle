@@ -1,12 +1,21 @@
-object A {
-    private val p = "OK";
+var result = "fail"
 
-    object B {
-        val z = p;
+interface B {
+
+    private fun test() {
+        result = "OK"
     }
 
+    class Z {
+        fun ztest(b: B) {
+            b.test()
+        }
+    }
 }
 
+class C : B
+
 fun box(): String {
-    return A.B.z
+    B.Z().ztest(C())
+    return result
 }

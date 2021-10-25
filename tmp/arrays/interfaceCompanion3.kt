@@ -1,22 +1,54 @@
-// Inside of the companion we have to access the instance through the local Companion field,
-// not by indirection through the Companion field of the enclosing class.
-// Class initialization might not have finished yet.
-var result = ""
+// !LANGUAGE: +JvmStaticInInterface
+// JVM_TARGET: 1.8
+// TARGET_BACKEND: JVM
+
+// WITH_RUNTIME
+// FILE: Test.java
+
+class Test {
+
+    public static String test1() {
+        return A.test1();
+    }
+
+    public static String test2() {
+        return A.test2();
+    }
+
+    public static String test3() {
+        return A.test3("JAVA");
+    }
+
+    public static String test4() {
+        return A.getC();
+    }
+
+}
+
+// FILE: simpleCompanionObject.kt
 
 interface A {
-
     companion object {
+        val b: String = "OK"
 
-        val prop = test()
+        @JvmStatic val c: String = "OK"
 
-        fun test(): String {
-            result += "OK"
-            return result
-        }
+        @JvmStatic fun test1() = b
+
+        @JvmStatic fun test2() = b
+
+        @JvmStatic fun String.test3() = this + b
     }
 }
 
 fun box(): String {
-    if (A.prop != "OK") return "fail ${A.prop}"
-    return result
+    if (Test.test1() != "OK") return "fail 1"
+
+    if (Test.test2() != "OK") return "fail 2"
+
+    if (Test.test3() != "JAVAOK") return "fail 3"
+
+    if (Test.test4() != "OK") return "fail 4"
+
+    return "OK"
 }

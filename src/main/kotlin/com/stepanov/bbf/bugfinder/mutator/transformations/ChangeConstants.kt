@@ -39,13 +39,13 @@ class ChangeConstants : Transformation() {
             Type.INTEGER -> psiFactory.createExpression("${Random().nextInt()}")
         }
         if (isRandom && Random().nextBoolean() || !isRandom)
-            checker.replacePSINodeIfPossible(exp, replacement)
+            checker.replaceNodeIfPossible(exp, replacement)
     }
 
 
     private fun changeStringConst(exp: KtStringTemplateEntry, isRandom: Boolean = true) =
             if (isRandom && Random().nextBoolean() || !isRandom)
-                checker.replacePSINodeIfPossible(exp,
+                checker.replaceNodeIfPossible(exp,
                         psiFactory.createExpression(Random().getRandomVariableName(NAME_SIZE)))
             else false
 

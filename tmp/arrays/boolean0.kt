@@ -1,10 +1,7 @@
-fun checkLess(x: Boolean, y: Boolean) = when {
-    x >= y    -> "Fail $x >= $y"
-    !(x < y)  -> "Fail !($x < $y)"
-    !(x <= y) -> "Fail !($x <= $y)"
-    x > y     -> "Fail $x > $y"
-    x.compareTo(y) >= 0 -> "Fail $x.compareTo($y) >= 0"
-    else -> "OK"
-}
+data class A(val a: Boolean)
 
-fun box() = checkLess(false, true)
+fun box() : String {
+   if (A(true).hashCode() != 1) return "fail1"
+   if (A(false).hashCode() !=0) return "fail2"
+   return "OK"
+}

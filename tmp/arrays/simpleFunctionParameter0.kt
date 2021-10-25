@@ -1,6 +1,5 @@
-// !USE_EXPERIMENTAL: kotlin.ExperimentalStdlibApi
-// TARGET_BACKEND: JVM
-// WITH_RUNTIME
+// WITH_REFLECT
+// KJS_WITH_FULL_RUNTIME
 
 package test
 
@@ -13,7 +12,13 @@ fun <X1> notNull() = typeOf<Container<X1>>()
 fun <X2> nullable() = typeOf<Container<X2?>>()
 
 fun box(): String {
-    assertEquals("test.Container<X1> (Kotlin reflection is not available)", notNull<Any>().toString())
-    assertEquals("test.Container<X2?> (Kotlin reflection is not available)", nullable<Any>().toString())
+    val fqn = className("test.Container")
+    assertEquals("$fqn<X1>", notNull<Any>().toString())
+    assertEquals("$fqn<X2?>", nullable<Any>().toString())
     return "OK"
+}
+
+fun className(fqName: String): String {
+    val isJS = 1 as Any is Double
+    return if (isJS) fqName.substringAfterLast('.') else fqName
 }
