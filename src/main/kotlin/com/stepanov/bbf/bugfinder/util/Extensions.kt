@@ -31,7 +31,7 @@ import com.stepanov.bbf.bugfinder.util.kcheck.nextInRange
 import com.stepanov.bbf.bugfinder.util.kcheck.nextString
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.calls.util.getType
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import java.io.BufferedReader
 import java.io.File

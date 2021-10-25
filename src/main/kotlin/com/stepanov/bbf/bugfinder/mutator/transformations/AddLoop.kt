@@ -10,7 +10,6 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerato
 import com.stepanov.bbf.bugfinder.mutator.transformations.util.ScopeCalculator
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import org.jetbrains.kotlin.fir.StandardTypes
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.replace

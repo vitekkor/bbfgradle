@@ -1,21 +1,20 @@
 package com.stepanov.bbf.reduktor.passes
 
-import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
-import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.util.debugPrint
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.psi.psiUtil.getValueParameters
-import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.resolve.calls.util.getType
+import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 
 //
 class MinorSimplifyings : SimplificationPass() {
+
+    private val ctx = PSICreator.analyze(file)
+    private val customStructures = file.getAllPSIChildrenOfType<KtClassOrObject>().map { it to it.name }
+
     override fun simplify() {
-        if (ctx == null) return
+        ctx ?: return
         //Replace variable on constant if we can get type
         try {
             file.getAllPSIChildrenOfType<KtExpression>()
@@ -61,9 +60,6 @@ class MinorSimplifyings : SimplificationPass() {
         }
         return null
     }
-
-    val ctx = PSICreator.analyze(Transformation.checker.curFile.psiFile)
-    val customStructures = file.getAllPSIChildrenOfType<KtClassOrObject>().map { it to it.name }
 }
 
 

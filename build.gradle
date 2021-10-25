@@ -1,6 +1,6 @@
 buildscript {
     //Do not forget to update intellij core
-    ext.kotlin_version = '1.6.20-dev-2911'
+    ext.kotlin_version = '1.6.0-RC2-707'
     ext.kotlin_plugin_version = '1.5.30'
 
     dependencies {
