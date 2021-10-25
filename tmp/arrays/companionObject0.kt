@@ -5,32 +5,49 @@
 
 // WITH_REFLECT
 
-import kotlin.test.assertEquals
+import kotlin.reflect.full.*
+import kotlin.test.*
 
-class C {
-    companion object {
-        fun foo(a: String, b: String = "b") = a + b
-    }
+class A {
+    companion object C
+}
+
+enum class E {
+    ENTRY;
+    companion object {}
 }
 
 fun box(): String {
-    val f = C.Companion::class.members.single { it.name == "foo" }
+    val obj = A::class.companionObject
+    assertNotNull(obj)
+    assertEquals("C", obj!!.simpleName)
 
-    // Any object method currently requires the object instance passed
-    try {
-        f.callBy(mapOf(
-                f.parameters.single { it.name == "a" } to "a"
-        ))
-        return "Fail: IllegalArgumentException should have been thrown"
-    }
-    catch (e: IllegalArgumentException) {
-        // OK
-    }
+    assertEquals(A.C, A::class.companionObjectInstance)
+    assertEquals(A.C, obj.objectInstance)
 
-    assertEquals("ab", f.callBy(mapOf(
-            f.parameters.first() to C,
-            f.parameters.single { it.name == "a" } to "a"
-    )))
+    assertNull(A.C::class.companionObject)
+    assertNull(A.C::class.companionObjectInstance)
+
+    assertEquals(E.Companion, E::class.companionObjectInstance)
+
+    assertEquals(String, String::class.companionObjectInstance)
+    assertEquals(String, String.Companion::class.objectInstance)
+    assertEquals(Enum, Enum::class.companionObjectInstance)
+    assertEquals(Enum, Enum.Companion::class.objectInstance)
+    assertEquals(Double, Double::class.companionObjectInstance)
+    assertEquals(Double, Double.Companion::class.objectInstance)
+    assertEquals(Float, Float::class.companionObjectInstance)
+    assertEquals(Float, Float.Companion::class.objectInstance)
+    assertEquals(Int, Int::class.companionObjectInstance)
+    assertEquals(Int, Int.Companion::class.objectInstance)
+    assertEquals(Long, Long::class.companionObjectInstance)
+    assertEquals(Long, Long.Companion::class.objectInstance)
+    assertEquals(Short, Short::class.companionObjectInstance)
+    assertEquals(Short, Short.Companion::class.objectInstance)
+    assertEquals(Byte, Byte::class.companionObjectInstance)
+    assertEquals(Byte, Byte.Companion::class.objectInstance)
+    assertEquals(Char, Char::class.companionObjectInstance)
+    assertEquals(Char, Char.Companion::class.objectInstance)
 
     return "OK"
 }

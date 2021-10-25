@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 
 class ChangeRandomASTNodesFromAnotherTrees : Transformation() {
@@ -45,5 +46,5 @@ class ChangeRandomASTNodesFromAnotherTrees : Transformation() {
     }
 
     /*val magicConst = 4*/
-    private val numOfTries = if (checker.project.files.size == 1) 50 to 1000 else 2000 to 4000
+    private val numOfTries = if (checker.project.files.size == 1) 500 to 1000 else 2000 to 4000
 }

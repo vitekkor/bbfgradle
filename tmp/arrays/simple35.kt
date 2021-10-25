@@ -1,19 +1,33 @@
+// !JVM_DEFAULT_MODE: enable
+// IGNORE_BACKEND_FIR: JVM_IR
 // TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
 // WITH_RUNTIME
-// FILE: 1.kt
 
-@file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
-@file:JvmPackageName("baz.foo.quux.bar")
-package foo.bar
+interface Test {
+    @JvmDefault
+    fun test(): String {
+        return "O"
+    }
 
-fun f(): String = "O"
+    fun delegatedTest(): String {
+        return "fail"
+    }
+}
 
-val g: String? get() = "K"
+class Delegate : Test {
+    override fun test(): String {
+        return "Fail"
+    }
 
-inline fun <T> i(block: () -> T): T = block()
+    override fun delegatedTest(): String {
+        return "K"
+    }
+}
 
-// FILE: 2.kt
+class TestClass(val foo: Test) : Test by foo
 
-import foo.bar.*
-
-fun box(): String = i { f() + g }
+fun box(): String {
+    val testClass = TestClass(Delegate())
+    return testClass.test() + testClass.delegatedTest()
+}

@@ -10,12 +10,12 @@ fun zero() = 0
 
 fun box(): String {
     assertFailsWith<IllegalArgumentException> {
-        for (i in 1u until 7u step zero()) {
+        for (i in 7u downTo 1u step zero()) {
         }
     }
 
     assertFailsWith<IllegalArgumentException> {
-        for (i in 1uL until 7uL step zero().toLong()) {
+        for (i in 7uL downTo 1uL step zero().toLong()) {
         }
     }
 

@@ -12,7 +12,7 @@ class StructureGenerator {
 
     fun generate(): KtFile {
         File(CompilerArgs.pathToTmpFile).writeText("")
-        val resultFile = PSICreator("").getPSIForFile(CompilerArgs.pathToTmpFile)
+        val resultFile = PSICreator.getPSIForFile(CompilerArgs.pathToTmpFile)
         Expression.factory = KtPsiFactory(resultFile.project)
         resultFile.debugPrint()
         System.exit(0)

@@ -1,4 +1,14 @@
-class Foo private constructor(val a: Int = 1) {}
+// TARGET_BACKEND: JVM
+// WITH_RUNTIME
+// MODULE: lib
+// USE_OLD_INLINE_CLASSES_MANGLING_SCHEME
+// FILE: A.kt
 
-// CLASS: Foo
-// HAS_DEFAULT_CONSTRUCTOR: false
+inline class A private constructor(val value: String) {
+    constructor(c: Char) : this(c + "K")
+}
+
+// MODULE: main(lib)
+// FILE: B.kt
+
+fun box(): String = A('O').value

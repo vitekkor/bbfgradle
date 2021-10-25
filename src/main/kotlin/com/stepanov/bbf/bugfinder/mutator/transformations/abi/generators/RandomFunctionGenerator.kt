@@ -5,8 +5,8 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GFunction
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GStructure
 import com.stepanov.bbf.bugfinder.util.*
-import org.jetbrains.kotlin.fir.lightTree.fir.modifier.ModifierSets
 import org.jetbrains.kotlin.lexer.KtTokens
+import com.stepanov.bbf.bugfinder.util.ModifierSets
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.resolve.BindingContext
@@ -33,7 +33,7 @@ class RandomFunctionGenerator(
             if (gClass != null) {
                 val inMod =
                     (ModifierSets.INHERITANCE_MODIFIER.types.toList()
-                        .filter { it != KtTokens.SEALED_KEYWORD }
+                        .filter { it.toString() != KtTokens.SEALED_KEYWORD.toString() }
                         .map { it.toString() } + listOf("", "", "", "", "")).random()
                 list.add(inMod)
                 if (gClass.isObject() && list[2] == "protected") list[2] = ""
@@ -62,7 +62,7 @@ class RandomFunctionGenerator(
         }
 
     private fun generateExtension(typeArgs: List<String>): String {
-        val prob = if (gFunc.modifiers.contains("infix") || gFunc.modifiers.contains("operator")) 100 else 20
+        val prob = if (gFunc.modifiers.contains("infix") || gFunc.modifiers.contains("operator")) 100 else 10
         if (!Random.getTrue(prob)) return ""
         val t = randomTypeGenerator.generateRandomTypeWithCtx() ?: return ""
         val strT =
@@ -127,7 +127,10 @@ class RandomFunctionGenerator(
             }
         }
         val randomType = randomTypeGenerator.generateRandomTypeWithCtx() ?: return ""
-        return gClass?.let { randomType.replaceTypeOrRandomSubtypeOnTypeParam(it.typeParams) } ?: "$randomType"
+        return gClass?.let {
+            if (Random.getTrue(30)) randomType.replaceTypeOrRandomSubtypeOnTypeParam(it.typeParams)
+            else "$randomType"
+        } ?: "$randomType"
     }
 
     private fun generateBody(): String =
@@ -157,7 +160,7 @@ class RandomFunctionGenerator(
             typeArgs = genTypeArgs
             extensionReceiver = generateExtension(genTypeArgsWObounds)
             name = generateName()
-            args = generateArgs(genTypeArgsWObounds)
+            args = generateArgs((gClass?.typeParams ?: listOf()) + genTypeArgsWObounds)
             rtvType = generateRtv()
             body = generateBody()
         }

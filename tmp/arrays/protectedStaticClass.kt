@@ -1,3 +1,5 @@
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: protectedPack/J.java
 
 package protectedPack;
@@ -10,6 +12,7 @@ public class J {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 package protectedPack

@@ -1,60 +1,51 @@
+// IGNORE_BACKEND: JS_IR
+// IGNORE_BACKEND: JS_IR_ES6
+// TODO: muted automatically, investigate should it be ran for JS or not
+// IGNORE_BACKEND: JS, NATIVE
+
+// WITH_REFLECT
+
+package test
+
+annotation class A
+annotation class B(val s: String)
+
+@A
+@B("2")
+fun javaReflectionAnnotationInstances() {}
+
 fun box(): String {
-    val b: Byte = 42
-    val c: Char = 'z'
-    val s: Short = 239
-    val i: Int = -1
-    val j: Long = -42L
-    val f: Float = 3.14f
-    val d: Double = -2.72
-    val z: Boolean = true
+    val createA = A::class.constructors.single()
 
-    b.equals(b)
-    b == b
-    b.hashCode()
-    b.toString()
-    "$b"
+    val a1 = createA.call()
+    if (a1.toString() != "@test.A()") return "Fail: toString does not correspond to the documentation of java.lang.annotation.Annotation#toString: $a1"
 
-    c.equals(c)
-    c == c
-    c.hashCode()
-    c.toString()
-    "$c"
+    val a2 = createA.call()
+    if (a1 === a2) return "Fail: instances created by the constructor should be different"
+    if (a1 != a2) return "Fail: any instance of A should be equal to any other instance of A"
+    if (a1.hashCode() != a2.hashCode()) return "Fail: hash codes of equal instances should be equal"
+    if (a1.hashCode() != 0) return "Fail: hashCode does not correspond to the documentation of java.lang.annotation.Annotation#hashCode: ${a1.hashCode()}"
 
-    s.equals(s)
-    s == s
-    s.hashCode()
-    s.toString()
-    "$s"
+    val createB = B::class.constructors.single()
+    val b1 = createB.call("1")
+    if (b1.toString() != "@test.B(s=1)") return "Fail: toString does not correspond to the documentation of java.lang.annotation.Annotation#toString: $b1"
+    if (b1 != b1) return "Fail: instance should be equal to itself"
 
-    i.equals(i)
-    i == i
-    i.hashCode()
-    i.toString()
-    "$i"
+    val b2 = createB.call("2")
+    if (b1 == b2) return "Fail: instances with different data should not be equal"
+    if (b1.hashCode() == b2.hashCode()) return "Fail: hash codes of different instances should very likely be also different"
 
-    j.equals(j)
-    j == j
-    j.hashCode()
-    j.toString()
-    "$j"
+    val a3 = ::javaReflectionAnnotationInstances.annotations.filterIsInstance<A>().single()
+    if (a1 === a3) return "Fail: instance created by the constructor and the one obtained from Java reflection should be different"
+    if (a1 != a3) return "Fail: instance created by the constructor should be equal to the one obtained from Java reflection"
+    if (a3 != a1) return "Fail: instance obtained from Java reflection should be equal to the one created by the constructor"
+    if (a1.hashCode() != a3.hashCode()) return "Fail: hash codes of equal instances should be equal"
 
-    f.equals(f)
-    f == f
-    f.hashCode()
-    f.toString()
-    "$f"
-
-    d.equals(d)
-    d == d
-    d.hashCode()
-    d.toString()
-    "$d"
-
-    z.equals(z)
-    z == z
-    z.hashCode()
-    z.toString()
-    "$z"
+    val b3 = ::javaReflectionAnnotationInstances.annotations.filterIsInstance<B>().single()
+    if (b2 === b3) return "Fail: instance created by the constructor and the one obtained from Java reflection should be different"
+    if (b2 != b3) return "Fail: instance created by the constructor should be equal to the one obtained from Java reflection"
+    if (b3 != b2) return "Fail: instance obtained from Java reflection should be equal to the one created by the constructor"
+    if (b2.hashCode() != b3.hashCode()) return "Fail: hash codes of equal instances should be equal"
 
     return "OK"
 }

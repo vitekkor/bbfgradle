@@ -8,7 +8,8 @@ data class Header(
     val ignoreBackends: List<String>,
     val targetBackend: String,
     val useExperimental: List<String>,
-    val jvmDefault: String
+    val jvmDefault: String,
+    val samConversion: String
 ) {
 
 
@@ -27,7 +28,16 @@ data class Header(
                 if (useExperimental.trim().isEmpty()) listOf()
                 else useExperimental.substringAfter(Directives.useExperimental).split(" ")
             val jvmDefault: String by HeaderDelegate(commentSectionLines, Directives.jvmDefault)
-            return Header(languageFeatures, withDirectives, ignoreBackends, targetBackend, useExperimentalFeatures, jvmDefault)
+            val samConversion: String by HeaderDelegate(commentSectionLines, Directives.samConversions)
+            return Header(
+                languageFeatures,
+                withDirectives,
+                ignoreBackends,
+                targetBackend,
+                useExperimentalFeatures,
+                jvmDefault,
+                samConversion
+            )
         }
     }
 
@@ -41,6 +51,7 @@ data class Header(
             if (targetBackend.isNotEmpty()) appendLine(targetBackend)
             if (useExperimental.isNotEmpty()) appendLine("${Directives.useExperimental}${useExperimental.joinToString(", ")}")
             if (jvmDefault.isNotEmpty()) appendLine(jvmDefault)
+            if (samConversion.isNotEmpty()) appendLine(samConversion)
         }.toString()
 
 
@@ -56,6 +67,7 @@ internal object Directives {
     const val coroutinesDirective = "// WITH_COROUTINES"
     const val useExperimental = "// !USE_EXPERIMENTAL: "
     const val jvmDefault = "// !JVM_DEFAULT_MODE: "
+    const val samConversions = "// SAM_CONVERSIONS: "
 }
 
 private class HeaderDelegate(private val sec: List<String>, private val directive: String) {

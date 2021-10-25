@@ -1,15 +1,17 @@
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: SAM_CONVERSIONS
 // !LANGUAGE: +InlineClasses
 // WITH_RUNTIME
 
-fun <T> foo(a: Result<T>): T = bar(a, object : IFace<Result<T>, T> {
-    override fun call(ic: Result<T>): T = ic.getOrThrow()
-})
+fun <T> foo(a: Result<T>): T = bar(a) {
+    it.getOrThrow()
+}
 
-interface IFace<T, R> {
+fun interface FunIFace<T, R> {
     fun call(ic: T): R
 }
 
-fun <T, R> bar(value: T, f: IFace<T, R>): R {
+fun <T, R> bar(value: T, f: FunIFace<T, R>): R {
     return f.call(value)
 }
 

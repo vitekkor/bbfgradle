@@ -1,21 +1,22 @@
-// TARGET_BACKEND: JVM
-
+// !JVM_DEFAULT_MODE: all-compatibility
+// JVM_TARGET: 1.8
 // WITH_RUNTIME
-
-open class A {
-    @JvmField public val publicField = "1";
-    @JvmField internal val internalField = "2";
-    @JvmField protected val protectedfield = "3";
-}
-
-
-class B : A() {
+// MODULE: lib
+// FILE: 1.kt
+interface Test {
     fun test(): String {
-        return super.publicField + super.internalField + super.protectedfield
+        return "OK"
     }
 }
 
+// MODULE: main(lib)
+// FILE: 2.kt
+class TestClass : Test {
+    override fun test(): String {
+        return super.test()
+    }
+}
 
 fun box(): String {
-    return if (B().test() == "123") return "OK" else "fail"
+    return TestClass().test()
 }

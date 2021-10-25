@@ -1,19 +1,27 @@
-// TARGET_BACKEND: JVM
-
 // WITH_RUNTIME
+// WITH_COROUTINES
+// IGNORE_BACKEND: JS_IR
+
+import helpers.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
+
+@Suppress("UNSUPPORTED_FEATURE")
+inline class I(val x: Any?)
 
 class C {
-    companion object {
-        private @JvmStatic fun foo(): String {
-            return "OK"
-        }
+    private suspend fun f(): I {
+        return I("OK")
     }
 
-    fun bar(): String {
-        return foo()
-    }
+    fun g() = suspend { f() }
 }
 
+val c: Continuation<Unit>? = null
+
 fun box(): String {
-    return C().bar()
+    var result = "fail"
+    suspend { result = C().g()().x as String }.startCoroutine(EmptyContinuation)
+
+    return result
 }

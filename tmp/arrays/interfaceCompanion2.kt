@@ -1,21 +1,22 @@
-// !LANGUAGE: +JvmFieldInInterface
 // TARGET_BACKEND: JVM
 
 // WITH_RUNTIME
-// FILE: Foo.kt
 
-public class Bar(public val value: String)
+interface KInt {
 
-interface Foo {
     companion object {
-        @JvmField
-        val FOO = Bar("OK")
+        const val a = "a"
+        const val b = "b$a"
     }
 }
 
-
-// FILE: bar.kt
-
 fun box(): String {
-    return Foo.FOO.value
+    val a = KInt::class.java.getField("a").get(null)
+    val b = KInt::class.java.getField("b").get(null)
+
+    if (a !== KInt.a) return "fail 1: KInt.a !== KInt.Companion.a"
+    if (b !== KInt.b) return "fail 2: KInt.b !== KInt.Companion.b"
+    if (b !== "ba") return "fail 2: 'ba' !== KInt.Companion.b"
+
+    return "OK"
 }

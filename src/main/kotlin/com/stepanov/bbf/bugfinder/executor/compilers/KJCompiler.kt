@@ -2,21 +2,22 @@ package com.stepanov.bbf.bugfinder.executor.compilers
 
 import com.stepanov.bbf.bugfinder.util.decompiler.copyContentTo
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.CompilingResult
+import com.stepanov.bbf.bugfinder.executor.CompilationResult
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.Stream
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.charset.Charset
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
+import javax.tools.Diagnostic
 import javax.tools.DiagnosticCollector
 import javax.tools.JavaFileObject
 import javax.tools.ToolProvider
-import kotlin.streams.toList
 
 
 class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
@@ -25,10 +26,10 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
 
     override var pathToCompiled: String = "tmp/tmp.jar"
 
-    override fun compile(project: Project, includeRuntime: Boolean): CompilingResult {
+    override fun compile(project: Project, includeRuntime: Boolean): CompilationResult {
         val projectWithMain = project.addMain()
         val kotlinCompiled = super.compile(projectWithMain, includeRuntime)
-        if (kotlinCompiled.status == -1) return CompilingResult(-1, "")
+        if (kotlinCompiled.status == -1) return CompilationResult(-1, "")
         val path = projectWithMain.saveOrRemoveToTmp(true)
         val kotlinJar = ZipFile(kotlinCompiled.pathToCompiled, Charset.forName("CP866"))
         kotlinJar.copyContentTo(pathToTmpDir)
@@ -36,9 +37,9 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
         File(kotlinCompiled.pathToCompiled).let { if (it.exists()) it.delete() }
         projectWithMain.saveOrRemoveToTmp(false)
         return if (javaRes) {
-            CompilingResult(0, pathToTmpDir)
+            CompilationResult(0, pathToTmpDir)
         } else {
-            CompilingResult(-1, "")
+            CompilationResult(-1, "")
         }
     }
 
@@ -57,24 +58,6 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
         return pathToCompiled
     }
 
-//    fun compile(path: String, includeRuntime: Boolean): CompilingResult {
-//        val kotlinCompiled = super.compile(path, includeRuntime)
-//        if (kotlinCompiled.status == -1) return CompilingResult(-1, "")
-//        File(pathToTmpDir).deleteRecursively()
-////        File(pathToTmpDir).listFiles()
-////            .filter { !it.absolutePath.endsWith(".java") && !it.absolutePath.endsWith(".kt") }
-////            .forEach { it.deleteRecursively() }
-//        val kotlinJar = ZipFile(kotlinCompiled.pathToCompiled, Charset.forName("CP866"))
-//        kotlinJar.copyContentTo(pathToTmpDir)
-//        val javaRes = compileJava(path, kotlinCompiled.pathToCompiled, pathToTmpDir)
-//        File(kotlinCompiled.pathToCompiled).let { if (it.exists()) it.delete() }
-//        return if (javaRes) {
-//            CompilingResult(0, pathToTmpDir)
-//        } else {
-//            CompilingResult(-1, "")
-//        }
-//    }
-
     private fun compileJava(path: String, pathToDir: String): Boolean {
         val javaFiles = path.split(" ").filter { it.endsWith(".java") }.map { File(it) }
         if (javaFiles.isEmpty()) return true
@@ -86,7 +69,7 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
         val options = mutableListOf("-classpath", classPath, "-d", pathToDir)
         val task = compiler.getTask(null, manager, diagnostics, options, null, sources)
         task.call()
-        return diagnostics.diagnostics.isEmpty()
+        return diagnostics.diagnostics.none { it.kind == Diagnostic.Kind.ERROR }
     }
 
 //    override fun checkCompiling(pathToFile: String): Boolean {
@@ -95,14 +78,18 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
 //        return status == 0
 //    }
 
-    override fun exec(path: String, streamType: Stream): String {
-        val manifest = Files.walk(Paths.get(path)).toList().map { it.toFile() }.find { it.name == "MANIFEST.MF" }
-            ?: return ""
-        val mainClass = manifest.readLines().find { it.startsWith("Main-Class:") }?.substringAfter("Main-Class: ")
-            ?: return ""
-        val res =  commonExec("java -cp $path $mainClass", streamType)
-        File(path).deleteRecursively()
-        return res
+    override fun exec(path: String, streamType: Stream, mainClass: String): String {
+        val manifest =
+            Files.walk(Paths.get(path))
+                .toArray()
+                .map { (it as Path).toFile() }
+                .find { it.name == "MANIFEST.MF" }
+                ?: return ""
+        val mc =
+            mainClass.ifEmpty {
+                manifest.readLines().find { it.startsWith("Main-Class:") }?.substringAfter("Main-Class: ") ?: return ""
+            }
+        return commonExec("java -cp $path $mc", streamType)
     }
 
     val pathToTmpDir = CompilerArgs.pathToTmpFile.substringBeforeLast('/') + "/tmp/tmp"

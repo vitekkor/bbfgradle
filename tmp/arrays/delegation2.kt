@@ -1,24 +1,36 @@
-interface Trait1 {
-    fun foo() : String
+// TARGET_BACKEND: JVM
+// WITH_RUNTIME
+// FULL_JDK
+// JAVAC_OPTIONS: -parameters
+// PARAMETERS_METADATA
+// JVM_TARGET: 1.8
+// FILE: JavaInterface.java
+
+public interface JavaInterface {
+    void plugin(String id);
 }
 
-interface Trait2  {
-    fun bar() : String
+// FILE: test.kt
+
+import kotlin.test.assertEquals
+
+interface KotlinInterface {
+    fun plugin(id: String)
 }
 
-class T1 : Trait1{
-    override fun foo() = "aaa"
+class KotlinDelegate(impl: KotlinInterface) : KotlinInterface by impl
+
+class JavaDelegate(impl: JavaInterface) : JavaInterface by impl
+
+private fun check(javaClass: Class<*>) {
+    val pluginMethod = javaClass.getDeclaredMethod("plugin", String::class.java)
+    assertEquals(listOf("id"), pluginMethod.parameters.map { it.name }, "Incorrect parameters for $javaClass")
 }
 
-class T2 : Trait2{
-    override fun bar()  = "bbb"
-}
-
-class C(a:Trait1, b:Trait2) : Trait1 by a, Trait2 by b
-
-fun box() : String {
-    val c = C(T1(),T2())
-    if(c.foo() != "aaa") return "fail"
-    if(c.bar() != "bbb") return "fail"
+fun box(): String {
+    check(JavaInterface::class.java)
+    check(KotlinInterface::class.java)
+    check(KotlinDelegate::class.java)
+    check(JavaDelegate::class.java)
     return "OK"
 }

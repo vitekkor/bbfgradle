@@ -1,8 +1,27 @@
-fun foo(s: String = "O") = s
+// !LANGUAGE: +InlineClasses
 
-fun box() = foo() + foo("K")
+// TARGET_BACKEND: JVM
+// IGNORE_BACKEND: JVM
+// JVM_TARGET: 1.8
 
-// For Compose special default arugment handling, we still do not want
-// the default argument mask in the local variable table.
+interface Path {
+    fun dispatch(maxDepth: Int = 42)
+    fun Int.extension(maxDepth: Int = 42)
+}
 
-// 0 \$default
+inline class RealPath(val x: Int) : Path {
+    override fun dispatch(maxDepth: Int) = Unit
+
+    fun childrenDispatch(recursively: Boolean): Unit =
+        if (recursively) dispatch() else dispatch()
+
+    override fun Int.extension(maxDepth: Int) = Unit
+
+    fun Int.childrenExtension(recursively: Boolean): Unit =
+        if (recursively) extension() else extension()
+}
+
+fun box(): String {
+    RealPath(1)
+    return "OK"
+}

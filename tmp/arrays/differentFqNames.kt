@@ -1,4 +1,6 @@
+// TARGET_BACKEND: JVM
 // WITH_RUNTIME
+// MODULE: lib
 // FILE: Custom.java
 
 class Custom {
@@ -7,6 +9,7 @@ class Custom {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 fun box(): String {

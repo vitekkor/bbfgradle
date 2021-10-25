@@ -1,30 +1,7 @@
-// !JVM_DEFAULT_MODE: enable
-// IGNORE_BACKEND_FIR: JVM_IR
-// TARGET_BACKEND: JVM
-// JVM_TARGET: 1.8
-// WITH_RUNTIME
-
-interface Test {
-    @JvmDefault
-    val test: String
-        get() = "O"
-
-    val testDelegated: String
-        get() = "fail"
-
-}
-
-class Delegate : Test {
-    override val test: String
-        get() = "fail"
-
-    override val testDelegated: String
-        get() = "K"
-}
-
-class TestClass(val foo: Test) : Test by foo
-
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: PROPERTY_REFERENCES
 fun box(): String {
-    val testClass = TestClass(Delegate())
-    return testClass.test + testClass.testDelegated
+    val f = "kotlin"::length
+    val result = f.get()
+    return if (result == 6) "OK" else "Fail: $result"
 }

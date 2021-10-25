@@ -1,17 +1,33 @@
-// TARGET_BACKEND: JVM
-
 // WITH_RUNTIME
+// WITH_COROUTINES
+import helpers.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 
-object A {
+suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
+    x.resume(v)
+    COROUTINE_SUSPENDED
+}
 
-    @JvmStatic inline fun test(b: String = "OK") : String {
-        return b
-    }
+suspend inline fun suspendHere(crossinline block: () -> String): String {
+    return suspendThere(block()) + suspendThere(block())
+}
+
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
 }
 
 fun box(): String {
+    var result = ""
 
-    if (A.test() != "OK") return "fail 1"
+    builder {
+        var q = "O"
+        result = suspendHere {
+            val r = q
+            q = "K"
+            r
+        }
+    }
 
-    return "OK"
+    return result
 }

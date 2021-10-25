@@ -4,8 +4,12 @@ import helpers.*
 import kotlin.coroutines.*
 import kotlin.coroutines.intrinsics.*
 
+var result = "FAIL"
+
 fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(EmptyContinuation)
+    c.startCoroutine(handleExceptionContinuation {
+        result = it.message!!
+    })
 }
 
 @Suppress("UNSUPPORTED_FEATURE")
@@ -73,24 +77,23 @@ class Test3 : IBar {
 }
 
 fun box(): String {
-    var result: Any = "FAIL1"
     builder {
-        result = Test1().test()
+        Test1().test()
     }
-    c?.resume(IC("OK"))
+    c?.resumeWithException(IllegalStateException("OK"))
     if (result != "OK") return "FAIL 1 $result"
 
     result = "FAIL2"
     builder {
-        result = Test2().test()
+        Test2().test()
     }
-    c?.resume("OK")
+    c?.resumeWithException(IllegalStateException("OK"))
     if (result != "OK") return "FAIL 2 $result"
 
     result = "FAIL 3"
     builder {
-        result = Test3().test()
+        Test3().test()
     }
-    c?.resume(IC("OK"))
+    c?.resumeWithException(IllegalStateException("OK"))
     return result as String
 }

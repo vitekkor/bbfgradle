@@ -1,30 +1,26 @@
-// !JVM_DEFAULT_MODE: all
-// IGNORE_BACKEND_FIR: JVM_IR
 // TARGET_BACKEND: JVM
-// JVM_TARGET: 1.8
+// IGNORE_BACKEND: JVM
 // WITH_RUNTIME
+// FILE: 1.kt
+package a
 
-interface Test {
-    @JvmDefault
-    val test: String
-        get() = "O"
-
-    val testDelegated: String
-        get() = "fail"
-
+open class A {
+    companion object {
+        @JvmStatic
+        @get:JvmStatic
+        @set:JvmStatic
+        protected var foo = "Fail"
+    }
 }
 
-class Delegate : Test {
-    override val test: String
-        get() = "fail"
+// FILE: 2.kt
+import a.*
 
-    override val testDelegated: String
-        get() = "K"
+class B : A() {
+    fun bar(): String {
+        foo = "OK"
+        return foo
+    }
 }
 
-class TestClass(val foo: Test) : Test by foo
-
-fun box(): String {
-    val testClass = TestClass(Delegate())
-    return testClass.test + testClass.testDelegated
-}
+fun box() = B().bar()

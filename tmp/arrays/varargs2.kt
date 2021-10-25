@@ -1,33 +1,31 @@
 // DONT_TARGET_EXACT_BACKEND: WASM
-// WASM_MUTE_REASON: SPREAD_OPERATOR
-fun join(x: Array<out String>): String {
-    var result = ""
-    for (i in x) {
-        result += i
-        result += "#"
-    }
+// WASM_MUTE_REASON: STDLIB_STRING_BUILDER
+// KJS_WITH_FULL_RUNTIME
+// WITH_RUNTIME
 
-    return result
+import kotlin.test.assertEquals
+
+fun <T> foo(vararg a: T) = a.size
+
+inline fun <reified T> bar(block: () -> T): Array<T> {
+    assertEquals(2, foo(block(), block()))
+
+    return arrayOf(block(), block(), block())
 }
 
-open class B {
-    val parentProp: String
-    constructor(vararg x: String) {
-        parentProp = join(x)
-    }
-}
-
-class A : B {
-    val prop: String
-    constructor(vararg x: String): super("0", *x, "4") {
-        prop = join(x)
-    }
-}
+inline fun <reified T> empty() = arrayOf<T>()
 
 fun box(): String {
-    val a1 = A("1", "2", "3")
-    if (a1.prop != "1#2#3#") return "fail1: ${a1.prop}"
-    if (a1.parentProp != "0#1#2#3#4#") return "fail2: ${a1.parentProp}"
+    var i = 0
+    val a: Array<String> = bar() { i++; i.toString() }
+    assertEquals("345", a.joinToString(""))
+
+    i = 0
+    val b: Array<Int> = bar() { i++ }
+    assertEquals("234", b.map { it.toString() }.joinToString(""))
+
+    val c: Array<String> = empty()
+    assertEquals(0, c.size)
 
     return "OK"
 }

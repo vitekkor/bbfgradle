@@ -13,7 +13,7 @@ class AddBlockToExpression : Transformation() {
         val expr = file.getAllPSIChildrenOfType<KtExpression>()
         expr.forEach {
             generateRandomBooleanExpression(it)?.let { blockExpr ->
-                checker.replacePSINodeIfPossible(it, blockExpr)
+                checker.replaceNodeIfPossible(it, blockExpr)
             }
         }
     }

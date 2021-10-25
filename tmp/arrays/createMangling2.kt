@@ -1,18 +1,20 @@
 // WITH_RUNTIME
+// WITH_COROUTINES
 
 import kotlin.coroutines.*
+import helpers.*
+
+var result = "FAIL"
 
 fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(Continuation(EmptyCoroutineContext) {
-        it.getOrThrow()
+    c.startCoroutine(handleExceptionContinuation {
+        result = it.message!!
     })
 }
 
 inline class IC(val s: String)
 
 var c: Continuation<Any>? = null
-
-var res = "FAIL"
 
 fun box(): String {
     val lambda: suspend (IC, IC) -> String = { _, _ ->
@@ -22,8 +24,8 @@ fun box(): String {
         }
     }
     builder {
-        res = lambda(IC("_"), IC("_"))
+        lambda(IC("O"), IC("K"))
     }
-    c?.resume("OK")
-    return res
+    c?.resumeWithException(IllegalStateException("OK"))
+    return result
 }

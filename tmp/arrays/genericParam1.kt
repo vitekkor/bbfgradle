@@ -2,11 +2,10 @@ data class A<T>(val x: T)
 
 fun box(): String {
     val a = A(42)
-    if (a.component1() != 42) return "Fail a: ${a.component1()}"
+    if ("$a" != "A(x=42)") return "$a"
     
     val b = A(239.toLong())
-    if (b.component1() != 239.toLong()) return "Fail b: ${b.component1()}"
+    if ("$b" != "A(x=239)") return "$b"
     
-    val c = A("OK")
-    return c.component1()
+    return "OK"
 }

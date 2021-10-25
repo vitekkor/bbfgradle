@@ -1,10 +1,12 @@
-// !JVM_DEFAULT_MODE: all
+// !JVM_DEFAULT_MODE: all-compatibility
 // TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// WITH_RUNTIME
 // FILE: Simple.java
 
 public interface Simple extends KInterface2 {
     default String test() {
-        return test2();
+        return KInterface2.DefaultImpls.test2(this);
     }
 }
 
@@ -14,8 +16,6 @@ public class Foo implements Simple {
 }
 
 // FILE: main.kt
-// JVM_TARGET: 1.8
-// WITH_RUNTIME
 
 interface KInterface  {
     fun test2(): String {

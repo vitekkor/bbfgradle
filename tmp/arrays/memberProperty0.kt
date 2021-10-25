@@ -1,25 +1,30 @@
 // TARGET_BACKEND: JVM
+
 // WITH_REFLECT
 
-import kotlin.reflect.KProperty
-import kotlin.reflect.jvm.isAccessible
+import kotlin.reflect.jvm.*
 import kotlin.test.*
 
-object Delegate {
-    var storage = ""
-    operator fun getValue(instance: Any?, property: KProperty<*>) = storage
-    operator fun setValue(instance: Any?, property: KProperty<*>, value: String) { storage = value }
-}
-
-class Foo {
-    var result: String by Delegate
-}
+class K(var value: Long)
 
 fun box(): String {
-    val foo = Foo()
-    foo.result = "Fail"
-    val d = (Foo::result).apply { isAccessible = true }.getDelegate(foo) as Delegate
-    foo.result = "OK"
-    assertEquals(d, (Foo::result).apply { isAccessible = true }.getDelegate(foo))
-    return d.getValue(foo, Foo::result)
+    val p = K::value
+
+    assertNotNull(p.javaField, "Fail p field")
+
+    val getter = p.javaGetter!!
+    val setter = p.javaSetter!!
+
+    assertEquals(K::class.java.getMethod("getValue"), getter)
+    assertEquals(K::class.java.getMethod("setValue", Long::class.java), setter)
+
+    assertNull(p.getter.javaConstructor)
+    assertNull(p.setter.javaConstructor)
+
+    val k = K(42L)
+    assertEquals(42L, getter.invoke(k), "Fail k getter")
+    setter.invoke(k, -239L)
+    assertEquals(-239L, getter.invoke(k), "Fail k setter")
+
+    return "OK"
 }

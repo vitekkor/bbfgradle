@@ -3,13 +3,9 @@ package com.stepanov.bbf.bugfinder.mutator.transformations.abi
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators.*
-import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.RandomInstancesGenerator
-import com.stepanov.bbf.bugfinder.util.typeGenerators.RandomTypeGenerator
+import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.replaceThis
-import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtFile
 import kotlin.system.exitProcess
 

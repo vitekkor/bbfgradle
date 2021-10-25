@@ -1,13 +1,17 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations.abi.generators
 
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.compareDescriptorVisibilitiesAsStrings
+import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getTrue
-import org.jetbrains.kotlin.fir.lightTree.fir.modifier.ModifierSets
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.random.Random
+import com.stepanov.bbf.bugfinder.util.ModifierSets
 
-class RandomInterfaceGenerator(file: KtFile, ctx: BindingContext, depth: Int = 0) : AbstractClassGenerator(file, ctx, depth) {
+class RandomInterfaceGenerator(file: KtFile, ctx: BindingContext, depth: Int = 0) :
+    AbstractClassGenerator(file, ctx, depth) {
 
     override val classWord: String
         get() = "interface"
@@ -28,7 +32,11 @@ class RandomInterfaceGenerator(file: KtFile, ctx: BindingContext, depth: Int = 0
         val supertypesAmount = Random.nextInt(0, 3)
         for (i in 0 until supertypesAmount) {
             val openClass = randomTypeGenerator.generateOpenClassType(onlyInterfaces = true) ?: return listOf()
-            if (compareDescriptorVisibilitiesAsStrings(gClass.getVisibility(), openClass.visibility.name) == -1) continue
+            if (compareDescriptorVisibilitiesAsStrings(
+                    gClass.getVisibility(),
+                    openClass.visibility.name
+                ) == -1
+            ) continue
             val typeParams = openClass.declaredTypeParameters.map { typeParam ->
                 val upperBounds = typeParam.upperBounds.let { if (it.isEmpty()) null else it.first() }
                 randomTypeGenerator.generateRandomTypeWithCtx(upperBounds).toString()

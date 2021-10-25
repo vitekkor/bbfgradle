@@ -1,21 +1,16 @@
-// TARGET_BACKEND: JVM
+// WITH_RUNTIME
 
-// WITH_REFLECT
-
-import kotlin.reflect.full.isSubclassOf
-import kotlin.test.assertTrue
-import kotlin.test.assertFalse
+import kotlin.test.assertEquals
 
 fun box(): String {
-    // KClass instances for primitive int and wrapper java.lang.Integer are different
-    val primitiveInt = Int::class.javaPrimitiveType!!.kotlin
-    val wrapperInt = Int::class.javaObjectType.kotlin
-    assertTrue(primitiveInt.isSubclassOf(primitiveInt))
-    assertTrue(wrapperInt.isSubclassOf(wrapperInt))
-
-    // KClass for int equals KClass for java.lang.Integer, so they are also a subclass of each other
-    assertTrue(primitiveInt.isSubclassOf(wrapperInt))
-    assertTrue(wrapperInt.isSubclassOf(primitiveInt))
+    assertEquals(true::class, Boolean::class)
+    assertEquals(42.toByte()::class, Byte::class)
+    assertEquals('z'::class, Char::class)
+    assertEquals(3.14::class, Double::class)
+    assertEquals(2.72f::class, Float::class)
+    assertEquals(42::class, Int::class)
+    assertEquals(42L::class, Long::class)
+    assertEquals(42.toShort()::class, Short::class)
 
     return "OK"
 }

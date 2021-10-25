@@ -1,24 +1,37 @@
+// !JVM_DEFAULT_MODE: all-compatibility
+// IGNORE_BACKEND_FIR: JVM_IR
 // TARGET_BACKEND: JVM
-// FILE: Base.java
+// JVM_TARGET: 1.8
+// WITH_RUNTIME
 
-public interface Base {
-    String getValue();
+// MODULE: lib
+// FILE: 1.kt
+interface Test {
+    @JvmDefault
+    fun test(): String {
+        return "O"
+    }
 
-    default String test() {
-        return getValue();
+    fun delegatedTest(): String {
+        return "fail"
     }
 }
 
-// FILE: main.kt
-// JVM_TARGET: 1.8
+class Delegate : Test {
+    override fun test(): String {
+        return "Fail"
+    }
 
-class Fail : Base {
-    override fun getValue() = "Fail"
+    override fun delegatedTest(): String {
+        return "K"
+    }
 }
+
+// MODULE: main(lib)
+// FILE: 2.kt
+class TestClass(val foo: Test) : Test by foo
 
 fun box(): String {
-    val z = object : Base by Fail() {
-        override fun getValue() = "OK"
-    }
-    return z.test()
+    val testClass = TestClass(Delegate())
+    return testClass.test() + testClass.delegatedTest()
 }

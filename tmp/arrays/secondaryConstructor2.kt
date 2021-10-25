@@ -1,16 +1,16 @@
-var state: String = "Fail"
+// TARGET_BACKEND: JVM
 
-class A {
-    private constructor(x: String = "OK") {
-        state = x
-    }
+// WITH_RUNTIME
 
-    companion object {
-        fun foo() = A()
+class C(val i: Int) {
+    var status = "fail"
+
+    @kotlin.jvm.JvmOverloads constructor(o: String, k: String = "K"): this(-1) {
+        status = o + k
     }
 }
 
 fun box(): String {
-    A.foo()
-    return state
+    val c = (C::class.java.getConstructor(String::class.java).newInstance("O"))
+    return c.status
 }

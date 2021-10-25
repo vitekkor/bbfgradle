@@ -1,25 +1,28 @@
-// FILE: 1.kt
+// !JVM_DEFAULT_MODE: enable
+// TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// WITH_RUNTIME
 
-package test
-
-open class A {
-    open fun test() = "OK"
+interface Test {
+    @JvmDefault
+    fun test(): String {
+        return "OK"
+    }
 }
 
-object X : A() {
+interface Test2 : Test {
+    @JvmDefault
     override fun test(): String {
-        return "fail"
-    }
-
-    inline fun doTest(): String {
         return super.test()
     }
 }
 
-// FILE: 2.kt
 
-import test.*
+class TestClass : Test2 {
+
+}
+
 
 fun box(): String {
-    return X.doTest()
+    return TestClass().test()
 }

@@ -1,7 +1,22 @@
-// DONT_TARGET_EXACT_BACKEND: WASM
-// WASM_MUTE_REASON: BINDING_RECEIVERS
-class C {
-    fun ffff(i: Int, s: String = "OK") = s
+// IGNORE_BACKEND: JVM
+// WITH_RUNTIME
+// KT-44849
+
+import kotlin.coroutines.*
+
+var result = "Fail"
+
+class Wrapper(val action: suspend () -> Unit) {
+    init {
+        action.startCoroutine(Continuation(EmptyCoroutineContext) { it.getOrThrow() })
+    }
 }
 
-fun box(): String = 42.run(C()::ffff)
+suspend fun some(a: String = "OK") {
+    result = a
+}
+
+fun box(): String {
+    Wrapper(::some)
+    return result
+}

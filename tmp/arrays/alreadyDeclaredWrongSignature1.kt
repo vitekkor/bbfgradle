@@ -2,20 +2,35 @@
 
 // WITH_RUNTIME
 
-data class A(val x: Int) {
-  fun hashCode(other: Any): Int = 0
+data class B(val x: Int) {
+  fun equals(other: B): Boolean = false
 }
 
-data class B(val x: Int) {
-  fun hashCode(other: B, another: Any): Int = 0
+data class C(val x: Int) {
+  fun equals(): Boolean = false
+}
+
+data class D(val x: Int) {
+  fun equals(other: Any?, another: String): Boolean = false
+}
+
+data class E(val x: Int) {
+  fun equals(x: E): Boolean = false
+  override fun equals(x: Any?): Boolean = false
 }
 
 fun box(): String {
-  A::class.java.getDeclaredMethod("hashCode")
-  A::class.java.getDeclaredMethod("hashCode", Any::class.java)
+  B::class.java.getDeclaredMethod("equals", Any::class.java)
+  B::class.java.getDeclaredMethod("equals", B::class.java)
 
-  B::class.java.getDeclaredMethod("hashCode")
-  B::class.java.getDeclaredMethod("hashCode", B::class.java, Any::class.java)
+  C::class.java.getDeclaredMethod("equals", Any::class.java)
+  C::class.java.getDeclaredMethod("equals")
+
+  D::class.java.getDeclaredMethod("equals", Any::class.java)
+  D::class.java.getDeclaredMethod("equals", Any::class.java, String::class.java)
+
+  E::class.java.getDeclaredMethod("equals", Any::class.java)
+  E::class.java.getDeclaredMethod("equals", E::class.java)
 
   return "OK"
 }

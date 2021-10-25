@@ -1,0 +1,22 @@
+// Original bug: KT-4174
+
+open class C(val s: String) {
+    fun test(): String {
+        return s
+    }
+}
+
+class B(var x: Int) {
+    fun foo(): String {
+        var s = "OK"
+        class Z : C(s) {}
+        return Z().test()
+    }
+}
+
+
+fun box() : String {
+    val b = B(1)
+    val result = b.foo()
+    return result
+}

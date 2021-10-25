@@ -1,17 +1,16 @@
-// FILE: 1.kt
+// TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// LAMBDAS: INDY
 
-package test
+// CHECK_BYTECODE_TEXT
+// JVM_IR_TEMPLATES
+// 1 java/lang/invoke/LambdaMetafactory
 
-inline fun <T> String.test(default: T, cb: String.(T) -> T): T = cb(default)
+class C(val x: String)
 
-// FILE: 2.kt
-
-import test.*
+fun boxLambda(lambda: C.() -> String) = lambda
 
 fun box(): String {
-    val p = "".test(50.0) {
-        it
-    }
-
-    return if (p == 50.0) "OK" else "fail $p"
+    val ext = boxLambda { x }
+    return C("OK").ext()
 }

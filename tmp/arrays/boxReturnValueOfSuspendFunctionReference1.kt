@@ -1,4 +1,3 @@
-// IGNORE_BACKEND: JS_IR
 // IGNORE_BACKEND: JS_IR_ES6
 // WITH_RUNTIME
 // WITH_COROUTINES
@@ -16,12 +15,15 @@ suspend fun <T> call(fn: suspend () -> T) = fn()
 
 fun useR(r: R) = if (r.x == "OK") "OK" else "fail: $r"
 
-suspend fun ok() = R("OK")
+var c: Continuation<R>? = null
+
+suspend fun ok() = suspendCoroutine<R> { c = it }
 
 fun box(): String {
     var res: String = "fail"
     builder {
         res = useR(call(::ok))
     }
+    c?.resume(R("OK"))
     return res
 }

@@ -1,17 +1,22 @@
-// KOTLIN_CONFIGURATION_FLAGS: +JVM.EMIT_JVM_TYPE_ANNOTATIONS
-// TYPE_ANNOTATIONS
-// TARGET_BACKEND: JVM
-// JVM_TARGET: 1.8
-package foo
+// !LANGUAGE: +MultiPlatformProjects
+// IGNORE_BACKEND_FIR: JVM_IR
+// WITH_RUNTIME
+// FILE: common.kt
 
-@Target(AnnotationTarget.TYPE)
-annotation class TypeAnn(val name: String)
+expect class Foo(a: String, b: Int = 0, c: Double? = null)
 
-class Kotlin(s: @TypeAnn("1") String, p: @TypeAnn("123") String) {
+// FILE: jvm.kt
 
-    private constructor(s: @TypeAnn("private") String) : this("1", "2")
+import kotlin.test.assertEquals
 
-    fun foo() {
-        object { fun foo() = Kotlin("123") }.foo()
-    }
+actual class Foo actual constructor(a: String, b: Int, c: Double?) {
+    val result: String = a + "," + b + "," + c
+}
+
+fun box(): String {
+    assertEquals("OK,0,null", Foo("OK").result)
+    assertEquals("OK,42,null", Foo("OK", 42).result)
+    assertEquals("OK,42,3.14", Foo("OK", 42, 3.14).result)
+
+    return "OK"
 }

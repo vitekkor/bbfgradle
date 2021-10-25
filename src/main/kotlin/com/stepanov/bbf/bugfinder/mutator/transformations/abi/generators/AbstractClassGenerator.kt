@@ -4,11 +4,11 @@ import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GClass
 import com.stepanov.bbf.bugfinder.mutator.transformations.abi.gstructures.GStructure
 import com.stepanov.bbf.bugfinder.util.*
-import org.jetbrains.kotlin.fir.lightTree.fir.modifier.ModifierSets
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
+import com.stepanov.bbf.bugfinder.util.ModifierSets
 import kotlin.random.Random
 
 abstract class AbstractClassGenerator(

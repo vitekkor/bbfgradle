@@ -20,12 +20,8 @@ fun <T> IC.extensionValue(): T = value as T
 
 fun <T> normalValue(ic: IC): T = ic.value as T
 
-fun interface FunIFace<T, R> {
-    fun call(ic: T): R
-}
-
-fun <T, R> bar(value: T, f: FunIFace<T, R>): R {
-    return f.call(value)
+fun <T, R> bar(value: T, f: (T) -> R): R {
+    return f(value)
 }
 
 inline class IC(val value: Any) {

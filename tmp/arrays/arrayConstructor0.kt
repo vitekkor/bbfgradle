@@ -1,10 +1,22 @@
-// FILE: 1.kt
-package test
+// TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// SAM_CONVERSIONS: INDY
 
-inline fun <reified T> f(x : () -> T): Array<T> = Array(1) { x() }
+// CHECK_BYTECODE_TEXT
+// JVM_IR_TEMPLATES
+// 0 java/lang/invoke/LambdaMetafactory
 
-// FILE: 2.kt
+// FILE: arrayConstructor.kt
+fun box(): String {
+    val sam = Sam(::IntArray)
+    val arr = sam.get(2)
+    if (arr.size != 2 || arr[0] != 0 || arr[1] != 0)
+        return "Failed"
+    return "OK"
+}
 
-import test.*
 
-fun box(): String = f { "OK" }[0]
+// FILE: Sam.java
+public interface Sam {
+    int[] get(int x);
+}

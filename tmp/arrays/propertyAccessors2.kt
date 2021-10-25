@@ -1,27 +1,22 @@
-// TARGET_BACKEND: JVM
+// IGNORE_BACKEND: JS_IR
+// IGNORE_BACKEND: JS_IR_ES6
+// TODO: muted automatically, investigate should it be ran for JS or not
+// IGNORE_BACKEND: JS, NATIVE
+
 // WITH_REFLECT
 
-import kotlin.reflect.KMutableProperty
-import kotlin.reflect.jvm.javaType
-import kotlin.test.assertEquals
+annotation class Get
+annotation class Set
+annotation class SetParam
 
-class A(private var foo: String)
-
-object O {
-    @JvmStatic
-    private var bar: String = ""
-}
+var foo: String
+    @Get get() = ""
+    @Set set(@SetParam value) {}
 
 fun box(): String {
-    val foo = A::class.members.single { it.name == "foo" } as KMutableProperty<*>
-    assertEquals(listOf(A::class.java), foo.parameters.map { it.type.javaType })
-    assertEquals(listOf(A::class.java), foo.getter.parameters.map { it.type.javaType })
-    assertEquals(listOf(A::class.java, String::class.java), foo.setter.parameters.map { it.type.javaType })
-
-    val bar = O::class.members.single { it.name == "bar" } as KMutableProperty<*>
-    assertEquals(listOf(O::class.java), bar.parameters.map { it.type.javaType })
-    assertEquals(listOf(O::class.java), bar.getter.parameters.map { it.type.javaType })
-    assertEquals(listOf(O::class.java, String::class.java), bar.setter.parameters.map { it.type.javaType })
+    assert(::foo.getter.annotations.single() is Get)
+    assert(::foo.setter.annotations.single() is Set)
+    assert(::foo.setter.parameters.single().annotations.single() is SetParam)
 
     return "OK"
 }

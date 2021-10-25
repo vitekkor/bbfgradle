@@ -12,6 +12,13 @@ inline class Result<T>(val a: Any?) {
     fun getOrThrow(): T = a as T
 }
 
+var c: Continuation<Any>? = null
+
+suspend fun <T> suspendMe(): T = suspendCoroutine {
+    @Suppress("UNCHECKED_CAST")
+    c = it as Continuation<Any>
+}
+
 abstract class ResultReceiver<T> {
     abstract suspend fun receive(result: Result<T>)
 }
@@ -31,8 +38,9 @@ fun test() {
     }
 
     builder {
-        receiver.receive(Result(42))
+        receiver.receive(Result(suspendMe()))
     }
+    c?.resume(42)
     if (!invoked) {
         throw RuntimeException("Fail")
     }

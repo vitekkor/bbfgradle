@@ -1,5 +1,12 @@
 class A {
-    fun foo() {
-        class B
+    fun a () : String {
+        class B() {
+            fun s() : String = "OK"
+        }
+        return B().s()
     }
+}
+
+fun box() : String {
+    return A().a()
 }

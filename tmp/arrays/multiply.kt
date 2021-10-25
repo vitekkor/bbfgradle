@@ -1,3 +1,5 @@
+// !LANGUAGE: -ApproximateIntegerLiteralTypesInReceiverPosition
+// IGNORE_FIR_DIAGNOSTICS
 // TARGET_BACKEND: JVM
 
 // WITH_RUNTIME

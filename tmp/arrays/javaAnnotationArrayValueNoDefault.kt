@@ -1,4 +1,6 @@
+// TARGET_BACKEND: JVM
 // WITH_RUNTIME
+// MODULE: lib
 // FILE: JavaAnn.java
 
 import java.lang.annotation.Retention;
@@ -9,6 +11,7 @@ import java.lang.annotation.RetentionPolicy;
     String[] value();
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 @JavaAnn class MyClass1

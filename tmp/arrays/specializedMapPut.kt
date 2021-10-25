@@ -1,5 +1,6 @@
+// TARGET_BACKEND: JVM
+// MODULE: lib
 // FILE: A.java
-// IGNORE_BACKEND_FIR: JVM_IR
 import java.util.HashMap;
 
 public class A extends HashMap<Integer, Double> {
@@ -13,6 +14,7 @@ public class A extends HashMap<Integer, Double> {
     }
 }
 
+// MODULE: main(lib)
 // FILE: main.kt
 fun box(): String {
     val o = A()

@@ -1,20 +1,22 @@
-// SKIP_JDK6
-// TARGET_BACKEND: JVM
-// WITH_RUNTIME
-// FULL_JDK
-// KOTLIN_CONFIGURATION_FLAGS: +JVM.PARAMETERS_METADATA
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: STDLIB_STRING_BUILDER
+// KJS_WITH_FULL_RUNTIME
+class Outer(val foo: StringBuilder) {
+  inner class Inner() {
+    fun len() : Int {
+      return foo.length
+    }
+  }
 
-class A {
-    inner class B
+  fun test() : Inner {
+    return Inner()
+  }
 }
 
-fun box(): String {
-    val clazz = A.B::class.java
-    val constructor = clazz.getDeclaredConstructors().single()
-    val parameters = constructor.getParameters()
-
-    if (parameters[0].name != "this$0") return "wrong outer name: ${parameters[0].name}"
-    if (!parameters[0].isImplicit() || parameters[0].isSynthetic()) return "wrong outer flags: ${parameters[0].modifiers}"
-
-    return "OK"
+fun box() : String {
+  val sb = StringBuilder("xyzzy")
+  val o = Outer(sb)
+  val i = o.test()
+  val l = i.len()
+  return if (l != 5) "fail" else "OK"
 }

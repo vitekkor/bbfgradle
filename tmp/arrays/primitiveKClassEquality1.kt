@@ -1,6 +1,6 @@
 // TARGET_BACKEND: JVM
 
-// WITH_REFLECT
+// WITH_RUNTIME
 
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

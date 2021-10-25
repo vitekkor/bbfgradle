@@ -1,33 +1,16 @@
-// WITH_RUNTIME
-// WITH_COROUTINES
-import helpers.*
-import kotlin.coroutines.*
-import kotlin.coroutines.intrinsics.*
+class A {
+    fun foo() = o_plus_f_plus_k {""}
 
-suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
-    x.resume(v)
-    COROUTINE_SUSPENDED
-}
+    companion object {
+        private val o = "O"
+        private val k = "K"
 
-suspend inline fun suspendHere(crossinline block: () -> String): String {
-    return suspendThere(block()) + suspendThere(block())
-}
+        private inline fun o_plus_f1_plus_f2(f1: () -> String, f2: () -> String) = o + f1() + f2()
+        private inline fun o_plus_f_plus_k(f: () -> String) = o_plus_f1_plus_f2(f) { k }
 
-fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(EmptyContinuation)
+    }
 }
 
 fun box(): String {
-    var result = ""
-
-    builder {
-        var q = "O"
-        result = suspendHere {
-            val r = q
-            q = "K"
-            r
-        }
-    }
-
-    return result
+    return A().foo()
 }

@@ -17,12 +17,12 @@ class It(val from: C, val to: C) {
 class C(val i : Int) {
     operator fun component1() = i + 1
     operator fun component2() = i + 2
-    operator fun rangeTo(c: C) = Range(this, c)
+    infix fun rangeTo(c: C) = Range(this, c)
 }
 
 fun doTest(): String {
     var s = ""
-    for ((a, b) in C(0)..C(2)) {
+    for ((a, b) in C(0) rangeTo C(2)) {
         s += {"$a:$b;"}()
     }
     return s

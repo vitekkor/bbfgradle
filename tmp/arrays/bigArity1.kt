@@ -3,21 +3,22 @@
 // IGNORE_BACKEND: JS_IR_ES6
 // WITH_REFLECT
 
-import kotlin.test.assertEquals
-
-class A
-
-data class BigDataClass(
-    val p00: A, val p01: A, val p02: A, val p03: A, val p04: A, val p05: A, val p06: A, val p07: A, val p08: A, val p09: A,
-    val p10: A, val p11: A, val p12: A, val p13: A, val p14: A, val p15: A, val p16: A, val p17: A, val p18: A, val p19: A,
-    val p20: A, val p21: A, val p22: A, val p23: A, val p24: A, val p25: A, val p26: A, val p27: A, val p28: A, val p29: A
-)
+class A {
+    fun foo(
+        p00: A, p01: A, p02: A, p03: A, p04: A, p05: A, p06: A, p07: A, p08: A, p09: A,
+        p10: A, p11: A, p12: A, p13: A, p14: A, p15: A, p16: A, p17: A, p18: A, p19: A,
+        p20: A, p21: A, p22: A, p23: A, p24: A, p25: A, p26: A, p27: A, p28: A, p29: String
+    ): String {
+        return p29
+    }
+}
 
 fun box(): String {
-    assertEquals(
-        "[null, p00, p01, p02, p03, p04, p05, p06, p07, p08, p09, p10, p11, p12, p13, p14, " +
-                "p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29]",
-        BigDataClass::copy.parameters.map { it.name }.toString()
-    )
-    return "OK"
+    val a = A()
+    val o = A::foo.call(a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, "O")
+
+    val foo = A::class.members.single { it.name == "foo" }
+    val k = foo.call(a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, "K")
+
+    return o + k
 }

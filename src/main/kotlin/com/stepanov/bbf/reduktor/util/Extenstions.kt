@@ -114,6 +114,14 @@ fun <T> Iterable<T>.getAllWithout(index: Int): List<T> {
     return list
 }
 
+fun <T> Iterable<T>.getAllWithout(el: T): List<T> {
+    val list: ArrayList<T> = arrayListOf<T>()
+    for (item in this) {
+        if (item != el) list.add(item)
+    }
+    return list
+}
+
 fun <ASTNode> List<ASTNode>.filterRowPsiWhiteSpaces(): List<ASTNode> {
     if (this.isEmpty()) return listOf()
     val res = arrayListOf<ASTNode>()
@@ -261,6 +269,8 @@ inline fun <reified T : PsiElement> List<PsiElement>.getAllPSIChildrenOfType(): 
     this.flatMap { it.getAllPSIChildrenOfType() }
 
 fun PsiElement.getAllChildren(): List<PsiElement> = this.node.getAllChildrenNodes().map { it.psi }
+
+fun PsiElement.getAllChildrenWithItself(): List<PsiElement> = listOf(this) + this.getAllChildren()
 
 inline fun <reified T : PsiElement> PsiElement.containsChildOfType(): Boolean = this.node.children().any { it is T }
 

@@ -11,7 +11,7 @@ class ChangeVarToNull : Transformation() {
     override fun transform() {
         file.getAllPSIChildrenOfType<KtExpression>()
                 .filter { getRandomBoolean(16) }
-                .forEach { checker.replacePSINodeIfPossible(it, psiFactory.createExpression("null")) }
+                .forEach { checker.replaceNodeIfPossible(it, psiFactory.createExpression("null")) }
     }
 
 }

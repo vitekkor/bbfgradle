@@ -16,12 +16,8 @@ fun <T> normal(a: IC): T = bar(a) {
     normalValue(it)
 }
 
-fun interface FunIFace<T, R> {
-    fun call(ic: T): R
-}
-
-fun <T, R> bar(value: T, f: FunIFace<T, R>): R {
-    return f.call(value)
+fun <T, R> bar(value: T, f: (T) -> R): R {
+    return f(value)
 }
 
 fun <T> IC.extensionValue(): T = value as T

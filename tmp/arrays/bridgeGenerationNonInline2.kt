@@ -3,8 +3,12 @@
 import helpers.*
 import kotlin.coroutines.*
 
+var result = "FAIL"
+
 fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(EmptyContinuation)
+    c.startCoroutine(handleExceptionContinuation {
+        result = it.message!!
+    })
 }
 
 @Suppress("UNSUPPORTED_FEATURE")
@@ -33,20 +37,20 @@ fun <T> ResultReceiver(f: (Result<T>) -> Unit): ResultReceiver<T> =
 fun test() {
     var invoked = false
     val receiver = ResultReceiver<Int> { result ->
-        val intResult = result.getOrThrow()
         invoked = true
+        result.getOrThrow()
     }
 
     builder {
         receiver.receive(Result(suspendMe()))
     }
-    c?.resume(42)
-    if (!invoked) {
+    c?.resumeWithException(IllegalStateException("OK"))
+    if (invoked) {
         throw RuntimeException("Fail")
     }
 }
 
 fun box(): String {
     test()
-    return "OK"
+    return result
 }

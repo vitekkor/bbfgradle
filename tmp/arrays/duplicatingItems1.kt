@@ -1,29 +1,23 @@
 // WITH_RUNTIME
-// CHECK_CASES_COUNT: function=bar count=3
-// CHECK_IF_COUNT: function=bar count=0
+// CHECK_CASES_COUNT: function=foo count=3
+// CHECK_IF_COUNT: function=foo count=0
 
 import kotlin.test.assertEquals
 
-enum class Season {
-    WINTER,
-    SPRING,
-    SUMMER,
-    AUTUMN
-}
-
-fun bar(x : Season) : String {
+fun foo(x : String) : String {
     when (x) {
-        Season.WINTER, Season.SPRING -> return "winter_spring"
-        Season.SUMMER, Season.SPRING -> return "summer"
-        else -> return "autumn"
+        "abc" -> return "abc"
+        "efg", "ghi", "abc" -> return "efg_ghi"
+        else -> return "other"
     }
 }
 
 fun box() : String {
-    assertEquals("winter_spring", bar(Season.WINTER))
-    assertEquals("winter_spring", bar(Season.SPRING))
-    assertEquals("summer", bar(Season.SUMMER))
-    assertEquals("autumn", bar(Season.AUTUMN))
+    assertEquals("abc", foo("abc"))
+    assertEquals("efg_ghi", foo("efg"))
+    assertEquals("efg_ghi", foo("ghi"))
+
+    assertEquals("other", foo("xyz"))
 
     return "OK"
 }

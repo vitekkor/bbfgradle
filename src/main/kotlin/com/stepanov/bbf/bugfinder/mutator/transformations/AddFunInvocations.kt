@@ -2,11 +2,10 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
-import com.stepanov.bbf.bugfinder.executor.checkers.AbstractTreeMutator
+import com.stepanov.bbf.bugfinder.util.generateDefValuesAsString
 import com.stepanov.bbf.bugfinder.util.getAllPSIDFSChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getType
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import com.stepanov.bbf.reduktor.util.generateDefValuesAsString
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
@@ -33,9 +32,9 @@ class AddFunInvocations : Transformation() {
     }
 
     private fun tryToAddCalls(): KtFile {
-        val creator = PSICreator("")
+        val creator = PSICreator
         val psi = creator.getPSIForText(file.text)
-        val ctx = creator.ctx!!
+        val ctx = creator.analyze(psi) ?: return psi
         val whitespaces = psi.getAllPSIDFSChildrenOfType<PsiWhiteSpace>().filter { it.text.contains("\n") }
         if (whitespaces.isEmpty()) return psi
         val randomPlace = whitespaces.random()
@@ -64,7 +63,7 @@ class AddFunInvocations : Transformation() {
                 }
             }
             .filter { it.second != null && it.first != null }
-            .removeDuplicates(Comparator { t, t2 -> t.first!!.compareTo(t2.first!!) })
+            .filterDuplicates(Comparator { t, t2 -> t.first!!.compareTo(t2.first!!) })
             .map { Triple(it.first, it.second!!.constructor, it.third?.typeElement?.typeArgumentsAsTypes) }
         val objects = availableVars.filter { it.second.toString() == randomFunc.second }
         val neededObj = if (randomFunc.second == null || objects.isEmpty()) null else objects.random()
@@ -116,7 +115,7 @@ class AddFunInvocations : Transformation() {
         val block = psiFactory.createBlock(node.text)
         block.lBrace?.delete()
         block.rBrace?.delete()
-        AbstractTreeMutator(checker.compilers, checker.project.configuration).addNodeIfPossibleWithNode(tree, this, block)
+        checker.addNodeIfPossibleWithNodeWithFileReplacement(tree, checker.curFile, this, block)
         //checker.addNodeIfPossible(this, block)
     }
 

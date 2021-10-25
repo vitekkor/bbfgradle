@@ -1,23 +1,29 @@
 // TARGET_BACKEND: JVM
-// WITH_RUNTIME
+// WITH_STDLIB
 
+// MODULE: lib
 // FILE: A.kt
-package a
-import b.*
 
-class A {
-    fun foo() = ok
+open class A {
+    @JvmField public val publicField = "1";
+    @JvmField internal val internalField = "2";
+    @JvmField protected val protectedfield = "3";
+}
 
-    companion object : B()
+open class B : A() {
+
+}
+
+// MODULE: main()(lib)
+// FILE: B.kt
+
+open class C : B() {
+    fun test(): String {
+        return publicField + super.internalField + super.protectedfield
+    }
 }
 
 fun box(): String {
-    return A().foo()
-}
-
-// FILE: B.kt
-package b
-
-open class B {
-    @JvmField protected val ok = "OK"
+    C().test()
+    return "OK"
 }

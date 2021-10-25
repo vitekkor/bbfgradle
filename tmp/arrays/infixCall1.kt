@@ -1,10 +1,25 @@
+// WITH_RUNTIME
+// WITH_COROUTINES
 // DONT_RUN_GENERATED_CODE: JS
 
-tailrec infix fun Int.test(x : Int) : Int {
+import helpers.*
+import kotlin.coroutines.*
+
+tailrec suspend infix fun Int.test(x : Int) : Int {
     if (this > 1) {
         return (this - 1) test x
     }
     return this
 }
 
-fun box() : String = if (1000000.test(1000000) == 1) "OK" else "FAIL"
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
+}
+
+fun box() : String {
+    var res = ""
+    builder {
+        res = if (1000000.test(1000000) == 1) "OK" else "FAIL"
+    }
+    return res
+}

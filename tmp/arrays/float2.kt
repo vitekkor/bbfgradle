@@ -1,52 +1,41 @@
-// FILE: JavaClass.java
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: STDLIB_MATH
+// KJS_WITH_FULL_RUNTIME
+// WITH_RUNTIME
 
-public class JavaClass {
+import kotlin.math.*
 
-    public Float minus0()
-    {
-        return -0.0F;
-    }
+fun almostEqual(a: Float, b: Float): Boolean = abs(a - b) < 0.0000001F
 
-    public Float plus0()
-    {
-        return 0.0F;
-    }
-
-    public Float null0()
-    {
-        return null;
-    }
-
-}
-
-
-// FILE: b.kt
+val umax = UInt.MAX_VALUE
+val ulmax = ULong.MAX_VALUE
+val imax = Int.MAX_VALUE
+val lmax = Long.MAX_VALUE
 
 fun box(): String {
-    val jClass = JavaClass()
+    if (1F != 1.toFloat()) return "fail 1"
+    if (1.0F != 1.0.toFloat()) return "fail 2"
+    if (1e1F != 1e1.toFloat()) return "fail 3"
+    if (1.0e1F != 1.0e1.toFloat()) return "fail 4"
+    if (1e-1F != 1e-1.toFloat()) return "fail 5"
+    if (1.0e-1F != 1.0e-1.toFloat()) return "fail 6"
 
-    if (jClass.minus0() < jClass.plus0()) return "fail 1"
+    if (1f != 1.toFloat()) return "fail 7"
+    if (1.0f != 1.0.toFloat()) return "fail 8"
+    if (1e1f != 1e1.toFloat()) return "fail 9"
+    if (1.0e1f != 1.0e1.toFloat()) return "fail 10"
+    if (1e-1f != 1e-1.toFloat()) return "fail 11"
+    if (1.0e-1f != 1.0e-1.toFloat()) return "fail 12"
 
-    //TODO: KT-14989
-    //if (jClass.null0() < jClass.plus0()) return "fail 2"
+    if (!almostEqual(kotlin.math.E.toFloat(), exp(1.0F))) return "fail 13"
 
-    if (jClass.plus0() > jClass.minus0()) return "fail 3"
+    if (2147483647.toFloat() != imax.toFloat()) return "fail 14"
 
-    //TODO: KT-14989
-    //if (jClass.null0() < jClass.plus0()) return "fail 4"
+    if (9223372036854775807L.toFloat() != lmax.toFloat()) return "fail 15"
 
+    if (0xFFFF_FFFF.toFloat() != umax.toFloat()) return "fail 16"
 
-    if (jClass.minus0() != jClass.plus0()) return "fail 5"
-
-    var value = jClass.minus0() == jClass.plus0()
-    if (!value) return "fail 6"
-
-    if (jClass.null0() == jClass.plus0()) return "fail 7"
-    if (jClass.plus0() == jClass.null0()) return "fail 8"
-
-    value = jClass.null0() == jClass.null0()
-    if (!value) return "fail 9"
+    if ((2.0f * Long.MAX_VALUE + 1) != ulmax.toFloat()) return "fail 17"
 
     return "OK"
 }
-

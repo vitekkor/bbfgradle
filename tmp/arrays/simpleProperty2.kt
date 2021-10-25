@@ -1,17 +1,20 @@
-// !JVM_DEFAULT_MODE: enable
 // TARGET_BACKEND: JVM
-// JVM_TARGET: 1.8
-// WITH_RUNTIME
+// MODULE: lib
+// FILE: Base.java
 
-interface Z {
-    @JvmDefault
-    val z: String
-        get() = "OK"
+public class Base {
+    protected static final String protectedProperty = "OK";
 }
 
+// MODULE: main(lib)
+// FILE: 1.kt
 
-class Test : Z
+class Derived : Base() {
+    fun test(): String {
+        return Base.protectedProperty!!
+    }
+}
 
-fun box() : String {
-    return Test().z
+fun box(): String {
+    return Derived().test()
 }

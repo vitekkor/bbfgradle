@@ -1,2 +1,10 @@
+pluginManagement {
+    repositories {
+        maven() {
+            url "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap/"
+        }
+        mavenCentral()
+        jcenter()
+    }
+}
 rootProject.name = 'bbf'
-

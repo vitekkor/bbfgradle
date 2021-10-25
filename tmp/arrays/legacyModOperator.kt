@@ -1,5 +1,7 @@
+// TARGET_BACKEND: JVM
 // !LANGUAGE: -ProhibitOperatorMod
 // IGNORE_BACKEND_FIR: JVM_IR
+// MODULE: lib
 // FILE: Java.java
 
 import org.jetbrains.annotations.NotNull;
@@ -24,6 +26,7 @@ class Binary {
     }
 }
 
+// MODULE: main(lib)
 // FILE: 1.kt
 
 fun box(): String {

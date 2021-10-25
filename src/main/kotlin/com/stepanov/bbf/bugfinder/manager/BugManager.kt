@@ -7,6 +7,7 @@ import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
 import com.stepanov.bbf.bugfinder.util.StatisticCollector
 import org.apache.log4j.Logger
 import java.io.File
+import kotlin.system.exitProcess
 
 enum class BugType {
     BACKEND,
@@ -14,10 +15,18 @@ enum class BugType {
     DIFFBEHAVIOR,
     UNKNOWN,
     DIFFCOMPILE,
-    DIFFABI
+    DIFFABI,
+    PERFORMANCE
 }
 
 data class Bug(val compilers: List<CommonCompiler>, val msg: String, val crashedProject: Project, val type: BugType) {
+
+    constructor(b: Bug) : this(
+        b.compilers,
+        b.msg,
+        b.crashedProject.copy(),
+        b.type
+    )
 
     constructor(compiler: CommonCompiler, msg: String, crashedProject: Project, type: BugType) : this(
         listOf(compiler),
@@ -42,6 +51,8 @@ data class Bug(val compilers: List<CommonCompiler>, val msg: String, val crashed
                     BugType.FRONTEND, BugType.BACKEND -> compilers.first().compilerInfo.filter { it != ' ' }
                     else -> ""
                 }
+
+    fun copy() = Bug(compilers, msg, crashedProject.copy(), type)
 
     override fun toString(): String {
         return "${type.name}\n${compilers.map { it.compilerInfo }}\nText:\n${crashedProject}"
@@ -124,9 +135,14 @@ object BugManager {
             println("SAVING ${bug.type} BUG")
             if (ReportProperties.getPropAsBoolean("SAVE_STATS") == true) saveStats()
             //Check if bug is real project bug
-            val newBug = bug//checkIfBugIsProject(bug)
+            val newBug = bug.copy()//checkIfBugIsProject(bug)
             log.debug("Start to reduce ${newBug.crashedProject}")
-            val reduced = Reducer.reduce(newBug)
+            val reduced =
+                try {
+                    Reducer.reduce(newBug)
+                } catch (e: Exception) {
+                    newBug.crashedProject.copy()
+                }
             val reducedBug = Bug(newBug.compilers, newBug.msg, reduced, newBug.type)
             log.debug("Reduced: ${reducedBug.crashedProject}")
             val newestBug = reducedBug//checkIfBugIsProject(reducedBug)
@@ -144,7 +160,11 @@ object BugManager {
                 TextReporter.dump(bugs)
             }
             if (ReportProperties.getPropAsBoolean("FILE_REPORTER") == true) {
-                FileReporter.dump(listOf(newestBug))
+                val bugList =
+                    if (bug.type == BugType.FRONTEND || bug.type == BugType.BACKEND)
+                        listOf(bug, newestBug)
+                    else listOf(newestBug)
+                FileReporter.dump(bugList)
             }
         } catch (e: Exception) {
             log.debug("Exception ${e.localizedMessage} ${e.stackTraceToString()}\n")
@@ -169,6 +189,7 @@ object BugManager {
             BugType.DIFFABI -> FilterDuplcatesCompilerErrors.haveSameDiffABIErrors(bug)
             BugType.DIFFBEHAVIOR -> false
             BugType.UNKNOWN -> false
+            BugType.PERFORMANCE -> false
         }
     }
 

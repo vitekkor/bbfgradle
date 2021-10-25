@@ -1,20 +1,33 @@
-// SKIP_JDK6
-// TARGET_BACKEND: JVM
+// !LANGUAGE: +MultiPlatformProjects
+// IGNORE_BACKEND_FIR: JVM_IR
 // WITH_RUNTIME
-// FULL_JDK
-// KOTLIN_CONFIGURATION_FLAGS: +JVM.PARAMETERS_METADATA
+// FILE: common.kt
 
-class A() {
-    fun test(OK: String) {
+expect fun topLevel(a: String, b: Int = 0, c: Double? = null): String
 
-    }
+expect class Foo() {
+    fun member(a: String, b: Int = 0, c: Double? = null): String
+}
+
+// FILE: jvm.kt
+
+import kotlin.test.assertEquals
+
+actual fun topLevel(a: String, b: Int, c: Double?): String = a + "," + b + "," + c
+
+actual class Foo actual constructor() {
+    actual fun member(a: String, b: Int, c: Double?): String = a + "," + b + "," + c
 }
 
 fun box(): String {
-    val clazz = A::class.java
-    val method = clazz.getDeclaredMethod("test", String::class.java)
-    val parameters = method.getParameters()
+    assertEquals("OK,0,null", topLevel("OK"))
+    assertEquals("OK,42,null", topLevel("OK", 42))
+    assertEquals("OK,42,3.14", topLevel("OK", 42, 3.14))
 
-    if (parameters[0].modifiers != 0) return "wrong modifier on value parameter: ${parameters[0].modifiers}"
-    return parameters[0].name
+    val foo = Foo()
+    assertEquals("OK,0,null", foo.member("OK"))
+    assertEquals("OK,42,null", foo.member("OK", 42))
+    assertEquals("OK,42,3.14", foo.member("OK", 42, 3.14))
+
+    return "OK"
 }

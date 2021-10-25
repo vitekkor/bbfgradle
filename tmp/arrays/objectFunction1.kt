@@ -1,24 +1,21 @@
-// TARGET_BACKEND: JVM
+// IGNORE_BACKEND: JS_IR
+// IGNORE_BACKEND: JS_IR_ES6
+// TODO: investigate should it be ran for JS or not
+// IGNORE_BACKEND: JS, NATIVE
 
 // WITH_REFLECT
 
-import kotlin.reflect.KFunction
-import kotlin.reflect.jvm.*
-import kotlin.test.assertEquals
+import kotlin.reflect.*
 
-object O {
-    @JvmStatic
-    fun foo(s: String): Int = s.length
+object Host {
+    fun foo(x: String) = x
 }
 
-fun box(): String {
-    val foo = O::class.members.single { it.name == "foo" } as KFunction<*>
-
-    val j = foo.javaMethod ?: return "Fail: no Java method found for O::foo"
-    assertEquals(3, j.invoke(null, "abc"))
-
-    val k = j.kotlinFunction ?: return "Fail: no Kotlin function found for Java method O::foo"
-    assertEquals(3, k.call(O, "def"))
-
-    return "OK"
+class CompanionOwner {
+    companion object {
+        fun bar(x: String) = x
+    }
 }
+
+fun box(): String =
+        (Host::foo).call("O") + (CompanionOwner.Companion::bar).call("K")

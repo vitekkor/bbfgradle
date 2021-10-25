@@ -14,7 +14,6 @@ import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import com.stepanov.bbf.bugfinder.util.getType as getType1
 import java.io.File
 import kotlin.random.Random
-import kotlin.streams.toList
 
 object NodeDB {
 
@@ -119,6 +118,6 @@ object NodeDB {
         getAllNodesOfTypeFromRandomFileWithCtx(type).let { it.first.random() to it.second }
 
 
-    private val file = File("database.txt").bufferedReader().lines().toList()
+    private val file = File("database.txt").bufferedReader().lines().toArray().toList().map { it as String }
     private val counters = mutableListOf(0, 0, 0, 0, 0)
 }

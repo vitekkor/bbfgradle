@@ -8,13 +8,13 @@ fun zero() = 0
 
 fun box(): String {
     assertFailsWith<IllegalArgumentException> {
-        val uintProgression = 7u downTo 1u
+        val uintProgression = 1u until 7u
         for (i in uintProgression step zero()) {
         }
     }
 
     assertFailsWith<IllegalArgumentException> {
-        val ulongProgression = 7uL downTo 1uL
+        val ulongProgression = 1uL until 7uL
         for (i in ulongProgression step zero().toLong()) {
         }
     }

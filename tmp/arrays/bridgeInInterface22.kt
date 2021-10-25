@@ -1,4 +1,4 @@
-// !JVM_DEFAULT_MODE: all-compatibility
+// !JVM_DEFAULT_MODE: all
 // TARGET_BACKEND: JVM
 // IGNORE_BACKEND: ANDROID
 // JVM_TARGET: 1.8
@@ -26,11 +26,15 @@ fun box(): String {
     checkNoMethod(TestClass::class.java, "test", String::class.java)
     checkNoMethod(TestClass::class.java, "test", Any::class.java)
 
-
-    val test2DefaultImpls = java.lang.Class.forName("Test2\$DefaultImpls")
-    checkMethodExists(test2DefaultImpls, "test", Test2::class.java, String::class.java)
-    checkNoMethod(test2DefaultImpls, "test", Test2::class.java, Any::class.java)
-
+    try {
+        val test2DefaultImpls = java.lang.Class.forName("Test2\$DefaultImpls")
+        checkNoMethod(test2DefaultImpls, "test", String::class.java)
+        checkNoMethod(test2DefaultImpls, "test", Any::class.java)
+        checkNoMethod(test2DefaultImpls, "test", Test2::class.java, Any::class.java)
+        checkNoMethod(test2DefaultImpls, "test", Test2::class.java, Any::class.java)
+    } catch (e: ClassNotFoundException) {
+        //or no class
+    }
     return "OK"
 }
 

@@ -6,25 +6,25 @@ import kotlin.test.*
 
 fun box(): String {
     val intList = mutableListOf<Int>()
-    val intProgression = 1 until 11
+    val intProgression = 10 downTo 1
     for (i in ((intProgression step 2).reversed() step 3).reversed()) {
         intList += i
     }
-    assertEquals(listOf(3, 6, 9), intList)
+    assertEquals(listOf(8, 5, 2), intList)
 
     val longList = mutableListOf<Long>()
-    val longProgression = 1L until 11L
+    val longProgression = 10L downTo 1L
     for (i in ((longProgression step 2L).reversed() step 3L).reversed()) {
         longList += i
     }
-    assertEquals(listOf(3L, 6L, 9L), longList)
+    assertEquals(listOf(8L, 5L, 2L), longList)
 
     val charList = mutableListOf<Char>()
-    val charProgression = 'a' until 'k'
+    val charProgression = 'j' downTo 'a'
     for (i in ((charProgression step 2).reversed() step 3).reversed()) {
         charList += i
     }
-    assertEquals(listOf('c', 'f', 'i'), charList)
+    assertEquals(listOf('h', 'e', 'b'), charList)
 
     return "OK"
 }

@@ -1,12 +1,16 @@
 // TARGET_BACKEND: JVM
 // WITH_RUNTIME
+// FILE: facade.kt
 
-@file:JvmName("Test")
+@file:JvmName("Facade")
 @file:JvmMultifileClass
+
 package test
 
-fun foo(): String = bar()
-fun bar(): String = qux()
-fun qux(): String = "OK"
+@JvmOverloads
+fun foo(o: String = "O", k: String = "K"): String = o + k
 
-fun box(): String = foo()
+// FILE: test.kt
+
+fun box(): String =
+    Class.forName("test.Facade").getMethod("foo").invoke(null) as String

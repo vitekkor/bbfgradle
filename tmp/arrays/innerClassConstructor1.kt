@@ -1,15 +1,18 @@
 // IGNORE_BACKEND: JS_IR
 // IGNORE_BACKEND: JS_IR_ES6
-// TODO: muted automatically, investigate should it be ran for JS or not
+// TODO: investigate should it be ran for JS or not
 // IGNORE_BACKEND: JS, NATIVE
 
 // WITH_REFLECT
 
-class A {
-    class Nested(val result: String)
-    inner class Inner(val result: String)
+class Outer(val x: String) {
+    inner class Inner(val y: String) {
+        fun foo() = x + y
+    }
 }
 
 fun box(): String {
-    return (A::Nested).call("O").result + (A::Inner).call((::A).call(), "K").result
+    val innerCtor = Outer("O")::Inner
+    val inner = innerCtor.call("K")
+    return inner.foo()
 }

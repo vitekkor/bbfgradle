@@ -1,19 +1,26 @@
-// TARGET_BACKEND: JVM
-
 // WITH_RUNTIME
-// FILE: Bar.java
+// WITH_COROUTINES
+import helpers.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 
-public class Bar {
-    public static String bar() {
-        return Foo.foo();
-    }
+suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
+    x.resume(v)
+    COROUTINE_SUSPENDED
 }
 
-// FILE: foo.kt
+suspend fun suspendHere(): String = suspendThere("O") + suspendThere("K")
 
-@file:JvmName("Foo")
-public fun foo(): String = "OK"
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
+}
 
-// FILE: simple.kt
+fun box(): String {
+    var result = ""
 
-fun box(): String = Bar.bar()
+    builder {
+        result = suspendHere()
+    }
+
+    return result
+}

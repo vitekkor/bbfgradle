@@ -1,5 +1,7 @@
+// !JVM_DEFAULT_MODE: all-compatibility
 // TARGET_BACKEND: JVM
 // JVM_TARGET: 1.8
+// WITH_RUNTIME
 
 interface Z<T> {
     fun test(p: T): T {
@@ -7,6 +9,7 @@ interface Z<T> {
     }
 }
 
+@JvmDefaultWithoutCompatibility
 open class ZImpl : Z<String>
 
 class ZImpl2 : ZImpl() {

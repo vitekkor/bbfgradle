@@ -1,16 +1,33 @@
-// FILE: 1.kt
-// SKIP_INLINE_CHECK_IN: inlineFun$default
-package test
+// !JVM_DEFAULT_MODE: all
+// IGNORE_BACKEND_FIR: JVM_IR
+// TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// WITH_RUNTIME
 
-inline fun inlineFun(capturedParam: String, lambda: () -> String = { capturedParam }): String {
-    return lambda()
+interface Test {
+    @JvmDefault
+    fun test(): String {
+        return "O"
+    }
+
+    fun delegatedTest(): String {
+        return "fail"
+    }
 }
 
-// FILE: 2.kt
-// CHECK_CONTAINS_NO_CALLS: box
+class Delegate : Test {
+    override fun test(): String {
+        return "Fail"
+    }
 
-import test.*
+    override fun delegatedTest(): String {
+        return "K"
+    }
+}
+
+class TestClass(val foo: Test) : Test by foo
 
 fun box(): String {
-    return inlineFun("OK")
+    val testClass = TestClass(Delegate())
+    return testClass.test() + testClass.delegatedTest()
 }

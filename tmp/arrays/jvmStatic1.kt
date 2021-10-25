@@ -1,21 +1,20 @@
+// WITH_RUNTIME
 // TARGET_BACKEND: JVM
-
-// WITH_REFLECT
-
-object Obj {
+object Test {
     @JvmStatic
-    fun foo() {}
-}
+    lateinit var value: String
 
-class C {
-    companion object {
-        @JvmStatic
-        fun bar() {}
-    }
+    val isInitialized
+        get() = Test::value.isInitialized
+
+    val isInitializedThroughFn
+        get() = self()::value.isInitialized
+
+    fun self() = Test.apply { value = "OK" }
 }
 
 fun box(): String {
-    (Obj::class.members.single { it.name == "foo" }).call(Obj)
-    (C.Companion::class.members.single { it.name == "bar" }).call(C.Companion)
-    return "OK"
+    if (Test.isInitialized) return "fail 1"
+    if (!Test.isInitializedThroughFn) return "fail 2"
+    return Test.value
 }

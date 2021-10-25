@@ -1,26 +1,25 @@
-// TARGET_BACKEND: JVM
+// DONT_TARGET_EXACT_BACKEND: WASM
+// WASM_MUTE_REASON: SAM_CONVERSIONS
+// !LANGUAGE: +NewInference +FunctionalInterfaceConversion +SamConversionPerArgument +SamConversionForKotlinFunctions
 // WITH_RUNTIME
 
-// FILE: Test.java
-
-public class Test {
-    public static boolean isNull(Runnable r) {
-        if (r == null)
-            return true;
-        r.run();
-        return false;
-    }
+fun interface KRunnable {
+    fun invoke()
 }
 
-// FILE: test.kt
+fun isNull(r: KRunnable?): Boolean {
+    if (r == null) return true
+    r.invoke()
+    return false
+}
 
 fun nullableFun(fromNull: Boolean): (() -> Unit)? =
     if (fromNull) null else {{}}
 
 fun box(): String {
-    if (!Test.isNull(nullableFun(true))) return "Fail 1"
-    if (Test.isNull(nullableFun(false))) return "Fail 2"
-    if (!Test.isNull(null)) return "Fail 3"
-    if (Test.isNull {}) return "Fail 4"
+    if (!isNull(nullableFun(true))) return "Fail 1"
+    if (isNull(nullableFun(false))) return "Fail 2"
+    if (!isNull(null)) return "Fail 3"
+    if (isNull {}) return "Fail 4"
     return "OK"
 }

@@ -1,6 +1,20 @@
-object o {
-    class Foo(val a: Int = 1) {}
+// MODULE: lib
+// FILE: A.kt
+
+package a
+
+object CartRoutes {
+    class RemoveOrderItem {
+        val result = "OK"
+    }
 }
 
-// CLASS: o$Foo
-// HAS_DEFAULT_CONSTRUCTOR: true
+// MODULE: main(lib)
+// FILE: B.kt
+
+import a.CartRoutes
+
+fun box(): String {
+    val r = CartRoutes.RemoveOrderItem()
+    return r.result
+}

@@ -1,32 +1,23 @@
-// KOTLIN_CONFIGURATION_FLAGS: +JVM.EMIT_JVM_TYPE_ANNOTATIONS
+// EMIT_JVM_TYPE_ANNOTATIONS
 // TARGET_BACKEND: JVM
-// IGNORE_BACKEND_FIR: JVM_IR
 // JVM_TARGET: 1.8
 // WITH_REFLECT
 // FULL_JDK
 
-// FILE: ImplicitReturn.java
+// MODULE: lib
+// FILE: A.kt
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.reflect.AnnotatedType
+import kotlin.reflect.jvm.javaMethod
+import kotlin.test.fail
 
+@Target(AnnotationTarget.TYPE)
+annotation class TypeAnn
 
-public class ImplicitReturn {
+fun bar(): @TypeAnn String = "OK"
 
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.TYPE_USE)
-    public @ interface TypeAnn {}
-
-    @ImplicitReturn.TypeAnn
-    public String bar() {
-        return "OK";
-    }
-}
-
-
-// FILE: Kotlin.kt
+// MODULE: main(lib)
+// FILE: B.kt
 
 import java.lang.reflect.AnnotatedType
 import kotlin.reflect.jvm.javaMethod
@@ -35,10 +26,10 @@ import kotlin.test.fail
 
 class Kotlin {
 
-    fun foo() = ImplicitReturn().bar()
+    fun foo() = bar()
 
     @JvmField
-    val field = ImplicitReturn().bar()
+    val field = bar()
 }
 
 fun box(): String {
@@ -46,14 +37,14 @@ fun box(): String {
     checkTypeAnnotation(
         Kotlin::foo.javaMethod!!.annotatedReturnType,
         "class java.lang.String",
-        "@ImplicitReturn\$TypeAnn()",
+        "@TypeAnn()",
         "foo"
     )
 
     checkTypeAnnotation(
         Kotlin::field.javaField!!.annotatedType,
         "class java.lang.String",
-        "@ImplicitReturn\$TypeAnn()",
+        "@TypeAnn()",
         "foo"
     )
 

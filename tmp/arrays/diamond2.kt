@@ -1,13 +1,26 @@
-// TARGET_BACKEND: JVM
-// FILE: A.java
-public interface A { public String ok = "OK"; }
-// FILE: B.java
-public class B implements A {}
-// FILE: C.java
-public class C extends B implements A {}
-// FILE: test.kt
-class D: C() {
-    fun okay() = ok
+interface A<T, U> {
+    fun foo(t: T, u: U) = "A"
 }
 
-fun box() = D().okay()
+interface B<U> : A<String, U>
+
+interface C<T> : A<T, Int>
+
+class Z : B<Int>, C<String> {
+    override fun foo(t: String, u: Int) = "Z"
+}
+
+
+fun box(): String {
+    val z = Z()
+    val c: C<String> = z
+    val b: B<Int> = z
+    val a: A<String, Int> = z
+    return when {
+        z.foo("", 0) != "Z" -> "Fail #1"
+        c.foo("", 0) != "Z" -> "Fail #2"
+        b.foo("", 0) != "Z" -> "Fail #3"
+        a.foo("", 0) != "Z" -> "Fail #4"
+        else -> "OK"
+    }
+}
