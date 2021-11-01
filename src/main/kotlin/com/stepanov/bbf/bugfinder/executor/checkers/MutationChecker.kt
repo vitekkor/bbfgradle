@@ -5,13 +5,16 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.TreeElement
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
 import org.apache.log4j.Logger
 
 open class MutationChecker(
-    compilers: List<CommonCompiler>,
+    private val compilers: List<CommonCompiler>,
     val project: Project,
     var curFile: BBFFile,
 ) : CompilationChecker(compilers) {
@@ -21,6 +24,18 @@ open class MutationChecker(
     constructor(compilers: List<CommonCompiler>, project: Project) : this(compilers, project, project.files.first())
 
     fun checkCompiling() = checkCompilingWithBugSaving(project, curFile)
+
+    fun compileAndGetResult(): String {
+        log.debug("Compilation checking and getting result started")
+        val allTexts = project.files.joinToString { it.psiFile.text }
+        checkedConfigurationsWithExecutionResult[allTexts]?.let { log.debug("Already executed"); return it.first }
+        val compiler = compilers.find(JVMCompiler::class::isInstance) ?: return "Error" //TODO
+        val compiled = compiler.compile(project)
+        val startTime = System.currentTimeMillis()
+        val res = compiler.commonExec("java -jar ${compiled.pathToCompiled}", Stream.BOTH)
+        checkedConfigurationsWithExecutionResult[allTexts] = res to System.currentTimeMillis() - startTime
+        return checkedConfigurationsWithExecutionResult[allTexts]!!.first
+    }
 
     fun replaceNodeIfPossibleWithNode(node: ASTNode, replacement: ASTNode): ASTNode? {
         log.debug("Trying to replace $node on $replacement")
@@ -170,4 +185,5 @@ open class MutationChecker(
 
     private val DUMMY_HOLDER_INDEX: Short = 86
     private val log = Logger.getLogger("mutatorLogger")
+    private val checkedConfigurationsWithExecutionResult = hashMapOf<String, Pair<String, Long>>()
 }
