@@ -44,7 +44,7 @@ object ExpressionObfuscator : Transformation() {
             usageExamples = TCEUsagesCollector.collectUsageCases(file as KtFile, ctx, checker.project).toMutableList()
         }
         //TODO make dependent from size of program
-        repeat(1) { it ->
+        repeat(3) { it ->
             ctx = PSICreator.analyze(file) ?: return
             val (expr, exprType) = getRandomExpressionForObfuscation(ctx) ?: return@repeat
             calcAvailableVariables(expr, ctx)

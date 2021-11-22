@@ -7,6 +7,7 @@ import com.stepanov.bbf.bugfinder.executor.addMainForPerformanceTesting
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.*
+import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.getAllWithout
 import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
@@ -16,6 +17,7 @@ import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
 import org.jetbrains.kotlin.psi.KtFile
+import kotlin.system.exitProcess
 
 class Project(
     var configuration: Header,
@@ -158,6 +160,36 @@ class Project(
         }
         args.optIn = configuration.useExperimental.toTypedArray()
         return args
+    }
+
+    fun addMainAndCoverageResultsSaving(): Project {
+        val projectWithMain = addMain()
+        val files = projectWithMain.files
+        val indexOfFileWithMain = files.indexOfFirst { it.text.contains("fun main(") }
+        if (indexOfFileWithMain == -1) return projectWithMain
+        val fileWithMain = files[indexOfFileWithMain]
+        val ktFileWithMain = fileWithMain.psiFile.copy() as? KtFile ?: return projectWithMain
+        val mainFunc = ktFileWithMain.getAllPSIChildrenOfType<KtNamedFunction>()
+            .firstOrNull { it.name == "main" } ?: return projectWithMain
+        //Add java.io.File import
+        ktFileWithMain.addImport("java.io.File", false)
+        ktFileWithMain.addImport("coverage.MyMethodBasedCoverage", false)
+        val newStatements = listOf(
+            "val s = StringBuilder()",
+            "MyMethodBasedCoverage.methodProbes.forEach(s::appendLine)",
+            "File(\"tmp/jarCoverage.txt\").writeText(s.toString())"
+        ).map {
+            if (it.startsWith("val")) {
+                Factory.psiFactory.createProperty(it)
+            } else {
+                Factory.psiFactory.createExpression(it)
+            }
+        }
+        mainFunc.bodyBlockExpression?.addStatementsToEnd(newStatements)
+        val newFirstFile = BBFFile(fileWithMain.name, ktFileWithMain)
+        val newFiles =
+            listOf(newFirstFile) + files.getAllWithout(indexOfFileWithMain).map { BBFFile(it.name, it.psiFile.copy() as PsiFile) }
+        return Project(configuration, newFiles, language)
     }
 
     fun addMain(): Project {

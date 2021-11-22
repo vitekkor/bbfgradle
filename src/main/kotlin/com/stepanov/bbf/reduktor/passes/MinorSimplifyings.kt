@@ -14,6 +14,20 @@ import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 
 //
 class MinorSimplifyings : SimplificationPass() {
+
+    private val ctx: BindingContext?
+    private val customStructures = file.getAllPSIChildrenOfType<KtClassOrObject>().map { it to it.name }
+
+    init {
+        ctx = try {
+            PSICreator.analyze(Transformation.checker.curFile.psiFile)
+        } catch (e: Error) {
+            null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     override fun simplify() {
         if (ctx == null) return
         //Replace variable on constant if we can get type
@@ -61,9 +75,6 @@ class MinorSimplifyings : SimplificationPass() {
         }
         return null
     }
-
-    val ctx = PSICreator.analyze(Transformation.checker.curFile.psiFile)
-    val customStructures = file.getAllPSIChildrenOfType<KtClassOrObject>().map { it to it.name }
 }
 
 

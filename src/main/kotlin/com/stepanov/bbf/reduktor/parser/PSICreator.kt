@@ -14,7 +14,7 @@ import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyEnv
 import com.stepanov.bbf.kootstrap.util.opt
 import org.jetbrains.kotlin.analyzer.AnalysisResult
 import org.jetbrains.kotlin.cli.common.config.addKotlinSourceRoots
-import org.jetbrains.kotlin.cli.jvm.compiler.*
+import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.config.addJavaSourceRoots
 import org.jetbrains.kotlin.cli.jvm.config.addJvmClasspathRoots
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
@@ -25,6 +25,9 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.lazy.JvmResolveUtil
 import java.io.File
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 
 @Suppress("DEPRECATION")
@@ -117,20 +120,41 @@ object PSICreator {
         val env = setupMyEnv(cfg)
         val configuration = env.configuration.copy()
         configuration.put(CommonConfigurationKeys.MODULE_NAME, "root")
-        return try {
-            if (psiFile is KtFile) {
-                JvmResolveUtil.analyze(listOf(psiFile), env, configuration)
-            } else {
-                JvmResolveUtil.analyze(env)
+        val executor = Executors.newCachedThreadPool()
+        val task = Callable {
+            try {
+                if (psiFile is KtFile) {
+                    JvmResolveUtil.analyze(listOf(psiFile), env, configuration)
+                } else {
+                    JvmResolveUtil.analyze(env)
+                }
+            } catch (e: Exception) {
+                println(e)
+                null
+            } catch (e: Error) {
+                null
             }
-        } catch (e: Exception) {
-            println(e)
-            null
-        } catch (e: Error) {
-            null
-        } finally {
-            //project?.saveOrRemoveToTmp(false)
         }
+        val taskResult = executor.submit(task)
+        return try {
+            taskResult.get(5, TimeUnit.SECONDS)
+        } catch (e: Exception) {
+            null
+        }
+//        return try {
+//            if (psiFile is KtFile) {
+//                JvmResolveUtil.analyze(listOf(psiFile), env, configuration)
+//            } else {
+//                JvmResolveUtil.analyze(env)
+//            }
+//        } catch (e: Exception) {
+//            println(e)
+//            null
+//        } catch (e: Error) {
+//            null
+//        } finally {
+//            //project?.saveOrRemoveToTmp(false)
+//        }
     }
 
 

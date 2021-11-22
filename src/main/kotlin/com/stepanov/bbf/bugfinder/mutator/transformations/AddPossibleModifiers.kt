@@ -8,7 +8,8 @@ import org.jetbrains.kotlin.psi.KtProperty
 
 import com.stepanov.bbf.bugfinder.util.getAllChildrenNodes
 import com.stepanov.bbf.bugfinder.util.getRandomBoolean
-import java.util.*
+import com.stepanov.bbf.bugfinder.util.getTrue
+import kotlin.random.Random
 
 class AddPossibleModifiers : Transformation() {
 
@@ -19,7 +20,7 @@ class AddPossibleModifiers : Transformation() {
                 it.elementType == KtNodeTypes.CLASS || it.elementType == KtNodeTypes.PROPERTY
                         || it.elementType == KtNodeTypes.FUN
             }
-            .filter { getRandomBoolean(4) }
+            .filter { Random.getTrue(25) }
             .toList()
         values.forEach {
             val curWorkingList =
@@ -34,7 +35,7 @@ class AddPossibleModifiers : Transformation() {
                     KtNodeTypes.PROPERTY -> it.psi as KtProperty
                     else -> it.psi as KtFunction
                 }
-            val num = Random().nextInt(curWorkingList.size)
+            val num = Random.nextInt(curWorkingList.size)
             val keyword = KtTokens.MODIFIER_KEYWORDS_ARRAY.find { it.value == curWorkingList[num] } ?: return@forEach
             if (el.hasModifier(keyword)) return@forEach
             el.addModifier(keyword)

@@ -5,6 +5,7 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiExpressionStatement
 import com.intellij.psi.meta.PsiMetaData
+import com.stepanov.bbf.bugfinder.executor.COMPILE_STATUS
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
@@ -40,7 +41,7 @@ object K2JConverter {
         project.addFile(bbfFile)
         val compiled = JVMCompiler().compile(project, false)
         project.removeFile(bbfFile)
-        if (compiled.status == -1) return null
+        if (compiled.status != COMPILE_STATUS.OK) return null
         val savedSource = File(tmpName).writeText(el.text)
         val pathToJar = compiled.pathToCompiled
         ConsoleDecompiler.main(arrayOf(tmpName, pathToJar, pathToDecompiled))

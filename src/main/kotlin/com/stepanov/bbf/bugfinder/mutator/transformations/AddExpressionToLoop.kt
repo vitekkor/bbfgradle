@@ -17,7 +17,7 @@ class AddExpressionToLoop : Transformation() {
         val expressions = file.getAllPSIChildrenOfType<KtExpression>().filter { it.getType(ctx) != null }
         file.getAllPSIChildrenOfType<KtLoopExpression>()
             .shuffled()
-            .take(1)
+            .take(5)
             .filter { it.body is KtBlockExpression }
             .forEach { loop ->
                 repeat(5) {
@@ -34,6 +34,7 @@ class AddExpressionToLoop : Transformation() {
             blockBody.lBrace?.delete()
             blockCopy.text.split("\n").filter { it.trim().isNotEmpty() }
         }
+        if (blockTextLines.isEmpty()) return
         val randomLineNumber = Random.nextInt(0, blockTextLines.size)
         val randomExpressionToInsert = expressionsToInsert.randomOrNull()?.text ?: return
         val left = blockTextLines.take(randomLineNumber).joinToString("\n")

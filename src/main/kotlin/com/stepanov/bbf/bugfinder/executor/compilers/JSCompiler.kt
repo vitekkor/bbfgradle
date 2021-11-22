@@ -43,7 +43,10 @@ class JSCompiler(override val arguments: String = "") : CommonCompiler() {
         val path = projectWithMainFun.saveOrRemoveToTmp(true)
         val args = prepareArgs(projectWithMainFun, path, pathToCompiled)
         val status = executeCompiler(projectWithMainFun, args)
-        if (status.hasException || status.hasTimeout || !status.isCompileSuccess) return CompilationResult(-1, "")
+        val compileStatus = getCompilationStatusFromKotlincInvokeStatus(status)
+        if (status.hasException || status.hasTimeout || !status.isCompileSuccess) {
+            return CompilationResult(compileStatus, "", status.combinedOutput)
+        }
         val oldStr = FileReader(File(pathToCompiled)).readText()
         val newStr = "const kotlin = require(\"${CompilerArgs.pathToJsKotlinLib}kotlin.js\");\n" +
                 "this['kotlin-test'] = require(\"${CompilerArgs.pathToJsKotlinLib}kotlin-test.js\");" +
@@ -52,7 +55,7 @@ class JSCompiler(override val arguments: String = "") : CommonCompiler() {
         val bw = BufferedWriter(fw)
         bw.write(newStr)
         bw.close()
-        return CompilationResult(0, pathToCompiled)
+        return CompilationResult(compileStatus, pathToCompiled, status.combinedOutput)
     }
 
     override fun compile(project: Project, numberOfExecutions: Int, includeRuntime: Boolean): CompilationResult {

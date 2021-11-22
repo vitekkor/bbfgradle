@@ -15,18 +15,18 @@ import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.replace
 import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
 import org.jetbrains.kotlin.types.typeUtil.isBoolean
-import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 object AddLoop : Transformation() {
 
     override fun transform() {
-        val backup = file.copy() as PsiFile
-        try {
-            addRandomLoops()
-        } catch (e: Exception) {
-            checker.curFile.changePsiFile(backup, false)
+        repeat(10) {
+            val backup = file.copy() as PsiFile
+            try {
+                addRandomLoops()
+            } catch (e: Exception) {
+                checker.curFile.changePsiFile(backup, false)
+            }
         }
     }
 
@@ -34,7 +34,7 @@ object AddLoop : Transformation() {
         val beginOfLoop = Random.nextInt(file.text.split("\n").size - 2)
         val endOfLoop = Random.nextInt(beginOfLoop + 1, file.text.split("\n").size - 1)
         val fileBackup = file.copy() as PsiFile
-        val nodesBetweenWhS = file.getNodesBetweenWhitespaces(beginOfLoop, endOfLoop)
+        val nodesBetweenWhS = file.getNodesBetweenLines(beginOfLoop, endOfLoop)
         if (nodesBetweenWhS.isEmpty() || nodesBetweenWhS.all { it is PsiWhiteSpace }) return
         val randomLoop = generateRandomLoop(beginOfLoop to endOfLoop) ?: return
         nodesBetweenWhS.first { it !is PsiWhiteSpace }.replaceThis(randomLoop)
@@ -49,7 +49,7 @@ object AddLoop : Transformation() {
 
     private fun generateRandomLoop(placeToInsert: Pair<Int, Int>): KtExpression? {
         val beginningNode =
-            file.getNodesBetweenWhitespaces(placeToInsert.first, placeToInsert.first)
+            file.getNodesBetweenLines(placeToInsert.first, placeToInsert.first)
                 .firstOrNull { it is KtExpression } ?: return null
         val ctx = PSICreator.analyze(file, checker.project) ?: return null
         val rig = RandomInstancesGenerator(file as KtFile, ctx)
@@ -59,7 +59,7 @@ object AddLoop : Transformation() {
                 .calcScope(beginningNode)
                 .map { it.psiElement to it.type }
         //val scope = (file as KtFile).getAvailableValuesToInsertIn(beginningNode, ctx).filter { it.second != null }
-        val nodesBetweenWhS = file.getNodesBetweenWhitespaces(placeToInsert.first, placeToInsert.second)
+        val nodesBetweenWhS = file.getNodesBetweenLines(placeToInsert.first, placeToInsert.second)
         val body = nodesBetweenWhS.filter { it.parent !in nodesBetweenWhS }.joinToString("") { it.text }
         return if (Random.getTrue(75)) {
             generateForExpression(scope, rig, body)

@@ -41,7 +41,7 @@ class ExpressionReplacer : Transformation() {
         val ctx = PSICreator.analyze(checker.curFile.psiFile, checker.project) ?: return
         rig = RandomInstancesGenerator(ktFile, ctx)
         RandomTypeGenerator.setFileAndContext(ktFile, ctx)
-        var nodesToChange = updateReplacement(ktFile.getAllChildren(), ctx).shuffled().take(2)
+        var nodesToChange = updateReplacement(ktFile.getAllChildren(), ctx).shuffled().take(3)
         for (ind in nodesToChange.indices) {
             if (ind >= nodesToChange.size) break
 //            if (nodesToChange[ind].second!!.isUnit()) continue
@@ -150,7 +150,7 @@ class ExpressionReplacer : Transformation() {
         return null
     }
 
-    fun handleCallSeq(postfix: List<CallableDescriptor>, scope: List<ScopeCalculator.ScopeComponent>): KtExpression? {
+    private fun handleCallSeq(postfix: List<CallableDescriptor>, scope: List<ScopeCalculator.ScopeComponent>): KtExpression? {
         val res = StringBuilder()
         var prefix = ""
         postfix.map { desc ->

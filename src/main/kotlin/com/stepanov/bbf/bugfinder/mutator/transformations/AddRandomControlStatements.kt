@@ -14,7 +14,9 @@ import kotlin.system.exitProcess
 
 object AddRandomControlStatements : Transformation() {
     override fun transform() {
-        insertRandomStatement()
+        repeat(20) {
+            insertRandomStatement()
+        }
     }
 
     private fun insertRandomStatement() {

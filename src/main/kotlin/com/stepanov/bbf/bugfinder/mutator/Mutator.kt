@@ -8,16 +8,21 @@ import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.LocalTCE
 import com.stepanov.bbf.bugfinder.mutator.transformations.util.ExpressionReplacer
+import com.stepanov.bbf.bugfinder.util.CoverageStatisticsCollector
 import com.stepanov.bbf.bugfinder.util.getTrue
+import com.stepanov.bbf.bugfinder.util.instrumentation.CoverageGuidingCoefficients
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import kotlinx.serialization.ExperimentalSerializationApi
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtFile
+import java.io.File
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.sqrt
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
+@ExperimentalSerializationApi
 class Mutator(val project: Project) {
 
     fun executeMutation(t: Transformation, probPercentage: Int = 50) {
@@ -25,7 +30,7 @@ class Mutator(val project: Project) {
             //Update ctx
             Transformation.updateCtx()
             Transformation.ctx ?: return
-            log.debug("Cur transformation ${t::class.simpleName}")
+            //log.debug("Cur transformation ${t::class.simpleName}")
 //            try {
             t.transform()
             checker.curFile.changePsiFile(checker.curFile.text)
@@ -67,6 +72,43 @@ class Mutator(val project: Project) {
         return
     }
 
+    private fun saveMutationsInformationInFile(directedMutations: List<DirectedMutation>) {
+        val resString = StringBuilder()
+        for ((mutation, probability, scores) in directedMutations) {
+            val mutationName = mutation.javaClass.name
+            resString.appendLine("{$mutationName;$probability;$scores}")
+        }
+        File("tmp/mutationStatistics.txt").writeText(resString.toString())
+    }
+
+    private fun deserializeDirectedMutations(originalDirectedMutations: List<DirectedMutation>): List<DirectedMutation> {
+        val f = File("tmp/mutationStatistics.txt")
+        if (!f.exists()) return originalDirectedMutations
+        val directedMutationsInfo =
+            f.readText()
+                .split("\n")
+                .filter { it.trim().isNotEmpty() }
+                .map {
+                    val (n, s, p) = it.drop(1).dropLast(1).split(";")
+                    val scores = s.split(',').map { it.trim() }.mapNotNull { it.toDoubleOrNull() }
+                    val probability = p.toDouble()
+                    Triple(n, scores, probability)
+                }
+        return originalDirectedMutations.map { originalMutation ->
+            val deserializedInfo =
+                directedMutationsInfo.find { originalMutation.transformation.javaClass.name == it.first }
+            if (deserializedInfo != null) {
+                DirectedMutation(
+                    originalMutation.transformation,
+                    deserializedInfo.second.toMutableList(),
+                    deserializedInfo.third
+                )
+            } else {
+                originalMutation
+            }
+        }
+    }
+
     private fun startGuidedKotlinMutations() {
         val mutationList = mutableListOf(
             ChangeRandomASTNodesFromAnotherTrees,
@@ -93,55 +135,61 @@ class Mutator(val project: Project) {
             ReplaceDotExpression(),
             AddExpressionToLoop()
         )
-        val KOEF = 10.0
-        val EPSILON = 80
         val k = 100.0 / mutationList.size
         val directedMutations =
             mutationList.mapIndexed { i, m -> DirectedMutation(m, mutableListOf(), k) }.toMutableList()
+        val deserializedDirectedMutations = deserializeDirectedMutations(directedMutations)
         checker.currentScore = 0
-        repeat(Random.nextInt(200, 300)) { iteration ->
+        //First of all execute each mutation
+        if (deserializedDirectedMutations.all { it.scores.isEmpty() }) {
+            directedMutations.forEach { executeDirectedMutation(it) }
+        }
+        val sumIteration = deserializedDirectedMutations.sumOf { it.scores.size }
+        (1..100).forEach { iteration ->
             val transformationToExecute =
-                if (Random.getTrue(EPSILON)) {
-                    val transformationsToMetrics = directedMutations.map { tr ->
+                if (Random.getTrue(CoverageGuidingCoefficients.EPSILON)) {
+                    val transformationsToMetrics = deserializedDirectedMutations.map { tr ->
                         val averageScore = if (tr.scores.isEmpty()) 0.0 else tr.scores.average()
                         val div = if (tr.scores.isEmpty()) 1 else tr.scores.size
-                        val metric = averageScore + sqrt(2 * ln(iteration.toDouble()) / div)
+                        val metric =
+                            averageScore + sqrt(CoverageGuidingCoefficients.UCB_MULTIPLIER * ln(iteration.toDouble() + sumIteration) / div)
                         tr to metric
                     }
 //                    transformationsToMetrics.map {
 //                        "${it.first.transformation}".substringAfterLast('.').substringBefore('@') to it.second
 //                    }.forEach(::println)
                     val maxMetric = transformationsToMetrics.maxOf { it.second }
-                    transformationsToMetrics.filter { abs(it.second - maxMetric) <= 0.01 }.randomOrNull()?.first ?: return@repeat
+                    transformationsToMetrics.filter { abs(it.second - maxMetric) <= 0.01 }.randomOrNull()?.first
+                        ?: return@forEach
                 } else {
-                    directedMutations.randomOrNull() ?: return@repeat
+                    deserializedDirectedMutations.randomOrNull() ?: return@forEach
                 }
-            println("Mutation ${transformationToExecute.transformation} started")
-            executeMutation(transformationToExecute.transformation, 100)
-            val score = checker.currentScore / KOEF
-            transformationToExecute.scores.add(score)
-            println("SCORE = $score")
-            println("------------------------------")
-//            directedMutations.map {
-//                Triple(
-//                    "${it.transformation}".substringAfterLast('.').substringBefore('@'),
-//                    it.probability,
-//                    it.scores
-//                )
-//            }.forEach(::println)
-            println("------------------------------")
-            //Reset scores
-            checker.currentScore = 0
+            println("ITERATION = $iteration")
+            executeDirectedMutation(transformationToExecute)
         }
         println("LOL---------------------------")
-        directedMutations.sortedBy { it.scores.size }.map {
+        deserializedDirectedMutations.sortedBy { it.scores.size }.map {
             Pair(
                 "${it.transformation}".substringAfterLast('.').substringBefore('@'),
                 it.scores
             )
         }.forEach(::println)
         println("LOL---------------------------")
+        saveMutationsInformationInFile(deserializedDirectedMutations)
+        CoverageStatisticsCollector.saveCoverageStatistic()
         exitProcess(0)
+    }
+
+    private fun executeDirectedMutation(transformationToExecute: DirectedMutation) {
+        println("Mutation ${transformationToExecute.transformation} started")
+        executeMutation(transformationToExecute.transformation, 100)
+        val score = checker.currentScore / CoverageGuidingCoefficients.SCORE_DIVIDER
+        log.debug("Cur transformation ${transformationToExecute.transformation::class.simpleName}; Score = $score")
+        transformationToExecute.scores.add(score)
+        println("SCORE = $score")
+        //Reset scores
+        checker.currentScore = 0
+        println("-----------------")
     }
 
     private fun startKotlinMutations() {

@@ -15,16 +15,18 @@ object ChangeTypes : Transformation() {
 
     override fun transform() {
         val ctx = PSICreator.analyze(file, project) ?: return
-        val (typeRef, type) = file.getAllPSIChildrenOfType<KtTypeReference>()
-            .filterDuplicatesBy { it.text }
-            .map { it to it.getAbbreviatedTypeOrType(ctx) }
-            .filter { it.second != null }
-            .randomOrNull() ?: return
-        val replacement =
-            type!!.supertypesWithoutAny()
-                .randomOrNull()
-                ?.let { psiFactory.createTypeIfPossible(it.getNameWithoutError()) }
-                ?: return
-        checker.replaceNodeIfPossible(typeRef, replacement)
+        repeat(20) {
+            val (typeRef, type) = file.getAllPSIChildrenOfType<KtTypeReference>()
+                .filterDuplicatesBy { it.text }
+                .map { it to it.getAbbreviatedTypeOrType(ctx) }
+                .filter { it.second != null }
+                .randomOrNull() ?: return
+            val replacement =
+                type!!.supertypesWithoutAny()
+                    .randomOrNull()
+                    ?.let { psiFactory.createTypeIfPossible(it.getNameWithoutError()) }
+                    ?: return
+            checker.replaceNodeIfPossible(typeRef, replacement)
+        }
     }
 }

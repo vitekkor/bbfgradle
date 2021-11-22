@@ -124,15 +124,13 @@ class TransformationManager(val checker: CompilerTestChecker) {
         var oldRes = file.text
         while (true) {
             if (ReduKtorProperties.getPropAsBoolean("TRANSFORMATIONS") == true) {
+                executePass(ConstructionsDeleter())
                 executePass(RemoveSuperTypeList())
-                executePass(SimplifyParameterList())
-                executePass(SimplifyContainerType())
                 executePass(SimplifyControlExpression())
                 executePass(SimplifyFunAndProp())
                 executePass(ReplaceBlockExpressionToBody())
                 executePass(SimplifyWhen())
                 executePass(ReturnValueToVoid())
-                executePass(ElvisOperatorSimplifier())
                 executePass(TryCatchDeleter())
                 executePass(SimplifyIf())
                 executePass(SimplifyFor())
@@ -144,6 +142,9 @@ class TransformationManager(val checker: CompilerTestChecker) {
                 executePass(SimplifyBlockExpression())
                 executePass(SimplifyBinaryExpression())
                 executePass(SimplifyStringConstants())
+                executePass(SimplifyParameterList())
+                executePass(SimplifyContainerType())
+                executePass(ElvisOperatorSimplifier())
             }
             if (ReduKtorProperties.getPropAsBoolean("SLICING") == true) {
                 executePass(Slicer)
@@ -156,7 +157,6 @@ class TransformationManager(val checker: CompilerTestChecker) {
                 executePass(SimplifyCallExpression())
                 executePass(ValueArgumentListSimplifying())
                 executePass(PeepholePasses())
-                executePass(ConstructionsDeleter())
             }
             if (ReduKtorProperties.getPropAsBoolean("HDD") == true) {
                 executePass(HierarchicalDeltaDebugger())

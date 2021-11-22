@@ -1,6 +1,8 @@
 package com.stepanov.bbf.bugfinder.mutator
 
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 import kotlin.random.Random
 import kotlin.system.exitProcess
 

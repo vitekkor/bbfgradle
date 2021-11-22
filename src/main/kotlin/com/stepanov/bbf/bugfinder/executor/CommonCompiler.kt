@@ -7,7 +7,7 @@ import org.apache.commons.exec.*
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import java.io.ByteArrayOutputStream
 
-data class CompilationResult(val status: Int, val pathToCompiled: String)
+data class CompilationResult(val status: COMPILE_STATUS, val pathToCompiled: String, val errorMessage: String)
 
 enum class COMPILE_STATUS {
     OK, ERROR, BUG
@@ -21,7 +21,12 @@ abstract class CommonCompiler {
     abstract fun tryToCompile(project: Project): KotlincInvokeStatus
     abstract fun isCompilerBug(project: Project): Boolean
     abstract fun compile(project: Project, includeRuntime: Boolean = true): CompilationResult
-    abstract fun compile(project: Project, numberOfExecutions: Int = 1, includeRuntime: Boolean = true): CompilationResult
+    abstract fun compile(
+        project: Project,
+        numberOfExecutions: Int = 1,
+        includeRuntime: Boolean = true
+    ): CompilationResult
+
     abstract fun exec(path: String, streamType: Stream = Stream.INPUT, mainClass: String = ""): String
 
     abstract val compilerInfo: String
@@ -32,25 +37,11 @@ abstract class CommonCompiler {
     fun getErrorMessageForTextWithLocation(text: String): Pair<String, List<CompilerMessageSourceLocation>> =
         getErrorMessageWithLocation(Project.createFromCode(text))
 
-    fun tryToCompileWithStatus(project: Project): COMPILE_STATUS {
-        val status = tryToCompile(project)
-        return when {
-            status.hasException -> COMPILE_STATUS.BUG
-            status.hasCompilationError() || status.hasTimeout -> COMPILE_STATUS.ERROR
-            status.isCompileSuccess -> COMPILE_STATUS.OK
-            else -> COMPILE_STATUS.ERROR
-        }
-    }
+    fun tryToCompileWithStatus(project: Project) = getCompilationStatusFromKotlincInvokeStatus(tryToCompile(project))
 
     fun tryToCompileWithStatusAndExecutionTime(project: Project): Pair<COMPILE_STATUS, Long> {
         val kotlincInvokeStatus = tryToCompile(project)
-        val compilationStatus =
-            when {
-                kotlincInvokeStatus.hasException -> COMPILE_STATUS.BUG
-                kotlincInvokeStatus.hasCompilationError() || kotlincInvokeStatus.hasTimeout -> COMPILE_STATUS.ERROR
-                kotlincInvokeStatus.isCompileSuccess -> COMPILE_STATUS.OK
-                else -> COMPILE_STATUS.ERROR
-            }
+        val compilationStatus = getCompilationStatusFromKotlincInvokeStatus(kotlincInvokeStatus)
         return compilationStatus to kotlincInvokeStatus.compilerExecTimeInMlls
     }
 
@@ -76,7 +67,7 @@ abstract class CommonCompiler {
             executor.execute(cmdLine)
         } catch (e: ExecuteException) {
             executor.watchdog.destroyProcess()
-            var streamOutput =  when (streamType) {
+            var streamOutput = when (streamType) {
                 Stream.INPUT -> outputStream.toString()
                 Stream.ERROR -> errorStream.toString()
                 else -> "" + errorStream.toString()
@@ -100,6 +91,13 @@ abstract class CommonCompiler {
         return execRes to System.currentTimeMillis() - startTime
     }
 
+    protected fun getCompilationStatusFromKotlincInvokeStatus(kotlincInvokeStatus: KotlincInvokeStatus): COMPILE_STATUS =
+        when {
+            kotlincInvokeStatus.hasException -> COMPILE_STATUS.BUG
+            kotlincInvokeStatus.hasCompilationError() || kotlincInvokeStatus.hasTimeout -> COMPILE_STATUS.ERROR
+            kotlincInvokeStatus.isCompileSuccess -> COMPILE_STATUS.OK
+            else -> COMPILE_STATUS.ERROR
+        }
 
     override fun toString(): String = compilerInfo
 }

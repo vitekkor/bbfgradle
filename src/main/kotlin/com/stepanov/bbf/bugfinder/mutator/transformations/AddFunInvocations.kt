@@ -22,10 +22,12 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as 
 object AddFunInvocations : Transformation() {
 
     override fun transform() {
-        val res = tryToAddCalls()
-        if (file.text.trim() != res.text) {
-            checker.curFile.changePsiFile(res.copy() as KtFile)
-            //file = res.copy() as KtFile
+        repeat(10) {
+            val res = tryToAddCalls()
+            if (file.text.trim() != res.text) {
+                checker.curFile.changePsiFile(res.copy() as KtFile)
+                //file = res.copy() as KtFile
+            }
         }
     }
 

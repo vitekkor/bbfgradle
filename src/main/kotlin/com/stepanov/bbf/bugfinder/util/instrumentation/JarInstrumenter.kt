@@ -11,9 +11,9 @@ import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 
-class JarInstrumenter {
+open class JarInstrumenter {
 
-    private fun addEntry(entry: JarEntry, jarFile: JarFile, newJarStream: JarOutputStream) {
+    protected fun addEntry(entry: JarEntry, jarFile: JarFile, newJarStream: JarOutputStream) {
         val jarEntry = JarEntry(entry)
         jarEntry.compressedSize = -1
         newJarStream.putNextEntry(jarEntry)
@@ -37,7 +37,7 @@ class JarInstrumenter {
         }
     }
 
-    private fun addFileToJar(jar: JarOutputStream, source: File, entryName: String?) {
+    protected fun addFileToJar(jar: JarOutputStream, source: File, entryName: String?) {
         BufferedInputStream(FileInputStream(source)).use { `in` ->
             val entry = JarEntry(entryName)
             entry.time = source.lastModified()
@@ -47,9 +47,23 @@ class JarInstrumenter {
         }
     }
 
-    private val abstractOpcodeLength = Opcodes.ACC_ABSTRACT.toString(2).length
+    protected val abstractOpcodeLength = Opcodes.ACC_ABSTRACT.toString(2).length
 
-    fun instrument(jarPath: String, newJarPath: String, targetCoverage: Map<CoverageEntry, Int>) {
+    protected fun writeCoverageClassesToJar(jarOutputStream: JarOutputStream) {
+        //Add data structures to collect traces
+        listOf(
+            "tmp/lib/CoverageEntry.class",
+            "tmp/lib/CoverageEntry\$Companion.class",
+            "tmp/lib/MyMethodBasedCoverage.class"
+        )
+            .map { File(it) }
+            .forEach {
+                val name = "coverage/${it.name.substringAfterLast('/')}"
+                addFileToJar(jarOutputStream, it, name)
+            }
+    }
+
+    open fun instrument(jarPath: String, newJarPath: String, targetCoverage: Map<CoverageEntry, Int>) {
         if (File(newJarPath).exists()) File(newJarPath).delete()
         val jarFile = JarFile(jarPath)
 
@@ -94,63 +108,14 @@ class JarInstrumenter {
                 //We cannot insert code in abstract methods isAbstract
                 if (accessAsBinary.length >= abstractOpcodeLength && accessAsBinary[abstractOpcodeLength - 1] == '1') continue
                 val instructions = m.instructions
-//                val parameters =
-//                    m.desc.substringAfter('(')
-//                        .substringBeforeLast(')')
-//                        .split(";")
-//                        .filter { it.trim().isNotEmpty() }
-//                        .joinToString(";") { it.substringAfterLast('/') }
-//                        .ifEmpty { ";" }
-                val parameters =
-                    m.desc.substringAfter('(')
-                        .substringBeforeLast(')')
-                        .split(";")
-                        .filter { it.trim().isNotEmpty() }
-                        .flatMap {
-                            if (it.startsWith("L")) {
-                                listOf(it)
-                            } else {
-                                val resList = mutableListOf<String>()
-                                val iter = it.iterator()
-                                while (iter.hasNext()) {
-                                    val ch = iter.nextChar()
-                                    if (ch == '[') {
-                                        val nextChar = iter.nextChar()
-                                        val arrayOfWhat = when (nextChar) {
-                                            'L' -> {
-                                                var curChar = iter.next()
-                                                val localRes = StringBuilder(curChar.toString())
-                                                while (curChar != ';' && iter.hasNext()) {
-                                                    curChar = iter.nextChar()
-                                                    localRes.append(curChar)
-                                                }
-                                                localRes.toString()
-                                            }
-                                            else -> {
-                                                CoverageEntry.jvmTypeToName["$nextChar"] ?: "Object"
-                                            }
-                                        }
-                                        resList.add("Array<${arrayOfWhat.substringAfterLast('/')}>")
-                                    } else if (ch == 'L') {
-                                        resList.add(it.substringAfter('L'))
-                                        break
-                                    } else {
-                                        CoverageEntry.jvmTypeToName["$ch"]?.let { resList.add(it) }
-                                    }
-                                }
-                                resList
-                            }
-                        }
-                        .joinToString(";") { it.substringAfterLast('/') }
-                        .ifEmpty { ";" }
-                val returnValueType = m.desc.substringAfterLast(')').substringBeforeLast(';').substringAfterLast('/')
+                val (path, name, param, returnType) = m.getCoverageEntry(className)
                 val newInstructionList = listOf(
                     TypeInsnNode(Opcodes.NEW, "coverage/CoverageEntry"),
                     InsnNode(Opcodes.DUP),
-                    LdcInsnNode(className),
-                    LdcInsnNode(m.name),
-                    LdcInsnNode(parameters),
-                    LdcInsnNode(returnValueType),
+                    LdcInsnNode(path),
+                    LdcInsnNode(name),
+                    LdcInsnNode(param),
+                    LdcInsnNode(returnType),
                     MethodInsnNode(
                         Opcodes.INVOKESPECIAL,
                         "coverage/CoverageEntry",

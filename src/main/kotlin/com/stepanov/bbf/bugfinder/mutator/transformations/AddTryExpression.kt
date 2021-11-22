@@ -1,5 +1,6 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.tryToCreateExpression
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getTrue
@@ -13,7 +14,9 @@ import kotlin.system.exitProcess
 
 object AddTryExpression : Transformation() {
     override fun transform() {
-        addTryExpressionAsPsi()
+        repeat(3) {
+            addTryExpressionAsPsi()
+        }
     }
 
     private fun addTryExpressionAsPsi() {
@@ -32,7 +35,7 @@ object AddTryExpression : Transformation() {
         val finallyBlock =
             if (catchBlocks.isNotEmpty() && Random.getTrue(70)) ""
             else "finally {\n ${file.getAllPSIChildrenOfType<KtExpression>().randomOrNull()?.text ?: ""}\n}"
-        val newTryExpression = Factory.psiFactory.createExpression("$tryBlock\n$catchBlocksAsString\n$finallyBlock")
+        val newTryExpression = Factory.psiFactory.tryToCreateExpression("$tryBlock\n$catchBlocksAsString\n$finallyBlock") ?: return
         checker.replaceNodeIfPossible(randomNode.node, newTryExpression.node)
     }
 

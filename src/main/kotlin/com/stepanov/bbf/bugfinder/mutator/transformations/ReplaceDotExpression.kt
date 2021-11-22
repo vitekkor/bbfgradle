@@ -11,7 +11,7 @@ import kotlin.system.exitProcess
 class ReplaceDotExpression: Transformation() {
     override fun transform() {
         file.getAllPSIChildrenOfType<KtDotQualifiedExpression>().shuffled()
-            .take(1)
+            .take(5)
             .forEach {
                 val left = it.receiverExpression.text
                 val right = it.selectorExpression?.text ?: return@forEach

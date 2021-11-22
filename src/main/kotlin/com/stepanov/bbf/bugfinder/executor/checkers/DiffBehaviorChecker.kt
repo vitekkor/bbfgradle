@@ -1,5 +1,6 @@
 package com.stepanov.bbf.bugfinder.executor.checkers
 
+import com.stepanov.bbf.bugfinder.executor.COMPILE_STATUS
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
@@ -27,7 +28,7 @@ class DiffBehaviorChecker(
         val results = mutableListOf<Pair<CommonCompiler, String>>()
         for (comp in compilers) {
             val status = comp.compile(project)
-            if (status.status == -1)
+            if (status.status != COMPILE_STATUS.OK)
                 return listOf()
             val res = comp.exec(status.pathToCompiled)
             log.debug("Result of ${comp.compilerInfo}: $res\n")

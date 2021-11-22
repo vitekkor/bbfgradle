@@ -50,7 +50,12 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
     }
 
     override fun compile(project: Project, includeRuntime: Boolean): CompilationResult {
-        val projectWithMainFun = project.addMain()
+        val projectWithMainFun =
+            if (CompilerArgs.isGuidedByCoverage) {
+                project.addMainAndCoverageResultsSaving()
+            } else {
+                project.addMain()
+            }
         return getCompilationResult(projectWithMainFun, includeRuntime)
     }
 
@@ -59,17 +64,20 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
         val tmpJar = "$pathToCompiled.jar"
         val args = prepareArgs(projectWithMainFun, path, tmpJar)
         val status = executeCompiler(projectWithMainFun, args)
-        if (status.hasException || status.hasTimeout || !status.isCompileSuccess) return CompilationResult(-1, "")
+        val compileStatus = getCompilationStatusFromKotlincInvokeStatus(status)
+        if (status.hasException || status.hasTimeout || !status.isCompileSuccess) {
+            return CompilationResult(compileStatus, "", status.combinedOutput)
+        }
         val res = File(pathToCompiled)
         val input = JarInputStream(File(tmpJar).inputStream())
         val output = JarOutputStream(res.outputStream(), input.manifest)
         copyFullJarImpl(output, File(tmpJar))
-        if (includeRuntime)
-            CompilerArgs.jvmStdLibPaths.forEach { writeRuntimeToJar(it, output) }
+//        if (includeRuntime)
+//            CompilerArgs.jvmStdLibPaths.forEach { writeRuntimeToJar(it, output) }
         output.finish()
         input.close()
         File(tmpJar).delete()
-        return CompilationResult(0, pathToCompiled)
+        return CompilationResult(compileStatus, pathToCompiled, status.combinedOutput)
     }
 
     private fun prepareArgs(project: Project, path: String, destination: String): K2JVMCompilerArguments {
@@ -85,9 +93,11 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
         projectArgs.apply { K2JVMCompiler().parseArguments(compilerArgs.toTypedArray(), this) }
         //projectArgs.compileJava = true
         projectArgs.classpath =
-            "${CompilerArgs.jvmStdLibPaths.joinToString(
-                separator = ":"
-            )}:${System.getProperty("java.class.path")}"
+            "${
+                CompilerArgs.jvmStdLibPaths.joinToString(
+                    separator = ":"
+                )
+            }:${System.getProperty("java.class.path")}"
                 .split(":")
                 .filter { it.isNotEmpty() }
                 .toSet().toList()

@@ -12,7 +12,9 @@ import kotlin.random.Random
 object ChangeRandomASTNodes : Transformation() {
 
     override fun transform() {
-        swapRandomNodes(file.node.getAllChildrenNodes(), psiFactory)
+        repeat(30) {
+            swapRandomNodes(file.node.getAllChildrenNodes(), psiFactory)
+        }
     }
 
     fun swapRandomNodes(children: List<ASTNode>, psiFactory: KtPsiFactory, files: List<PsiFile>? = null) {

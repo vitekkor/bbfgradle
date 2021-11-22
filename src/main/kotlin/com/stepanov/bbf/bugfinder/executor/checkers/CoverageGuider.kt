@@ -1,29 +1,36 @@
 package com.stepanov.bbf.bugfinder.executor.checkers
 
+import com.stepanov.bbf.bugfinder.executor.COMPILE_STATUS
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.gitinfocollector.FilePatch
 import com.stepanov.bbf.bugfinder.gitinfocollector.FilePatchHandler
 import com.stepanov.bbf.bugfinder.gitinfocollector.GitRepo
 import com.stepanov.bbf.bugfinder.gitinfocollector.SignatureCollector
+import com.stepanov.bbf.bugfinder.util.Stream
 import coverage.CoverageEntry
 import coverage.MyMethodBasedCoverage
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
+import kotlin.system.exitProcess
 
+@ExperimentalSerializationApi
 object CoverageGuider {
     lateinit var desiredCoverage: List<CoverageEntry>
     var initCoef = 0
-    private val commits =
-        File("commits.txt")
-            .let {
-                if (it.exists())
-                    it.readText().split("\n")
-                else listOf()
-            }
+    private val commits
+        get() =
+            File("commits.txt")
+                .let {
+                    if (it.exists())
+                        it.readText().split("\n")
+                    else listOf()
+                }
 
     //private val commit = "d1322280ddba07a581cc18f9e97d040c9c1a95da"
     private val patches: List<FilePatch>
@@ -43,51 +50,88 @@ object CoverageGuider {
             }
             return res
         }
-    private val modifiedFunctions = FilePatchHandler(patches).getListOfAffectedFunctions(true)
-    private val signatures =
-        SignatureCollector.collectSignatures(modifiedFunctions)
 
-    fun init(commit: String, project: Project) {
-        //println("PATCHES = ${patches.size}")
-        this.desiredCoverage = signatures
-        val initCoverage = getCoverage(project, CompilerArgs.getCompilersList())
-        initCoef = calcKoefOfCoverageUsage(initCoverage)
-        println("INIT K = $initCoef\n")
-    }
+//    fun init(commit: String, project: Project, filterFunc: (CoverageEntry) -> Boolean = { true }) {
+//        //println("PATCHES = ${patches.size}")
+//        this.desiredCoverage = getFilteredSignatures(filterFunc)
+//        val initCoverage = getCoverage(project, CompilerArgs.getCompilersList())
+//        initCoef = calcKoefOfCoverageUsage(initCoverage)
+//        println("INIT K = $initCoef\n")
+//    }
 
 
-    fun init(desiredCoverage: Map<CoverageEntry, Int>, project: Project) {
-        //println("PATCHES = ${patches.size}")
-        this.desiredCoverage = desiredCoverage.keys.toList()
+    fun init(
+        pathToSerializedCoverage: String,
+        project: Project,
+        filterFunc: (CoverageEntry) -> Boolean = { true }
+    ) {
+        //if (File(pathToSerializedCoverage).exists()) {
+        this.desiredCoverage = try {
+            val coverageText = File(pathToSerializedCoverage).readText()
+            Json.decodeFromString(coverageText)
+        } catch (e: Exception) {
+            val modifiedFunctions = FilePatchHandler(patches).getListOfAffectedFunctions(true)
+            val signatures = SignatureCollector.collectSignatures(modifiedFunctions)
+            val helloWorldProject = Project.createFromCode(
+                """
+                fun main() {
+                    println("Kotlin")
+                }""".trimIndent()
+            )
+            val helloWorldCoverage = getCoverage(helloWorldProject, CompilerArgs.getCompilersList())
+            val desiredCoverage = signatures.filter { filterFunc.invoke(it) && it !in helloWorldCoverage }
+            File(pathToSerializedCoverage).writeText(Json.encodeToString(desiredCoverage))
+            desiredCoverage
+        }
         val initCoverage = getCoverage(project, CompilerArgs.getCompilersList())
         println("init Coverage size = ${initCoverage.size}")
         initCoef = calcKoefOfCoverageUsage(initCoverage)
         println("INIT K = $initCoef\n")
     }
 
-
     fun getCoverage(project: Project, compilers: List<CommonCompiler>): Map<CoverageEntry, Int> {
         CompilerArgs.isInstrumentationMode = true
         MyMethodBasedCoverage.methodProbes.clear()
         val sumCoverage = mutableMapOf<CoverageEntry, Int>()
+        val execCoverageEntries = mutableMapOf<CoverageEntry, Int>()
         for (compiler in compilers) {
-            compiler.checkCompiling(project)
-//            val coverage = ProgramCoverage.createFromMethodProbes()
-//            val coverageEntries =
-//                coverage.getMethodProbes().entries.map { CoverageEntry.parseFromKtCoverage(it.key) to it.value }.toMap()
-            val coverageEntries = MyMethodBasedCoverage.methodProbes
-            coverageEntries.entries.forEach {
-                sumCoverage[it.key]?.let { c -> sumCoverage[it.key] = c + it.value } ?: sumCoverage.put(
-                    it.key,
-                    it.value
+            val compiled = compiler.compile(project)
+            sumCoverage.putAll(MyMethodBasedCoverage.methodProbes)
+            if (CompilerArgs.isMiscompilationMode && compiled.status == COMPILE_STATUS.OK) {
+                val file = File("tmp/jarCoverage.txt")
+                with(file) {
+                    if (exists()) delete()
+                }
+                compiler.exec(compiled.pathToCompiled)
+                execCoverageEntries.putAll(
+                    with(file) {
+                        if (exists()) {
+                            readText()
+                                .split("\n")
+                                .filter { it.trim().isNotEmpty() }
+                                .associate {
+                                    with(it.split("=")) {
+                                        CoverageEntry.parseFromKtCoverage(first()) to last().toInt()
+                                    }
+                                }
+                        } else {
+                            mapOf()
+                        }
+                    }
                 )
+            }
+            execCoverageEntries.forEach {
+                sumCoverage[it.key]?.let { c -> sumCoverage[it.key] = c + it.value } ?: sumCoverage.put(it.key, it.value)
             }
         }
         CompilerArgs.isInstrumentationMode = false
         return sumCoverage
     }
 
+//    fun calcKoefOfCoverageUsage(compilationCoverage: Map<CoverageEntry, Int>) =
+//        desiredCoverage.sumBy { compilationCoverage[it] ?: 0 }
+
     fun calcKoefOfCoverageUsage(compilationCoverage: Map<CoverageEntry, Int>) =
-        desiredCoverage.sumBy { compilationCoverage[it] ?: 0 }
+        desiredCoverage.sumBy { compilationCoverage[it]?.let { 1 } ?: 0 }
 
 }

@@ -13,16 +13,18 @@ import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.tracer.Tracer
+import com.stepanov.bbf.bugfinder.util.CoverageStatisticsCollector
 import com.stepanov.bbf.bugfinder.util.StatisticCollector
+import com.stepanov.bbf.bugfinder.util.instrumentation.CoverageGuidingCoefficients
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
-import coverage.MyMethodBasedCoverage
+import kotlinx.serialization.ExperimentalSerializationApi
 import org.apache.log4j.Logger
-import kotlin.math.absoluteValue
 import kotlin.math.exp
 import kotlin.random.Random
 
 //Project adaptation
+@ExperimentalSerializationApi
 open class CompilationChecker(private val compilers: List<CommonCompiler>) {
 
     constructor(compiler: CommonCompiler) : this(listOf(compiler))
@@ -85,6 +87,43 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
 //        return true
 //    }
 
+    //    fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null): Boolean {
+//        log.debug("Compilation checking started")
+//        val allTexts = project.files.map { it.psiFile.text }.joinToString()
+//        checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
+//        //Checking syntax correction
+//        if (!checkSyntaxCorrectnessAndAddCond(project, curFile)) {
+//            log.debug("Wrong syntax or breaks conditions")
+//            StatisticCollector.incField("Incorrect programs")
+//            checkedConfigurations[allTexts] = false
+//            return false
+//        }
+//        val summaryCoverage = mutableMapOf<CoverageEntry, Int>()
+//        val prevCompilationStatuses = mutableListOf<Triple<CommonCompiler, CompilationResult, String>>()
+//        for (c in compilers) {
+//            // Calc coverage automatically
+//            MyMethodBasedCoverage.methodProbes.clear()
+//            val compilationResult = c.compile(project)
+//            summaryCoverage.putAll(MyMethodBasedCoverage.methodProbes)
+//            if (compilationResult.status == COMPILE_STATUS.ERROR) {
+//                prevCompilationStatuses.add(Triple(c, compilationResult, ""))
+//                //Handle diff compile situation
+//            } else if (compilationResult.status == COMPILE_STATUS.BUG) {
+//                val msg = compilationResult.errorMessage
+//                val type = if (msg.contains("Exception while analyzing expression")) BugType.FRONTEND else BugType.BACKEND
+//                BugManager.saveBug(Bug(c, msg, project.copy(), type))
+//                currentScore += 100
+//            } else {
+//                val tracedProject = project.copy()
+//                Tracer(compilers.first(), tracedProject).trace()
+//                with(c.compile(tracedProject)) {
+//                    c.exec(pathToCompiled)
+//                }
+////                checkedConfigurations[allTexts] = checkRes
+//            }
+//        }
+//        return true
+//    }
     fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null): Boolean {
         log.debug("Compilation checking started")
         val allTexts = project.files.map { it.psiFile.text }.joinToString()
@@ -100,82 +139,6 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
             compileAndGetStatusesWithExecutionTime(project).let { it.map { it.first } to it.map { it.second } }
         when {
             statuses.all { it == COMPILE_STATUS.OK } -> {
-                if (CompilerArgs.isPerformanceMode) {
-                    //-1 not interesting, 0 - ok, 1 - interesting
-                    var compilationRetValue = -1
-                    var executionRetValue = -1
-                    val compilationTimesDifferenceInPerc =
-                        kotlin.math.abs(compilationTimes.first()).toDouble() / compilationTimes.last().absoluteValue
-                    val compInterval = PerformanceOracle.compilationConfInterval.let { it.first..it.second }
-                    println("COMPILATION TIMES = $compilationTimes")
-                    println("COMPILATION TIME DIFFERENCE = $compilationTimesDifferenceInPerc")
-                    println("INTERVAL =  $compInterval")
-                    if (compilationTimesDifferenceInPerc !in compInterval) {
-                        if (compilationTimes.first() > compilationTimes.last() && compilationTimesDifferenceInPerc > compInterval.endInclusive) {
-                            val compSigma = PerformanceOracle.compilationSigma
-                            val compConfInterval = PerformanceOracle.compilationConfInterval
-                            val compTimeIntervalMedian = (compConfInterval.second + compConfInterval.first) / 2.0
-                            val newMed = compTimeIntervalMedian * 0.62  + compilationTimesDifferenceInPerc * 0.38
-                            val newInterval = newMed - compSigma to newMed + compSigma
-                            PerformanceOracle.compilationConfInterval = newInterval
-                            compilationRetValue = 1
-                        } else {
-                            compilationRetValue = -1
-                        }
-                    } else {
-                        compilationRetValue = 0
-                    }
-                    val executionTimes = mutableListOf<Long>()
-                    for (comp in compilers) {
-                        val compiled = comp.compile(project)
-                        if (compiled.status == -1) {
-                            checkedConfigurations[allTexts] = false
-                            return false
-                        }
-                        val execResult = comp.getExecutionTime(compiled.pathToCompiled)
-                        if (execResult.first.contains("Exception")) {
-                            checkedConfigurations[allTexts] = false
-                            return false
-                        }
-                        executionTimes.add(execResult.second)
-                    }
-                    val executionTimesDifferenceInPerc =
-                        kotlin.math.abs(executionTimes.first()).toDouble() / executionTimes.last().absoluteValue
-                    val execInterval = PerformanceOracle.executionConfInterval.let { it.first..it.second }
-                    println("EXECUTION TIMES = $executionTimes")
-                    println("EXECUTION TIME DIFFERENCE = $executionTimesDifferenceInPerc")
-                    println("EXEC INTERVAL =  $execInterval")
-                    if (executionTimesDifferenceInPerc !in execInterval) {
-                        if (executionTimes.first() > executionTimes.last() && executionTimesDifferenceInPerc > execInterval.endInclusive) {
-                            val execSigma = PerformanceOracle.executionSigma
-                            val execConfInterval = PerformanceOracle.executionConfInterval
-                            val executionTimeIntervalMedian = (execConfInterval.second + execConfInterval.first) / 2.0
-                            val newMed = executionTimeIntervalMedian * 0.62  + executionTimesDifferenceInPerc * 0.38
-                            val newInterval = newMed - execSigma to newMed + execSigma
-                            PerformanceOracle.executionConfInterval = newInterval
-                            executionRetValue = 1
-                        } else {
-                            executionRetValue = -1
-                        }
-                    } else {
-                        executionRetValue = 0
-                    }
-                    println("----------------------------------------------------")
-                    return when {
-                        executionRetValue == 1 || compilationRetValue == 1 -> {
-                            checkedConfigurations[allTexts] = true
-                            true
-                        }
-                        compilationRetValue == -1 || executionRetValue == -1 -> {
-                            checkedConfigurations[allTexts] = false
-                            false
-                        }
-                        else -> {
-                            checkedConfigurations[allTexts] = true
-                            true
-                        }
-                    }
-                }
                 if (CompilerArgs.isGuidedByCoverage) {
                     if (isCoverageDecreases(project)) {
                         checkedConfigurations[allTexts] = false
@@ -198,7 +161,12 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
             }
         }
         //TODO!!
-        checkAndGetCompilerBugs(project).forEach { BugManager.saveBug(it) }
+        checkAndGetCompilerBugs(project).forEach {
+            if (CompilerArgs.isGuidedByCoverage) {
+                currentScore += CoverageGuidingCoefficients.SCORES_FOR_BUG
+            }
+            BugManager.saveBug(it)
+        }
         checkedConfigurations[allTexts] = false
         StatisticCollector.incField("Correct programs")
         return false
@@ -215,26 +183,60 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
         compilers.map { it.tryToCompileWithStatusAndExecutionTime(project) }
 
 
-    fun checkTraces(project: Project): Boolean {
+    private fun checkTraces(project: Project): Boolean {
         val copyOfProject = project.copy()
         Tracer(compilers.first(), copyOfProject).trace()
-        return TracesChecker(compilers).checkBehavior(copyOfProject)
+        return when (TracesChecker(compilers).checkBehavior(copyOfProject)) {
+            CHECKRES.BUG -> false.also { currentScore += CHECKRES.BUG.a }
+            CHECKRES.NOT_OK -> false
+            CHECKRES.OK -> true
+        }
     }
 
+    private fun decrementKoef(oldKoef: Double): Double {
+        var multKoef = 0.1
+        while (true) {
+            if (oldKoef - multKoef > 0.0) {
+                return oldKoef - multKoef
+            } else {
+                multKoef /= 10.0
+            }
+        }
+    }
 
     private fun isCoverageDecreases(project: Project): Boolean {
         val sumCoverage = CoverageGuider.getCoverage(project, compilers)
-        MyMethodBasedCoverage.methodProbes.clear()
+        CoverageStatisticsCollector.addCoveredMethods(sumCoverage.keys)
         val k = CoverageGuider.calcKoefOfCoverageUsage(sumCoverage)
         println("K = $k")
-        val probabilityOfAcceptance = minOf(1.0, exp(0.01 * CoverageGuider.desiredCoverage.size * (k - CoverageGuider.initCoef)))
-        println("Probability = $probabilityOfAcceptance")
-        if (k > CoverageGuider.initCoef) {
-            currentScore += k - CoverageGuider.initCoef
-            CoverageGuider.initCoef = k
+        if (unsuccessfulMutations > 5) {
+            acceptanceCoef = decrementKoef(acceptanceCoef)
         }
+        val probabilityOfAcceptance =
+            minOf(1.0, exp(acceptanceCoef * (k - CoverageGuider.initCoef)))
+        val isDecreasing = Random.nextDouble(0.0, 1.0) > probabilityOfAcceptance
+        println("Probability = $probabilityOfAcceptance")
+        println("Coverage diff = ${k - CoverageGuider.initCoef}")
+        println("is Accepting = ${!isDecreasing}")
+        if (!isDecreasing) {
+            currentScore += (k - CoverageGuider.initCoef).let {
+                when {
+                    it <= 0 -> 1
+                    else -> it + 3
+                }
+            }
+//                if (it < 0)
+//                    0 else it }
+            CoverageGuider.initCoef = k
+            unsuccessfulMutations = 0
+            acceptanceCoef = CoverageGuidingCoefficients.MCMC_MULTIPLIER
+        } else {
+            println("unsuccessfulMutations in a row = $unsuccessfulMutations")
+            unsuccessfulMutations++
+        }
+        println("CURRENT SCORE = $currentScore")
         //Is coverage decreasing?
-        return Random.nextDouble(0.0, 1.0) > probabilityOfAcceptance
+        return isDecreasing
     }
 
     private fun checkAndGetCompilerBugs(project: Project): List<Bug> {
@@ -289,6 +291,8 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
 
     val additionalConditions: MutableList<(PsiFile) -> Boolean> = mutableListOf()
     var currentScore = 0
+    private var unsuccessfulMutations = 0
+    private var acceptanceCoef = CoverageGuidingCoefficients.MCMC_MULTIPLIER
 
     private val checkedConfigurations = hashMapOf<String, Boolean>()
     private val log = Logger.getLogger("mutatorLogger")

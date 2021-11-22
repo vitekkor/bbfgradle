@@ -8,7 +8,8 @@ import java.io.File
 import java.util.*
 
 
-val COMMAND = "gradle runBBF"//if (CompilerArgs.isGuidedByCoverage) "gradle runBBFWithCoverage" else "gradle runBBF"
+var COMMAND = "gradle runBBF"//if (CompilerArgs.isGuidedByCoverage) "gradle runBBFWithCoverage" else "gradle runBBF"
+const val ITERATIONS = 2
 val TIMEOUT_SEC = Properties()
     .also { it.load(File("./bbf.conf").inputStream()) }
     .getProperty("BBF_TIMEOUT")?.toLongOrNull() ?: throw IllegalArgumentException("Can't init timeout value")
@@ -29,6 +30,30 @@ val TIMEOUT_SEC = Properties()
 //    val handler = DefaultExecuteResultHandler()
 //    return BBFProcess(cmd, f, handler, executor)
 //}
+
+fun getRandomFileFromTestDirectory(): File =
+    File("/home/zver/IdeaProjects/bbfgradle/tmp/arrays2/")
+        .listFiles()!!
+        .filter { it.path.endsWith(".kt") }
+        .random()
+
+fun removeSerializedMutations() {
+    val fileWithSerializedMutations = File("tmp/serializedMutations.txt")
+    if (fileWithSerializedMutations.exists()) fileWithSerializedMutations.delete()
+}
+
+fun saveStatistics() {
+    val file = File("statistics.txt")
+    val serializedMutations = File("tmp/serializedMutations.txt")
+    val mutationMap = if (serializedMutations.exists()) serializedMutations.readText() else ""
+    val sumOfCoverage = ""
+    val fileName = COMMAND.substringAfter("--args")
+    file.writeText("""FILE: $fileName
+        |Mutation map: $mutationMap\n
+        |Coverage: $sumOfCoverage
+    """.trimMargin())
+}
+
 
 const val pathToErrorLogs = "tmp/results/errorLogs"
 fun main(args: Array<String>) {
@@ -59,7 +84,10 @@ Bugs per minute: 0.0
 //        }
 //        Thread.sleep(1000)
 //    }
-    args.joinToString(separator = " ")
+
+    removeSerializedMutations()
+    var globalIterationCounter = 1
+    COMMAND = "gradle runBBF --args=${getRandomFileFromTestDirectory().absolutePath}"
     var cmdLine = CommandLine.parse(COMMAND)
     var executor = DefaultExecutor().also {
         it.watchdog = ExecuteWatchdog(TIMEOUT_SEC * 1000)
@@ -79,6 +107,7 @@ Bugs per minute: 0.0
     var globalCounter = 0L
     while (true) {
         println("Elapsed: $timeElapsed")
+        println("COMMAND = $COMMAND")
         if (handler.hasResult()) {
             if (timeElapsed > TIMEOUT_SEC * 1000) {
                 var i = 0
@@ -119,6 +148,13 @@ Bugs per minute: 0.0
             }
             executor.execute(cmdLine, handler)
             timeElapsed = 0
+            globalIterationCounter++
+            if (globalIterationCounter >= ITERATIONS) {
+                COMMAND = "gradle runBBF --args=${getRandomFileFromTestDirectory().absolutePath}"
+                globalIterationCounter = 0
+
+                removeSerializedMutations()
+            }
         }
         globalCounter += 1000
         if ((globalCounter / 1000) % 60 == 0L) {

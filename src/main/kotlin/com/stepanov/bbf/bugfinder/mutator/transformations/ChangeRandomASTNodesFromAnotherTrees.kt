@@ -22,19 +22,21 @@ import kotlin.system.exitProcess
 object ChangeRandomASTNodesFromAnotherTrees : Transformation() {
 
     override fun transform() {
-        val nodes = file.node.getAllChildrenNodes().filter { it.elementType !in NodeCollector.excludes }
-        val randomNode = nodes.randomOrNull() ?: return
-        //Do not touch box func
-        if (randomNode.psi is KtNamedFunction && randomNode.text.contains("fun box")) return
-        //Searching nodes of same type in another files
-        val line = File("database.txt").bufferedReader().lines()
-            .filter { it.takeWhile { it != ' ' } == randomNode.elementType.toString() }.findFirst()
-        if (!line.isPresent) return
-        val files = line.get().dropLast(1).takeLastWhile { it != '[' }.split(", ")
-        val randomFile = files.random()
-        val psi = Factory.psiFactory.createFile(File("${CompilerArgs.baseDir}/$randomFile").readText())
-        val targetNode = psi.node.getAllChildrenNodes().filter { it.elementType == randomNode.elementType }.random()
-        if (targetNode.psi is KtConstantExpression) return
-        checker.replaceNodeIfPossible(randomNode, targetNode)
+        repeat(50) {
+            val nodes = file.node.getAllChildrenNodes().filter { it.elementType !in NodeCollector.excludes }
+            val randomNode = nodes.randomOrNull() ?: return
+            //Do not touch box func
+            if (randomNode.psi is KtNamedFunction && randomNode.text.contains("fun box")) return
+            //Searching nodes of same type in another files
+            val line = File("database.txt").bufferedReader().lines()
+                .filter { it.takeWhile { it != ' ' } == randomNode.elementType.toString() }.findFirst()
+            if (!line.isPresent) return
+            val files = line.get().dropLast(1).takeLastWhile { it != '[' }.split(", ")
+            val randomFile = files.random()
+            val psi = Factory.psiFactory.createFile(File("${CompilerArgs.baseDir}/$randomFile").readText())
+            val targetNode = psi.node.getAllChildrenNodes().filter { it.elementType == randomNode.elementType }.random()
+            if (targetNode.psi is KtConstantExpression) return
+            checker.replaceNodeIfPossible(randomNode, targetNode)
+        }
     }
 }

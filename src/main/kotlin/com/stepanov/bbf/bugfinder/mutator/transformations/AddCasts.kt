@@ -26,17 +26,19 @@ object AddCasts : Transformation() {
         val userClassesDescriptors =
             StdLibraryGenerator.getUserClassesDescriptorsFromProject(project, currentModule)
 
-        val typedExpressions = ktFile.getAllPSIChildrenOfType<KtExpression>()
-            .map { it to it.getType(ctx) }
-            .filter { it.second != null && "${it.second}" !in uninterestingTypes }.randomOrNull() ?: return
-        val randomTypeToCast =
-            if (Random.getTrue(10)) {
-                val randomType = RandomTypeGenerator.generateRandomTypeWithCtx()
-                randomType?.constructor?.declarationDescriptor as? ClassDescriptor
-            } else {
-                chooseRandomTypeToCast(typedExpressions.second!!, userClassesDescriptors)
-            } ?: return
-        tryToCast(typedExpressions.first, typedExpressions.second!!, randomTypeToCast)
+        repeat(15) {
+            val typedExpressions = ktFile.getAllPSIChildrenOfType<KtExpression>()
+                .map { it to it.getType(ctx) }
+                .filter { it.second != null && "${it.second}" !in uninterestingTypes }.randomOrNull() ?: return
+            val randomTypeToCast =
+                if (Random.getTrue(10)) {
+                    val randomType = RandomTypeGenerator.generateRandomTypeWithCtx()
+                    randomType?.constructor?.declarationDescriptor as? ClassDescriptor
+                } else {
+                    chooseRandomTypeToCast(typedExpressions.second!!, userClassesDescriptors)
+                } ?: return
+            tryToCast(typedExpressions.first, typedExpressions.second!!, randomTypeToCast)
+        }
     }
 
     private fun chooseRandomTypeToCast(

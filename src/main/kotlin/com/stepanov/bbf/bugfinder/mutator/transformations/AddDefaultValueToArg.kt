@@ -8,6 +8,7 @@ import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtParameterList
+import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isNullable
@@ -19,9 +20,8 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.psiFactory as 
 object AddDefaultValueToArg : Transformation() {
 
     //TODO MAYBE INIT AND REINIT SOME PROPERTIES
-    override fun transform() {
-        val ctx = PSICreator.analyze(file) ?: return
-        val generator = RandomInstancesGenerator(file as KtFile, ctx)
+
+    private fun transform1(ctx: BindingContext, generator: RandomInstancesGenerator) {
         val prevParams = mutableListOf<Triple<KtExpression, String, KotlinType?>>()
         val randomParameterList = file.getAllPSIChildrenOfType<KtParameterList>()
             .filter { it.parameters.isNotEmpty() }
@@ -49,6 +49,14 @@ object AddDefaultValueToArg : Transformation() {
             if (emptyConstructor) value = value.substringBefore('<') + value.substringAfterLast('>')
             val psiValue = psiFactory.createParameter("${valueParam.text.substringBefore('=')} = $value")
             checker.replaceNodeIfPossible(valueParam, psiValue)
+        }
+    }
+
+    override fun transform() {
+        val ctx = PSICreator.analyze(file) ?: return
+        val generator = RandomInstancesGenerator(file as KtFile, ctx)
+        repeat(10) {
+            transform1(ctx, generator)
         }
     }
 }

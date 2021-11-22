@@ -2,9 +2,7 @@ package com.stepanov.bbf.bugfinder.util
 
 import com.intellij.lang.ASTNode
 import com.intellij.lang.FileASTNode
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.*
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
@@ -29,6 +27,10 @@ import org.jetbrains.kotlin.types.typeUtil.supertypes
 import com.stepanov.bbf.bugfinder.util.kcheck.asCharSequence
 import com.stepanov.bbf.bugfinder.util.kcheck.nextInRange
 import com.stepanov.bbf.bugfinder.util.kcheck.nextString
+import com.stepanov.bbf.reduktor.util.getAllParents
+import org.jetbrains.kotlin.psi.psiUtil.children
+import org.jetbrains.kotlin.psi.psiUtil.endOffset
+import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
@@ -408,6 +410,18 @@ fun KtBlockExpression.addProperty(prop: KtProperty): PsiElement? {
     return res
 }
 
+fun KtBlockExpression.addStatementsToEnd(statements: List<PsiElement>): List<PsiElement>? {
+    val factory = KtPsiFactory(this.project)
+    val rBrace = this.rBrace ?: return null
+    val resList = mutableListOf<PsiElement>()
+    for (statement in statements) {
+        addBefore(factory.createWhiteSpace("\n"), rBrace)
+        resList.add(addBefore(statement, rBrace))
+        addBefore(factory.createWhiteSpace("\n"), rBrace)
+    }
+    return resList
+}
+
 fun KtFile.getBoxFuncs(): List<KtNamedFunction>? =
     this.getAllPSIChildrenOfType { it.text.contains(Regex("""fun box\d*\(""")) }
 
@@ -456,8 +470,6 @@ fun String.filterNotLines(cond: (String) -> Boolean): String =
 
 fun kotlin.random.Random.getTrue(prop: Int) = Random().nextInRange(0, 100) < prop
 
-fun KtFile.findFunByName(name: String): KtNamedFunction? =
-    this.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name == name }
 
 fun KotlinType.isPrimitiveTypeOrNullablePrimitiveTypeOrString(): Boolean {
     val descriptor = this.constructor.declarationDescriptor

@@ -2,11 +2,10 @@ package com.stepanov.bbf.bugfinder.gitinfocollector
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMethod
-import com.stepanov.bbf.bugfinder.util.getNodesBetweenWhitespaces
+import com.stepanov.bbf.bugfinder.util.getNodesBetweenLines
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.psiUtil.parents
-import kotlin.system.exitProcess
 
 class FilePatchHandler(private val patches: List<FilePatch>) {
 
@@ -28,7 +27,7 @@ class FilePatchHandler(private val patches: List<FilePatch>) {
         for ((filePatch, psiFile) in patchToPsi) {
             for (patch in filePatch.patches) {
                 val affectedNodes =
-                    psiFile!!.getNodesBetweenWhitespaces(patch.startAddLine, patch.startAddLine + patch.numOfAddedLines)
+                    psiFile!!.getNodesBetweenLines(patch.startAddLine, patch.startAddLine + patch.numOfAddedLines)
                 affectedNodes.forEach { node ->
                     if (node is PsiMethod || node is KtNamedFunction) affectedFuncs.add(node)
                     node.parents.forEach { pnode ->

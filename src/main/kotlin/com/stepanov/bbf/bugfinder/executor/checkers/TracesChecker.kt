@@ -1,5 +1,6 @@
 package com.stepanov.bbf.bugfinder.executor.checkers
 
+import com.stepanov.bbf.bugfinder.executor.COMPILE_STATUS
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.project.Project
@@ -10,8 +11,13 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.bugfinder.util.addToTheTop
 import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
+import com.stepanov.bbf.bugfinder.util.instrumentation.CoverageGuidingCoefficients
 import org.apache.log4j.Logger
 import java.io.File
+
+enum class CHECKRES(val a: Int) {
+    BUG(CoverageGuidingCoefficients.SCORES_FOR_BUG), OK(0), NOT_OK(-1)
+}
 
 // Transformation is here only for PSIFactory
 class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationChecker(compilers) {
@@ -21,16 +27,19 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         val exclErrorMessages = listOf(
             "IndexOutOfBoundsException",
             "ArithmeticException",
+            "Annotation class cannot be instantiated",
             "KotlinReflectionInternalError" //TODO!!
         )
     }
 
-    fun checkBehavior(project: Project, saveFoundBugs: Boolean = true): Boolean {
+    fun checkBehavior(project: Project, saveFoundBugs: Boolean = true): CHECKRES {
         val (groupedRes, didCrash) = checkTest(project)
         if (groupedRes.size > 1) {
+            var onlyAddresses = false
             if (groupedRes.keys.first().split("\n").any { it.matches(Regex(""".+@[0-9a-z]+""")) }) {
                 val comment = Factory.psiFactory.createComment("// DIFF_ONLY_IN_ADDRESSES")
                 project.files.first().psiFile.addToTheTop(comment)
+                onlyAddresses = true
             }
             if (saveFoundBugs) {
                 BugManager.saveBug(
@@ -42,17 +51,21 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
                     )
                 )
             }
-            return false
+            return if (onlyAddresses) {
+                CHECKRES.NOT_OK
+            } else {
+                CHECKRES.BUG
+            }
         }
         if (CompilerArgs.isStrictMode) {
             if (didCrash) {
-                return false
+                return CHECKRES.NOT_OK
             }
             if (groupedRes.isEmpty() || groupedRes.keys.any { it.contains("Exception", true) }) {
-                return false
+                return CHECKRES.NOT_OK
             }
         }
-        return true
+        return CHECKRES.OK
     }
 
     private fun checkTest(project: Project): Pair<Map<String, List<CommonCompiler>>, Boolean> {
@@ -61,7 +74,6 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         //val extendedCompilerList = compilers + listOf(JVMCompiler("-Xno-optimize"))
         val extendedCompilerList = compilers
         if (!extendedCompilerList.checkCompilingForAllBackends(project)) {
-            log.debug("Cannot compile with main + \n$project")
             log.debug("Cannot compile with main + \n$project")
             return mapOf<String, List<CommonCompiler>>() to false
         }
@@ -74,7 +86,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         var hasErrors = false
         for (comp in extendedCompilerList) {
             val status = comp.compile(project)
-            if (status.status == -1)
+            if (status.status != COMPILE_STATUS.OK)
                 return mapOf<String, List<CommonCompiler>>() to false
             val res = comp.exec(status.pathToCompiled)
             val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
