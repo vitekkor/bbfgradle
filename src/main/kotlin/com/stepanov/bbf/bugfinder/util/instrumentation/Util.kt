@@ -54,7 +54,7 @@ fun MethodNode.getCoverageEntry(className: String): CoverageEntry {
 
 object CoverageGuidingCoefficients {
     const val EPSILON = 80
-    const val SCORES_FOR_BUG = 10
+    const val SCORES_FOR_BUG = 30
 
     //Sum of coverage entries
 //    const val UCB_MULTIPLIER = 10.0
@@ -62,11 +62,7 @@ object CoverageGuidingCoefficients {
 //    const val SCORE_DIVIDER = 0.1
 
     //Different entries
-    const val UCB_MULTIPLIER = 2.0
+    const val UCB_MULTIPLIER = 1.75
     const val MCMC_MULTIPLIER = 0.3
     const val SCORE_DIVIDER = 10.0
-
-
-
-
 }

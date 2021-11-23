@@ -123,9 +123,9 @@ object BugManager {
 //        } else bug
 
 
-    fun saveBug(bug: Bug) {
+    fun saveBug(bug: Bug): Boolean {
         try {
-            if (bug.type == BugType.FRONTEND) return
+            if (bug.type == BugType.FRONTEND) return false
             val field = when (bug.type) {
                 BugType.BACKEND -> "Backend"
                 BugType.FRONTEND -> "Frontend"
@@ -153,7 +153,7 @@ object BugManager {
                 haveDuplicates(newestBug)
             ) {
                 StatisticCollector.incField("Duplicates")
-                return
+                return false
             }
             bugs.add(newestBug)
             //Report bugs
@@ -167,10 +167,12 @@ object BugManager {
                     else listOf(newestBug)
                 FileReporter.dump(bugList)
             }
+            return true
         } catch (e: Exception) {
             log.debug("Exception ${e.localizedMessage} ${e.stackTraceToString()}\n")
             System.exit(1)
         }
+        return true
     }
 
     fun haveDuplicates(bug: Bug): Boolean {
@@ -188,7 +190,7 @@ object BugManager {
                 bug.compilers.first()
             )
             BugType.DIFFABI -> FilterDuplcatesCompilerErrors.haveSameDiffABIErrors(bug)
-            BugType.DIFFBEHAVIOR -> false
+            BugType.DIFFBEHAVIOR -> FilterDuplcatesCompilerErrors.haveSameDiffBehaviorErrors(bug)
             BugType.UNKNOWN -> false
             BugType.PERFORMANCE -> false
         }

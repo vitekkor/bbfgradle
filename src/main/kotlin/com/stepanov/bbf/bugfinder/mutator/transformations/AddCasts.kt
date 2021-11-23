@@ -21,7 +21,7 @@ object AddCasts : Transformation() {
         val ctx = PSICreator.analyze(ktFile, project) ?: return
         RandomTypeGenerator.setFileAndContext(ktFile, ctx)
         val currentModule =
-            ktFile.getBoxFuncs()?.first().getDeclarationDescriptorIncludingConstructors(ctx)?.module ?: return
+            ktFile.getBoxFuncs()?.firstOrNull()?.getDeclarationDescriptorIncludingConstructors(ctx)?.module ?: return
         val uninterestingTypes = listOf("Nothing", "Unit")
         val userClassesDescriptors =
             StdLibraryGenerator.getUserClassesDescriptorsFromProject(project, currentModule)

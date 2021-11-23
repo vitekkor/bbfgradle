@@ -15,22 +15,39 @@ import com.stepanov.bbf.bugfinder.util.instrumentation.CoverageGuidingCoefficien
 import org.apache.log4j.Logger
 import java.io.File
 
-enum class CHECKRES(val a: Int) {
+enum class CHECKRES(val scoreForBug: Int) {
     BUG(CoverageGuidingCoefficients.SCORES_FOR_BUG), OK(0), NOT_OK(-1)
 }
 
 // Transformation is here only for PSIFactory
 class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationChecker(compilers) {
 
-    private companion object FalsePositivesTemplates {
-        //Regex and replacing
-        val exclErrorMessages = listOf(
-            "IndexOutOfBoundsException",
-            "ArithmeticException",
-            "Annotation class cannot be instantiated",
-            "KotlinReflectionInternalError" //TODO!!
-        )
+
+    //Regex and replacing
+    val exclErrorMessages = listOf(
+        "IndexOutOfBoundsException",
+        "ArithmeticException",
+        "Annotation class cannot be instantiated",
+        "KotlinReflectionInternalError" //TODO!!
+    )
+
+    private companion object DuplicatesFilter {
+
+        fun filterDuplicates(dir: String) {
+            val files = File(dir).listFiles().sortedByDescending { it.lastModified() }
+            val res = mutableListOf(files.first().let { it to it.lastModified() })
+            for (f in files.drop(1)) {
+                val date = f.lastModified()
+                val fileFromRes = res.last()
+                val diffInMinutes = (fileFromRes.second - date) / 1000 / 60
+                if (diffInMinutes > 20) {
+                    res.add(f to date)
+                }
+            }
+            files.forEach { if (it !in res.map { it.first }) it.delete() }
+        }
     }
+
 
     fun checkBehavior(project: Project, saveFoundBugs: Boolean = true): CHECKRES {
         val (groupedRes, didCrash) = checkTest(project)
@@ -42,14 +59,18 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
                 onlyAddresses = true
             }
             if (saveFoundBugs) {
-                BugManager.saveBug(
-                    Bug(
-                        groupedRes.map { it.value.first() },
-                        "",
-                        project,
-                        BugType.DIFFBEHAVIOR
+                val didSavedSuccessfully =
+                    BugManager.saveBug(
+                        Bug(
+                            groupedRes.map { it.value.first() },
+                            "",
+                            project,
+                            BugType.DIFFBEHAVIOR
+                        )
                     )
-                )
+                if (!didSavedSuccessfully) {
+                    return CHECKRES.NOT_OK
+                }
             }
             return if (onlyAddresses) {
                 CHECKRES.NOT_OK

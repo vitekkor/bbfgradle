@@ -130,6 +130,19 @@ object FilterDuplcatesCompilerErrors {
         return false
     }
 
+    fun haveSameDiffBehaviorErrors(
+        bug: Bug
+    ): Boolean {
+        val dirWithSameBugs = bug.getDirWithSameTypeBugs()
+        val lastModifiedFile = File(dirWithSameBugs).listFiles().maxByOrNull { it.lastModified() } ?: return false
+        val diffInMinutes = System.currentTimeMillis() / 1000 / 60 - lastModifiedFile.lastModified()
+        if (diffInMinutes < 20) {
+            log.debug("Bug have duplicates")
+            return true
+        }
+        return false
+    }
+
 
     private fun getStacktrace(msg: String): String {
         val firstIndex = msg.indexOf("\nThe root cause was thrown at:")

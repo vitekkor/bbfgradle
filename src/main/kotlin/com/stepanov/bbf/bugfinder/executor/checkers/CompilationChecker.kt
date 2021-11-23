@@ -67,63 +67,6 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
             false
         }
     }
-
-//    private fun compareCompilerWorkingTimes(compilerWorkingTimes: List<Long>, isExecution: Boolean): Boolean {
-//        if (isExecution) println("EXECUTION!!")
-//        for (i in compilers.indices) {
-//            for (j in i + 1 until compilers.size) {
-//                val fExTime = compilerWorkingTimes[i]
-//                val sExTime = compilerWorkingTimes[j]
-//                val slowerBackend = if (fExTime > sExTime) i else j
-//                val fasterBackend = i + j - slowerBackend
-//                val compilationTimeDifference = abs(fExTime - sExTime)
-//                val compilationTimeDifferenceInPercents =
-//                    if (fExTime == sExTime || fExTime == 0L || sExTime == 0L) 0.0
-//                    else maxOf(fExTime, sExTime).toDouble() / minOf(fExTime, sExTime) * 100.0
-//                println("BACKEND ${compilers[slowerBackend]} slower then ${compilers[fasterBackend]} on $compilationTimeDifference ms in percents $compilationTimeDifferenceInPercents")
-//                return true // TODO!!
-//            }
-//        }
-//        return true
-//    }
-
-    //    fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null): Boolean {
-//        log.debug("Compilation checking started")
-//        val allTexts = project.files.map { it.psiFile.text }.joinToString()
-//        checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
-//        //Checking syntax correction
-//        if (!checkSyntaxCorrectnessAndAddCond(project, curFile)) {
-//            log.debug("Wrong syntax or breaks conditions")
-//            StatisticCollector.incField("Incorrect programs")
-//            checkedConfigurations[allTexts] = false
-//            return false
-//        }
-//        val summaryCoverage = mutableMapOf<CoverageEntry, Int>()
-//        val prevCompilationStatuses = mutableListOf<Triple<CommonCompiler, CompilationResult, String>>()
-//        for (c in compilers) {
-//            // Calc coverage automatically
-//            MyMethodBasedCoverage.methodProbes.clear()
-//            val compilationResult = c.compile(project)
-//            summaryCoverage.putAll(MyMethodBasedCoverage.methodProbes)
-//            if (compilationResult.status == COMPILE_STATUS.ERROR) {
-//                prevCompilationStatuses.add(Triple(c, compilationResult, ""))
-//                //Handle diff compile situation
-//            } else if (compilationResult.status == COMPILE_STATUS.BUG) {
-//                val msg = compilationResult.errorMessage
-//                val type = if (msg.contains("Exception while analyzing expression")) BugType.FRONTEND else BugType.BACKEND
-//                BugManager.saveBug(Bug(c, msg, project.copy(), type))
-//                currentScore += 100
-//            } else {
-//                val tracedProject = project.copy()
-//                Tracer(compilers.first(), tracedProject).trace()
-//                with(c.compile(tracedProject)) {
-//                    c.exec(pathToCompiled)
-//                }
-////                checkedConfigurations[allTexts] = checkRes
-//            }
-//        }
-//        return true
-//    }
     fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null): Boolean {
         log.debug("Compilation checking started")
         val allTexts = project.files.map { it.psiFile.text }.joinToString()
@@ -162,19 +105,14 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
         }
         //TODO!!
         checkAndGetCompilerBugs(project).forEach {
-            if (CompilerArgs.isGuidedByCoverage) {
+            if (BugManager.saveBug(it) && CompilerArgs.isGuidedByCoverage) {
                 currentScore += CoverageGuidingCoefficients.SCORES_FOR_BUG
             }
-            BugManager.saveBug(it)
         }
         checkedConfigurations[allTexts] = false
         StatisticCollector.incField("Correct programs")
         return false
     }
-
-    fun isCompilationSuccessful(project: Project): Boolean = compilers.all { it.checkCompiling(project) }
-
-    fun compileAndGetMessage(project: Project): String = compilers.first().getErrorMessage(project)
 
     private fun compileAndGetStatuses(project: Project): List<COMPILE_STATUS> =
         compilers.map { it.tryToCompileWithStatus(project) }
@@ -187,7 +125,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
         val copyOfProject = project.copy()
         Tracer(compilers.first(), copyOfProject).trace()
         return when (TracesChecker(compilers).checkBehavior(copyOfProject)) {
-            CHECKRES.BUG -> false.also { currentScore += CHECKRES.BUG.a }
+            CHECKRES.BUG -> false.also { currentScore += CHECKRES.BUG.scoreForBug }
             CHECKRES.NOT_OK -> false
             CHECKRES.OK -> true
         }
@@ -204,7 +142,9 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
         }
     }
 
+    //Is coverage decreasing?
     private fun isCoverageDecreases(project: Project): Boolean {
+        println("---")
         val sumCoverage = CoverageGuider.getCoverage(project, compilers)
         CoverageStatisticsCollector.addCoveredMethods(sumCoverage.keys)
         val k = CoverageGuider.calcKoefOfCoverageUsage(sumCoverage)
@@ -235,7 +175,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
             unsuccessfulMutations++
         }
         println("CURRENT SCORE = $currentScore")
-        //Is coverage decreasing?
+        println("---")
         return isDecreasing
     }
 

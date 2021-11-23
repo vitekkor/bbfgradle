@@ -14,23 +14,6 @@ val TIMEOUT_SEC = Properties()
     .also { it.load(File("./bbf.conf").inputStream()) }
     .getProperty("BBF_TIMEOUT")?.toLongOrNull() ?: throw IllegalArgumentException("Can't init timeout value")
 
-//data class BBFProcess(val cmd: CommandLine, val file: File,
-//                      val handler: DefaultExecuteResultHandler, val executor: DefaultExecutor) {
-//    fun execute() {
-//        executor.execute(cmd, handler)
-//    }
-//}
-//
-//
-//fun createBBFProcess(f: File): BBFProcess {
-//    val cmd = CommandLine.parse("$COMMAND ${f.absolutePath}")
-//    val executor = DefaultExecutor().also {
-//        it.watchdog = ExecuteWatchdog(TIMEOUT_SEC * 1000)
-//    }
-//    val handler = DefaultExecuteResultHandler()
-//    return BBFProcess(cmd, f, handler, executor)
-//}
-
 fun getRandomFileFromTestDirectory(): File =
     File("/home/zver/IdeaProjects/bbfgradle/tmp/arrays2/")
         .listFiles()!!
@@ -38,21 +21,22 @@ fun getRandomFileFromTestDirectory(): File =
         .random()
 
 fun removeSerializedMutations() {
-    val fileWithSerializedMutations = File("tmp/serializedMutations.txt")
-    if (fileWithSerializedMutations.exists()) fileWithSerializedMutations.delete()
+    with(File("tmp/serializedMutations.txt")) {
+        if (exists()) delete()
+    }
 }
 
-fun saveStatistics() {
-    val file = File("statistics.txt")
-    val serializedMutations = File("tmp/serializedMutations.txt")
-    val mutationMap = if (serializedMutations.exists()) serializedMutations.readText() else ""
-    val sumOfCoverage = ""
-    val fileName = COMMAND.substringAfter("--args")
-    file.writeText("""FILE: $fileName
-        |Mutation map: $mutationMap\n
-        |Coverage: $sumOfCoverage
-    """.trimMargin())
-}
+//fun saveStatistics() {
+//    val file = File("statistics.txt")
+//    val serializedMutations = File("tmp/serializedMutations.txt")
+//    val mutationMap = if (serializedMutations.exists()) serializedMutations.readText() else ""
+//    val sumOfCoverage = ""
+//    val fileName = COMMAND.substringAfter("--args")
+//    file.writeText("""FILE: $fileName
+//        |Mutation map: $mutationMap\n
+//        |Coverage: $sumOfCoverage
+//    """.trimMargin())
+//}
 
 
 const val pathToErrorLogs = "tmp/results/errorLogs"
@@ -85,7 +69,7 @@ Bugs per minute: 0.0
 //        Thread.sleep(1000)
 //    }
 
-    removeSerializedMutations()
+//    removeSerializedMutations()
     var globalIterationCounter = 1
     COMMAND = "gradle runBBF --args=${getRandomFileFromTestDirectory().absolutePath}"
     var cmdLine = CommandLine.parse(COMMAND)
@@ -106,8 +90,8 @@ Bugs per minute: 0.0
     //if (joinedArgs.contains("-f") || joinedArgs.contains("--fuzzing")) {
     var globalCounter = 0L
     while (true) {
-        println("Elapsed: $timeElapsed")
-        println("COMMAND = $COMMAND")
+//        println("Elapsed: $timeElapsed")
+//        println("COMMAND = $COMMAND")
         if (handler.hasResult()) {
             if (timeElapsed > TIMEOUT_SEC * 1000) {
                 var i = 0
@@ -152,8 +136,7 @@ Bugs per minute: 0.0
             if (globalIterationCounter >= ITERATIONS) {
                 COMMAND = "gradle runBBF --args=${getRandomFileFromTestDirectory().absolutePath}"
                 globalIterationCounter = 0
-
-                removeSerializedMutations()
+//                removeSerializedMutations()
             }
         }
         globalCounter += 1000
