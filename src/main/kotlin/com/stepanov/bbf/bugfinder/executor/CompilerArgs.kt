@@ -141,6 +141,7 @@ object CompilerArgs {
     //Instrumentation
     var isInstrumentationMode = getPropAsBoolean("WITH_INSTRUMENTATION")
     val isGuidedByCoverage = getPropAsBoolean("GUIDE_FUZZER_BY_COVERAGE")
+    val isMutationGuided = getPropAsBoolean("GUIDE_MUTATIONS")
 
     //ABI
     val isABICheckMode = getPropAsBoolean("ABI_CHECK_MODE")

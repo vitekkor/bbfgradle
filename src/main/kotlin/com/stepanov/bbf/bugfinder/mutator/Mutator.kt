@@ -139,6 +139,14 @@ class Mutator(val project: Project) {
         val directedMutations =
             mutationList.mapIndexed { i, m -> DirectedMutation(m, mutableListOf(), k) }.toMutableList()
         val deserializedDirectedMutations = deserializeDirectedMutations(directedMutations)
+        if (!CompilerArgs.isMutationGuided) {
+            (1..100).forEach {
+                executeDirectedMutation(deserializedDirectedMutations.random())
+            }
+            saveMutationsInformationInFile(deserializedDirectedMutations)
+            CoverageStatisticsCollector.saveCoverageStatistic()
+            exitProcess(0)
+        }
         checker.currentScore = 0
         //First of all execute each mutation
         if (deserializedDirectedMutations.all { it.scores.isEmpty() }) {

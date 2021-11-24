@@ -135,7 +135,7 @@ object FilterDuplcatesCompilerErrors {
     ): Boolean {
         val dirWithSameBugs = bug.getDirWithSameTypeBugs()
         val lastModifiedFile = File(dirWithSameBugs).listFiles().maxByOrNull { it.lastModified() } ?: return false
-        val diffInMinutes = System.currentTimeMillis() / 1000 / 60 - lastModifiedFile.lastModified()
+        val diffInMinutes = System.currentTimeMillis() / 1000 / 60 - lastModifiedFile.lastModified() / 1000 / 60
         if (diffInMinutes < 20) {
             log.debug("Bug have duplicates")
             return true

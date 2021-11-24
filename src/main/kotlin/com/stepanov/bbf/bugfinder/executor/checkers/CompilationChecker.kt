@@ -161,8 +161,8 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
         if (!isDecreasing) {
             currentScore += (k - CoverageGuider.initCoef).let {
                 when {
-                    it <= 0 -> 1
-                    else -> it + 3
+                    it <= 0 -> 0
+                    else -> it
                 }
             }
 //                if (it < 0)

@@ -4,6 +4,8 @@ import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.checkers.CoverageGuider
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.util.CoverageStatisticsCollector
+import com.stepanov.bbf.bugfinder.util.instrumentation.CoverageGuidingCoefficients
 import com.stepanov.bbf.bugfinder.util.instrumentation.JarSourceCodeInstrumenter
 import coverage.MyMethodBasedCoverage
 import org.apache.log4j.Level
@@ -32,7 +34,7 @@ fun main(args: Array<String>) {
                 .listFiles()
                 ?.filter { it.path.endsWith(".kt") }
                 ?.randomOrNull()?.absolutePath ?: exitProcess(0)
-    SingleFileBugFinder(filePath).findBugsInFile()
+    SingleFileBugFinder("tmp/myTest.kt").findBugsInFile()
     exitProcess(0)
 //    val parser = ArgumentParsers.newFor("bbf").build()
 //    parser.addArgument("-r", "--reduce")
