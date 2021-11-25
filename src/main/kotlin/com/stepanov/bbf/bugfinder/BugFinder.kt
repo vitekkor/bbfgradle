@@ -8,6 +8,7 @@ import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.mutator.MetamorphicMutation
 import com.stepanov.bbf.bugfinder.mutator.Mutator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.util.BBFProperties
@@ -27,7 +28,10 @@ open class BugFinder(protected val dir: String) {
             project,
             curFile
         ).also { checker -> conditions.forEach { checker.additionalConditions.add(it) } }
-        Mutator(project).startMutate()
+        if (CompilerArgs.isMetamorphicMode)
+            MetamorphicMutation(project).startMutate()
+        else
+            Mutator(project).startMutate()
     }
 
     protected val log = Logger.getLogger("bugFinderLogger")

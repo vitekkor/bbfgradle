@@ -74,7 +74,7 @@ class SingleFileBugFinder(pathToFile: String) : BugFinder(pathToFile) {
         }
         //noLastLambdaInFinallyBlock temporary for avoiding duplicates bugs
         mutate(project, project.files.first(), compilers, listOf(::noBoxFunModifying, ::noLastLambdaInFinallyBlock))
-        exitProcess(0)
+//        exitProcess(0)
 //            //Save mutated file
 //            if (CompilerArgs.shouldSaveMutatedFiles) {
 //                val pathToNewTests = CompilerArgs.dirForNewTests

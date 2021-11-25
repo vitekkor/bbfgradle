@@ -411,6 +411,9 @@ fun KtBlockExpression.addProperty(prop: KtProperty): PsiElement? {
 fun KtFile.getBoxFuncs(): List<KtNamedFunction>? =
     this.getAllPSIChildrenOfType { it.text.contains(Regex("""fun box\d*\(""")) }
 
+fun KtFile.getMainFunc(): KtNamedFunction? =
+    this.getAllPSIChildrenOfType<KtNamedFunction> { it.text.contains(Regex("""fun main\(""")) }.firstOrNull()
+
 fun PsiFile.addAtTheEnd(psiElement: PsiElement): PsiElement {
     return this.getAllPSIDFSChildrenOfType<PsiElement>().last().parent.let {
         it.add(Factory.psiFactory.createWhiteSpace("\n\n"))
