@@ -24,7 +24,7 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.random.Random
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType as type
 
-class MetamorphicMutation(val project: Project) {
+class MetamorphicMutator(val project: Project) {
     private val generatedFunCalls = mutableMapOf<FunctionDescriptor, KtExpression?>()
     private val resultOfExecution = mutableListOf<String>()
     private lateinit var rig: RandomInstancesGenerator
