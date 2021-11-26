@@ -25,6 +25,30 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         )
     }
 
+    fun checkBehaviorAfterMetamorphicMutation(
+        original: Project,
+        mutated: Project,
+        saveFoundBugs: Boolean = true
+    ): Boolean {
+        val (originalRes, didCrash) = checkTest(original)
+        val (mutatedRes, didCrashMutated) = checkTest(original)
+        if (originalRes != mutatedRes) {
+            val diff = originalRes.minus(mutatedRes)
+            if (saveFoundBugs) {
+                BugManager.saveBug(
+                    Bug(
+                        diff.map { it.value.first() },
+                        "DIFF_BEHAVIOR after metamorphic mutation",
+                        mutated,
+                        BugType.DIFFBEHAVIOR
+                    )
+                )
+            }
+            return false
+        }
+        return true
+    }
+
     fun checkBehavior(project: Project, saveFoundBugs: Boolean = true): Boolean {
         val (groupedRes, didCrash) = checkTest(project)
         if (groupedRes.size > 1) {

@@ -1,14 +1,15 @@
 package com.stepanov.bbf.bugfinder.mutator
 
 import com.intellij.psi.PsiElement
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.AddCasts
+import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.AddLoop
 import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.MetamorphicTransformation
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import com.stepanov.bbf.bugfinder.mutator.transformations.getPath
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsagesSamplesGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.util.ScopeCalculator
@@ -21,26 +22,29 @@ import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getCallNameExpression
 import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.types.KotlinType
 import kotlin.random.Random
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType as type
 
 class MetamorphicMutator(val project: Project) {
     private val generatedFunCalls = mutableMapOf<FunctionDescriptor, KtExpression?>()
     private val resultOfExecution = mutableListOf<String>()
+    private lateinit var originalProject: Project
     private lateinit var rig: RandomInstancesGenerator
 
     private val log = Logger.getLogger("bugFinderLogger")
     private val checker
-        get() = Transformation.checker
+        get() = MetamorphicTransformation.checker
     private val file
-        get() = Transformation.file
+        get() = MetamorphicTransformation.file
     private val ctx
-        get() = Transformation.ctx
+        get() = MetamorphicTransformation.ctx
 
     fun startMutate() {
         for (bbfFile in project.files) {
             log.debug("Metamorphic mutation of ${bbfFile.name} started")
-            Transformation.checker.curFile = bbfFile
+            MetamorphicTransformation.checker.curFile = bbfFile
+            MetamorphicTransformation.updateCtx()
             when (bbfFile.getLanguage()) {
                 LANGUAGE.KOTLIN -> startKotlinMutations()
                 else -> TODO()
@@ -50,6 +54,7 @@ class MetamorphicMutator(val project: Project) {
     }
 
     private fun startKotlinMutations() {
+        CompilerArgs.isMetamorphicMode = false
         val ktx = PSICreator.analyze(checker.curFile.psiFile, checker.project) ?: return
         val ktFile = checker.curFile.psiFile as KtFile
         RandomTypeGenerator.setFileAndContext(ktFile, ktx)
@@ -59,46 +64,52 @@ class MetamorphicMutator(val project: Project) {
         val fileBackup = file.copy() as KtFile
         val ctx = PSICreator.analyze(ktFile, project) ?: return
         rig = RandomInstancesGenerator(ktFile, ctx)
-        val mutationPoint = file.getAllPSIChildrenOfType<PsiElement>()
-            .find { it.text.trim() == "//INSERT_CODE_HERE" }!! //TODO GET RANDOM NODE
+        val mutationPoint =
+            file.getAllPSIChildrenOfType<KtProperty>().filter { it.text.contains("v4") }.randomOrNull() ?: return
+        /*file.getAllPSIChildrenOfType<PsiElement>()
+        .find { it.text.trim() == "\"//INSERT_CODE_HERE\"" }!! //TODO GET RANDOM NODE*/
 
-        val scope = profileScope(mutationPoint, ctx) //TODO Specify the type of variable
+        val scope = profileScope(mutationPoint, ctx)
         mutate(mutationPoint, scope)
-
+        CompilerArgs.isMetamorphicMode = true
+        checker.checkCompilingWithBugSaving(project, checker.curFile, originalProject)
 
         checker.curFile.changePsiFile(fileBackup, genCtx = false)
     }
 
-    private fun profileScope(mutationPoint: PsiElement, ctx: BindingContext): HashMap<String, MutableList<String>> {
+    private fun profileScope(mutationPoint: PsiElement, ctx: BindingContext): HashMap<Variable, MutableList<String>> {
         val ktFile = file as KtFile
         val processedScope = ScopeCalculator(ktFile, project).run {
             ScopeCalculator.processScope(rig, calcScope(mutationPoint).shuffled(), generatedFunCalls)
         }
         val usages = UsagesSamplesGenerator.generate(ktFile, ctx, project)
 
+        val variables = processedScope
+            .filter { it.psiElement is KtNameReferenceExpression }
+            .map { Variable(it.psiElement.text, it.type, it.psiElement) }
         val block = Factory.psiFactory.createExpression("kotlin.run {\n ${
-            processedScope
-                .filter { it.psiElement is KtNameReferenceExpression }
-                .joinToString("\n") {
-                    val value = it.psiElement.text; "println(\"${value}EQUALS_PROFILER\$$value\")"
-                }
+            variables.joinToString("\n") {
+                val value = it.name; "println(\"${value}EQUALS_PROFILER\$$value\")"
+            }
         }\n}")
 
-        mutationPoint.replaceThis(block) //TODO get back mutationPoint in file
+        //TODO REFACTORING
+        val main =
+            usages.find { it.first.text.contains("main") }?.first as? KtNamedFunction ?: resolveMainFun(mutationPoint)
+            ?: kotlin.run {
+                log.debug("Couldn't resolve main function in ${file.getPath()}")
+                return hashMapOf()
+            }
+        file.find(main) ?: kotlin.run { file.add(Factory.psiFactory.createWhiteSpace("\n\n")); file.add(main) }
+
+        originalProject = project.copy()
+
+        val profiling = mutationPoint.addAfterThisWithWhitespace(block, "\n")
         /*file.getAllPSIChildrenOfType<PsiElement>()
             .find { it.text.trim() == "//MUTATION_POINT" }!!.replaceThis(mutationPoint)*/
 
-        //TODO REFACTORING
-        val main = usages.find { it.first.text.contains("main") }?.first as? KtNamedFunction ?: resolveMainFun(block)
-        ?: kotlin.run {
-            log.debug("Couldn't resolve main function in ${file.getPath()}")
-            return hashMapOf()
-        }
-        file.find(main) ?: kotlin.run { file.add(Factory.psiFactory.createWhiteSpace("\n\n")); file.add(main) }
-
-
         val profiled = checker.compileAndGetResult().split("\n")
-        val variablesToValues = hashMapOf<String, MutableList<String>>()
+        val variablesToValues = hashMapOf<Variable, MutableList<String>>()
         /*variablesToValues.putAll(processedScope
             .filter { it.psiElement is KtNameReferenceExpression }
             .associate { it.psiElement.text to mutableListOf() })*/
@@ -109,10 +120,11 @@ class MetamorphicMutator(val project: Project) {
                 resultOfExecution.add(out) //???
                 continue
             }
-            variablesToValues.getOrPut(variableToValue[0]) { mutableListOf() }
+            val variable = variables.find { it.name == variableToValue[0] } ?: continue
+            variablesToValues.getOrPut(variable) { mutableListOf() }
                 .add(variableToValue[1].removeSuffix("\r"))
         }
-        block.replaceThis(mutationPoint)
+        profiling.replaceThis(Factory.psiFactory.createWhiteSpace("\n"))
         return variablesToValues
     }
 
@@ -137,7 +149,7 @@ class MetamorphicMutator(val project: Project) {
         }
     }
 
-    private fun mutate(mutationPoint: PsiElement, scope: HashMap<String, MutableList<String>>) {
+    private fun mutate(mutationPoint: PsiElement, scope: HashMap<Variable, MutableList<String>>) {
         val expected = false//Random.nextBoolean()
         val predicate = synthesisPredicate(scope, expected, 2)
         val thenStatement = synthesisIfBody(mutationPoint, scope, expected)
@@ -145,7 +157,8 @@ class MetamorphicMutator(val project: Project) {
             createExpression("if ($predicate) ${createBlock(thenStatement).text}")
             //createIf(createExpression(predicate.toString()), createBlock(thenStatement))
         }
-        mutationPoint.replaceThis(ifStatement)
+        mutationPoint.addAfterThisWithWhitespace(ifStatement, "\n")
+        println()
         // TODO val res = checker.compileAndGetResult().split("\n")
     }
 
@@ -153,28 +166,32 @@ class MetamorphicMutator(val project: Project) {
         t: MetamorphicTransformation,
         probPercentage: Int = 50,
         mutationPoint: PsiElement,
-        scope: HashMap<String, MutableList<String>>,
+        scope: HashMap<Variable, MutableList<String>>,
         expected: Boolean
     ) {
-        if (Random.nextInt(0, 100) < probPercentage) {
-            //Update ctx
-            MetamorphicTransformation.updateCtx()
-            MetamorphicTransformation.ctx ?: return
-            t.transform(mutationPoint, scope, expected)
-        }
+
     }
 
     private fun synthesisIfBody(
         mutationPoint: PsiElement,
-        scope: HashMap<String, MutableList<String>>,
+        scope: HashMap<Variable, MutableList<String>>,
         expected: Boolean
     ): String {
         val body = StringBuilder()
         val mut1 = listOf(
-            AddCasts() to 100
+            AddCasts() to 0,
+            AddLoop() to 100
         ).shuffled()
         //for (i in 0 until Random.nextInt(1, 3)) {
-        mut1.forEach { executeMutation(it.first, it.second, mutationPoint, scope, expected) }
+        for (it in mut1) {
+            if (Random.nextInt(0, 100) < it.second) {
+                //Update ctx
+                MetamorphicTransformation.updateCtx()
+                MetamorphicTransformation.ctx ?: continue
+                val res = it.first.transform(mutationPoint, scope, expected)
+                if (res.isNotEmpty()) body.appendLine(res)
+            }
+        }
         //}
         /*val query = ArrayList<String>()
         if (expected) {
@@ -219,7 +236,7 @@ class MetamorphicMutator(val project: Project) {
     }
 
     private fun synthesisPredicate(
-        scope: HashMap<String, MutableList<String>>,
+        scope: HashMap<Variable, MutableList<String>>,
         expected: Boolean,
         depth: Int
     ): Expression {
@@ -233,34 +250,66 @@ class MetamorphicMutator(val project: Project) {
         }
     }
 
-    private fun synthesisAtomic(scope: HashMap<String, MutableList<String>>, expected: Boolean): Expression {
-        //TODO Support more types
+    private fun synthesisAtomic(scope: HashMap<Variable, MutableList<String>>, expected: Boolean): Expression {
         if (expected) {
             val variable = scope.keys.randomOrNull() ?: return Expression("true")
-            val values = scope[variable]!!
-            val maxOrMin = Random.nextBoolean()
-            val value = if (maxOrMin) values.maxOf { it.toInt() } else values.minOf { it.toInt() }
-            val operator = if (maxOrMin) "<" else ">="
-            return Expression("$variable $operator $value")
+            return Expression(generateVariablesExpression(scope, variable))
         } else {
             val variable1 = scope.keys.randomOrNull() ?: return Expression("false")
             val variable2 = scope.keys.randomOrNull() ?: return Expression("false")
             if (variable1 == variable2) return Expression("$variable1 == $variable2")
-            val values1 = scope[variable1]!!
-            val values2 = scope[variable2]!!
-            val value1 = if (Random.nextBoolean()) values1.maxOf { it.toInt() } else values1.minOf { it.toInt() }
-            val value2 = if (Random.nextBoolean()) values2.maxOf { it.toInt() } else values2.minOf { it.toInt() }
-            val operator = when (value1.compareTo(value2)) {
-                0 -> "!="
-                1 -> "<"
-                else -> ">"
-            }
-            return Expression("$variable1 $operator $variable2")
+            return Expression(generateVariablesExpression(scope, variable1, variable2))
         }
     }
 
+    private fun generateVariablesExpression(
+        scope: HashMap<Variable, MutableList<String>>,
+        variable1: Variable,
+        variable2: Variable? = null
+    ): String {
+        //TODO blya pizdec
+        if (variable2 == null) {
+            when (variable1.type.name) {
+                "Int" -> {
+                    val values = scope[variable1]!!
+                    val maxOrMin = Random.nextBoolean()
+                    val value = if (maxOrMin) values.maxOf { it.toInt() } else values.minOf { it.toInt() }
+                    val operator = if (maxOrMin) "<" else ">="
+                    return "$variable1 $operator $value"
+                }
+                "String" -> {
+                    val values = scope[variable1]!!
+                    if (values.toSet().size == 1) {
+                        //todo
+                    }
+                }
+                else -> return ""
+            }
+        } else {
+            val values1 = scope[variable1]!!
+            val values2 = scope[variable2]!!
+            if (variable1.type.name == "Int" && variable2.type.name == "Int") {
+                val value1 = if (Random.nextBoolean()) values1.maxOf { it.toInt() } else values1.minOf { it.toInt() }
+                val value2 = if (Random.nextBoolean()) values2.maxOf { it.toInt() } else values2.minOf { it.toInt() }
+                val operator = when (value1.compareTo(value2)) {
+                    0 -> "!="
+                    1 -> "<"
+                    else -> ">"
+                }
+                return "$variable1 $operator $variable2"
+            }
+            if (variable1.type.name == "String" && variable2.type.name == "String") {
+                return "$variable1 + $variable2 == $variable2 + $variable1" //TODO
+            }
+            if (variable1.type.name == "Int" && variable2.type.name == "String" || variable1.type.name == "String" && variable2.type.name == "Int") {
+                return "$variable1.toString() + $variable2.toString() == $variable2.toString() + $variable1.toString()"
+            }
+        }
+        return ""
+    }
+
     private fun synthesisNegation(
-        scope: HashMap<String, MutableList<String>>,
+        scope: HashMap<Variable, MutableList<String>>,
         expected: Boolean,
         depth: Int
     ): Expression = Expression("!", synthesisPredicate(scope, !expected, depth - 1))
@@ -273,8 +322,14 @@ class MetamorphicMutator(val project: Project) {
         }
     }
 
+    data class Variable(val name: String, val type: KotlinType, val psiElement: PsiElement) {
+        override fun toString(): String {
+            return name
+        }
+    }
+
     private fun synthesisConjunctionDisjunction(
-        scope: HashMap<String, MutableList<String>>,
+        scope: HashMap<Variable, MutableList<String>>,
         expected: Boolean,
         depth: Int,
         conjunction: Boolean

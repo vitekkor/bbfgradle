@@ -83,7 +83,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
 //        return true
 //    }
 
-    fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null): Boolean {
+    fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null, original: Project? = null): Boolean {
         log.debug("Compilation checking started")
         val allTexts = project.files.map { it.psiFile.text }.joinToString()
         checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
@@ -93,6 +93,11 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
             StatisticCollector.incField("Incorrect programs")
             checkedConfigurations[allTexts] = false
             return false
+        }
+        if (CompilerArgs.isMetamorphicMode) {
+            val checkRes = checkMetamorphicMutationsTraces(project, original)
+            checkedConfigurations[allTexts] = checkRes
+            return checkRes
         }
         val (statuses, compilationTimes) =
             compileAndGetStatusesWithExecutionTime(project).let { it.map { it.first } to it.map { it.second } }
@@ -113,7 +118,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
                             val compSigma = PerformanceOracle.compilationSigma
                             val compConfInterval = PerformanceOracle.compilationConfInterval
                             val compTimeIntervalMedian = (compConfInterval.second + compConfInterval.first) / 2.0
-                            val newMed = compTimeIntervalMedian * 0.62  + compilationTimesDifferenceInPerc * 0.38
+                            val newMed = compTimeIntervalMedian * 0.62 + compilationTimesDifferenceInPerc * 0.38
                             val newInterval = newMed - compSigma to newMed + compSigma
                             PerformanceOracle.compilationConfInterval = newInterval
                             compilationRetValue = 1
@@ -148,7 +153,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
                             val execSigma = PerformanceOracle.executionSigma
                             val execConfInterval = PerformanceOracle.executionConfInterval
                             val executionTimeIntervalMedian = (execConfInterval.second + execConfInterval.first) / 2.0
-                            val newMed = executionTimeIntervalMedian * 0.62  + executionTimesDifferenceInPerc * 0.38
+                            val newMed = executionTimeIntervalMedian * 0.62 + executionTimesDifferenceInPerc * 0.38
                             val newInterval = newMed - execSigma to newMed + execSigma
                             PerformanceOracle.executionConfInterval = newInterval
                             executionRetValue = 1
@@ -217,6 +222,15 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
         val copyOfProject = project.copy()
         Tracer(compilers.first(), copyOfProject).trace()
         return TracesChecker(compilers).checkBehavior(copyOfProject)
+    }
+
+    fun checkMetamorphicMutationsTraces(mutated: Project, original: Project?): Boolean {
+        original ?: return checkTraces(mutated)
+        val copyOfOriginal = original.copy()
+        val copyOfMutated = mutated.copy()
+        Tracer(compilers.first(), copyOfOriginal).trace()
+        Tracer(compilers.first(), copyOfMutated).trace()
+        return TracesChecker(compilers).checkBehaviorAfterMetamorphicMutation(copyOfOriginal, copyOfMutated)
     }
 
 

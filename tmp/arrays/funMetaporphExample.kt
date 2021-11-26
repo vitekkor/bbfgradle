@@ -1,11 +1,13 @@
 // TARGET_BACKEND: JVM
 
 fun fooBar(a: Int, b: Int, c: Int): Int {
-    val v1 = maxOf(a, b, c)
+    var v1 = maxOf(a, b, c)
     val v2 = minOf(a, b, c)
     val v3 = a + b + c - v1 - v2
     var v4 = (v2 + v3 - v1) / 2
-    //INSERT_CODE_HERE
+    val string = "some string"
+    val empty = ""
+    val sssss = "//INSERT_CODE_HERE"
     if ((a >= b + c) || (b >= a + c) || (c >= a + b)) {
         return -1
     }

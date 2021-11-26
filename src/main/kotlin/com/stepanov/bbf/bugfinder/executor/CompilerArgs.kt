@@ -137,7 +137,7 @@ object CompilerArgs {
     var isMiscompilationMode = getPropAsBoolean("MISCOMPILATION_MODE")
     val isStrictMode = getPropAsBoolean("STRICT_MODE")
     val isPerformanceMode = getPropAsBoolean("PERFORMANCE_MODE")
-    val isMetamorphicMode = getPropAsBoolean("METAMORPHIC_MODE")
+    var isMetamorphicMode = getPropAsBoolean("METAMORPHIC_MODE")
 
     //Instrumentation
     var isInstrumentationMode = getPropAsBoolean("WITH_INSTRUMENTATION")

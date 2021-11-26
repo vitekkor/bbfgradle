@@ -8,6 +8,7 @@ import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.MetamorphicMutator
 import com.stepanov.bbf.bugfinder.mutator.Mutator
+import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.MetamorphicTransformation
 import com.stepanov.bbf.bugfinder.mutator.transformations.Transformation
 import org.apache.log4j.Logger
 
@@ -19,7 +20,13 @@ open class BugFinder(protected val dir: String) {
         compilers: List<CommonCompiler>,
         conditions: List<(PsiFile) -> Boolean> = listOf()
     ) {
-        Transformation.checker = MutationChecker(
+        if (!CompilerArgs.isMetamorphicMode)
+            Transformation.checker = MutationChecker(
+                compilers,
+                project,
+                curFile
+            ).also { checker -> conditions.forEach { checker.additionalConditions.add(it) } }
+        else MetamorphicTransformation.checker = MutationChecker(
             compilers,
             project,
             curFile

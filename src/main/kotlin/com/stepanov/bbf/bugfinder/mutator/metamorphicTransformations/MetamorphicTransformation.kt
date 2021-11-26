@@ -4,16 +4,18 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.project.Project
+import com.stepanov.bbf.bugfinder.mutator.MetamorphicMutator
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.resolve.BindingContext
 
 abstract class MetamorphicTransformation {
+
     abstract fun transform(
         mutationPoint: PsiElement,
-        scope: HashMap<String, MutableList<String>>,
+        scope: HashMap<MetamorphicMutator.Variable, MutableList<String>>,
         expected: Boolean
-    )
+    ): String
 
     companion object {
         lateinit var checker: MutationChecker
