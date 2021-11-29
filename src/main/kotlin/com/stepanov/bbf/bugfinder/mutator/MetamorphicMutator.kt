@@ -9,6 +9,7 @@ import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.Ran
 import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.AddCasts
 import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.AddLoop
 import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.MetamorphicTransformation
+import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.generateOneVariableExpression
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.getPath
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsagesSamplesGenerator
@@ -162,16 +163,6 @@ class MetamorphicMutator(val project: Project) {
         // TODO val res = checker.compileAndGetResult().split("\n")
     }
 
-    private fun executeMutation(
-        t: MetamorphicTransformation,
-        probPercentage: Int = 50,
-        mutationPoint: PsiElement,
-        scope: HashMap<Variable, MutableList<String>>,
-        expected: Boolean
-    ) {
-
-    }
-
     private fun synthesisIfBody(
         mutationPoint: PsiElement,
         scope: HashMap<Variable, MutableList<String>>,
@@ -251,7 +242,10 @@ class MetamorphicMutator(val project: Project) {
     }
 
     private fun synthesisAtomic(scope: HashMap<Variable, MutableList<String>>, expected: Boolean): Expression {
-        if (expected) {
+        val variable = scope.keys.randomOrNull() ?: return Expression("false")
+        val generated = generateVariablesExpression(scope, variable, expected = expected)
+        return Expression(generated)
+/*        if (expected) {
             val variable = scope.keys.randomOrNull() ?: return Expression("true")
             return Expression(generateVariablesExpression(scope, variable))
         } else {
@@ -259,32 +253,18 @@ class MetamorphicMutator(val project: Project) {
             val variable2 = scope.keys.randomOrNull() ?: return Expression("false")
             if (variable1 == variable2) return Expression("$variable1 == $variable2")
             return Expression(generateVariablesExpression(scope, variable1, variable2))
-        }
+        }*/
     }
 
     private fun generateVariablesExpression(
         scope: HashMap<Variable, MutableList<String>>,
         variable1: Variable,
-        variable2: Variable? = null
+        variable2: Variable? = null,
+        expected: Boolean = false
     ): String {
         //TODO blya pizdec
         if (variable2 == null) {
-            when (variable1.type.name) {
-                "Int" -> {
-                    val values = scope[variable1]!!
-                    val maxOrMin = Random.nextBoolean()
-                    val value = if (maxOrMin) values.maxOf { it.toInt() } else values.minOf { it.toInt() }
-                    val operator = if (maxOrMin) "<" else ">="
-                    return "$variable1 $operator $value"
-                }
-                "String" -> {
-                    val values = scope[variable1]!!
-                    if (values.toSet().size == 1) {
-                        //todo
-                    }
-                }
-                else -> return ""
-            }
+            return generateOneVariableExpression(scope, variable1, expected)
         } else {
             val values1 = scope[variable1]!!
             val values2 = scope[variable2]!!
