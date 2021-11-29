@@ -119,9 +119,9 @@ fun generateOneVariableExpression(
         }
         in listOf("List", "Array", "ArrayList") -> { //TODO COLLECTIONS
             variable.type.getNameWithoutError().replace("List<|>".toRegex(), "")
-            return ""
+            return expected.toString()
         }
-        else -> return ""
+        else -> return expected.toString()
     }
 }
 
