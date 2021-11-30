@@ -15,7 +15,7 @@ val TIMEOUT_SEC = Properties()
     .getProperty("BBF_TIMEOUT")?.toLongOrNull() ?: throw IllegalArgumentException("Can't init timeout value")
 
 fun getRandomFileFromTestDirectory(): File =
-    File("/home/zver/IdeaProjects/bbfgradle/tmp/arrays2/")
+    File("tmp/arrays2/")
         .listFiles()!!
         .filter { it.path.endsWith(".kt") }
         .random()
@@ -130,14 +130,14 @@ Bugs per minute: 0.0
                     }
                 })
             }
-            executor.execute(cmdLine, handler)
-            timeElapsed = 0
-            globalIterationCounter++
             if (globalIterationCounter >= ITERATIONS) {
                 COMMAND = "gradle runBBF --args=${getRandomFileFromTestDirectory().absolutePath}"
                 globalIterationCounter = 0
 //                removeSerializedMutations()
             }
+            executor.execute(cmdLine, handler)
+            timeElapsed = 0
+            globalIterationCounter++
         }
         globalCounter += 1000
         if ((globalCounter / 1000) % 60 == 0L) {

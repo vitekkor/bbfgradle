@@ -49,6 +49,7 @@ class JarSourceCodeInstrumenter(
         sourceJarFileEntries.find { it.name == entryPath }
 
     fun instrument(targetCoverage: List<CoverageEntry>) {
+        val targetCoverageCopy = targetCoverage.toMutableList()
         if (File(newJarPath).exists()) File(newJarPath).delete()
         val outputStream = JarOutputStream(FileOutputStream(File(newJarPath)))
         val jarFile = JarFile(jarPath)
@@ -110,6 +111,10 @@ class JarSourceCodeInstrumenter(
                     classNode.sourceFile.endsWith("kt") -> PSICreator.getPSIForText(sourceCode, false)
                     else -> PSICreator.getPsiForJava(sourceCode)
                 }
+            psiSourceCode?.name = with(sourceFileEntry.realName) {
+                if (endsWith(".kt")) substringAfterLast('/').substringBeforeLast(".kt") + "Kt"
+                else substringAfterLast("/").substringBeforeLast(".java")
+            }
             // println("PSI BUILT")
             namedFunctionsToLineNumber =
                 when {
@@ -135,6 +140,7 @@ class JarSourceCodeInstrumenter(
                 }
             prevFullClassName = fullClassName
             //  println("FUN TO LINE NUMBER")
+            //if (!fullClassName.contains("resolve") || fullClassName.contains("fir") || fullClassName.contains("js")) continue
             val methods = classNode.methods
             for ((j, m) in methods.withIndex()) {
                 // println("Method $j from ${methods.size}")
@@ -182,6 +188,7 @@ class JarSourceCodeInstrumenter(
                 newInstructionList.forEach { instructions.insert(it) }
                 m.maxStack += 6
             }
+            //continue
             val outData = ClassWriter(ClassWriter.COMPUTE_FRAMES)
             try {
                 println("WRITING TO $fullClassName")

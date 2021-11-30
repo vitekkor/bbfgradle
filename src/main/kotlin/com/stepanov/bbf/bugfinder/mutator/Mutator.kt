@@ -133,7 +133,8 @@ class Mutator(val project: Project) {
             AddPossibleModifiers(),
             AddInheritance(),
             ReplaceDotExpression(),
-            AddExpressionToLoop()
+            AddExpressionToLoop(),
+            ModifyForExpression()
         )
         val k = 100.0 / mutationList.size
         val directedMutations =

@@ -27,7 +27,7 @@ class FilePatchHandler(private val patches: List<FilePatch>) {
         for ((filePatch, psiFile) in patchToPsi) {
             for (patch in filePatch.patches) {
                 val affectedNodes =
-                    psiFile!!.getNodesBetweenLines(patch.startAddLine, patch.startAddLine + patch.numOfAddedLines)
+                    psiFile!!.getNodesBetweenLines(patch.startNewLine, patch.startNewLine + patch.numOfNewLines)
                 affectedNodes.forEach { node ->
                     if (node is PsiMethod || node is KtNamedFunction) affectedFuncs.add(node)
                     node.parents.forEach { pnode ->

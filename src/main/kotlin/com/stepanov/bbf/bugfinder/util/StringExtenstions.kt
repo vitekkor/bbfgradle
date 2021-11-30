@@ -10,3 +10,14 @@ fun String.splitWithoutRemoving(regex: Regex): List<String> {
 
 fun String.erase(str: String) =
     this.split(str).joinToString("")
+
+fun String.containsAny(vararg words: String): Boolean =
+    words.any { this.contains(it) }
+
+fun String.notContainsAny(vararg words: String): Boolean = !this.containsAny(*words)
+
+fun List<String>.filterContains(vararg words: String): List<String> =
+    this.filter { str -> words.any { word -> str.contains(word) } }
+
+fun List<String>.filterNotContains(vararg words: String): List<String>  =
+    this.filterNot { str -> words.any { word -> str.contains(word) } }

@@ -10,6 +10,8 @@ import com.stepanov.bbf.bugfinder.gitinfocollector.FilePatchHandler
 import com.stepanov.bbf.bugfinder.gitinfocollector.GitRepo
 import com.stepanov.bbf.bugfinder.gitinfocollector.SignatureCollector
 import com.stepanov.bbf.bugfinder.util.Stream
+import com.stepanov.bbf.bugfinder.util.containsAny
+import com.stepanov.bbf.bugfinder.util.notContainsAny
 import coverage.CoverageEntry
 import coverage.MyMethodBasedCoverage
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -44,7 +46,7 @@ object CoverageGuider {
                     continue
                 }
                 val repo = GitRepo("JetBrains", "kotlin")
-                val patches = repo.getPatches(commit)
+                val patches = repo.getLocalPatches(commit, CompilerArgs.pathToKotlin)
                 res.addAll(patches)
                 File("$pathToSerializedCommits/${commit.take(7)}").writeText(Json.encodeToString(patches))
             }
@@ -59,30 +61,52 @@ object CoverageGuider {
 //        println("INIT K = $initCoef\n")
 //    }
 
+    private fun filterPatchesForUnsignedNumbersTest(patch: FilePatch) =
+        with(patch.fileName) {
+            notContainsAny(
+                "testData",
+                "/js/",
+                "dev/null",
+                "/tests/",
+                "/test/",
+                "native",
+                "/fir",
+                "metadata",
+                "samples/"
+            ) && (endsWith(".java") || endsWith(".kt"))
+        }
+
+
+    fun initDesireCoverage(pathToSerializedCoverage: String, filterFunc: (CoverageEntry) -> Boolean = { true }) {
+        val helloWorldProject = Project.createFromCode(
+            """
+                fun main() {
+                    println("Kotlin")
+                }""".trimIndent()
+        )
+        val helloWorldCoverage = getCoverage(helloWorldProject, CompilerArgs.getCompilersList())
+        //if (File(pathToSerializedCoverage).exists()) {
+        this.desiredCoverage = try {
+            val coverageText = File(pathToSerializedCoverage).readText()
+            Json.decodeFromString<List<CoverageEntry>>(coverageText)
+                .filter { filterFunc.invoke(it) && it !in helloWorldCoverage }
+        } catch (e: Exception) {
+            val filteredPatches = patches.filter(::filterPatchesForUnsignedNumbersTest)
+            val modifiedFunctions = FilePatchHandler(filteredPatches).getListOfAffectedFunctions(true)
+            val signatures = SignatureCollector.collectSignatures(modifiedFunctions)
+            val desiredCoverage =
+                signatures.filter { filterFunc.invoke(it) && it !in helloWorldCoverage }.toSet().toList()
+            File(pathToSerializedCoverage).writeText(Json.encodeToString(desiredCoverage))
+            desiredCoverage
+        }
+    }
 
     fun init(
         pathToSerializedCoverage: String,
         project: Project,
         filterFunc: (CoverageEntry) -> Boolean = { true }
     ) {
-        //if (File(pathToSerializedCoverage).exists()) {
-        this.desiredCoverage = try {
-            val coverageText = File(pathToSerializedCoverage).readText()
-            Json.decodeFromString(coverageText)
-        } catch (e: Exception) {
-            val modifiedFunctions = FilePatchHandler(patches).getListOfAffectedFunctions(true)
-            val signatures = SignatureCollector.collectSignatures(modifiedFunctions)
-            val helloWorldProject = Project.createFromCode(
-                """
-                fun main() {
-                    println("Kotlin")
-                }""".trimIndent()
-            )
-            val helloWorldCoverage = getCoverage(helloWorldProject, CompilerArgs.getCompilersList())
-            val desiredCoverage = signatures.filter { filterFunc.invoke(it) && it !in helloWorldCoverage }
-            File(pathToSerializedCoverage).writeText(Json.encodeToString(desiredCoverage))
-            desiredCoverage
-        }
+        initDesireCoverage(pathToSerializedCoverage, filterFunc)
         val initCoverage = getCoverage(project, CompilerArgs.getCompilersList())
         println("init Coverage size = ${initCoverage.size}")
         initCoef = calcKoefOfCoverageUsage(initCoverage)
@@ -121,7 +145,10 @@ object CoverageGuider {
                 )
             }
             execCoverageEntries.forEach {
-                sumCoverage[it.key]?.let { c -> sumCoverage[it.key] = c + it.value } ?: sumCoverage.put(it.key, it.value)
+                sumCoverage[it.key]?.let { c -> sumCoverage[it.key] = c + it.value } ?: sumCoverage.put(
+                    it.key,
+                    it.value
+                )
             }
         }
         CompilerArgs.isInstrumentationMode = false

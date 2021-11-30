@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.*
 import com.intellij.util.IncorrectOperationException
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.tryToCreateExpression
 import com.stepanov.bbf.bugfinder.mutator.transformations.filterDuplicates
 import com.stepanov.bbf.reduktor.util.getAllParents
 import org.jetbrains.kotlin.psi.*
@@ -126,3 +127,6 @@ fun PsiMethod.getSourceCodeLinesRange() =
             val linesInFunc = file.text.substring(this.startOffset..this.endOffset).count { it == '\n' }
             spacesBefore..spacesBefore + linesInFunc
         } ?: -1..-1
+
+fun KtPsiFactory.createOperationReferenceExpression(operation: String) =
+    ((tryToCreateExpression("if (1 $operation 1) {}") as? KtIfExpression)?.condition as? KtBinaryExpression)?.operationReference
