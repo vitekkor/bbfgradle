@@ -50,7 +50,7 @@ fun main(args: Array<String>) {
                 .listFiles()
                 ?.filter { it.path.endsWith(".kt") }
                 ?.randomOrNull()?.absolutePath ?: exitProcess(0)
-    SingleFileBugFinder("tmp/myTest1.kt").findBugsInFile()
+    SingleFileBugFinder(filePath).findBugsInFile()
     exitProcess(0)
 //    val parser = ArgumentParsers.newFor("bbf").build()
 //    parser.addArgument("-r", "--reduce")
