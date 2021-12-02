@@ -32,7 +32,7 @@ open class MutationChecker(
         val compiler = compilers.find(JVMCompiler::class::isInstance) ?: return "Error" //TODO
         val compiled = compiler.compile(project)
         val startTime = System.currentTimeMillis()
-        val res = compiler.commonExec("java -jar ${compiled.pathToCompiled}", Stream.BOTH)
+        val res = compiler.exec(compiled.pathToCompiled, Stream.BOTH)
         checkedConfigurationsWithExecutionResult[allTexts] = res to System.currentTimeMillis() - startTime
         return checkedConfigurationsWithExecutionResult[allTexts]!!.first
     }

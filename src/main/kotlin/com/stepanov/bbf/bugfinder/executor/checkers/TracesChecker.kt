@@ -31,7 +31,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         saveFoundBugs: Boolean = true
     ): Boolean {
         val (originalRes, didCrash) = checkTest(original)
-        val (mutatedRes, didCrashMutated) = checkTest(original)
+        val (mutatedRes, didCrashMutated) = checkTest(mutated)
         if (originalRes != mutatedRes) {
             val diff = originalRes.minus(mutatedRes)
             if (saveFoundBugs) {
