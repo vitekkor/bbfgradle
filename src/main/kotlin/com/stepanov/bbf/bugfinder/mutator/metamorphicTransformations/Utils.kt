@@ -1,7 +1,9 @@
 package com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations
 
+import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.MetamorphicMutator
 import com.stepanov.bbf.bugfinder.util.getNameWithoutError
+import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import com.stepanov.bbf.bugfinder.util.getTrue
 import com.stepanov.bbf.bugfinder.util.name
 import kotlin.math.abs
@@ -21,9 +23,15 @@ fun generateOneVariableExpression(
             var value: String
             val suffix = if (variable.type.name!![0] == 'U') "u" else ""
             if (values.size > 1 && Random.getTrue(50)) {
-                val k = if (Random.nextBoolean()) Random.nextInt() else 1
+                val k =
+                    if (Random.nextBoolean())
+                        if (suffix.isNotEmpty())
+                            Random.nextInt(Int.MAX_VALUE / 1000)
+                        else
+                            Random.nextInt()
+                    else 1
                 operator = if (expected) "in" else "!in"
-                value = "${k * min}$suffix..${k * max}$suffix"
+                value = "${k * min}$suffix..${k * max}"
             } else if (values.size > 1) {
                 val maxOrMin = Random.nextBoolean()
                 value = if (maxOrMin) max.toString() else min.toString()
@@ -57,7 +65,10 @@ fun generateOneVariableExpression(
                 if (values.isEmpty())
                     if (expected) "$variable.isEmpty()" else "$variable.isNotEmpty()"
                 else {
-                    if (expected) "$variable == \"${values.joinToString("")}\"" else "$variable.contains(\"${values.joinToString("")}${Random.nextInt()}\""
+                    if (expected)
+                        "$variable == \"${values.joinToString("")}\""
+                    else
+                        "$variable.contains(\"${values.joinToString("")}${Random.nextInt()}\")"
                 }
             }
         }
@@ -131,4 +142,68 @@ fun Random.nextCharNotIn(list: List<Char>): Char {
         next = this.nextInt(256).toChar()
     }
     return next
+}
+
+fun synthesisIfBody(
+    mutationPoint: PsiElement,
+    scope: HashMap<MetamorphicMutator.Variable, MutableList<String>>,
+    expected: Boolean
+): String {
+    val body = StringBuilder()
+    val mut1 = listOf(
+        AddCasts() to 0,
+        AddLoop() to 0,
+        //AddRandomClass() to 100
+        AddFunInvocations() to 100
+    ).shuffled()
+    //for (i in 0 until Random.nextInt(1, 3)) {
+    for (it in mut1) {
+        if (Random.nextInt(0, 100) < it.second) {
+            //Update ctx
+            MetamorphicTransformation.updateCtx()
+            MetamorphicTransformation.ctx ?: continue
+            val res = it.first.transform(mutationPoint, scope, expected)
+            if (res.isNotEmpty()) body.appendLine(res)
+        }
+    }
+    //}
+    /*val query = ArrayList<String>()
+    if (expected) {
+        //TODO
+    } else {
+        query.addAll(generatedFunCalls.entries.mapNotNull { it.value?.text })
+        if (Random.nextBoolean())
+            query.addAll(
+                file.getAllPSIChildrenOfType<KtNamedFunction>()
+                    .mapNotNull {
+                        (it.getDeclarationDescriptorIncludingConstructors(ctx!!) as? FunctionDescriptor)?.let { it1 -> //TODO refactor
+                            rig.generateFunctionCall(
+                                it1
+                            )?.text
+                        }
+                    })
+        *//* if (Random.nextBoolean())
+                 query.addAll(getCasts())*//*
+            while (query.isNotEmpty()) {
+                val expression = query.random()
+                query.remove(expression)
+                body.append(expression)
+                body.appendLine()
+            }
+            for (i in 0..Random.nextInt(10)) {
+
+                //rig.generate
+            }
+        }*/
+    return body.toString()
+}
+
+fun Random.getRandomVariableNameNotIn(scope: Set<MetamorphicMutator.Variable>): String? {
+    var name = this.getRandomVariableName()
+    for (i in 0..10) {
+        if (scope.all { it.name != name }) break
+        name = this.getRandomVariableName()
+    }
+    if (scope.any { it.name == name }) return null
+    return name
 }

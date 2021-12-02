@@ -6,10 +6,7 @@ import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
-import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.AddCasts
-import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.AddLoop
-import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.MetamorphicTransformation
-import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.generateOneVariableExpression
+import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.getPath
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsagesSamplesGenerator
@@ -151,9 +148,13 @@ class MetamorphicMutator(val project: Project) {
     }
 
     private fun mutate(mutationPoint: PsiElement, scope: HashMap<Variable, MutableList<String>>) {
-        val expected = false//Random.nextBoolean()
+        val expected = true//Random.nextBoolean()
         val predicate = synthesisPredicate(scope, expected, 2)
         val thenStatement = synthesisIfBody(mutationPoint, scope, expected)
+        /*if (thenStatement.isEmpty()) {
+            log.debug("Metamorphic mutation is empty.")
+            return
+        }*/
         val ifStatement = with(Factory.psiFactory) {
             createExpression("if ($predicate) ${createBlock(thenStatement).text}")
             //createIf(createExpression(predicate.toString()), createBlock(thenStatement))
@@ -161,69 +162,6 @@ class MetamorphicMutator(val project: Project) {
         mutationPoint.addAfterThisWithWhitespace(ifStatement, "\n")
         println()
         // TODO val res = checker.compileAndGetResult().split("\n")
-    }
-
-    private fun synthesisIfBody(
-        mutationPoint: PsiElement,
-        scope: HashMap<Variable, MutableList<String>>,
-        expected: Boolean
-    ): String {
-        val body = StringBuilder()
-        val mut1 = listOf(
-            AddCasts() to 0,
-            AddLoop() to 100
-        ).shuffled()
-        //for (i in 0 until Random.nextInt(1, 3)) {
-        for (it in mut1) {
-            if (Random.nextInt(0, 100) < it.second) {
-                //Update ctx
-                MetamorphicTransformation.updateCtx()
-                MetamorphicTransformation.ctx ?: continue
-                val res = it.first.transform(mutationPoint, scope, expected)
-                if (res.isNotEmpty()) body.appendLine(res)
-            }
-        }
-        //}
-        /*val query = ArrayList<String>()
-        if (expected) {
-            //TODO
-        } else {
-            query.addAll(generatedFunCalls.entries.mapNotNull { it.value?.text })
-            if (Random.nextBoolean())
-                query.addAll(
-                    file.getAllPSIChildrenOfType<KtNamedFunction>()
-                        .mapNotNull {
-                            (it.getDeclarationDescriptorIncludingConstructors(ctx!!) as? FunctionDescriptor)?.let { it1 -> //TODO refactor
-                                rig.generateFunctionCall(
-                                    it1
-                                )?.text
-                            }
-                        })
-            *//* if (Random.nextBoolean())
-                 query.addAll(getCasts())*//*
-            while (query.isNotEmpty()) {
-                val expression = query.random()
-                query.remove(expression)
-                body.append(expression)
-                body.appendLine()
-            }
-            for (i in 0..Random.nextInt(10)) {
-
-                //rig.generate
-            }
-        }*/
-        return body.toString()
-    }
-
-    private fun generateVariableName(length: Int): String {
-        val result = StringBuilder()
-        val characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-        for (i in 0 until length)
-            if (i == 0)
-                result.append(characters[Random.nextInt(characters.length - 10)])
-            else
-                result.append(characters[Random.nextInt(characters.length)])
-        return result.toString()
     }
 
     private fun synthesisPredicate(
@@ -235,15 +173,15 @@ class MetamorphicMutator(val project: Project) {
             return synthesisAtomic(scope, expected)
         return when (Random.nextInt(4)) {
             0 -> synthesisNegation(scope, expected, depth)
-            1 -> synthesisConjunctionDisjunction(scope, expected, depth, true)
-            2 -> synthesisConjunctionDisjunction(scope, expected, depth, false)
+            1 -> synthesisConjunction(scope, expected, depth)
+            2 -> synthesisDisjunction(scope, expected, depth)
             else -> synthesisAtomic(scope, expected)
         }
     }
 
     private fun synthesisAtomic(scope: HashMap<Variable, MutableList<String>>, expected: Boolean): Expression {
-        val variable = scope.keys.randomOrNull() ?: return Expression("false")
-        val generated = generateVariablesExpression(scope, variable, expected = expected)
+        val variable = scope.keys.randomOrNull() ?: return Expression(expected.toString())
+        val generated = generateOneVariableExpression(scope, variable, expected)
         return Expression(generated)
 /*        if (expected) {
             val variable = scope.keys.randomOrNull() ?: return Expression("true")
@@ -260,7 +198,7 @@ class MetamorphicMutator(val project: Project) {
         scope: HashMap<Variable, MutableList<String>>,
         variable1: Variable,
         variable2: Variable? = null,
-        expected: Boolean = false
+        expected: Boolean
     ): String {
         //TODO blya pizdec
         if (variable2 == null) {
@@ -308,15 +246,14 @@ class MetamorphicMutator(val project: Project) {
         }
     }
 
-    private fun synthesisConjunctionDisjunction(
+    private fun synthesisConjunction(
         scope: HashMap<Variable, MutableList<String>>,
         expected: Boolean,
-        depth: Int,
-        conjunction: Boolean
+        depth: Int
     ): Expression {
         val left: Boolean
         val right: Boolean
-        if (conjunction && expected || !conjunction && !expected) {
+        if (expected) {
             left = true
             right = true
         } else if (Random.nextBoolean()) {
@@ -328,6 +265,28 @@ class MetamorphicMutator(val project: Project) {
         }
         val leftPred = synthesisPredicate(scope, left, depth - 1)
         val rightPred = synthesisPredicate(scope, right, depth - 1)
-        return Expression(if (conjunction) "&&" else "||", leftPred, rightPred)
+        return Expression("&&", leftPred, rightPred)
+    }
+
+    private fun synthesisDisjunction(
+        scope: HashMap<Variable, MutableList<String>>,
+        expected: Boolean,
+        depth: Int
+    ): Expression {
+        val left: Boolean
+        val right: Boolean
+        if (!expected) {
+            left = false
+            right = false
+        } else if (Random.nextBoolean()) {
+            left = true
+            right = false
+        } else {
+            left = true
+            right = Random.nextBoolean()
+        }
+        val leftPred = synthesisPredicate(scope, left, depth - 1)
+        val rightPred = synthesisPredicate(scope, right, depth - 1)
+        return Expression("||", leftPred, rightPred)
     }
 }
