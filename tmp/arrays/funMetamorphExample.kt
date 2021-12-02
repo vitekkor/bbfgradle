@@ -23,7 +23,11 @@ fun fooBar(a: Int, b: Int, c: Int): Int {
     }
 }
 
-class MyClass()
+class MyClass() {
+    fun someFun() {
+
+    }
+}
 
 fun another() {
     fooBar(5, 6, 7)

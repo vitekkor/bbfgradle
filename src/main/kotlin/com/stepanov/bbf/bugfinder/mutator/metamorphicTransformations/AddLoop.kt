@@ -5,7 +5,6 @@ import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGen
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.mutator.MetamorphicMutator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.tryToCreateExpression
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.psi.KtExpression
@@ -27,10 +26,10 @@ class AddLoop : MetamorphicTransformation() {
             file.getAllPSIChildrenOfType<KtExpression>().filter { it.getType(ctx!!) != null }.randomOrNull()?.text
                 ?: return ""
         } else {
-            "" // todo
+            synthesisIfBody(mutationPoint, scope, expected)
         }
-        val forExpr = generateForExpression(scope.keys, rig, body) ?: return ""
-        return forExpr.text
+        val forExpr = generateForExpression(scope.keys, rig, body)
+        return forExpr?.text ?: ""
     }
 
     private fun generateForExpression(
@@ -60,18 +59,14 @@ class AddLoop : MetamorphicTransformation() {
                 var resExpr: KtExpression? = null
                 for (i in 0 until 10) {
                     val randomClassToIterate = getRandomClassToIterate()
-                    val instance = rig.generateValueOfType(randomClassToIterate)
-                    resExpr = Factory.psiFactory.tryToCreateExpression(instance)
+                    resExpr = rig.generateValueOfTypeAsExpression(randomClassToIterate)
                     if (resExpr != null) break
                 }
                 resExpr
             }
         if (loopRange == null) return null
-        val label =
-            if (Random.getTrue(25)) "${Random.getRandomVariableName(1)}@"
-            else ""
-        val loopParameter = Random.getRandomVariableName(1)
-        val forExpression = "$label for ($loopParameter in ${loopRange.text}) { \n$body\n}"
+        val loopParameter = Random.getRandomVariableName(3)
+        val forExpression = "for ($loopParameter in ${loopRange.text}) { \n$body\n}"
         return try {
             Factory.psiFactory.createExpression(forExpression)
         } catch (e: Exception) {
