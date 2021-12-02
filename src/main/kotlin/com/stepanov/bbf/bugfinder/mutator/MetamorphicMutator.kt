@@ -151,10 +151,10 @@ class MetamorphicMutator(val project: Project) {
         val expected = true//Random.nextBoolean()
         val predicate = synthesisPredicate(scope, expected, 2)
         val thenStatement = synthesisIfBody(mutationPoint, scope, expected)
-        /*if (thenStatement.isEmpty()) {
+        if (thenStatement.isEmpty()) {
             log.debug("Metamorphic mutation is empty.")
             return
-        }*/
+        }
         val ifStatement = with(Factory.psiFactory) {
             createExpression("if ($predicate) ${createBlock(thenStatement).text}")
             //createIf(createExpression(predicate.toString()), createBlock(thenStatement))
@@ -162,36 +162,6 @@ class MetamorphicMutator(val project: Project) {
         mutationPoint.addAfterThisWithWhitespace(ifStatement, "\n")
         println()
         // TODO val res = checker.compileAndGetResult().split("\n")
-    }
-
-    private fun synthesisPredicate(
-        scope: HashMap<Variable, MutableList<String>>,
-        expected: Boolean,
-        depth: Int
-    ): Expression {
-        if (depth == 0)
-            return synthesisAtomic(scope, expected)
-        return when (Random.nextInt(4)) {
-            0 -> synthesisNegation(scope, expected, depth)
-            1 -> synthesisConjunction(scope, expected, depth)
-            2 -> synthesisDisjunction(scope, expected, depth)
-            else -> synthesisAtomic(scope, expected)
-        }
-    }
-
-    private fun synthesisAtomic(scope: HashMap<Variable, MutableList<String>>, expected: Boolean): Expression {
-        val variable = scope.keys.randomOrNull() ?: return Expression(expected.toString())
-        val generated = generateOneVariableExpression(scope, variable, expected)
-        return Expression(generated)
-/*        if (expected) {
-            val variable = scope.keys.randomOrNull() ?: return Expression("true")
-            return Expression(generateVariablesExpression(scope, variable))
-        } else {
-            val variable1 = scope.keys.randomOrNull() ?: return Expression("false")
-            val variable2 = scope.keys.randomOrNull() ?: return Expression("false")
-            if (variable1 == variable2) return Expression("$variable1 == $variable2")
-            return Expression(generateVariablesExpression(scope, variable1, variable2))
-        }*/
     }
 
     private fun generateVariablesExpression(
@@ -224,69 +194,5 @@ class MetamorphicMutator(val project: Project) {
             }
         }
         return ""
-    }
-
-    private fun synthesisNegation(
-        scope: HashMap<Variable, MutableList<String>>,
-        expected: Boolean,
-        depth: Int
-    ): Expression = Expression("!", synthesisPredicate(scope, !expected, depth - 1))
-
-    class Expression(val s: String, val left: Expression? = null, val right: Expression? = null) {
-        override fun toString(): String {
-            if (right == null && left == null)
-                return s
-            return if (right != null) "($left) $s ($right)" else "$s($left)"
-        }
-    }
-
-    data class Variable(val name: String, val type: KotlinType, val psiElement: PsiElement) {
-        override fun toString(): String {
-            return name
-        }
-    }
-
-    private fun synthesisConjunction(
-        scope: HashMap<Variable, MutableList<String>>,
-        expected: Boolean,
-        depth: Int
-    ): Expression {
-        val left: Boolean
-        val right: Boolean
-        if (expected) {
-            left = true
-            right = true
-        } else if (Random.nextBoolean()) {
-            left = true
-            right = false
-        } else {
-            left = false
-            right = Random.nextBoolean()
-        }
-        val leftPred = synthesisPredicate(scope, left, depth - 1)
-        val rightPred = synthesisPredicate(scope, right, depth - 1)
-        return Expression("&&", leftPred, rightPred)
-    }
-
-    private fun synthesisDisjunction(
-        scope: HashMap<Variable, MutableList<String>>,
-        expected: Boolean,
-        depth: Int
-    ): Expression {
-        val left: Boolean
-        val right: Boolean
-        if (!expected) {
-            left = false
-            right = false
-        } else if (Random.nextBoolean()) {
-            left = true
-            right = false
-        } else {
-            left = true
-            right = Random.nextBoolean()
-        }
-        val leftPred = synthesisPredicate(scope, left, depth - 1)
-        val rightPred = synthesisPredicate(scope, right, depth - 1)
-        return Expression("||", leftPred, rightPred)
     }
 }

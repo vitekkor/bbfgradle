@@ -3,7 +3,6 @@ package com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
-import com.stepanov.bbf.bugfinder.mutator.MetamorphicMutator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.*
@@ -17,7 +16,7 @@ import kotlin.random.Random
 class AddLoop : MetamorphicTransformation() {
     override fun transform(
         mutationPoint: PsiElement,
-        scope: HashMap<MetamorphicMutator.Variable, MutableList<String>>,
+        scope: HashMap<Variable, MutableList<String>>,
         expected: Boolean
     ): String {
         val rig = RandomInstancesGenerator(file as KtFile, ctx!!)
@@ -33,7 +32,7 @@ class AddLoop : MetamorphicTransformation() {
     }
 
     private fun generateForExpression(
-        scope: Set<MetamorphicMutator.Variable>,
+        scope: Set<Variable>,
         rig: RandomInstancesGenerator,
         body: String
     ): KtExpression? {

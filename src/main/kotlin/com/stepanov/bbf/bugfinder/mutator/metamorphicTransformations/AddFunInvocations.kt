@@ -2,7 +2,6 @@ package com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
-import com.stepanov.bbf.bugfinder.mutator.MetamorphicMutator
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
@@ -19,7 +18,7 @@ class AddFunInvocations : MetamorphicTransformation() {
     private lateinit var functions: List<KtNamedFunction>
     override fun transform(
         mutationPoint: PsiElement,
-        scope: HashMap<MetamorphicMutator.Variable, MutableList<String>>,
+        scope: HashMap<Variable, MutableList<String>>,
         expected: Boolean
     ): String {
         val ktFile = file as KtFile

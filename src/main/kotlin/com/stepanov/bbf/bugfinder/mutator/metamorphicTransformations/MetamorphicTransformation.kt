@@ -13,7 +13,7 @@ abstract class MetamorphicTransformation {
 
     abstract fun transform(
         mutationPoint: PsiElement,
-        scope: HashMap<MetamorphicMutator.Variable, MutableList<String>>,
+        scope: HashMap<Variable, MutableList<String>>,
         expected: Boolean
     ): String
 
