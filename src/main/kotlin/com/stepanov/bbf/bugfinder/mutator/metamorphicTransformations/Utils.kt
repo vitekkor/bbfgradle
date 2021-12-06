@@ -5,6 +5,7 @@ import com.stepanov.bbf.bugfinder.util.getNameWithoutError
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import com.stepanov.bbf.bugfinder.util.getTrue
 import com.stepanov.bbf.bugfinder.util.name
+import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.math.abs
 import kotlin.random.Random
@@ -165,7 +166,8 @@ fun synthesisIfBody(
         AddLoop() to 75,
         //AddRandomClass() to 100
         AddFunInvocations() to 50,
-        AddIf() to 80
+        AddIf() to 80,
+        AddExpressionsWithVariables() to 75
     ).shuffled()
     //for (i in 0 until Random.nextInt(1, 3)) {
     for (it in mut1) {
@@ -251,6 +253,9 @@ data class Variable(val name: String, val type: KotlinType, val psiElement: PsiE
     override fun toString(): String {
         return name
     }
+
+    val isVar: Boolean
+        get() = (psiElement as? KtProperty)?.isVar ?: false
 }
 
 fun synthesisConjunction(scope: HashMap<Variable, MutableList<String>>, expected: Boolean, depth: Int): Expression {
