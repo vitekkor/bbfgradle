@@ -23,7 +23,7 @@ import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 import kotlin.system.exitProcess
 
-class JarSourceCodeInstrumenter(
+class JarSourceCodeInstrumenterOnMethodLevel(
     private val jarPath: String,
     private val sourceCodeJarPaths: List<String>,
     private val newJarPath: String
@@ -108,7 +108,7 @@ class JarSourceCodeInstrumenter(
             psiSourceCode =
                 when {
                     fullClassName == prevFullClassName -> psiSourceCode
-                    classNode.sourceFile.endsWith("kt") -> PSICreator.getPSIForText(sourceCode, false)
+                    classNode.sourceFile.endsWith("kt") -> PSICreator.getPSIForText(sourceCode)
                     else -> PSICreator.getPsiForJava(sourceCode)
                 }
             psiSourceCode?.name = with(sourceFileEntry.realName) {

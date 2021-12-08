@@ -5,13 +5,12 @@ import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.gitinfocollector.FilePatch
-import com.stepanov.bbf.bugfinder.gitinfocollector.FilePatchHandler
-import com.stepanov.bbf.bugfinder.gitinfocollector.GitRepo
-import com.stepanov.bbf.bugfinder.gitinfocollector.SignatureCollector
+import com.stepanov.bbf.bugfinder.gitinfocollector.*
 import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.bugfinder.util.containsAny
+import com.stepanov.bbf.bugfinder.util.filterDuplicatesBy
 import com.stepanov.bbf.bugfinder.util.notContainsAny
+import coverage.BranchCoverageEntry
 import coverage.CoverageEntry
 import coverage.MyMethodBasedCoverage
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -23,11 +22,16 @@ import kotlin.system.exitProcess
 
 @ExperimentalSerializationApi
 object CoverageGuider {
-    lateinit var desiredCoverage: List<CoverageEntry>
+    //lateinit var desiredCoverage: List<CoverageEntry>
+    lateinit var desiredCoverage: List<BranchCoverageEntry>
     var initCoef = 0
+    const val pathToCommits = "unsignedNumberCommits.txt"
+
+    //1.4.0 commit
+    val lastCommit = "0ddb7937eea9ca84442cc358871b2b663d01e298"
     private val commits
         get() =
-            File("commits.txt")
+            File(pathToCommits)
                 .let {
                     if (it.exists())
                         it.readText().split("\n")
@@ -35,7 +39,7 @@ object CoverageGuider {
                 }
 
     //private val commit = "d1322280ddba07a581cc18f9e97d040c9c1a95da"
-    private val patches: List<FilePatch>
+    val patches: List<FilePatch>
         get() {
             val res = mutableListOf<FilePatch>()
             for (commit in commits) {
@@ -46,8 +50,26 @@ object CoverageGuider {
                     continue
                 }
                 val repo = GitRepo("JetBrains", "kotlin")
-                val patches = repo.getLocalPatches(commit, CompilerArgs.pathToKotlin)
+                val patches = GitRepo.getLocalPatches(commit, CompilerArgs.pathToKotlin)
                 res.addAll(patches)
+                File("$pathToSerializedCommits/${commit.take(7)}").writeText(Json.encodeToString(patches))
+            }
+            return res
+        }
+
+    private val patchesWithCommitInfo: List<Pair<FilePatch, String>>
+        get() {
+            val res = mutableListOf<Pair<FilePatch, String>>()
+            for (commit in commits) {
+                val pathToSerializedCommits = CompilerArgs.pathToSerializedCommits
+                val serFile = File(pathToSerializedCommits).listFiles()?.toList()?.find { it.name == commit.take(7) }
+                if (serFile != null) {
+                    Json.decodeFromString<List<FilePatch>>(serFile.readText()).forEach { res.add(it to commit) }
+                    continue
+                }
+                val repo = GitRepo("JetBrains", "kotlin")
+                val patches = GitRepo.getLocalPatches(commit, CompilerArgs.pathToKotlin)
+                patches.forEach { res.add(it to commit) }
                 File("$pathToSerializedCommits/${commit.take(7)}").writeText(Json.encodeToString(patches))
             }
             return res
@@ -61,8 +83,23 @@ object CoverageGuider {
 //        println("INIT K = $initCoef\n")
 //    }
 
-    private fun filterPatchesForUnsignedNumbersTest(patch: FilePatch) =
+    fun filterPatchesForUnsignedNumbersTest(patch: FilePatch) =
         with(patch.fileName) {
+            notContainsAny(
+                "testData",
+                "/js/",
+                "dev/null",
+                "/tests/",
+                "/test/",
+                "native",
+                "/fir",
+                "metadata",
+                "samples/"
+            ) && (endsWith(".java") || endsWith(".kt"))
+        }
+
+    fun filterPatchesForUnsignedNumbersTest(patch: Pair<FilePatch, String>) =
+        with(patch.first.fileName) {
             notContainsAny(
                 "testData",
                 "/js/",
@@ -86,19 +123,38 @@ object CoverageGuider {
         )
         val helloWorldCoverage = getCoverage(helloWorldProject, CompilerArgs.getCompilersList())
         //if (File(pathToSerializedCoverage).exists()) {
-        this.desiredCoverage = try {
-            val coverageText = File(pathToSerializedCoverage).readText()
-            Json.decodeFromString<List<CoverageEntry>>(coverageText)
-                .filter { filterFunc.invoke(it) && it !in helloWorldCoverage }
-        } catch (e: Exception) {
-            val filteredPatches = patches.filter(::filterPatchesForUnsignedNumbersTest)
-            val modifiedFunctions = FilePatchHandler(filteredPatches).getListOfAffectedFunctions(true)
-            val signatures = SignatureCollector.collectSignatures(modifiedFunctions)
-            val desiredCoverage =
-                signatures.filter { filterFunc.invoke(it) && it !in helloWorldCoverage }.toSet().toList()
-            File(pathToSerializedCoverage).writeText(Json.encodeToString(desiredCoverage))
-            desiredCoverage
-        }
+//        val p = patchesWithCommitInfo.filter(::filterPatchesForUnsignedNumbersTest)
+//        val modifiedFunctions = ExtendedFilePatchHandler(p).getListOfAffectedFunctions(true)
+//        println()
+////        exitProcess(0)
+//        this.desiredCoverage =
+//            run {
+//                val filteredPatches = patches.filter(::filterPatchesForUnsignedNumbersTest)
+//                val modifiedLines = FilePatchHandler(filteredPatches).getListOfAffectedLines(true)
+//
+//                listOf()
+//            }
+//            try {
+//                val coverageText = File(pathToSerializedCoverage).readText()
+//                Json.decodeFromString<List<CoverageEntry>>(coverageText)
+//                    .filter { filterFunc.invoke(it) && it !in helloWorldCoverage }
+//            } catch (e: Exception) {
+//                val filteredPatches = patches.filter(::filterPatchesForUnsignedNumbersTest)
+//            if (CompilerArgs.instrumentationLevel == "BRANCH") {
+//                val modifiedLines = FilePatchHandler(filteredPatches).getListOfAffectedLines(true)
+//                println("LOL")
+//                exitProcess(0)
+//            } else {
+//
+//            }
+//                val modifiedFunctions =
+//                    FilePatchHandler(filteredPatches).getListOfAffectedFunctions(true).filterDuplicatesBy { it.text }
+//                val signatures = SignatureCollector.collectSignatures(modifiedFunctions)
+//                val desiredCoverage =
+//                    signatures.filter { filterFunc.invoke(it) && it !in helloWorldCoverage }.toSet().toList()
+//                File(pathToSerializedCoverage).writeText(Json.encodeToString(desiredCoverage))
+//                desiredCoverage
+//            }
     }
 
     fun init(
@@ -112,6 +168,8 @@ object CoverageGuider {
         initCoef = calcKoefOfCoverageUsage(initCoverage)
         println("INIT K = $initCoef\n")
     }
+
+    fun getCoverage(project: Project) = CoverageGuider.getCoverage(project, CompilerArgs.getCompilersList())
 
     fun getCoverage(project: Project, compilers: List<CommonCompiler>): Map<CoverageEntry, Int> {
         CompilerArgs.isInstrumentationMode = true

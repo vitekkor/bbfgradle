@@ -23,7 +23,6 @@ class ModifyForExpression : Transformation() {
                 modifyIf()
             }
         }
-        println("After = ${file.text}")
     }
 
     private fun getOtherOperations(operation: String): List<String> =

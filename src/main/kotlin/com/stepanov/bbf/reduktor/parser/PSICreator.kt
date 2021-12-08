@@ -41,7 +41,7 @@ object PSICreator {
     fun getPsiForJava(text: String, proj: Project = Factory.file.project) =
         PsiFileFactory.getInstance(proj).createFileFromText(JavaLanguage.INSTANCE, text)
 
-    fun getPSIForText(text: String, generateCtx: Boolean = true): KtFile {
+    fun getPSIForText(text: String): KtFile {
         //Save to tmp
         val path = "tmp/tmp.kt"
         File(path).writeText(text)

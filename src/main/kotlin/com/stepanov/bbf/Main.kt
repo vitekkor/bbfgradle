@@ -15,7 +15,7 @@ val TIMEOUT_SEC = Properties()
     .getProperty("BBF_TIMEOUT")?.toLongOrNull() ?: throw IllegalArgumentException("Can't init timeout value")
 
 fun getRandomFileFromTestDirectory(): File =
-    File("tmp/arrays2/")
+    File("tmp/arrays3/")
         .listFiles()!!
         .filter { it.path.endsWith(".kt") }
         .random()

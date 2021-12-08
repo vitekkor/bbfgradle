@@ -81,6 +81,10 @@ data class CoverageEntry(
         if (other !is CoverageEntry) false
         else this.isSameEntries(other)
 
+    fun almostEquals(other: CoverageEntry): Boolean  {
+        if (methodName != other.methodName) return false
+        return compareParamsAndRtv(parameters, other.parameters, returnType, other.returnType)
+    }
 
     fun isSameEntries(other: CoverageEntry): Boolean {
         if (!pathToFun.equals(other.pathToFun, true)) return false

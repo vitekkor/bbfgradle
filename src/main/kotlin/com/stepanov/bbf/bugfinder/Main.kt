@@ -2,16 +2,7 @@ package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.checkers.CoverageGuider
-import com.stepanov.bbf.bugfinder.executor.checkers.PerformanceOracle
-import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.util.CoverageStatisticsCollector
-import com.stepanov.bbf.bugfinder.util.PerformanceResultsProcessor
-import com.stepanov.bbf.bugfinder.util.instrumentation.CoverageGuidingCoefficients
 import com.stepanov.bbf.bugfinder.util.instrumentation.Instrumenter.instrumentJars
-import com.stepanov.bbf.bugfinder.util.instrumentation.JarSourceCodeInstrumenter
-import coverage.CoverageEntry
-import coverage.MyMethodBasedCoverage
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
@@ -28,8 +19,27 @@ fun main(args: Array<String>) {
         Logger.getLogger("reducerLogger").level = Level.OFF
         Logger.getLogger("transformationManagerLog").level = Level.OFF
     }
+//    for (f in File("/home/zver/IdeaProjects/bbfgradle/tmp/results/unsignedNumber/notGuided/diffBehavior/").listFiles()) {
+//        //if (f.name != "mimocnw_FILE.kt") continue
+//        println("f = ${f.name}")
+//        val p = Project.createFromCode(f.readText())
+//        for (c in CompilerArgs.getCompilersList()) {
+//            val compiled = c.compile(p)
+//            val execRes = c.exec(compiled.pathToCompiled, Stream.BOTH)
+//            println("exec res of $c is:\n$execRes")
+//            println("--------")
+//        }
+//        println("-----------------------------------------")
+//    }
+//    exitProcess(0)
 //    val pathToCoverage = "tmp/coverage.txt"
 //    CoverageGuider.initDesireCoverage(pathToCoverage) { !"$it".contains("konan") && !"$it".contains("fir") }
+//    val p1 = Project.createFromCode(File("tmp/myTest.kt").readText())
+//    val p2 = Project.createFromCode(File("tmp/myTest1.kt").readText())
+//    val cov1 = CoverageGuider.getCoverage(p1)
+//    val cov2 = CoverageGuider.getCoverage(p2)
+//    println()
+//    exitProcess(0)
 //    val sumCoverage = mutableSetOf<CoverageEntry>()
 //    for (f in File("/home/zver/IdeaProjects/bbfgradle/tmp/arrays2/").listFiles()!!.filter { it.path.endsWith(".kt") }) {
 //        println("HANDLE ${f.name}")
@@ -40,13 +50,15 @@ fun main(args: Array<String>) {
 //    }
 //    println()
 //    exitProcess(0)
-//    instrumentJars()
-//    exitProcess(0)
+    //CoverageGuider.initDesireCoverage("tmp/coverage.txt")  { !"$it".contains("konan") && !"$it".contains("fir") }
+    //exitProcess(0)
+    instrumentJars()
+    exitProcess(0)
 //    JarSourceCodeInstrumenter().instrument()
     val filePath =
         if (args.isNotEmpty()) args[0]
         else
-            File("/home/zver/IdeaProjects/bbfgradle/tmp/arrays2/")
+            File("tmp/arrays3/")
                 .listFiles()
                 ?.filter { it.path.endsWith(".kt") }
                 ?.randomOrNull()?.absolutePath ?: exitProcess(0)

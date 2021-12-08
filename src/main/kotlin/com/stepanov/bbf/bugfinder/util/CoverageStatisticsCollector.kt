@@ -37,8 +37,9 @@ object CoverageStatisticsCollector {
     }
 
     fun getPercentageOfDesiredCoverage(): Double {
-        val fullDesiredCoverage = CoverageGuider.desiredCoverage
-        val coveredMethodsFromDesiredCoverage = coveredMethods.filter { it in fullDesiredCoverage }
-        return coveredMethodsFromDesiredCoverage.size.toDouble() / fullDesiredCoverage.size
+        return 0.0
+        //val fullDesiredCoverage = CoverageGuider.desiredCoverage
+        //val coveredMethodsFromDesiredCoverage = coveredMethods.filter { it in fullDesiredCoverage }
+        //return coveredMethodsFromDesiredCoverage.size.toDouble() / fullDesiredCoverage.size
     }
 }

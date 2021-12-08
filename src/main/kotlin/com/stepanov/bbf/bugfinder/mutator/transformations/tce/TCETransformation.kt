@@ -30,7 +30,7 @@ class TCETransformation : Transformation() {
 
     private val blockListOfTypes = listOf("Unit", "Nothing", "Nothing?")
     private val randomConst = 3
-    private var psi = PSICreator.getPSIForText(file.text, false)
+    private var psi = PSICreator.getPSIForText(file.text)
     lateinit var usageExamples: List<Triple<KtExpression, String, KotlinType?>>
 
     override fun transform() {

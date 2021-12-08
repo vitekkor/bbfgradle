@@ -388,6 +388,28 @@ fun removeMainFromFiles(dir: String) {
     }
 }
 
+fun <T, R> Map<T, List<R>>.concatWith(other: Map<T, List<R>>): Map<T, List<R>> {
+    val res = this.toMutableMap()
+    other.forEach { (key, value) ->
+        if (res.containsKey(key)) {
+            res[key] = res[key]!! + value
+        } else {
+            res[key] = value
+        }
+    }
+    return res
+}
+
+fun <T, R> MutableMap<T, List<R>>.concatWith(other: Map<T, List<R>>) {
+    other.forEach { (key, value) ->
+        if (this.containsKey(key)) {
+            this[key] = this[key]!! + value
+        } else {
+            this[key] = value
+        }
+    }
+}
+
 fun <T, R : Comparable<R>> List<T>.filterDuplicatesBy(f: (T) -> R): List<T> {
     val list1 = this.zip(this.map(f))
     val res = mutableListOf<Pair<T, R>>()
