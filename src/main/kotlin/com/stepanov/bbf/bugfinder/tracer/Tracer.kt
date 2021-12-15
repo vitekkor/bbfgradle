@@ -43,6 +43,40 @@ class Tracer(val compiler: CommonCompiler, val project: Project) : KtVisitorVoid
         CompilerArgs.isMiscompilationMode = true
     }
 
+    fun traceMutatedProject(excluded: List<PsiElement>) {
+        CompilerArgs.isMetamorphicMode = false
+        project.files.forEach {
+            if (it.getLanguage() == LANGUAGE.KOTLIN) {
+                checker = MutationChecker(compiler, project, it)
+                tree = it.psiFile as KtFile
+                ctx = PSICreator.analyze(tree) ?: return
+                it.changePsiFile(traceMetamorphicMutatedFile(excluded))
+            }
+        }
+        CompilerArgs.isMetamorphicMode = true
+    }
+
+    private fun traceMetamorphicMutatedFile(excluded: List<PsiElement>): KtFile {
+        //Handle all functions
+        tree.getAllPSIChildrenOfType<KtNamedFunction>().forEach { if (it !in excluded) it.accept(this) }
+        //Classes
+        tree.getAllPSIChildrenOfType<KtClass>().forEach { if (it !in excluded) handleClass(it) }
+
+        //Global vars
+
+        //newTree.debugPrint()
+        //Handle all control instructions
+        tree.getAllPSIChildrenOfType<KtIfExpression>().forEach { if (it !in excluded) it.accept(this) }
+        tree.getAllPSIChildrenOfType<KtDoWhileExpression>().forEach { if (it !in excluded) it.accept(this) }
+        tree.getAllPSIChildrenOfType<KtWhileExpression>().forEach { if (it !in excluded) it.accept(this) }
+        tree.getAllPSIChildrenOfType<KtWhenExpression>().forEach { if (it !in excluded) it.accept(this) }
+        tree.getAllPSIChildrenOfType<KtTryExpression>().forEach { if (it !in excluded) it.accept(this) }
+        //Saving
+//        tree.name = tree.name.dropLastWhile { it != '/' } + "traced/traced_" + tree.name.split('/').last()
+        saveTracedFile(tree)
+        return PSICreator.getPSIForFile(tree.name)
+    }
+
     private fun traceCurFile(): KtFile {
         //Handle all functions
         tree.getAllPSIChildrenOfType<KtNamedFunction>().forEach { it.accept(this) }

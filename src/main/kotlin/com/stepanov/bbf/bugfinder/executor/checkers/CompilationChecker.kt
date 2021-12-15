@@ -1,5 +1,6 @@
 package com.stepanov.bbf.bugfinder.executor.checkers
 
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.COMPILE_STATUS
@@ -83,9 +84,14 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
 //        return true
 //    }
 
-    fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null, original: Project? = null): Boolean {
+    fun checkCompilingWithBugSaving(
+        project: Project,
+        curFile: BBFFile? = null,
+        original: Project? = null,
+        excludedPsiElements: List<PsiElement> = listOf()
+    ): Boolean {
         log.debug("Compilation checking started")
-        val allTexts = project.files.map { it.psiFile.text }.joinToString()
+        val allTexts = project.files.joinToString { it.psiFile.text }
         checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
         //Checking syntax correction
         if (!checkSyntaxCorrectnessAndAddCond(project, curFile)) {
@@ -95,7 +101,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
             return false
         }
         if (CompilerArgs.isMetamorphicMode) {
-            val checkRes = checkMetamorphicMutationsTraces(project, original)
+            val checkRes = checkMetamorphicMutationsTraces(project, original, excludedPsiElements)
             checkedConfigurations[allTexts] = checkRes
             return checkRes
         }
@@ -224,12 +230,12 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
         return TracesChecker(compilers).checkBehavior(copyOfProject)
     }
 
-    fun checkMetamorphicMutationsTraces(mutated: Project, original: Project?): Boolean {
+    fun checkMetamorphicMutationsTraces(mutated: Project, original: Project?, excludedPsiElements: List<PsiElement>): Boolean {
         original ?: return checkTraces(mutated)
         val copyOfOriginal = original.copy()
         val copyOfMutated = mutated.copy()
         Tracer(compilers.first(), copyOfOriginal).trace()
-        Tracer(compilers.first(), copyOfMutated).trace()
+        Tracer(compilers.first(), copyOfMutated).traceMutatedProject(excludedPsiElements)
         return TracesChecker(compilers).checkBehaviorAfterMetamorphicMutation(copyOfOriginal, copyOfMutated)
     }
 

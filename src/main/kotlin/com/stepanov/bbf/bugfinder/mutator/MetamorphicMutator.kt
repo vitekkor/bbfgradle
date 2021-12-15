@@ -13,6 +13,7 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsagesSamplesGener
 import com.stepanov.bbf.bugfinder.mutator.transformations.util.ScopeCalculator
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.replaceThis
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
@@ -20,7 +21,6 @@ import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getCallNameExpression
 import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.types.KotlinType
 import kotlin.random.Random
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType as type
 
@@ -68,9 +68,14 @@ class MetamorphicMutator(val project: Project) {
         .find { it.text.trim() == "\"//INSERT_CODE_HERE\"" }!! //TODO GET RANDOM NODE*/
 
         val scope = profileScope(mutationPoint, ctx)
-        mutate(mutationPoint, scope)
+        val metamorphicMutations = mutate(mutationPoint, scope)
         CompilerArgs.isMetamorphicMode = true
-        checker.checkCompilingWithBugSaving(project, checker.curFile, originalProject)
+        checker.checkCompilingWithBugSaving(
+            project,
+            checker.curFile,
+            originalProject,
+            metamorphicMutations?.getAllChildren() ?: listOf()
+        )
 
         checker.curFile.changePsiFile(fileBackup, genCtx = false)
     }
@@ -147,20 +152,19 @@ class MetamorphicMutator(val project: Project) {
         }
     }
 
-    private fun mutate(mutationPoint: PsiElement, scope: HashMap<Variable, MutableList<String>>) {
-        val expected = true//Random.nextBoolean()
+    private fun mutate(mutationPoint: PsiElement, scope: HashMap<Variable, MutableList<String>>): PsiElement? {
+        val expected = false//Random.nextBoolean()
         val predicate = synthesisPredicate(scope, expected, 2)
         val thenStatement = synthesisIfBody(mutationPoint, scope, expected)
         if (thenStatement.isEmpty()) {
             log.debug("Metamorphic mutation is empty.")
-            return
+            return null
         }
         val ifStatement = with(Factory.psiFactory) {
             createExpression("if ($predicate) ${createBlock(thenStatement).text}")
             //createIf(createExpression(predicate.toString()), createBlock(thenStatement))
         }
-        mutationPoint.addAfterThisWithWhitespace(ifStatement, "\n")
-        println()
+        return mutationPoint.addAfterThisWithWhitespace(ifStatement, "\n")
         // TODO val res = checker.compileAndGetResult().split("\n")
     }
 
