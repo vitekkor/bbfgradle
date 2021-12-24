@@ -158,19 +158,22 @@ fun Random.getRandomVariableNameNotIn(scope: Set<Variable>): String? {
 fun synthesisIfBody(
     mutationPoint: PsiElement,
     scope: HashMap<Variable, MutableList<String>>,
-    expected: Boolean
+    expected: Boolean,
+    forLoop: Boolean = false
 ): String {
     val body = StringBuilder()
     val mut1 = listOf(
-        AddCasts() to 75,
-        AddLoop() to 75,
+        //AddCasts() to 75,
+        AddLoop() to if (forLoop) 0 else 75,
         //AddRandomClass() to 100
         AddFunInvocations() to 50,
         AddIf() to 80,
         AddExpressionsWithVariables() to 75
     ).shuffled()
+
+    val mutations = if (forLoop) mut1.subList(0, mut1.size / 2) else mut1
     //for (i in 0 until Random.nextInt(1, 3)) {
-    for (it in mut1) {
+    for (it in mutations) {
         if (Random.nextInt(0, 100) < it.second) {
             //Update ctx
             MetamorphicTransformation.updateCtx()

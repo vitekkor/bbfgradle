@@ -16,11 +16,14 @@ import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.replaceThis
 import org.apache.log4j.Logger
+import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
+import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getCallNameExpression
 import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.ImportPath
 import kotlin.random.Random
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType as type
 
@@ -60,6 +63,8 @@ class MetamorphicMutator(val project: Project) {
 
         resultOfExecution.clear()
         val fileBackup = file.copy() as KtFile
+        file.addToTheTop(Factory.psiFactory.createImportDirective(ImportPath.fromString("kotlin.*")))
+        file.addToTheTop(Factory.psiFactory.createImportDirective(ImportPath.fromString("java.*")))
         val ctx = PSICreator.analyze(ktFile, project) ?: return
         rig = RandomInstancesGenerator(ktFile, ctx)
         val mutationPoint =
@@ -67,14 +72,14 @@ class MetamorphicMutator(val project: Project) {
         /*file.getAllPSIChildrenOfType<PsiElement>()
         .find { it.text.trim() == "\"//INSERT_CODE_HERE\"" }!! //TODO GET RANDOM NODE*/
 
-        val scope = profileScope(mutationPoint, ctx)
-        val metamorphicMutations = mutate(mutationPoint, scope)
+        val scope: HashMap<Variable, MutableList<String>> = profileScope(mutationPoint, ctx)
+        val metamorphicMutations = mutate(mutationPoint, scope) ?: return
         CompilerArgs.isMetamorphicMode = true
         checker.checkCompilingWithBugSaving(
             project,
             checker.curFile,
             originalProject,
-            metamorphicMutations?.getAllChildren() ?: listOf()
+            metamorphicMutations.getAllChildren().toMutableList().apply { add(metamorphicMutations) }
         )
 
         checker.curFile.changePsiFile(fileBackup, genCtx = false)

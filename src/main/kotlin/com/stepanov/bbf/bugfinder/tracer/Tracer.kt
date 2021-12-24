@@ -58,19 +58,40 @@ class Tracer(val compiler: CommonCompiler, val project: Project) : KtVisitorVoid
 
     private fun traceMetamorphicMutatedFile(excluded: List<PsiElement>): KtFile {
         //Handle all functions
-        tree.getAllPSIChildrenOfType<KtNamedFunction>().forEach { if (it !in excluded) it.accept(this) }
+        tree.getAllPSIChildrenOfType<KtNamedFunction>().forEach {
+            if (it.text !in excluded.mapNotNull { excl -> if (excl is KtNamedFunction) excl.text else null })
+                it.accept(this)
+        }
         //Classes
-        tree.getAllPSIChildrenOfType<KtClass>().forEach { if (it !in excluded) handleClass(it) }
+        tree.getAllPSIChildrenOfType<KtClass>().forEach {
+            if (it.text !in excluded.mapNotNull { excl -> if (excl is KtClass) excl.text else null })
+                handleClass(it)
+        }
 
         //Global vars
 
         //newTree.debugPrint()
         //Handle all control instructions
-        tree.getAllPSIChildrenOfType<KtIfExpression>().forEach { if (it !in excluded) it.accept(this) }
-        tree.getAllPSIChildrenOfType<KtDoWhileExpression>().forEach { if (it !in excluded) it.accept(this) }
-        tree.getAllPSIChildrenOfType<KtWhileExpression>().forEach { if (it !in excluded) it.accept(this) }
-        tree.getAllPSIChildrenOfType<KtWhenExpression>().forEach { if (it !in excluded) it.accept(this) }
-        tree.getAllPSIChildrenOfType<KtTryExpression>().forEach { if (it !in excluded) it.accept(this) }
+        tree.getAllPSIChildrenOfType<KtIfExpression>().forEach {
+            if (it.text !in excluded.mapNotNull { excl -> if (excl is KtIfExpression) excl.text else null })
+                it.accept(this)
+        }
+        tree.getAllPSIChildrenOfType<KtDoWhileExpression>().forEach {
+            if (it.text !in excluded.mapNotNull { excl -> if (excl is KtDoWhileExpression) excl.text else null })
+                it.accept(this)
+        }
+        tree.getAllPSIChildrenOfType<KtWhileExpression>().forEach {
+            if (it.text !in excluded.mapNotNull { excl -> if (excl is KtWhileExpression) excl.text else null })
+                it.accept(this)
+        }
+        tree.getAllPSIChildrenOfType<KtWhenExpression>().forEach {
+            if (it.text !in excluded.mapNotNull { excl -> if (excl is KtWhenExpression) excl.text else null })
+                it.accept(this)
+        }
+        tree.getAllPSIChildrenOfType<KtTryExpression>().forEach {
+            if (it.text !in excluded.mapNotNull { excl -> if (excl is KtTryExpression) excl.text else null })
+                it.accept(this)
+        }
         //Saving
 //        tree.name = tree.name.dropLastWhile { it != '/' } + "traced/traced_" + tree.name.split('/').last()
         saveTracedFile(tree)

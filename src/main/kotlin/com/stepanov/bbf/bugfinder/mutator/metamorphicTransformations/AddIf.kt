@@ -1,6 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations
 
 import com.intellij.psi.PsiElement
+import com.stepanov.bbf.bugfinder.util.getTrue
 import kotlin.random.Random
 
 class AddIf : MetamorphicTransformation() {
@@ -15,6 +16,7 @@ class AddIf : MetamorphicTransformation() {
         if (thenStatement.isEmpty()) {
             return ""
         }
-        return "if ($predicate) $thenStatement"
+        val elseStatement = if (Random.getTrue(15)) "else {${synthesisIfBody(mutationPoint, scope, !exp)}}" else ""
+        return "if ($predicate) {$thenStatement}$elseStatement"
     }
 }
