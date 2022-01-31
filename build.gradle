@@ -1,6 +1,6 @@
 buildscript {
     //Do not forget to update intellij core
-    ext.kotlin_version = '1.6.0-RC2-707'
+    ext.kotlin_version = '1.5.30'
     ext.kotlin_plugin_version = '1.5.30'
 
     dependencies {
@@ -61,7 +61,7 @@ ext {
 
 dependencies {
     //Intellij core
-    implementation group: 'com.android.tools.external.com-intellij', name: 'intellij-core', version: '30.1.0-alpha10'
+    implementation group: 'com.android.tools.external.com-intellij', name: 'intellij-core', version: '30.0.4'
 
     //Log
     implementation "log4j:log4j:1.2.17"
