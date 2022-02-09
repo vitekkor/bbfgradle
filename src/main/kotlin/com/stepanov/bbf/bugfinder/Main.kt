@@ -18,6 +18,8 @@ fun main(args: Array<String>) {
         Logger.getLogger("transformationManagerLog").level = Level.OFF
     }
     val file = File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
+    //File("/home/vitekkor/IdeaProjects/bbfgradle/tmp/arrays/funMetamorphExample.kt")
+        //File("/home/vitekkor/IdeaProjects/bbfgradle/tmp/arrays/kt633.kt")
     SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 //    val results = mutableMapOf<String, Pair<Double, Double>>()

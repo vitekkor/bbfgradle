@@ -179,6 +179,26 @@ class Project(
         return Project(configuration, newFiles, language)
     }
 
+    fun addMainInCurrent() {
+        if (files.map { it.text }.any { it.contains("fun main(") }) return
+        val boxFuncs =
+            files.flatMap { it.psiFile.getAllPSIChildrenOfType<KtNamedFunction> { it.name?.contains("box") == true } }
+        if (boxFuncs.isEmpty()) return
+        val indOfFile =
+            files.indexOfFirst {
+                it.psiFile.getAllPSIChildrenOfType<KtNamedFunction>().any { it.name?.contains("box") == true }
+            }
+        if (indOfFile == -1) return
+        val file = files[indOfFile]
+        val psiCopy = file.psiFile.copy() as PsiFile
+        psiCopy.addMain(boxFuncs)
+        file.changePsiFile(psiCopy, true)
+        val newFirstFile = BBFFile(file.name, psiCopy)
+        val newFiles =
+            listOf(newFirstFile) + files.getAllWithout(indOfFile).map { BBFFile(it.name, it.psiFile.copy() as PsiFile) }
+        files
+    }
+
     fun addMainAndExecBoxNTimes(times: Int): Project {
         if (files.map { it.text }.any { it.contains("fun main(") }) return Project(configuration, files, language)
         val boxFuncs =

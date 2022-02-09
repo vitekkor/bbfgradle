@@ -25,7 +25,8 @@ class AddLoop : MetamorphicTransformation() {
             file.getAllPSIChildrenOfType<KtExpression>().filter { it.getType(ctx!!) != null }.randomOrNull()?.text
                 ?: return ""
         } else {
-            synthesisIfBody(mutationPoint, scope, expected, true)
+            removeMutation(AddLoop::class)
+            synthesisIfBody(mutationPoint, scope, expected)
         }
         val forExpr = generateForExpression(scope.keys, rig, body)
         return forExpr?.text ?: ""

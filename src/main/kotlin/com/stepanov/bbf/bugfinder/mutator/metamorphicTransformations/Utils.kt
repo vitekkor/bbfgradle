@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.math.abs
 import kotlin.random.Random
+import kotlin.reflect.KClass
 
 fun generateOneVariableExpression(
     scope: HashMap<Variable, MutableList<String>>,
@@ -155,23 +156,43 @@ fun Random.getRandomVariableNameNotIn(scope: Set<Variable>): String? {
     return name
 }
 
+private val defaultMutations = mutableListOf(
+    //AddCasts() to 75,
+    //AddLoop() to 75,
+    //AddRandomClass() to 100
+    AddFunInvocations() to 50,
+    AddIf() to 80,
+    AddExpressionsWithVariables() to 75,
+    AddTryExpression() to 50
+)
+
+fun <T : MetamorphicTransformation> removeMutation(mutation: KClass<T>) {
+    defaultMutations.find { it.first::class == mutation }?.let { defaultMutations.remove(it) }
+}
+
+fun restoreMutations() {
+    val restored = listOf(
+        //AddCasts() to 75,
+        //AddLoop() to 75,
+        //AddRandomClass() to 100
+        AddFunInvocations() to 50,
+        AddIf() to 80,
+        AddExpressionsWithVariables() to 75,
+        AddTryExpression() to 50
+    )
+    defaultMutations.clear()
+    defaultMutations.addAll(restored)
+}
+
 fun synthesisIfBody(
     mutationPoint: PsiElement,
     scope: HashMap<Variable, MutableList<String>>,
     expected: Boolean,
-    forLoop: Boolean = false
+    mutationList: MutableList<Pair<MetamorphicTransformation, Int>> = defaultMutations
 ): String {
     val body = StringBuilder()
-    val mut1 = listOf(
-        //AddCasts() to 75,
-        AddLoop() to if (forLoop) 0 else 75,
-        //AddRandomClass() to 100
-        AddFunInvocations() to 50,
-        AddIf() to 80,
-        AddExpressionsWithVariables() to 75
-    ).shuffled()
+    val mutations = mutationList.shuffled()
 
-    val mutations = if (forLoop) mut1.subList(0, mut1.size / 2) else mut1
     //for (i in 0 until Random.nextInt(1, 3)) {
     for (it in mutations) {
         if (Random.nextInt(0, 100) < it.second) {

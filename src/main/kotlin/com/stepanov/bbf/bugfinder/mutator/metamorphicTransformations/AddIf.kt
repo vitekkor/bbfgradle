@@ -12,6 +12,7 @@ class AddIf : MetamorphicTransformation() {
     ): String {
         val exp = Random.nextBoolean()
         val predicate = synthesisPredicate(scope, exp, Random.nextInt(4))
+        removeMutation(AddIf::class)
         val thenStatement = synthesisIfBody(mutationPoint, scope, exp)
         if (thenStatement.isEmpty()) {
             return ""
