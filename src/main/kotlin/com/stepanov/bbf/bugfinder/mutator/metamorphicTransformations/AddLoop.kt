@@ -21,10 +21,8 @@ class AddLoop : MetamorphicTransformation() {
     ): String {
         val rig = RandomInstancesGenerator(file as KtFile, ctx!!)
         RandomTypeGenerator.setFileAndContext(file as KtFile, ctx!!)
-        val body = if (!expected) {
-            file.getAllPSIChildrenOfType<KtExpression>().filter { it.getType(ctx!!) != null }.randomOrNull()?.text
-                ?: return ""
-        } else {
+        getRandomClassToIterate()
+        val body = run {
             removeMutation(AddLoop::class)
             synthesisIfBody(mutationPoint, scope, expected)
         }
@@ -90,7 +88,7 @@ class AddLoop : MetamorphicTransformation() {
             .filter {
                 it.getAllSuperClassifiersWithoutAnyAndItself()
                     .map { it.name.asString() }
-                    .let { it.contains("Iterable") || it.contains("ClosedRange") }
+                    .let { it.contains("Iterable") }
             }
             .filterDuplicatesBy { it.name }
 

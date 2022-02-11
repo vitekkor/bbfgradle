@@ -158,7 +158,7 @@ fun Random.getRandomVariableNameNotIn(scope: Set<Variable>): String? {
 
 private val defaultMutations = mutableListOf(
     //AddCasts() to 75,
-    //AddLoop() to 75,
+    AddLoop() to 75,
     //AddRandomClass() to 100
     AddFunInvocations() to 50,
     AddIf() to 80,
@@ -173,7 +173,7 @@ fun <T : MetamorphicTransformation> removeMutation(mutation: KClass<T>) {
 fun restoreMutations() {
     val restored = listOf(
         //AddCasts() to 75,
-        //AddLoop() to 75,
+        AddLoop() to 75,
         //AddRandomClass() to 100
         AddFunInvocations() to 50,
         AddIf() to 80,

@@ -36,18 +36,18 @@ class AddExpressionsWithVariables : MetamorphicTransformation() {
                         variable.name
                     )
                 if (variable.isVar) {
-                    "${backup.text}\n${variable.name}.${funCall.text}\n${variable.name} = ${backup.name}"
+                    "${backup.text}\n${variable.name}?.${funCall.text}\n${variable.name} = ${backup.name}"
                 } else {
-                    "${backup.text}\n${backup.name}.${funCall.text}"
+                    "${backup.text}\n${backup.name}?.${funCall.text}"
                 }
             } else {
                 "${variable.psiElement.text}\n${variable.name}.${funCall.text}"
             }
         } else {
             if (scope[variable] != null)
-                "${variable.name}.${funCall.text}"
+                "${variable.name}?.${funCall.text}"
             else
-                "${variable.psiElement.text}\n${variable.name}.${funCall.text}"
+                "${variable.psiElement.text}\n${variable.name}?.${funCall.text}"
         }
     }
 
