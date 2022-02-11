@@ -21,7 +21,6 @@ class AddLoop : MetamorphicTransformation() {
     ): String {
         val rig = RandomInstancesGenerator(file as KtFile, ctx!!)
         RandomTypeGenerator.setFileAndContext(file as KtFile, ctx!!)
-        getRandomClassToIterate()
         val body = run {
             removeMutation(AddLoop::class)
             synthesisIfBody(mutationPoint, scope, expected)
