@@ -67,8 +67,6 @@ class MetamorphicMutator(val project: Project) {
         file.addToTheTop(Factory.psiFactory.createImportDirective(ImportPath.fromString("java.util.*")))
         file.addToTheTop(Factory.psiFactory.createImportDirective(ImportPath.fromString("kotlin.random.*")))
 
-        project.addMainInCurrent()
-
         val ctx = PSICreator.analyze(ktFile, project) ?: return
         rig = RandomInstancesGenerator(ktFile, ctx)
         val mutationPoint =
@@ -96,7 +94,6 @@ class MetamorphicMutator(val project: Project) {
         val processedScope = ScopeCalculator(ktFile, project).run {
             ScopeCalculator.processScope(rig, calcScope(mutationPoint).shuffled(), generatedFunCalls)
         }
-        val usages = UsagesSamplesGenerator.generate(ktFile, ctx, project)
 
         val variables = processedScope
             .filter { it.psiElement is KtNameReferenceExpression }
@@ -107,6 +104,7 @@ class MetamorphicMutator(val project: Project) {
             }
         }\n}")
 
+        project.addMainInCurrent()
         originalProject = project.copy()
 
         val profiling = mutationPoint.addAfterThisWithWhitespace(block, "\n")

@@ -17,7 +17,7 @@ class AddTryExpression : MetamorphicTransformation() {
             return "try{\n$casts\n}catch(e: ClassCastException){}"
         }
         if (Random.getTrue(30)) {
-            return "try{\nTODO(\"Not yet implemented\"}catch(e: NotImplementedError){}"
+            return "try{\nTODO(\"Not yet implemented\")}catch(e: NotImplementedError){}"
         }
         val ktFile = file as KtFile
         rig = RandomInstancesGenerator(ktFile, ctx!!)
@@ -25,7 +25,7 @@ class AddTryExpression : MetamorphicTransformation() {
         return if (expected) {
             val check = if (Random.nextBoolean()) "check" else "require"
             val checkValue = synthesisPredicate(scope, Random.nextBoolean(), Random.nextInt(1, maxOf(scope.size, 2)))
-            "try{$check($checkValue)}catch(e: Exception){}"
+            "try{$check($checkValue)}catch(e: IllegalStateException){}\ncatch(e: IllegalArgumentException){}"
         } else {
             removeMutation(AddTryExpression::class)
             val additionalBody = synthesisIfBody(mutationPoint, scope, true)
