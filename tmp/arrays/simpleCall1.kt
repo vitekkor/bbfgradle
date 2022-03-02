@@ -1,19 +1,23 @@
-// !JVM_DEFAULT_MODE: enable
-// TARGET_BACKEND: JVM
-// JVM_TARGET: 1.8
-// WITH_RUNTIME
+// !LANGUAGE: +ContextReceivers
+// TARGET_BACKEND: JVM_IR
+// IGNORE_BACKEND_FIR: JVM_IR
+// FIR status: context receivers aren't yet supported
 
-interface Test {
-    @JvmDefault
-    fun test(): String {
-        return "OK"
+class A {
+    val o = "O"
+}
+class B {
+    val k = "K"
+}
+
+context(B) fun A.f(a: Any, b: Any) = o + k
+
+fun B.g(a: A): String {
+    with (a) {
+        return f(1, "2")
     }
 }
 
-class TestClass : Test {
-
-}
-
 fun box(): String {
-    return TestClass().test()
+    return B().g(A())
 }

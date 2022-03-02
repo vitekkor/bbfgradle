@@ -1,8 +1,8 @@
 // !LANGUAGE: +UnrestrictedBuilderInference
-// !DIAGNOSTICS: -UNUSED_PARAMETER -DEPRECATION -OPT_IN_IS_NOT_ENABLED -UNUSED_VARIABLE
-// WITH_RUNTIME
+// !DIAGNOSTICS: -UNUSED_PARAMETER -OPT_IN_IS_NOT_ENABLED -UNUSED_VARIABLE
+// WITH_STDLIB
 // TARGET_BACKEND: JVM
-// DONT_TARGET_EXACT_BACKEND: WASM
+// IGNORE_BACKEND: WASM
 
 // FILE: Test.java
 
@@ -16,10 +16,10 @@ class Test {
 // FILE: main.kt
 import kotlin.experimental.ExperimentalTypeInference
 
-@UseExperimental(ExperimentalTypeInference::class)
+@OptIn(ExperimentalTypeInference::class)
 fun <R> build(@BuilderInference block: TestInterface<R>.() -> Unit) {}
 
-@UseExperimental(ExperimentalTypeInference::class)
+@OptIn(ExperimentalTypeInference::class)
 fun <R> build2(@BuilderInference block: TestInterface<R>.() -> Unit) {}
 
 class Inv<K>

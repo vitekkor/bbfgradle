@@ -84,76 +84,76 @@ object FooBarCompiler {
         return cfg
     }
 
-    fun setupMyEnv(cfg: CompilerConfiguration): KotlinCoreEnvironment {
-
-        val disposable = Disposer.newDisposable()
-        val env = KotlinCoreEnvironment.createForProduction(
-            disposable,
-            cfg,
-            EnvironmentConfigFiles.JVM_CONFIG_FILES
-        )
-//        val project = env.project as MockProject
-        class MyPomModelImpl(env: KotlinCoreEnvironment) : PomModelImpl(env.project) {
-            override fun runTransaction(pt: PomTransaction) = pt.run()
-        }
-//        project.registerService(
-//            TreeAspect::class.java,
-//            TreeAspect()
-//        )
-
-        val pomModel = MyPomModelImpl(env)
-
-        TreeAspect(pomModel)
-
-        val project = env.project as MockProject
-        project.registerService(
-            PomModel::class.java,
-            pomModel
-        )
-
-        project.registerService(
-            CodeStyleManager::class.java,
-            MockCodeStyleManager(env.project)
-        )
-
-        project.registerService(
-            IndentHelper::class.java,
-            MockIndentHelper()
-        )
-
-        return env
-    }
-
-
-    //    fun setupMyEnv(cfg: CompilerConfiguration): KotlinCoreEnvironment {
+//    fun setupMyEnv(cfg: CompilerConfiguration): KotlinCoreEnvironment {
 //
 //        val disposable = Disposer.newDisposable()
-//        //Use for windows
-//        //System.setProperty("idea.io.use.fallback", "true")
 //        val env = KotlinCoreEnvironment.createForProduction(
 //            disposable,
 //            cfg,
 //            EnvironmentConfigFiles.JVM_CONFIG_FILES
 //        )
-//        val project = env.project as MockProject
-//        project.registerService(
-//            TreeAspect::class.java,
-//            TreeAspect()
-//        )
-//
+////        val project = env.project as MockProject
 //        class MyPomModelImpl(env: KotlinCoreEnvironment) : PomModelImpl(env.project) {
 //            override fun runTransaction(pt: PomTransaction) = pt.run()
 //        }
-//
+////        project.registerService(
+////            TreeAspect::class.java,
+////            TreeAspect()
+////        )
 //
 //        val pomModel = MyPomModelImpl(env)
 //
+//        TreeAspect(pomModel)
+//
+//        val project = env.project as MockProject
 //        project.registerService(
 //            PomModel::class.java,
 //            pomModel
 //        )
+//
+//        project.registerService(
+//            CodeStyleManager::class.java,
+//            MockCodeStyleManager(env.project)
+//        )
+//
+//        project.registerService(
+//            IndentHelper::class.java,
+//            MockIndentHelper()
+//        )
+//
 //        return env
 //    }
+
+
+    fun setupMyEnv(cfg: CompilerConfiguration): KotlinCoreEnvironment {
+
+        val disposable = Disposer.newDisposable()
+        //Use for windows
+        //System.setProperty("idea.io.use.fallback", "true")
+        val env = KotlinCoreEnvironment.createForProduction(
+            disposable,
+            cfg,
+            EnvironmentConfigFiles.JVM_CONFIG_FILES
+        )
+        val project = env.project as MockProject
+        project.registerService(
+            TreeAspect::class.java,
+            TreeAspect()
+        )
+
+        class MyPomModelImpl(env: KotlinCoreEnvironment) : PomModelImpl(env.project) {
+            override fun runTransaction(pt: PomTransaction) = pt.run()
+        }
+
+
+        val pomModel = MyPomModelImpl(env)
+
+        project.registerService(
+            PomModel::class.java,
+            pomModel
+        )
+        return env
+    }
 
     fun tearDownMyEnv(env: KotlinCoreEnvironment) = Disposer.dispose(env.project)
 

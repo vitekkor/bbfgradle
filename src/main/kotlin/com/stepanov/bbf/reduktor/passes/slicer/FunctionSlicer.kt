@@ -4,7 +4,7 @@ import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.util.dependencyTree.DependencyTree
 import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.psi.*
 
@@ -113,5 +113,5 @@ class FunctionSlicer(private val checker: CompilerTestChecker) : KtVisitorVoid()
     private var signatureToFuncNode = HashMap<String, KtNamedFunction>()
     private var functionTree = DependencyTree<KtNamedFunction>()
 
-    private val log = Logger.getLogger("transformationManagerLog")
+    private val log = LogManager.getLogger("transformationManagerLog")
 }

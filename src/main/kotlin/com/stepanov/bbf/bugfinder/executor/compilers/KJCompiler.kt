@@ -90,7 +90,11 @@ class KJCompiler(override val arguments: String = "") : JVMCompiler(arguments) {
             mainClass.ifEmpty {
                 manifest.readLines().find { it.startsWith("Main-Class:") }?.substringAfter("Main-Class: ") ?: return ""
             }
-        return commonExec("java -cp $path $mc", streamType)
+        var classPath = "${CompilerArgs.jvmStdLibPaths.joinToString(":")}:$path"
+        if (CompilerArgs.isGuidedByCoverage) {
+            classPath += ":${CompilerArgs.compilerJarPath}"
+        }
+        return commonExec("java -cp $path:$classPath $mc", streamType)
     }
 
     val pathToTmpDir = CompilerArgs.pathToTmpFile.substringBeforeLast('/') + "/tmp/tmp"

@@ -20,7 +20,7 @@ class AddPossibleModifiers : Transformation() {
                 it.elementType == KtNodeTypes.CLASS || it.elementType == KtNodeTypes.PROPERTY
                         || it.elementType == KtNodeTypes.FUN
             }
-            .filter { Random.getTrue(25) }
+            .filter { Random.getTrue(50) }
             .toList()
         values.forEach {
             val curWorkingList =
@@ -39,14 +39,14 @@ class AddPossibleModifiers : Transformation() {
             val keyword = KtTokens.MODIFIER_KEYWORDS_ARRAY.find { it.value == curWorkingList[num] } ?: return@forEach
             if (el.hasModifier(keyword)) return@forEach
             el.addModifier(keyword)
-            if (!checker.checkCompilingWithBugSaving(file))
+            if (!checker.checkCompiling())
                 el.removeModifier(keyword)
         }
     }
 
     private val possibleClassModifiers = listOf(
         "private", "protected", "internal", "public", "open", "inner", "sealed",
-        "data", "abstract", "enum"
+        "data", "abstract", "enum", "inline"
     )
 
     private val possiblePropertyModifiers = listOf(

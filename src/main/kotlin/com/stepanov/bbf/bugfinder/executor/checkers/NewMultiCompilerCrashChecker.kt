@@ -14,7 +14,7 @@ import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.util.*
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 
 open class MultiCompilerCrashChecker(
     override val project: Project,
@@ -185,7 +185,7 @@ open class MultiCompilerCrashChecker(
     override fun getErrorMessageWithLocation() = compiler!!.getErrorMessageWithLocation(project)
 
     override val alreadyChecked: HashMap<Int, Boolean> = HashMap()
-    open val log = Logger.getLogger("reducerLogger")
+    open val log = LogManager.getLogger("reducerLogger")
     val projectHash: Int
         get() = project.toString().trim().hashCode()
 }

@@ -9,6 +9,9 @@ import coverage.CoverageEntry
 import org.jetbrains.kotlin.psi.KtNamedFunction
 
 object SignatureCollector {
+
+    fun collectSignature(func: PsiElement): CoverageEntry = collectSignatures(listOf(func)).first()
+
     fun collectSignatures(funcs: List<PsiElement>): List<CoverageEntry> =
         if (funcs.isEmpty()) listOf()
         else

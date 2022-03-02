@@ -9,7 +9,7 @@ import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.manager.TransformationManager
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import java.io.File
 
 object Reducer {
@@ -131,6 +131,6 @@ object Reducer {
 //            .doTransformationsForFile(file, checker)
 //    }
 
-    private val log = Logger.getLogger("transformationManagerLog")
+    private val log = LogManager.getLogger("transformationManagerLog")
 
 }

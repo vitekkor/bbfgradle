@@ -8,7 +8,7 @@ import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.passes.*
 import com.stepanov.bbf.reduktor.passes.slicer.Slicer
 import com.stepanov.bbf.reduktor.util.ReduKtorProperties
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import kotlin.system.exitProcess
@@ -16,7 +16,7 @@ import kotlin.system.exitProcess
 class TransformationManager(val checker: CompilerTestChecker) {
 
     var ktFactory: KtPsiFactory? = null
-    private val log = Logger.getLogger("transformationManagerLog")
+    private val log = LogManager.getLogger("transformationManagerLog")
 
     init {
         SimplificationPass.checker = checker

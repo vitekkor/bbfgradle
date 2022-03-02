@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <File name="bugFinderFile" fileName="logs/bugFinder.log">
+            <PatternLayout pattern="%d [%t:%L] - %m%n"/>
+            <Append>false</Append>
+        </File>
+        <File name="mutatorFile" fileName="logs/mutator.log">
+            <PatternLayout pattern="%d [%t:%L] - %m%n"/>
+            <Append>false</Append>
+        </File>
+        <File name="transformationManagerFile" fileName="logs/transformationManager.log">
+            <PatternLayout pattern="%d [%t:%L] - %m%n"/>
+            <Append>false</Append>
+        </File>
+    </Appenders>
+    <Loggers>
+        <Root level="error">
+        </Root>
+        <Logger level="trace" name="bugFinderLogger">
+            <AppenderRef ref="bugFinderFile"/>
+        </Logger>
+        <Logger level="trace" name="mutatorLogger">
+            <AppenderRef ref="mutatorFile"/>
+        </Logger>
+        <Logger level="trace" name="transformationManagerLog">
+            <AppenderRef ref="transformationManagerFile"/>
+        </Logger>
+    </Loggers>
+</Configuration>

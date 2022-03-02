@@ -2,7 +2,7 @@
 //
 //import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 //import com.stepanov.bbf.reduktor.parser.PSICreator
-//import org.apache.log4j.Logger
+//import org.apache.logging.log4j.LogManager
 //import org.codehaus.plexus.util.FileUtils
 //import org.jetbrains.kotlin.psi.KtFile
 //import java.io.File
@@ -131,5 +131,5 @@
 //        return fileToReduce
 //    }
 //
-//    private val log = Logger.getLogger("transformationManagerLog")
+//    private val log = LogManager.getLogger("transformationManagerLog")
 //}

@@ -11,7 +11,7 @@ import org.jetbrains.kotlin.config.Services
 import com.stepanov.bbf.reduktor.executor.KotlincInvokeStatus
 import com.stepanov.bbf.reduktor.util.MsgCollector
 import org.apache.commons.io.FileUtils
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import java.io.*
 import java.util.concurrent.Executors
@@ -121,6 +121,6 @@ class JSCompiler(override val arguments: String = "") : CommonCompiler() {
 
     private fun analyzeErrorMessage(msg: String): Boolean = !msg.split("\n").any { it.contains(": error:") }
 
-    private val log = Logger.getLogger("compilerErrorsLog")
+    private val log = LogManager.getLogger("compilerErrorsLog")
 
 }

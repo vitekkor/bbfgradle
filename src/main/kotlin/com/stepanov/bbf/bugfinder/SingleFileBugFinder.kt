@@ -1,23 +1,14 @@
 package com.stepanov.bbf.bugfinder
 
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
-import com.stepanov.bbf.bugfinder.executor.checkers.CoverageGuider
-import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
-import com.stepanov.bbf.bugfinder.executor.checkers.PerformanceOracle
-import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
+import com.stepanov.bbf.bugfinder.executor.checkers.LineCoverageGuider
 import com.stepanov.bbf.bugfinder.executor.compilers.KJCompiler
 import com.stepanov.bbf.bugfinder.executor.project.LANGUAGE
 import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.manager.Bug
-import com.stepanov.bbf.bugfinder.manager.BugManager
-import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.util.*
+import com.stepanov.bbf.bugfinder.util.statistic.CoverageStatisticWriter
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import coverage.CoverageEntry
-import coverage.MyMethodBasedCoverage
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
 import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 import kotlin.system.exitProcess
@@ -28,8 +19,9 @@ class SingleFileBugFinder(pathToFile: String) : BugFinder(pathToFile) {
     fun findBugsInFile() {
         println("Let's go")
         ++counter
-        log.debug("Name = $dir")
-        var project = Project.createFromCode(File(dir).readText())
+        log.debug("Name = $absolutePathToSeed")
+        log.debug("Name = $absolutePathToSeed")
+        var project = Project.createFromCode(File(absolutePathToSeed).readText())
         PSICreator.curProject = project
         if (project.files.isEmpty()) {
             log.debug("Cant create project")
@@ -60,9 +52,12 @@ class SingleFileBugFinder(pathToFile: String) : BugFinder(pathToFile) {
             //TODO disable?
             log.debug("Ignore some of backends")
         }
-        if (compilers.any { !it.checkCompiling(project) }) {
-            log.debug("Can not compile $dir")
-            return
+        for (c in compilers) {
+            if (!c.checkCompiling(project)) {
+                log.debug("Can not compile $absolutePathToSeed")
+                log.debug("Error message = ${c.getErrorMessage(project)}")
+                return
+            }
         }
         log.debug("Start to mutate")
         log.debug("BEFORE = $project")
@@ -77,13 +72,20 @@ class SingleFileBugFinder(pathToFile: String) : BugFinder(pathToFile) {
 //            CoverageGuider.getCoverage(project, compilers)
 //            MyMethodBasedCoverage.methodProbes.clear()
 //        }
+//        if (CompilerArgs.isGuidedByCoverage) {
+//            val pathToCoverage = "tmp/coverage.txt"
+//            LineCoverageGuider.init(pathToCoverage, project) { !"$it".contains("konan") && !"$it".contains("fir") }
+//            MyMethodBasedCoverage.methodProbes.clear()
+//        }
+//        if (CompilerArgs.isPerformanceMode) {
+//            PerformanceOracle.init(project, CompilerArgs.getCompilersList())
+//        }
         if (CompilerArgs.isGuidedByCoverage) {
-            val pathToCoverage = "tmp/coverage.txt"
-            CoverageGuider.init(pathToCoverage, project) { !"$it".contains("konan") && !"$it".contains("fir") }
-            MyMethodBasedCoverage.methodProbes.clear()
-        }
-        if (CompilerArgs.isPerformanceMode) {
-            PerformanceOracle.init(project, CompilerArgs.getCompilersList())
+            CoverageStatisticWriter.fileName = absolutePathToSeed
+            LineCoverageGuider.init(project)
+            val sourceCoverage = LineCoverageGuider.getLineCoverage(project)
+            CoverageStatisticWriter.instance.addCoveredMethods(sourceCoverage)
+            CoverageStatisticWriter.instance.saveCoverageStatistic()
         }
         //noLastLambdaInFinallyBlock temporary for avoiding duplicates bugs
         mutate(project, project.files.first(), compilers, listOf(::noBoxFunModifying, ::noLastLambdaInFinallyBlock))

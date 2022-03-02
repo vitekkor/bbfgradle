@@ -13,13 +13,14 @@ import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.tracer.Tracer
-import com.stepanov.bbf.bugfinder.util.CoverageStatisticsCollector
-import com.stepanov.bbf.bugfinder.util.StatisticCollector
+import com.stepanov.bbf.bugfinder.util.statistic.LineCoverageStatisticsCollector
+import com.stepanov.bbf.bugfinder.util.statistic.StatisticCollector
 import com.stepanov.bbf.bugfinder.util.instrumentation.CoverageGuidingCoefficients
+import com.stepanov.bbf.bugfinder.util.statistic.CoverageStatisticWriter
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import kotlinx.serialization.ExperimentalSerializationApi
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import kotlin.math.exp
 import kotlin.random.Random
 
@@ -67,6 +68,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
             false
         }
     }
+
     fun checkCompilingWithBugSaving(project: Project, curFile: BBFFile? = null): Boolean {
         log.debug("Compilation checking started")
         val allTexts = project.files.map { it.psiFile.text }.joinToString()
@@ -82,10 +84,18 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
             compileAndGetStatusesWithExecutionTime(project).let { it.map { it.first } to it.map { it.second } }
         when {
             statuses.all { it == COMPILE_STATUS.OK } -> {
-                if (CompilerArgs.isGuidedByCoverage) {
+                if (CompilerArgs.isGuidedByCoverage && CompilerArgs.isMutationGuided) {
                     if (isCoverageDecreases(project)) {
                         checkedConfigurations[allTexts] = false
                         return false
+                    }
+                } else if (CompilerArgs.isGuidedByCoverage) {
+                    val oldCoverage = CoverageStatisticWriter.instance.getPercentageOfDesiredCoverage()
+                    val sumCoverage = LineCoverageGuider.getLineCoverage(project, compilers)
+                    CoverageStatisticWriter.instance.addCoveredMethods(sumCoverage)
+                    val newCoverage = CoverageStatisticWriter.instance.getPercentageOfDesiredCoverage()
+                    if (newCoverage > oldCoverage) {
+                        CoverageStatisticWriter.instance.addInformationAboutMutationCoverage(newCoverage - oldCoverage)
                     }
                 }
                 if (CompilerArgs.isMiscompilationMode) {
@@ -145,21 +155,26 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
     //Is coverage decreasing?
     private fun isCoverageDecreases(project: Project): Boolean {
         println("---")
-        val sumCoverage = CoverageGuider.getCoverage(project, compilers)
-        CoverageStatisticsCollector.addCoveredMethods(sumCoverage.keys)
-        val k = CoverageGuider.calcKoefOfCoverageUsage(sumCoverage)
+        val previousCoveredPercentage = CoverageStatisticWriter.instance.getPercentageOfDesiredCoverage()
+        val sumCoverage = LineCoverageGuider.getLineCoverage(project, compilers)
+        CoverageStatisticWriter.instance.addCoveredMethods(sumCoverage)
+        val k = LineCoverageGuider.calcKoefOfCoverageUsage(sumCoverage)
         println("K = $k")
+        val newCoveragePercentage = CoverageStatisticWriter.instance.getPercentageOfDesiredCoverage()
         if (unsuccessfulMutations > 5) {
             acceptanceCoef = decrementKoef(acceptanceCoef)
         }
         val probabilityOfAcceptance =
-            minOf(1.0, exp(acceptanceCoef * (k - CoverageGuider.initCoef)))
+            minOf(1.0, exp(acceptanceCoef * (k - LineCoverageGuider.initCoef)))
         val isDecreasing = Random.nextDouble(0.0, 1.0) > probabilityOfAcceptance
         println("Probability = $probabilityOfAcceptance")
-        println("Coverage diff = ${k - CoverageGuider.initCoef}")
+        println("Coverage diff = ${k - LineCoverageGuider.initCoef}")
         println("is Accepting = ${!isDecreasing}")
+        if (newCoveragePercentage > previousCoveredPercentage) {
+            CoverageStatisticWriter.instance.addInformationAboutMutationCoverage(newCoveragePercentage - previousCoveredPercentage)
+        }
         if (!isDecreasing) {
-            currentScore += (k - CoverageGuider.initCoef).let {
+            currentScore += (k - LineCoverageGuider.initCoef).let {
                 when {
                     it <= 0 -> 0
                     else -> it
@@ -167,7 +182,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
             }
 //                if (it < 0)
 //                    0 else it }
-            CoverageGuider.initCoef = k
+            LineCoverageGuider.initCoef = k
             unsuccessfulMutations = 0
             acceptanceCoef = CoverageGuidingCoefficients.MCMC_MULTIPLIER
         } else {
@@ -235,5 +250,5 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
     private var acceptanceCoef = CoverageGuidingCoefficients.MCMC_MULTIPLIER
 
     private val checkedConfigurations = hashMapOf<String, Boolean>()
-    private val log = Logger.getLogger("mutatorLogger")
+    private val log = LogManager.getLogger("mutatorLogger")
 }

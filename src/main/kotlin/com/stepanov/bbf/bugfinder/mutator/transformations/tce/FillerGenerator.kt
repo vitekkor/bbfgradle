@@ -6,7 +6,7 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.util.getNameWithoutError
 import com.stepanov.bbf.bugfinder.util.getTrue
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
@@ -27,7 +27,7 @@ class FillerGenerator(
 
     private val randomTypeGenerator = RandomTypeGenerator
     private val blockListOfTypes = listOf("Unit", "Nothing", "Nothing?")
-    private val log = Logger.getLogger("mutatorLogger")
+    private val log = LogManager.getLogger("mutatorLogger")
 
     init {
         randomTypeGenerator.setFileAndContext(psi, ctx)

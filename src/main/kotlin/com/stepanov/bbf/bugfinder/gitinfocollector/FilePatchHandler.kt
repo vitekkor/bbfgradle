@@ -7,6 +7,7 @@ import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.checkers.CoverageGuider
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import com.stepanov.bbf.reduktor.util.getAllChildren
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -15,7 +16,6 @@ import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import java.io.File
 import kotlin.collections.flatMap
-import kotlin.system.exitProcess
 
 class FilePatchHandler(private val patches: List<FilePatch>) {
 
@@ -45,25 +45,45 @@ class FilePatchHandler(private val patches: List<FilePatch>) {
                     FilePatchWithModifiedFunctions(
                         it.value.first().filePath,
                         it.value.first().psiFile,
-                        it.value.flatMap { it.modifiedFunctions }.filterDuplicatesBy { it.text }
+                        it.value.flatMap { it.modifiedFunctions }.filterDuplicatesBy { it.text.trim() }
                     )
                 }
                 .filter { it.modifiedFunctions.isNotEmpty() }
+                .map {
+                    FilePatchWithModifiedFunctions(
+                        it.filePath,
+                        it.psiFile,
+                        it.modifiedFunctions.filterDuplicatesBy { SignatureCollector.collectSignature(it) })
+                }
         val lastCommit = CoverageGuider.lastCommit
         val size = filesPathsToModifiedFunctions.size
         var i = 0
         for ((filePath, _, modifiedFunctions) in filesPathsToModifiedFunctions) {
+            if (!filePath.contains("KotlinTypeMapper")) continue
+            var replacedFilePath = filePath
             println("f = $filePath $i from $size")
             ++i
-            val localChangedLines = mutableListOf<Int>()
-            val endFileSourceText = GitRepo.getFileOnRevision(lastCommit, filePath)
+            val localChangedLines = mutableSetOf<Int>()
+            var fl = false
+            val endFileSourceText =
+                GitRepo.getFileOnRevision(lastCommit, filePath).trim().ifEmpty {
+                    fl = true
+                    GitRepo.getFileOnRevision(lastCommit, filePath.replace(".java", ".kt"))
+                }
             val startFileText = getPreviousState(filePath)
             val (_, startFuncToSignatures) = createPsiFileAndCalcSignatures(filePath, startFileText)
-            val (endPsiFile, endFuncToSignatures) = createPsiFileAndCalcSignatures(filePath, endFileSourceText)
+            val (_, endFuncToSignatures) =
+                if (fl) {
+                    createPsiFileAndCalcSignatures(filePath.replace(".java", ".kt"), endFileSourceText)
+                } else {
+                    createPsiFileAndCalcSignatures(filePath, endFileSourceText)
+                }
             val modifiedFunctionsToItsSignatures =
                 modifiedFunctions.map { it to SignatureCollector.collectSignatures(listOf(it)).first() }
             for ((modifiedFunc, modifiedFuncSign) in modifiedFunctionsToItsSignatures) {
                 println("modified funcName = ${(modifiedFunc as? KtNamedFunction)?.name ?: ((modifiedFunc as? PsiMethod)?.name)}")
+                println("text = ${modifiedFunc.text}")
+                println("\n")
                 val startPsiFunc = startFuncToSignatures.find { it.second.almostEquals(modifiedFuncSign) }?.first
                 val endPsiFunc =
                     endFuncToSignatures.find { it.second.almostEquals(modifiedFuncSign) }?.first ?: continue
@@ -96,7 +116,7 @@ class FilePatchHandler(private val patches: List<FilePatch>) {
                     }
                 }
             }
-            listOfAffectedLines.add(filePath to localChangedLines)
+            listOfAffectedLines.add(filePath to localChangedLines.toList())
         }
         return listOfAffectedLines
     }
@@ -126,26 +146,55 @@ class FilePatchHandler(private val patches: List<FilePatch>) {
     //RTV: Filename to modified functions
     fun getFilePatchesWithModifiedFunctions(skipTests: Boolean): List<FilePatchWithModifiedFunctions> {
         val affectedFuncs = mutableSetOf<FilePatchWithModifiedFunctions>()
-        val patchToPsi = getPatchesToPsi(skipTests)
+        val patchToPsi = getPatchesToPsi(skipTests).reversed()
         for ((filePatch, psiFile) in patchToPsi) {
+            println("fileName = ${psiFile?.name}")
             psiFile ?: continue
-            val affectedFuncsForFile = mutableListOf<PsiElement>()
+            val affectedFuncsForFile = mutableSetOf<PsiElement>()
             for (patch in filePatch.patches) {
+                //println("ADDED LINES = ${patch.addedLines.size}")
+                //println(patch.addedLines.joinToString("\n"))
                 val affectedNodes =
                     psiFile.getNodesBetweenLines(patch.startNewLine, patch.startNewLine + patch.numOfNewLines)
                 affectedNodes.forEach { node ->
-                    if (node is PsiMethod || node is KtNamedFunction) affectedFuncsForFile.add(node)
-                    node.parents.forEach { pnode ->
-                        if (pnode is PsiMethod || pnode is KtNamedFunction) affectedFuncsForFile.add(pnode)
+                    if (node is PsiMethod || node is KtNamedFunction) {
+                        affectedFuncsForFile.add(node)
+                    } else {
+                        val parentFunNode =
+                            node.parents.firstOrNull { it is KtNamedFunction || it is PsiMethod } ?: return@forEach
+                        if (parentFunNode is KtNamedFunction && parentFunNode.bodyExpression != null) {
+                            if (node in parentFunNode.bodyExpression!!.getAllChildren()) {
+                                affectedFuncsForFile.add(parentFunNode)
+                            }
+                        }
+                        if (parentFunNode is PsiMethod && parentFunNode.body != null) {
+                            if (node in parentFunNode.body!!.getAllChildren()) {
+                                affectedFuncsForFile.add(parentFunNode)
+                            }
+                        }
                     }
+//                    node.parents.forEach { pnode ->
+//                        if (pnode is KtNamedFunction && pnode.bodyExpression != null) {
+//                            if (node in pnode.bodyExpression!!.getAllChildren()) {
+//                                affectedFuncsForFile.add(pnode)
+//                            }
+//                        }
+//                        if (pnode is PsiMethod && pnode.body != null) {
+//                            if (node in pnode.body!!.getAllChildren()) {
+//                                affectedFuncsForFile.add(pnode)
+//                            }
+//                        }
+//                    }
                 }
             }
+            //println("Affected funcs = ${affectedFuncsForFile.map { it.getName() }}")
+            //println("----------------------------------")
             if (affectedFuncsForFile.isNotEmpty()) {
                 affectedFuncs.add(
                     FilePatchWithModifiedFunctions(
                         filePatch.fileName,
                         psiFile,
-                        affectedFuncsForFile.toSet().toList()
+                        affectedFuncsForFile.toList()
                         // affectedFuncsForFile.groupBy { it.first }.entries.map { it.key to it.value.map { it. } }
                     )
                 )
@@ -202,7 +251,10 @@ class FilePatchHandler(private val patches: List<FilePatch>) {
                     it.text,
                     it.fileName.substringAfterLast('/')
                 )
-                it.fileName.endsWith(".java") -> it to PSICreator.getPsiForJava(it.text)
+                it.fileName.endsWith(".java") -> it to PSICreator.getPsiForJavaWithName(
+                    it.text,
+                    CompilerArgs.baseDir + "/" + it.fileName.substringAfterLast('/')
+                )
                 else -> it to null
             }
         }.filter { it.second != null }

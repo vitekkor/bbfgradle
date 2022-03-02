@@ -5,7 +5,7 @@ import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.replaceThis
 
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
@@ -44,5 +44,5 @@ class ReturnValueToVoid : SimplificationPass() {
         }
     }
 
-    private val log = Logger.getLogger("transformationManagerLog")
+    private val log = LogManager.getLogger("transformationManagerLog")
 }

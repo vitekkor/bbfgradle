@@ -1,32 +1,19 @@
 // TARGET_BACKEND: JVM
-// FULL_JDK
-// WITH_RUNTIME
-// WITH_COROUTINES
 
-import helpers.*
-import kotlin.coroutines.*
+// WITH_STDLIB
+// FILE: Bar.java
 
-var c: Continuation<*>? = null
-
-suspend fun <T> tx(lambda: () -> T): T = suspendCoroutine { c = it; lambda() }
-
-object Dummy
-
-suspend fun suspect() {
-    tx { Dummy }
-}
-
-fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(EmptyContinuation)
-}
-
-fun box(): String {
-    var res: Any? = null
-    builder {
-        res = suspect()
+public class Bar {
+    public static String bar() {
+        return Foo.foo();
     }
-
-    (c as? Continuation<Dummy>)?.resume(Dummy)
-
-    return if (res != Unit) "$res" else "OK"
 }
+
+// FILE: foo.kt
+
+@file:JvmName("Foo")
+public fun foo(): String = "OK"
+
+// FILE: simple.kt
+
+fun box(): String = Bar.bar()

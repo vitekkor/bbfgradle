@@ -9,7 +9,7 @@ import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.Ran
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import com.stepanov.bbf.reduktor.util.getAllChildren
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.builtins.isExtensionFunctionType
 import org.jetbrains.kotlin.builtins.isFunctionOrSuspendFunctionType
 import com.stepanov.bbf.bugfinder.util.getDeclarationDescriptorIncludingConstructors
@@ -295,6 +295,6 @@ open class RandomInstancesGenerator(private val file: KtFile, private var ctx: B
     internal val funInvocationGenerator = FunInvocationGenerator(file, ctx)
     val randomTypeGenerator = RandomTypeGenerator
     private val MAGIC_CONST = 15
-    private val log = Logger.getLogger("mutatorLogger")
+    private val log = LogManager.getLogger("mutatorLogger")
 
 }

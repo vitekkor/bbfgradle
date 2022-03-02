@@ -4,10 +4,9 @@ import com.stepanov.bbf.bugfinder.Reducer
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.executor.*
 import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
-import com.stepanov.bbf.bugfinder.util.StatisticCollector
-import org.apache.log4j.Logger
+import com.stepanov.bbf.bugfinder.util.statistic.StatisticCollector
+import org.apache.logging.log4j.LogManager
 import java.io.File
-import kotlin.system.exitProcess
 
 enum class BugType {
     BACKEND,
@@ -172,7 +171,7 @@ object BugManager {
             log.debug("Exception ${e.localizedMessage} ${e.stackTraceToString()}\n")
             System.exit(1)
         }
-        return true
+        return false
     }
 
     fun haveDuplicates(bug: Bug): Boolean {
@@ -210,6 +209,6 @@ object BugManager {
         f.writeText(newText)
     }
 
-    private val log = Logger.getLogger("bugFinderLogger")
+    private val log = LogManager.getLogger("bugFinderLogger")
 }
 

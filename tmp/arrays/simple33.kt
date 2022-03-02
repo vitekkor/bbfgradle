@@ -1,16 +1,29 @@
-// MODULE: lib
-// FILE: lib.kt
-class A {
+// IGNORE_BACKEND_FIR: JVM_IR
+// FIR status: not supported in JVM
+// IGNORE_BACKEND: JVM_IR, JS_IR
+// IGNORE_BACKEND: JS_IR_ES6
+// IGNORE_BACKEND: JVM, JS, NATIVE
+// IGNORE_BACKEND: WASM
+// WASM_MUTE_REASON: IGNORED_IN_JS
+// WITH_STDLIB
+// WITH_COROUTINES
+import helpers.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 
-    @PublishedApi
-    internal fun published() = "OK"
-
-    inline fun test() = published()
-
+suspend fun callLocal(): String {
+    val local = suspend fun() = "OK"
+    return local()
 }
 
-// MODULE: main(lib)
-// FILE: main.kt
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
+}
+
 fun box(): String {
-    return A().test()
+    var res = "FAIL"
+    builder {
+        res = callLocal()
+    }
+    return res
 }

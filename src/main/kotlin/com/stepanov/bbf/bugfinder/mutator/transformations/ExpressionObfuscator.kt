@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder.mutator.transformations
 
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.tryToCreateExpression
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.TCEUsagesCollector
 import com.stepanov.bbf.bugfinder.mutator.transformations.util.FileFieldsTable
@@ -19,7 +20,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.calls.util.getType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isNullable
 import org.jetbrains.kotlin.types.typeUtil.isNothing
@@ -147,6 +148,6 @@ object ExpressionObfuscator : Transformation() {
         }
         if (callList.any { it.returnType?.isNullable() == true })
             res.append("!!")
-        return Factory.psiFactory.createExpression(res.toString())
+        return Factory.psiFactory.tryToCreateExpression(res.toString())
     }
 }

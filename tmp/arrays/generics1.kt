@@ -1,21 +1,12 @@
-// TARGET_BACKEND: JVM
+// !LANGUAGE: +ContextReceivers
+// TARGET_BACKEND: JVM_IR
+// IGNORE_BACKEND_FIR: JVM_IR
+// FIR status: context receivers aren't yet supported
 
-// WITH_RUNTIME
-// FILE: Test.java
-
-public class Test {
-    public static String invokeMethodWithOverloads() {
-        C<String> c = new C<String>();
-        return c.foo("O");
-    }
+context(T) class B<T : CharSequence> {
+    val result = if (length == 2) "OK" else "fail"
 }
 
-// FILE: generics.kt
-
-class C<T> {
-    @kotlin.jvm.JvmOverloads public fun foo(o: T, k: String = "K"): String = o.toString() + k
-}
-
-fun box(): String {
-    return Test.invokeMethodWithOverloads()
+fun box() = with("OK") {
+    B().result
 }

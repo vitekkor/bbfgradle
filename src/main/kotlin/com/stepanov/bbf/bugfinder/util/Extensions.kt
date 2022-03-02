@@ -33,7 +33,7 @@ import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.calls.util.getType
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import java.io.BufferedReader
 import java.io.File
@@ -97,7 +97,6 @@ fun ASTNode.getAllParentsWithoutNode(): ArrayList<ASTNode> {
     }
     return result
 }
-
 
 fun <T> Iterable<T>.getAllWithout(index: Int): List<T> {
     val list: ArrayList<T> = arrayListOf<T>()
@@ -422,6 +421,20 @@ fun <T, R : Comparable<R>> List<T>.filterDuplicatesBy(f: (T) -> R): List<T> {
 
 fun <T> List<T>.subList(range: Pair<Int, Int>) = this.subList(range.first, range.second)
 fun <T> List<T>.subList(range: IntRange) = this.subList(range.first, range.last)
+fun <T> List<T>.sublistAfter(el: T): List<T> {
+    for (i in indices) {
+        if (this[i] == el) {
+            return this.subList(i + 1, this.size)
+        }
+    }
+    return this.toList()
+}
+
+fun IntArray.setAll(newVal: Int) {
+    for (i in 0 until size) {
+        this[i] = newVal
+    }
+}
 
 fun KtBlockExpression.addProperty(prop: KtProperty): PsiElement? {
     val factory = KtPsiFactory(this.project)
@@ -532,6 +545,12 @@ fun <T : Any> List<Any>.flatten(type: KClass<T>): List<T> {
 
 inline fun <reified T : Any> List<Any>.flatten(): List<T> = this.flatten(T::class)
 
+inline fun <T> File.ifExists(action: File.() -> T): T? =
+    if (exists()) {
+        action.invoke(this)
+    } else null
+
+
 fun PsiFile.contains(cond: (PsiElement) -> Boolean) = this.getAllChildren().any { cond(it) }
 
 fun KotlinType.getAllTypeParams(): List<TypeProjection> =
@@ -574,22 +593,24 @@ fun KotlinType.getMinModifier() =
         .let { listOf(it) + it.getAllTypeParams().map { it.type } }
         .map { it.constructor.declarationDescriptor }
         .mapNotNull { (it as? ClassDescriptor)?.visibility }
-        .minWithOrNull { t: Visibility, t2: Visibility -> compareLocal(t, t2) ?: 0 } //t.compareTo(t2) ?: 0 }
+        .minWithOrNull { t: DescriptorVisibility, t2: DescriptorVisibility ->
+            compareLocal(t, t2) ?: 0
+        } //t.compareTo(t2) ?: 0 }
         ?.name ?: "public"
 
-private var ORDERED_VISIBILITIES: Map<Visibility, Int> =
+private var ORDERED_VISIBILITIES: Map<DescriptorVisibility, Int> =
     mapOf(
-        Visibilities.PRIVATE_TO_THIS to 0,
-        Visibilities.PRIVATE to 0,
-        Visibilities.INTERNAL to 1,
-        Visibilities.PROTECTED to 1,
-        Visibilities.PUBLIC to 2
+        DescriptorVisibilities.PRIVATE_TO_THIS to 0,
+        DescriptorVisibilities.PRIVATE to 0,
+        DescriptorVisibilities.INTERNAL to 1,
+        DescriptorVisibilities.PROTECTED to 1,
+        DescriptorVisibilities.PUBLIC to 2
     )
 
-fun compareLocal(first: Visibility, second: Visibility): Int? {
+fun compareLocal(first: DescriptorVisibility, second: DescriptorVisibility): Int? {
     if (first === second) return 0
-    val firstIndex: Int? = ORDERED_VISIBILITIES.get(first)
-    val secondIndex: Int? = ORDERED_VISIBILITIES.get(second)
+    val firstIndex: Int? = ORDERED_VISIBILITIES[first]
+    val secondIndex: Int? = ORDERED_VISIBILITIES[second]
     return if (firstIndex == null || secondIndex == null || firstIndex == secondIndex) {
         null
     } else firstIndex - secondIndex

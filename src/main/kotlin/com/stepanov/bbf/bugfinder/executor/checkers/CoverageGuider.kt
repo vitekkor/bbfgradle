@@ -6,18 +6,15 @@ import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.gitinfocollector.*
-import com.stepanov.bbf.bugfinder.util.Stream
-import com.stepanov.bbf.bugfinder.util.containsAny
-import com.stepanov.bbf.bugfinder.util.filterDuplicatesBy
-import com.stepanov.bbf.bugfinder.util.notContainsAny
-import coverage.BranchCoverageEntry
-import coverage.CoverageEntry
-import coverage.MyMethodBasedCoverage
+import com.stepanov.bbf.bugfinder.util.*
+import coverage.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
 import kotlin.system.exitProcess
 
 @ExperimentalSerializationApi
@@ -25,7 +22,7 @@ object CoverageGuider {
     //lateinit var desiredCoverage: List<CoverageEntry>
     lateinit var desiredCoverage: List<BranchCoverageEntry>
     var initCoef = 0
-    const val pathToCommits = "unsignedNumberCommits.txt"
+    const val pathToCommits = "inlineClassesCommits.txt"
 
     //1.4.0 commit
     val lastCommit = "0ddb7937eea9ca84442cc358871b2b663d01e298"
@@ -49,7 +46,7 @@ object CoverageGuider {
                     res.addAll(Json.decodeFromString<List<FilePatch>>(serFile.readText()))
                     continue
                 }
-                val repo = GitRepo("JetBrains", "kotlin")
+                println("GETTING COMMIT $commit")
                 val patches = GitRepo.getLocalPatches(commit, CompilerArgs.pathToKotlin)
                 res.addAll(patches)
                 File("$pathToSerializedCommits/${commit.take(7)}").writeText(Json.encodeToString(patches))
@@ -83,36 +80,78 @@ object CoverageGuider {
 //        println("INIT K = $initCoef\n")
 //    }
 
-    fun filterPatchesForUnsignedNumbersTest(patch: FilePatch) =
-        with(patch.fileName) {
+    fun filterPatchesForUnsignedNumbersTest(fileName: String) =
+        with(fileName) {
             notContainsAny(
                 "testData",
                 "/js/",
                 "dev/null",
-                "/tests/",
+                "tests",
                 "/test/",
                 "native",
                 "/fir",
                 "metadata",
-                "samples/"
+                "samples/",
+                "/idea/",
+                "plugin"
             ) && (endsWith(".java") || endsWith(".kt"))
         }
 
     fun filterPatchesForUnsignedNumbersTest(patch: Pair<FilePatch, String>) =
-        with(patch.first.fileName) {
-            notContainsAny(
-                "testData",
-                "/js/",
-                "dev/null",
-                "/tests/",
-                "/test/",
-                "native",
-                "/fir",
-                "metadata",
-                "samples/"
-            ) && (endsWith(".java") || endsWith(".kt"))
+        filterPatchesForUnsignedNumbersTest(patch.first.fileName)
+
+    fun filterPatchesForUnsignedNumbersTest(patch: FilePatch) = filterPatchesForUnsignedNumbersTest(patch.fileName)
+
+    fun getModifiedLines(pathToSerialized: String): List<Pair<String, List<Int>>> =
+        try {
+            val serializedAffectedLines = File(pathToSerialized).readText()
+            Json.decodeFromString(serializedAffectedLines)
+        } catch (e: Exception) {
+            calcModifiedLines().also { File(pathToSerialized).writeText(Json.encodeToString(it)) }
         }
 
+
+    private fun calcModifiedLines(): List<Pair<String, List<Int>>> {
+        val modifiedLines = mutableListOf<Pair<String, List<Int>>>()
+        val sourceFiles =
+            Files.walk(Paths.get(CompilerArgs.pathToKotlin))
+                .map { it.toFile() }
+                .filter { filterPatchesForUnsignedNumbersTest(it.path) }
+                .toArray().toList().map { it as File }
+        val commitMessages = mutableSetOf<String>()
+        for ((i, sourceFile) in sourceFiles.withIndex()) {
+            println("f = ${sourceFile.path} $i from ${sourceFiles.size}")
+            val gitBlameResult =
+                GitRepo.executeProcess("git blame -- ${sourceFile.absolutePath}", directory = CompilerArgs.pathToKotlin)
+                    .lines()
+            if (gitBlameResult.all { !it.contains("shadrina", true) }) continue
+            println("LOL")
+            val commits =
+                gitBlameResult
+                    .map { it.trim().substringBefore(' ') }
+                    .filter { it.isNotEmpty() }
+                    .toSet()
+                    .associateWith {
+                        GitRepo.executeProcess("git log -n 1 $it", directory = CompilerArgs.pathToKotlin)
+                            .trim()
+//                        GitRepo.executeProcess("git log --format=%B -n 1 $it", directory = CompilerArgs.pathToKotlin)
+//                            .trim()
+                    }
+                    .filter { it.value.contains("shadrina", true) }
+                    //.filter { !it.value.contains("JS", false) }
+            if (commits.isEmpty()) continue
+            commits.values.forEach {
+                commitMessages.add(it)
+            }
+            val fileModifiedLines = gitBlameResult.mapIndexedNotNull { ind, line ->
+                val commit = line.trim().substringBefore(' ')
+                if (commit in commits) ind else null
+            }
+            if (fileModifiedLines.isNotEmpty()) modifiedLines.add(sourceFile.path to fileModifiedLines)
+        }
+        //commitMessages.forEach(::println)
+        return modifiedLines
+    }
 
     fun initDesireCoverage(pathToSerializedCoverage: String, filterFunc: (CoverageEntry) -> Boolean = { true }) {
         val helloWorldProject = Project.createFromCode(
@@ -169,6 +208,20 @@ object CoverageGuider {
         println("INIT K = $initCoef\n")
     }
 
+    fun getBranchCoverage(project: Project) = getBranchCoverage(project, CompilerArgs.getCompilersList())
+
+    fun getBranchCoverage(project: Project, compilers: List<CommonCompiler>): Map<BranchCoverageEntry, Int> {
+        CompilerArgs.isInstrumentationMode = true
+        MyBranchBasedCoverage.methodProbes.clear()
+        val sumCoverage = mutableMapOf<BranchCoverageEntry, Int>()
+        for (compiler in compilers) {
+            compiler.compile(project)
+            sumCoverage.putAll(MyBranchBasedCoverage.methodProbes)
+        }
+        CompilerArgs.isInstrumentationMode = false
+        return sumCoverage
+    }
+
     fun getCoverage(project: Project) = CoverageGuider.getCoverage(project, CompilerArgs.getCompilersList())
 
     fun getCoverage(project: Project, compilers: List<CommonCompiler>): Map<CoverageEntry, Int> {
@@ -216,7 +269,7 @@ object CoverageGuider {
 //    fun calcKoefOfCoverageUsage(compilationCoverage: Map<CoverageEntry, Int>) =
 //        desiredCoverage.sumBy { compilationCoverage[it] ?: 0 }
 
-    fun calcKoefOfCoverageUsage(compilationCoverage: Map<CoverageEntry, Int>) =
-        desiredCoverage.sumBy { compilationCoverage[it]?.let { 1 } ?: 0 }
+    fun calcKoefOfCoverageUsage(compilationCoverage: Map<CoverageEntry, Int>): Int = TODO()
+        //desiredCoverage.sumBy { compilationCoverage[it]?.let { 1 } ?: 0 }
 
 }

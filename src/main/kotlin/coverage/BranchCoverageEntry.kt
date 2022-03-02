@@ -6,7 +6,7 @@ data class BranchCoverageEntry(
     val lineNumber: Int,
     val branch: Boolean
 ) {
-    fun isSameEntries(other: CoverageEntry): Boolean {
+    fun isSameEntries(other: BranchCoverageEntry): Boolean {
         return true
     }
 }

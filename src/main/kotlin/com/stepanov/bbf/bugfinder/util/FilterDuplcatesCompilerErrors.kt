@@ -6,7 +6,7 @@ import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugType
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch
 import org.jsoup.Jsoup
 import java.io.File
@@ -189,5 +189,5 @@ object FilterDuplcatesCompilerErrors {
     }
 
     private val patch = DiffMatchPatch()
-    private val log = Logger.getLogger("mutatorLogger")
+    private val log = LogManager.getLogger("mutatorLogger")
 }

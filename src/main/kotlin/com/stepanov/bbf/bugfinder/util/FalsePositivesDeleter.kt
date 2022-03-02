@@ -4,13 +4,13 @@ import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JSCompiler
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import java.io.File
 
 class FalsePositivesDeleter {
 
     private val compilers: MutableList<CommonCompiler> = mutableListOf()
-    private val log = Logger.getLogger("bugFinderLogger")
+    private val log = LogManager.getLogger("bugFinderLogger")
 
     init {
         val compilersConf = BBFProperties.getStringGroupWithoutQuotes("BACKENDS")

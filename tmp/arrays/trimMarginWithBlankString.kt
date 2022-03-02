@@ -1,8 +1,4 @@
-// WITH_RUNTIME
-// KJS_WITH_FULL_RUNTIME
-
-// IGNORE_BACKEND: WASM
-// WASM_MUTE_REASON: STDLIB_TEXT
+// WITH_STDLIB
 
 fun box(): String {
     try {

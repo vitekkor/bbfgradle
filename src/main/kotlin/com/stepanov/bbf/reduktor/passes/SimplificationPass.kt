@@ -2,7 +2,7 @@ package com.stepanov.bbf.reduktor.passes
 
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.psi.KtVisitorVoid
 
 abstract class SimplificationPass: KtVisitorVoid() {
@@ -12,7 +12,7 @@ abstract class SimplificationPass: KtVisitorVoid() {
         lateinit var checker: CompilerTestChecker
         val file: PsiFile
             get() = checker.curFile.psiFile
-        val log = Logger.getLogger("transformationManagerLog")
+        val log = LogManager.getLogger("transformationManagerLog")
     }
 
 }

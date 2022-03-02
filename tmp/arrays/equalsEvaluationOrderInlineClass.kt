@@ -1,8 +1,12 @@
+// WITH_STDLIB
+// WORKS_WHEN_VALUE_CLASS
+// LANGUAGE: +ValueClasses
 
-// !LANGUAGE: +InlineClasses
+OPTIONAL_JVM_INLINE_ANNOTATION
+value class Inner(val x: Int)
 
-inline class Inner(val x: Int)
-inline class A(val x: Inner)
+OPTIONAL_JVM_INLINE_ANNOTATION
+value class A(val x: Inner)
 
 var i = 0
 

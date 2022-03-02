@@ -1,7 +1,5 @@
-typealias S = String
+data class A(val x: String, val y: String)
 
-typealias SF<T> = (T) -> S
+fun foo(a: A, block: (A) -> String): String = block(a)
 
-val f: SF<S> = { it }
-
-fun box(): S = f("OK")
+fun box() = foo(A("O", "K")) { (x, y) -> x + y }

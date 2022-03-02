@@ -1,17 +1,20 @@
-// MODULE: lib
-// FILE: A.kt
+// TARGET_BACKEND: JVM
+// WITH_STDLIB
 
-package aaa
+// FILE: foo.kt
 
-fun hello() = 17
+@file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
+@file:JvmPackageName("baz.foo.quux.bar")
+package foo.bar
 
-// MODULE: main(lib)
-// FILE: B.kt
+fun f(): String = "O"
 
-fun box(): String {
-    val h = aaa.hello()
-    if (h != 17) {
-        throw Exception()
-    }
-    return "OK"
-}
+val g: String? get() = "K"
+
+inline fun <T> i(block: () -> T): T = block()
+
+// FILE: bar.kt
+
+import foo.bar.*
+
+fun box(): String = i { f() + g }

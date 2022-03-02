@@ -6,7 +6,7 @@ import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtValueArgumentList
-import org.jetbrains.kotlin.resolve.calls.callUtil.getFunctionResolvedCallWithAssert
+import org.jetbrains.kotlin.resolve.calls.util.getFunctionResolvedCallWithAssert
 import org.jetbrains.kotlin.resolve.calls.components.hasDefaultValue
 import org.jetbrains.kotlin.resolve.calls.model.ResolvedCall
 import kotlin.random.Random

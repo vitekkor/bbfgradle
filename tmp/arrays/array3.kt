@@ -1,13 +1,6 @@
-// DONT_TARGET_EXACT_BACKEND: WASM
-// WASM_MUTE_REASON: PROPERTY_REFERENCES
-open class A {
-    var f: String = "OK"
-}
+// CHECK_BYTECODE_LISTING
+// LANGUAGE: -JvmInlineValueClasses, +GenericInlineClassParameter
 
-class B : A() {
-}
+inline class ICIntArray<T: Int>(val value: Array<T>)
 
-fun box() : String {
-    val b = B()
-    return (b::f).get()
-}
+fun box(): String = if (ICIntArray(arrayOf(1)).value[0] == 1) "OK" else "FAIL"

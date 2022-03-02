@@ -49,19 +49,40 @@ open class JarInstrumenter {
 
     protected val abstractOpcodeLength = Opcodes.ACC_ABSTRACT.toString(2).length
 
-    protected fun writeCoverageClassesToJar(jarOutputStream: JarOutputStream) {
-        //Add data structures to collect traces
-        listOf(
-            "tmp/lib/CoverageEntry.class",
-            "tmp/lib/CoverageEntry\$Companion.class",
-            "tmp/lib/MyMethodBasedCoverage.class"
-        )
+    private fun writeCoverageClasses(jarOutputStream: JarOutputStream, files: List<String>) {
+        files
             .map { File(it) }
             .forEach {
                 val name = "coverage/${it.name.substringAfterLast('/')}"
                 addFileToJar(jarOutputStream, it, name)
             }
     }
+
+    protected fun writeLineCoverageClassesToJar(jarOutputStream: JarOutputStream) =
+        writeCoverageClasses(
+            jarOutputStream,
+            listOf("tmp/lib/MyLineBasedCoverage.class")
+        )
+
+    protected fun writeBranchCoverageClassesToJar(jarOutputStream: JarOutputStream) =
+        writeCoverageClasses(
+            jarOutputStream,
+            listOf(
+                "tmp/lib/BranchCoverageEntry.class",
+                "tmp/lib/MyBranchBasedCoverage.class"
+            )
+        )
+
+    protected fun writeCoverageClassesToJar(jarOutputStream: JarOutputStream) =
+        writeCoverageClasses(
+            jarOutputStream,
+            listOf(
+                "tmp/lib/CoverageEntry.class",
+                "tmp/lib/CoverageEntry\$Companion.class",
+                "tmp/lib/MyMethodBasedCoverage.class"
+            )
+        )
+
 
     open fun instrument(jarPath: String, newJarPath: String, targetCoverage: Map<CoverageEntry, Int>) {
         if (File(newJarPath).exists()) File(newJarPath).delete()

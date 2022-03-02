@@ -1,19 +1,18 @@
-// TARGET_BACKEND: JVM
+// WITH_STDLIB
 
-// WITH_RUNTIME
-// FILE: Bar.java
+import kotlin.test.assertEquals
 
-public class Bar {
-    public static String bar() {
-        return Foo.foo();
-    }
+inline fun bar(x: Int) : Int {
+    return x
 }
 
-// FILE: foo.kt
+fun foobar(x: Int, y: Int, z: Int) = x + y + z
 
-@file:JvmName("Foo")
-public fun foo(): String = "OK"
+fun foo() : Int {
+    return foobar(1, bar(2), 3)
+}
 
-// FILE: simple.kt
-
-fun box(): String = Bar.bar()
+fun box() : String {
+    assertEquals(6, foo())
+    return "OK"
+}

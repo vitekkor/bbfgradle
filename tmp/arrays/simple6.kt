@@ -1,35 +1,36 @@
-/*
- * This test is used for general testing of how compiler BB tests for HMPP projects works
- * Js backend is ignored because they use old test infrastructure which doesn't support HMPP
- */
-
-// !LANGUAGE: +MultiPlatformProjects
-
+// !JVM_DEFAULT_MODE: all-compatibility
 // TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// WITH_STDLIB
 
-// MODULE: common
-// TARGET_PLATFORM: Common
+// MODULE: lib
+// FILE: 1.kt
+interface Test {
+    @JvmDefault
+    fun test(): String {
+        return "O"
+    }
 
-// FILE: common.kt
-expect open class A()
-
-// MODULE: intermediate()()(common)
-// TARGET_PLATFORM: JVM, JS
-
-// FILE: intermediate.kt
-class B : A() {
-    fun foo(): String = "O"
+    fun delegatedTest(): String {
+        return "fail"
+    }
 }
 
-fun getB(): B = B()
+class Delegate : Test {
+    override fun test(): String {
+        return "Fail"
+    }
 
-// MODULE: main()()(intermediate)
-// FILE: main.kt
-actual open class A actual constructor() {
-    fun bar(): String = "K"
+    override fun delegatedTest(): String {
+        return "K"
+    }
 }
+
+// MODULE: main(lib)
+// FILE: 2.kt
+class TestClass(val foo: Test) : Test by foo
 
 fun box(): String {
-    val b = getB()
-    return b.foo() + b.bar()
+    val testClass = TestClass(Delegate())
+    return testClass.test() + testClass.delegatedTest()
 }

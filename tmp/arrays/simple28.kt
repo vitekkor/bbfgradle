@@ -1,21 +1,31 @@
-// WITH_RUNTIME
+// TARGET_BACKEND: JVM
+// FULL_JDK
+// WITH_STDLIB
 // WITH_COROUTINES
+// CHECK_TAIL_CALL_OPTIMIZATION
 import helpers.*
 import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 
-suspend fun callLocal(): String {
-    suspend fun local() = "OK"
-    return local()
+suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
+    TailCallOptimizationChecker.saveStackTrace(x)
+    x.resume(v)
+    COROUTINE_SUSPENDED
 }
+
+suspend fun suspendHere(): String = suspendThere("OK")
 
 fun builder(c: suspend () -> Unit) {
     c.startCoroutine(EmptyContinuation)
 }
 
 fun box(): String {
-    var res = "FAIL"
+    var result = ""
+
     builder {
-        res = callLocal()
+        result = suspendHere()
     }
-    return res
+    TailCallOptimizationChecker.checkNoStateMachineIn("suspendHere")
+
+    return result
 }

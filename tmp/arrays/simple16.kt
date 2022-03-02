@@ -1,8 +1,21 @@
-// DONT_TARGET_EXACT_BACKEND: WASM
-// WASM_MUTE_REASON: STDLIB_STRING_BUILDER
-// KJS_WITH_FULL_RUNTIME
-fun StringBuilder.first() = this.get(0)
+// WITH_STDLIB
+// IGNORE_LIGHT_ANALYSIS
+// IGNORE_BACKEND: JVM
+// LANGUAGE: +InlineClassImplementationByDelegation
 
-fun foo() = StringBuilder("foo").first()
+interface I {
+    fun ok(): String
+}
 
-fun box() = if (foo() == 'f') "OK" else "Fail ${foo()}"
+inline class IC(val i: I): I by i
+
+fun box(): String {
+    val i = object : I {
+        override fun ok(): String = "OK"
+    }
+    var res = IC(i).ok()
+    if (res != "OK") return "FAIL: $res"
+    val ic: I = IC(i)
+    res = ic.ok()
+    return res
+}

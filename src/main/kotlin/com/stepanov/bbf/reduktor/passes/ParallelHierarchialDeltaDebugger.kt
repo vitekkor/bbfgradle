@@ -7,7 +7,7 @@
 //import com.stepanov.bbf.CommonCompilerCrashTestChecker
 //import com.stepanov.bbf.getAllChildrenOfTheLevel
 //import com.stepanov.bbf.getAllWithout
-//import org.apache.log4j.Logger
+//import org.apache.logging.log4j.LogManager
 //import org.codehaus.plexus.util.FileUtils
 //import org.jetbrains.kotlin.psi.KtFile
 //import org.jetbrains.kotlin.psi.KtPsiFactory
@@ -87,14 +87,14 @@
 //    }
 //
 //
-//    private val log = Logger.getLogger("reducerLogger")
+//    private val log = LogManager.getLogger("reducerLogger")
 //
 //    private class ParallelHDD(private val tree: FileASTNode, private val level: Int, private val nodes: List<ASTNode>,
 //                              private val path: String)
 //        : Callable<Pair<List<ASTNode>, Int>> {
 //
 //        private val checker = CommonCompilerCrashTestChecker()
-//        private val log = Logger.getLogger("transformationManagerLog")
+//        private val log = LogManager.getLogger("transformationManagerLog")
 //
 //        override fun call(): Pair<List<ASTNode>, Int> {
 //            log.debug("BEFORE $level = ${nodes}")

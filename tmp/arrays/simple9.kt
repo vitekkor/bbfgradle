@@ -7,9 +7,9 @@
 // 1 java/lang/invoke/LambdaMetafactory
 
 // FILE: simple.kt
-fun ok() = "OK"
+val lambda = { "OK" }
 
-fun box() = Sam(::ok).get()
+fun box() = Sam(lambda).get()
 
 // FILE: Sam.java
 public interface Sam {

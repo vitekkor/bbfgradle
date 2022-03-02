@@ -13,8 +13,8 @@ import org.jetbrains.kotlin.descriptors.SourceElement
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getOrCreateValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
-import org.jetbrains.kotlin.resolve.calls.callUtil.getFunctionResolvedCallWithAssert
-import org.jetbrains.kotlin.resolve.calls.callUtil.getResolvedCall
+import org.jetbrains.kotlin.resolve.calls.util.getFunctionResolvedCallWithAssert
+import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
 import org.jetbrains.kotlin.resolve.source.PsiSourceElement
 import kotlin.random.Random
 import kotlin.system.exitProcess

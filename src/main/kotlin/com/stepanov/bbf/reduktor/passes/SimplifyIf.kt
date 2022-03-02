@@ -5,7 +5,7 @@ import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.replaceThis
 
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 
@@ -176,5 +176,5 @@ class SimplifyIf : SimplificationPass() {
     }
 
     private val psiFactory = KtPsiFactory(file.project)
-    private val log = Logger.getLogger("transformationManagerLog")
+    private val log = LogManager.getLogger("transformationManagerLog")
 }

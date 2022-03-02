@@ -1,23 +1,17 @@
-// WITH_RUNTIME
-// WITH_COROUTINES
-import helpers.*
-import kotlin.coroutines.*
-import kotlin.coroutines.intrinsics.*
+// !LANGUAGE: +ContextReceivers
+// TARGET_BACKEND: JVM_IR
+// IGNORE_BACKEND_FIR: JVM_IR
+// FIR status: context receivers aren't yet supported
 
-class Controller {
-    suspend fun suspendHere() = "OK"
+class A {
+    val ok = "OK"
 }
 
-fun builder(c: suspend Controller.() -> Unit) {
-    c.startCoroutine(Controller(), EmptyContinuation)
+context(A)
+class B {
+    fun result() = ok
 }
 
-fun box(): String {
-    var result = ""
-
-    builder {
-        result = suspendHere()
-    }
-
-    return result
+fun box() = with(A()) {
+    B().result()
 }

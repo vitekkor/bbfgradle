@@ -1,33 +1,24 @@
-// !JVM_DEFAULT_MODE: all-compatibility
-// IGNORE_BACKEND_FIR: JVM_IR
-// TARGET_BACKEND: JVM
-// JVM_TARGET: 1.8
-// WITH_RUNTIME
+// WITH_STDLIB
+// WITH_COROUTINES
+import helpers.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 
-interface Test {
-    @JvmDefault
-    fun test(): String {
-        return "O"
-    }
-
-    fun delegatedTest(): String {
-        return "fail"
-    }
+suspend fun suspendHere(): String = suspendCoroutineUninterceptedOrReturn { x ->
+    x.resume("OK")
+    COROUTINE_SUSPENDED
 }
 
-class Delegate : Test {
-    override fun test(): String {
-        return "Fail"
-    }
-
-    override fun delegatedTest(): String {
-        return "K"
-    }
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
 }
-
-class TestClass(val foo: Test) : Test by foo
 
 fun box(): String {
-    val testClass = TestClass(Delegate())
-    return testClass.test() + testClass.delegatedTest()
+    var result = ""
+
+    builder {
+        result = suspendHere()
+    }
+
+    return result
 }

@@ -6,12 +6,14 @@ import com.intellij.util.IncorrectOperationException
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.tryToCreateExpression
 import com.stepanov.bbf.bugfinder.mutator.transformations.filterDuplicates
+import com.stepanov.bbf.reduktor.util.getAllChildren
+import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.getAllParents
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.*
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.calls.util.getType
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.system.exitProcess
 
@@ -28,18 +30,26 @@ import kotlin.system.exitProcess
 //}
 
 fun PsiFile.getNodesBetweenLines(begin: Int, end: Int): List<PsiElement> {
-    val resList = mutableListOf<PsiElement>()
-    var whiteSpacesCounter = 0
-    val nodes = getAllPSIDFSChildrenOfType<PsiElement>()
-    for (node in nodes) {
-        if (whiteSpacesCounter in begin..end) resList.add(node)
-        if (node.children.isEmpty()) {
-            whiteSpacesCounter += node.text.count { it == '\n' }
+    var curSpaces = 0
+    var textRange = 0..0
+    var fl = false
+    for ((i, ch) in text.withIndex()) {
+        if (curSpaces == begin - 1 && !fl) {
+            textRange = i..0
+            fl = true
         }
-        if (whiteSpacesCounter >= end) break
+        if (ch.isWhitespace() && ch != ' ') curSpaces++
+        if (curSpaces == end - 1) {
+            textRange = textRange.first until i + 1
+            break
+        }
     }
-    return resList
+    return getAllPSIChildrenOfType<PsiElement>()
+        .filter { it.startOffset in textRange && it.endOffset in textRange }
 }
+
+
+fun PsiElement.getName(): String? = (this as? PsiNamedElement)?.name
 
 fun KtNamedFunction.isUnit() = this.typeReference == null && this.hasBlockBody()
 

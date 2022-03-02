@@ -1,37 +1,38 @@
-// WITH_RUNTIME
+// WITH_STDLIB
 // WITH_COROUTINES
-// MODULE: controller(support)
-// FILE: controller.kt
-package lib
-import helpers.*
-
-import kotlin.coroutines.*
-import kotlin.coroutines.intrinsics.*
-
-class Controller {
-    suspend fun suspendHere(): String = suspendCoroutineUninterceptedOrReturn { x ->
-        x.resume("OK")
-        COROUTINE_SUSPENDED
-    }
-}
-
-// MODULE: main(controller, support)
-// FILE: main.kt
-import lib.*
 import helpers.*
 import kotlin.coroutines.*
 import kotlin.coroutines.intrinsics.*
 
-fun builder(c: suspend Controller.() -> Unit) {
-    c.startCoroutine(Controller(), EmptyContinuation)
+suspend fun suspendHere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
+    x.resume(v)
+    COROUTINE_SUSPENDED
 }
+
+fun builder(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
+}
+
+suspend fun foo1(c: suspend () -> Unit) = c()
+suspend fun foo2(c: suspend String.() -> Int) = "2".c()
+suspend fun foo3(c: suspend (String) -> Int) = c("3")
 
 fun box(): String {
     var result = ""
 
     builder {
-        result = suspendHere()
+        foo1 {
+            result = suspendHere("begin#")
+        }
+
+        val q2 = foo2 { result += suspendHere(this) + "#"; 1 }
+        val q3 = foo3 { result += suspendHere(it); 2 }
+
+        if (q2 != 1) throw RuntimeException("fail q2")
+        if (q3 != 2) throw RuntimeException("fail q3")
     }
 
-    return result
+    if (result != "begin#2#3") return "fail: $result"
+
+    return "OK"
 }

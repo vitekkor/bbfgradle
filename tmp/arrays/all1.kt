@@ -1,33 +1,27 @@
-// WITH_RUNTIME
+// WITH_STDLIB
+// WORKS_WHEN_VALUE_CLASS
+// LANGUAGE: +ValueClasses
+
 // !JVM_DEFAULT_MODE: all
 // TARGET_BACKEND: JVM
+// IGNORE_BACKEND: JVM
 // JVM_TARGET: 1.8
 
-import kotlin.coroutines.*
-
-interface Foo {
-    private suspend fun test(): String {
-        return "OK"
-    }
-
-    suspend fun foo(): String {
-        return test()
-    }
+interface Path {
+    fun dispatch(s: String = "K") = "dispatch$s"
+    fun Int.extension(s: String = "K") = "${this}extension$s"
 }
 
-fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(Continuation(EmptyCoroutineContext) {
-        it.getOrThrow()
-    })
-}
+OPTIONAL_JVM_INLINE_ANNOTATION
+value class RealPath(val x: Int) : Path
 
 fun box(): String {
-    var res = "FAIL"
-
-    builder {
-        val foo: Foo = object : Foo{}
-        res = foo.foo()
-    }
-
-    return res
+    val rp = RealPath(1)
+    val res = "${rp.dispatch()};${rp.dispatch("KK")};" +
+            with(rp) {
+                "${1.extension()};${2.extension("KK")}"
+            }
+    if (res != "dispatchK;dispatchKK;1extensionK;2extensionKK") return res
+    return "OK"
 }
+

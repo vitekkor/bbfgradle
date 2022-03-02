@@ -1,33 +1,21 @@
-// !JVM_DEFAULT_MODE: enable
-// IGNORE_BACKEND_FIR: JVM_IR
-// TARGET_BACKEND: JVM
-// JVM_TARGET: 1.8
-// WITH_RUNTIME
+// !LANGUAGE: +SuspendConversion
+// WITH_STDLIB
+// WITH_COROUTINES
 
-interface Test {
-    @JvmDefault
-    fun test(): String {
-        return "O"
-    }
+import helpers.*
+import kotlin.coroutines.*
+import kotlin.coroutines.intrinsics.*
 
-    fun delegatedTest(): String {
-        return "fail"
-    }
+
+fun runSuspend(c: suspend () -> Unit) {
+    c.startCoroutine(EmptyContinuation)
 }
 
-class Delegate : Test {
-    override fun test(): String {
-        return "Fail"
-    }
+var test = "failed"
 
-    override fun delegatedTest(): String {
-        return "K"
-    }
-}
-
-class TestClass(val foo: Test) : Test by foo
+fun foo() { test = "OK" }
 
 fun box(): String {
-    val testClass = TestClass(Delegate())
-    return testClass.test() + testClass.delegatedTest()
+    runSuspend(::foo)
+    return test
 }

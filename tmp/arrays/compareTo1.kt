@@ -1,35 +1,21 @@
-// TARGET_BACKEND: JVM
-// MODULE: lib
-// FILE: JavaClass.java
+// !LANGUAGE: +ContextReceivers
+// TARGET_BACKEND: JVM_IR
+// IGNORE_BACKEND_FIR: JVM_IR
+// FIR status: context receivers aren't yet supported
 
-class JavaClass {
-    int compareTo(Runnable i) {
-        i.run();
-        return 239;
-    }
-}
+data class Pair<A, B>(val first: A, val second: B)
 
-// MODULE: main(lib)
-// FILE: 1.kt
+context(Comparator<T>)
+infix operator fun <T> T.compareTo(other: T) = compare(this, other)
+
+context(Comparator<T>)
+val <T> Pair<T, T>.min get() = if (first < second) first else second
 
 fun box(): String {
-    val obj = JavaClass()
-
-    var v1 = "FAIL"
-    obj < { v1 = "OK" }
-    if (v1 != "OK") return "<: $v1"
-
-    var v2 = "FAIL"
-    obj > { v2 = "OK" }
-    if (v2 != "OK") return ">: $v2"
-
-    var v3 = "FAIL"
-    obj <= { v3 = "OK" }
-    if (v3 != "OK") return "<=: $v3"
-
-    var v4 = "FAIL"
-    obj >= { v4 = "OK" }
-    if (v4 != "OK") return ">=: $v4"
-
-    return "OK"
+    val comparator = Comparator<String> { a, b ->
+        if (a == null || b == null) 0 else a.length.compareTo(b.length)
+    }
+    return with(comparator) {
+        Pair("OK", "fail").min
+    }
 }

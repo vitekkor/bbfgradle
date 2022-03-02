@@ -93,16 +93,12 @@ class JarSourceCodeInstrumenterOnBranchLevel(
         if (File(newJarPath).exists()) File(newJarPath).delete()
         val outputStream = JarOutputStream(FileOutputStream(File(newJarPath)))
         val jarFile = JarFile(jarPath)
-        writeCoverageClassesToJar(outputStream)
+        writeBranchCoverageClassesToJar(outputStream)
         val jarEntries = jarFile.entries().toList()
-        var psiSourceCode: PsiFile? = null
-        var prevFullClassName = ""
-        var namedFunctionsToLineNumber: List<Pair<IntRange, CoverageEntry>> = listOf()
         //Instrumentation
         val entriesSize = jarEntries.size
         var branchUID = 0
         for ((i, entry) in jarEntries.withIndex()) {
-            //if (i < 17589) continue
             val className = entry.realName.substringBeforeLast(".class").replace('/', '.')
             println("$i from $entriesSize $className")
             if (!entry.name.endsWith(".class")
@@ -136,120 +132,62 @@ class JarSourceCodeInstrumenterOnBranchLevel(
                 addEntry(entry, jarFile, outputStream)
                 continue
             }
-            val numbersOfModifiedLines = targetCoverageEntry.second
             val sourceCode = readTextFromEntry(sourceFileEntry)
             if (sourceCode == null) {
                 addEntry(entry, jarFile, outputStream)
                 continue
             }
             val methods = classNode.methods
+            val branchInstructionsOpcodes = (153..166).toList() + listOf(170, 171, 198, 199)
+            val handledLabels = mutableListOf<AbstractInsnNode>()
             for ((j, m) in methods.withIndex()) {
                 var curLineNumber: LineNumberNode? = null
                 val resList = mutableListOf<Pair<AbstractInsnNode, LineNumberNode?>>()
                 m.instructions.map {
                     if (it is LineNumberNode) curLineNumber = it
-                    if (it.opcode in ((153..166).toList() + listOf(
-                            170,
-                            171,
-                            198,
-                            199
-                        ))
-                    ) resList.add(it to curLineNumber)
+                    if (it.opcode in branchInstructionsOpcodes) {
+                        if (curLineNumber?.line in targetCoverageEntry.second) {
+                            resList.add(it to curLineNumber)
+                        }
+                    }
                 }
                 for ((jumpInst, lineNumber) in resList) {
                     lineNumber?.line ?: continue
-                    if (lineNumber.line !in numbersOfModifiedLines) continue
-                    val ji = jumpInst as JumpInsnNode
-                    val newInstructionList1 = listOf(
-                        TypeInsnNode(Opcodes.NEW, "coverage/BranchCoverageEntry"),
-                        InsnNode(Opcodes.DUP),
-                        LdcInsnNode(branchUID),
-                        LdcInsnNode(classNode.name),
-                        LdcInsnNode(lineNumber.line),
-                        InsnNode(Opcodes.ICONST_0),
-                        MethodInsnNode(
-                            Opcodes.INVOKESPECIAL,
-                            "coverage/BranchCoverageEntry",
-                            "<init>",
-                            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"
-                        ),
-                        MethodInsnNode(
-                            Opcodes.INVOKESTATIC,
-                            "coverage/MyBranchBasedCoverage",
-                            "putEntry",
-                            "(Lcoverage/BranchCoverageEntry;)V"
-                        )
-                    ).reversed()
-                    newInstructionList1.forEach { m.instructions.insert(jumpInst, it) }
-                    val label = ji.label
-                    val newInstructionList2 = listOf(
-                        TypeInsnNode(Opcodes.NEW, "coverage/BranchCoverageEntry"),
-                        InsnNode(Opcodes.DUP),
-                        LdcInsnNode(branchUID++),
-                        LdcInsnNode(classNode.name),
-                        LdcInsnNode(lineNumber.line),
-                        InsnNode(Opcodes.ICONST_1),
-                        MethodInsnNode(
-                            Opcodes.INVOKESPECIAL,
-                            "coverage/BranchCoverageEntry",
-                            "<init>",
-                            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"
-                        ),
-                        MethodInsnNode(
-                            Opcodes.INVOKESTATIC,
-                            "coverage/MyBranchBasedCoverage",
-                            "putEntry",
-                            "(Lcoverage/BranchCoverageEntry;)V"
-                        )
-                    ).reversed()
-                    newInstructionList2.forEach { m.instructions.insert(label, it) }
+                    println("LOLOLOLOL")
+                    val labels =
+                        when (jumpInst) {
+                            is JumpInsnNode -> listOf(jumpInst, jumpInst.label)
+                            is TableSwitchInsnNode -> jumpInst.labels + listOf(jumpInst.dflt)
+                            is LookupSwitchInsnNode -> jumpInst.labels + listOf(jumpInst.dflt)
+                            else -> listOf()
+                        }
+                    for (label in labels) {
+                        if (handledLabels.contains(label)) continue
+                        handledLabels.add(label)
+                        val newInstructionList2 = listOf(
+                            TypeInsnNode(Opcodes.NEW, "coverage/BranchCoverageEntry"),
+                            InsnNode(Opcodes.DUP),
+                            LdcInsnNode(branchUID++),
+                            LdcInsnNode(classNode.name),
+                            LdcInsnNode(lineNumber.line),
+                            InsnNode(Opcodes.ICONST_0),
+                            MethodInsnNode(
+                                Opcodes.INVOKESPECIAL,
+                                "coverage/BranchCoverageEntry",
+                                "<init>",
+                                "(ILjava/lang/String;II)V"
+                            ),
+                            MethodInsnNode(
+                                Opcodes.INVOKESTATIC,
+                                "coverage/MyBranchBasedCoverage",
+                                "putEntry",
+                                "(Lcoverage/BranchCoverageEntry;)V"
+                            )
+                        ).reversed()
+                        newInstructionList2.forEach { m.instructions.insert(label, it) }
+                    }
                 }
                 m.maxStack += 10
-//                resList.map { it.first.print() to it.second?.line }
-                // println("Method $j from ${methods.size}")
-//                val accessAsBinary = m.access.toString(2).reversed()
-//                //We cannot insert code in abstract methods isAbstract
-//                if (accessAsBinary.length >= abstractOpcodeLength && accessAsBinary[abstractOpcodeLength - 1] == '1') continue
-//                val instructions = m.instructions
-//                val methodName = m.name.substringAfterLast('$')
-//                val lineNumbers = m.instructions.filterIsInstance<LineNumberNode>().map { it.line }
-//                if (lineNumbers.isEmpty()) continue
-//                //Avoid mangling by methodName.substringBefore('-')
-//                val coverageEntryInPsi =
-//                    namedFunctionsToLineNumber
-//                        .filter { it.second.methodName == methodName.substringBefore('-') }
-//                        .minByOrNull { (range, _) ->
-//                            lineNumbers.sumBy {
-//                                when {
-//                                    it in range -> 0
-//                                    it < range.first -> range.first - it
-//                                    else -> range.last - it
-//                                }
-//                            }
-//                        }?.second ?: continue
-//                //println("${methodInPsi != null} ${lineNumbers.minOrNull()} NAME = ${m.name} NAME IN PSI = ${methodInPsi?.methodName}")
-//                val newInstructionList = listOf(
-//                    TypeInsnNode(Opcodes.NEW, "coverage/CoverageEntry"),
-//                    InsnNode(Opcodes.DUP),
-//                    LdcInsnNode(coverageEntryInPsi.pathToFun),
-//                    LdcInsnNode(coverageEntryInPsi.methodName),
-//                    LdcInsnNode(coverageEntryInPsi.parameters.joinToString(";")),
-//                    LdcInsnNode(coverageEntryInPsi.returnType),
-//                    MethodInsnNode(
-//                        Opcodes.INVOKESPECIAL,
-//                        "coverage/CoverageEntry",
-//                        "<init>",
-//                        "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"
-//                    ),
-//                    MethodInsnNode(
-//                        Opcodes.INVOKESTATIC,
-//                        "coverage/MyMethodBasedCoverage",
-//                        "putEntry",
-//                        "(Lcoverage/CoverageEntry;)V"
-//                    )
-//                ).reversed()
-//                newInstructionList.forEach { instructions.insert(it) }
-//                m.maxStack += 6
             }
             //continue
             val outData = ClassWriter(ClassWriter.COMPUTE_FRAMES)

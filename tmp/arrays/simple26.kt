@@ -1,18 +1,15 @@
-// WITH_RUNTIME
+// WITH_STDLIB
 // WITH_COROUTINES
 import helpers.*
 import kotlin.coroutines.*
 import kotlin.coroutines.intrinsics.*
 
-suspend fun suspendThere(v: String): String = suspendCoroutineUninterceptedOrReturn { x ->
-    x.resume(v)
-    COROUTINE_SUSPENDED
+class Controller {
+    suspend fun suspendHere() = "OK"
 }
 
-suspend fun suspendHere(): String = suspendThere("O") + suspendThere("K")
-
-fun builder(c: suspend () -> Unit) {
-    c.startCoroutine(EmptyContinuation)
+fun builder(c: suspend Controller.() -> Unit) {
+    c.startCoroutine(Controller(), EmptyContinuation)
 }
 
 fun box(): String {

@@ -17,7 +17,6 @@ import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
 import org.jetbrains.kotlin.psi.KtFile
-import kotlin.system.exitProcess
 
 class Project(
     var configuration: Header,
@@ -169,8 +168,19 @@ class Project(
         if (indexOfFileWithMain == -1) return projectWithMain
         val fileWithMain = files[indexOfFileWithMain]
         val ktFileWithMain = fileWithMain.psiFile.copy() as? KtFile ?: return projectWithMain
-        val mainFunc = ktFileWithMain.getAllPSIChildrenOfType<KtNamedFunction>()
-            .firstOrNull { it.name == "main" } ?: return projectWithMain
+        ktFileWithMain.getAllPSIChildrenOfType<KtNamedFunction>().firstOrNull { it.name == "main" } ?: return projectWithMain
+        when (CompilerArgs.instrumentationLevel) {
+            "METHOD" -> addMethodCoverageCode(ktFileWithMain)
+            "LINE" -> addLineCoverageCode(ktFileWithMain)
+        }
+        val newFirstFile = BBFFile(fileWithMain.name, ktFileWithMain)
+        val newFiles =
+            listOf(newFirstFile) + files.getAllWithout(indexOfFileWithMain).map { BBFFile(it.name, it.psiFile.copy() as PsiFile) }
+        return Project(configuration, newFiles, language)
+    }
+
+    private fun addMethodCoverageCode(ktFileWithMain: KtFile) {
+        val mainFunc = ktFileWithMain.getAllPSIChildrenOfType<KtNamedFunction>().first { it.name == "main" }
         //Add java.io.File import
         ktFileWithMain.addImport("java.io.File", false)
         ktFileWithMain.addImport("coverage.MyMethodBasedCoverage", false)
@@ -186,10 +196,25 @@ class Project(
             }
         }
         mainFunc.bodyBlockExpression?.addStatementsToEnd(newStatements)
-        val newFirstFile = BBFFile(fileWithMain.name, ktFileWithMain)
-        val newFiles =
-            listOf(newFirstFile) + files.getAllWithout(indexOfFileWithMain).map { BBFFile(it.name, it.psiFile.copy() as PsiFile) }
-        return Project(configuration, newFiles, language)
+    }
+
+    private fun addLineCoverageCode(ktFileWithMain: KtFile) {
+        val mainFunc = ktFileWithMain.getAllPSIChildrenOfType<KtNamedFunction>().first { it.name == "main" }
+        //Add java.io.File import
+        ktFileWithMain.addImport("java.io.File", false)
+        ktFileWithMain.addImport("coverage.MyLineBasedCoverage", false)
+        val newStatements = listOf(
+            "val s = StringBuilder()",
+            "MyLineBasedCoverage.coveredLines.forEachIndexed { ind, i -> if (i == 1) s.append(\"\$ind \") }",
+            "File(\"tmp/jarCoverage.txt\").writeText(s.toString())"
+        ).map {
+            if (it.startsWith("val")) {
+                Factory.psiFactory.createProperty(it)
+            } else {
+                Factory.psiFactory.createExpression(it)
+            }
+        }
+        mainFunc.bodyBlockExpression?.addStatementsToEnd(newStatements)
     }
 
     fun addMain(): Project {

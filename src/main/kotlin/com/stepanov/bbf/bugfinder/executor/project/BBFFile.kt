@@ -75,8 +75,7 @@ internal class BBFFileFactory(
                 val ktFile = createKtFile(code)
                 //val fileToCtx = createKtFileWithCtx("${Directives.file}$fileName\n$code")
                 BBFFile(fileName, ktFile)
-            }
-            else names.zip(codeWithoutComments).map {
+            } else names.zip(codeWithoutComments).map {
                 val fileName = "$pathToTmp/${it.first.substringAfter(Directives.file)}"
                 if (fileName.contains(".java"))
                     BBFFile(fileName, PSICreator.getPsiForJava(it.second, Factory.file.project))
@@ -118,7 +117,7 @@ internal class BBFFileFactory(
     private fun handleCoroutines(fragments: MutableList<String>) {
         val coroutinesPackage = "COROUTINES_PACKAGE"
         val ktCoroutinesPackage = "kotlin.coroutines"
-        val helpersImportDirective = "import helpers.*"
+        val helpersImportDirective = "import helpers."
         val nameOfHelpersFile = "CoroutineUtil.kt"
         val pathToHelpersFile = "${CompilerArgs.pathToTmpDir}/lib/CoroutineUtil.kt"
         val textOfFile = "${Directives.file}$nameOfHelpersFile\n${File(pathToHelpersFile).readText()}"

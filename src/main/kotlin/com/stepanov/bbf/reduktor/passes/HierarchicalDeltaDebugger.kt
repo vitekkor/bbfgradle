@@ -8,7 +8,7 @@ import com.stepanov.bbf.reduktor.util.getAllChildrenOfCurLevel
 import com.stepanov.bbf.reduktor.util.getAllChildrenOfTheLevel
 import com.stepanov.bbf.reduktor.util.getAllWithout
 
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 
 @Suppress("DEPRECATION")
 class HierarchicalDeltaDebugger: SimplificationPass() {
@@ -132,5 +132,5 @@ class HierarchicalDeltaDebugger: SimplificationPass() {
     var level = 1
     val tree = (checker.curFile.psiFile.copy() as PsiFile).node
 
-    private val log = Logger.getLogger("reducerLogger")
+    private val log = LogManager.getLogger("reducerLogger")
 }

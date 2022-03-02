@@ -8,7 +8,7 @@ data class CoverageEntry(
     val methodName: String,
     val parameters: List<String>,
     val returnType: String
-) {
+): Comparable<CoverageEntry> {
 
     constructor(pathToFun: String, methodName: String, parameters: String, returnType: String) : this(
         pathToFun,
@@ -117,4 +117,8 @@ data class CoverageEntry(
         result = 31 * result + returnType.hashCode()
         return result
     }
+
+    override fun compareTo(other: CoverageEntry): Int =
+        if (isSameEntries(other)) 0 else -1
+
 }

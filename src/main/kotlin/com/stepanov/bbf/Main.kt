@@ -7,18 +7,30 @@ import org.apache.commons.io.FileUtils
 import java.io.File
 import java.util.*
 
-
+val dir = "tmp/arrays/"
 var COMMAND = "gradle runBBF"//if (CompilerArgs.isGuidedByCoverage) "gradle runBBFWithCoverage" else "gradle runBBF"
-const val ITERATIONS = 2
+const val ITERATIONS = 1
 val TIMEOUT_SEC = Properties()
     .also { it.load(File("./bbf.conf").inputStream()) }
     .getProperty("BBF_TIMEOUT")?.toLongOrNull() ?: throw IllegalArgumentException("Can't init timeout value")
 
-fun getRandomFileFromTestDirectory(): File =
-    File("tmp/arrays3/")
-        .listFiles()!!
+var fileCounter = 0
+
+
+fun getFileFromTestDirectory(): File {
+    val dir = File(dir).listFiles()!!
         .filter { it.path.endsWith(".kt") }
-        .random()
+    val dirSize = dir.size
+    val resFile = dir[fileCounter % dirSize]
+    fileCounter++
+    return resFile
+}
+
+fun getRandomFileFromTestDirectory(): File {
+    val dir = File(dir).listFiles()!!
+        .filter { it.path.endsWith(".kt") }
+    return dir.random()
+}
 
 fun removeSerializedMutations() {
     with(File("tmp/serializedMutations.txt")) {
@@ -42,11 +54,13 @@ fun removeSerializedMutations() {
 const val pathToErrorLogs = "tmp/results/errorLogs"
 fun main(args: Array<String>) {
     File("logs/stats.log").let { if (it.exists()) it.delete() }
-    File("bugsPerMinute.txt").writeText("""
+    File("bugsPerMinute.txt").writeText(
+        """
 Bugs: 0
 Time: 0
 Bugs per minute: 0.0  
-    """.trimIndent())
+    """.trimIndent()
+    )
     val file = File(pathToErrorLogs)
     if (!file.exists()) file.mkdirs()
     //val dir = File(args[0]).listFiles()
@@ -71,7 +85,8 @@ Bugs per minute: 0.0
 
 //    removeSerializedMutations()
     var globalIterationCounter = 1
-    COMMAND = "gradle runBBF --args=${getRandomFileFromTestDirectory().absolutePath}"
+    COMMAND = "./gradlew runBBF --args=${getFileFromTestDirectory().absolutePath}"
+    println("COMMAND = $COMMAND")
     var cmdLine = CommandLine.parse(COMMAND)
     var executor = DefaultExecutor().also {
         it.watchdog = ExecuteWatchdog(TIMEOUT_SEC * 1000)
@@ -94,30 +109,30 @@ Bugs per minute: 0.0
 //        println("COMMAND = $COMMAND")
         if (handler.hasResult()) {
             if (timeElapsed > TIMEOUT_SEC * 1000) {
-                var i = 0
-                var newPath: String
-                while (true) {
-                    newPath = "$pathToErrorLogs/logs$i"
-                    if (File(newPath).exists()) i++
-                    else break
-                }
-                val dstDir = File(newPath)
-                dstDir.mkdirs()
-                File("$dstDir/timeout").writeText("timeout")
-                FileUtils.copyDirectory(File("logs"), dstDir)
+//                var i = 0
+//                var newPath: String
+//                while (true) {
+//                    newPath = "$pathToErrorLogs/logs$i"
+//                    if (File(newPath).exists()) i++
+//                    else break
+//                }
+//                val dstDir = File(newPath)
+//                dstDir.mkdirs()
+//                File("$dstDir/timeout").writeText("timeout")
+//                FileUtils.copyDirectory(File("logs"), dstDir)
             }
             //IF error then save logs
             else if (handler.exitValue != 0) {
-                var i = 0
-                var newPath: String
-                while (true) {
-                    newPath = "$pathToErrorLogs/logs$i"
-                    if (File(newPath).exists()) i++
-                    else break
-                }
-                val dstDir = File(newPath)
-                dstDir.mkdirs()
-                FileUtils.copyDirectory(File("logs"), dstDir)
+//                var i = 0
+//                var newPath: String
+//                while (true) {
+//                    newPath = "$pathToErrorLogs/logs$i"
+//                    if (File(newPath).exists()) i++
+//                    else break
+//                }
+//                val dstDir = File(newPath)
+//                dstDir.mkdirs()
+//                FileUtils.copyDirectory(File("logs"), dstDir)
             }
             cmdLine = CommandLine.parse(COMMAND)
             handler = DefaultExecuteResultHandler()
@@ -130,8 +145,9 @@ Bugs per minute: 0.0
                     }
                 })
             }
+            println("COMMAND = $COMMAND")
             if (globalIterationCounter >= ITERATIONS) {
-                COMMAND = "gradle runBBF --args=${getRandomFileFromTestDirectory().absolutePath}"
+                COMMAND = "./gradlew runBBF --args=${getFileFromTestDirectory().absolutePath}"
                 globalIterationCounter = 0
 //                removeSerializedMutations()
             }

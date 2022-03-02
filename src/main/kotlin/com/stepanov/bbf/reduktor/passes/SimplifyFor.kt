@@ -4,7 +4,7 @@ import com.intellij.psi.PsiElement
 import com.stepanov.bbf.reduktor.executor.CompilerTestChecker
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.replaceThis
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
@@ -54,7 +54,7 @@ class SimplifyFor : SimplificationPass() {
     }
 
     private val loopParamReplacement = listOf("\"\"", "listOf(1)", "0..1")
-    private val log = Logger.getLogger("transformationManagerLog")
+    private val log = LogManager.getLogger("transformationManagerLog")
     private val psiFactory = KtPsiFactory(file.project)
 
 }

@@ -12,7 +12,7 @@ import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.bugfinder.util.addToTheTop
 import com.stepanov.bbf.bugfinder.util.checkCompilingForAllBackends
 import com.stepanov.bbf.bugfinder.util.instrumentation.CoverageGuidingCoefficients
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import java.io.File
 
 enum class CHECKRES(val scoreForBug: Int) {
@@ -147,5 +147,5 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         return results.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap() to hasErrors
     }
 
-    private val log = Logger.getLogger("mutatorLogger")
+    private val log = LogManager.getLogger("mutatorLogger")
 }

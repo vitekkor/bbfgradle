@@ -4,7 +4,7 @@ import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.*
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
@@ -21,7 +21,7 @@ import kotlin.random.Random
 
 internal class ClassInstanceGenerator(file: KtFile, val ctx: BindingContext) : TypeAndValueParametersGenerator(file) {
 
-    private val log = Logger.getLogger("mutatorLogger")
+    private val log = LogManager.getLogger("mutatorLogger")
     private val MAX_DEPTH = 10
 
     private fun generateInstanceOfLocalClass(

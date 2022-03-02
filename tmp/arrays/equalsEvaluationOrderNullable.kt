@@ -1,7 +1,9 @@
+// WITH_STDLIB
+// WORKS_WHEN_VALUE_CLASS
+// LANGUAGE: +ValueClasses
 
-// !LANGUAGE: +InlineClasses
-
-inline class A(val x: Any? = null)
+OPTIONAL_JVM_INLINE_ANNOTATION
+value class A(val x: Any? = null)
 
 var i = 0
 

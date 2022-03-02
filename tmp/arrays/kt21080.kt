@@ -1,7 +1,6 @@
-// WITH_RUNTIME
+// WITH_STDLIB
 // WITH_COROUTINES
 // IGNORE_BACKEND: JVM
-// IGNORE_BACKEND_FIR: JVM_IR
 
 import kotlin.coroutines.*
 import helpers.*

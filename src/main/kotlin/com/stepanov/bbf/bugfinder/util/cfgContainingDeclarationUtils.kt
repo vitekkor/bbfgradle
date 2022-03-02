@@ -41,10 +41,10 @@ fun KtDeclaration?.getDeclarationDescriptorIncludingConstructors(context: Bindin
     }
 }
 
-@OptIn(ExperimentalContracts::class)
-fun DeclarationDescriptor.isSealed(): Boolean {
-    contract {
-        returns(true) implies (this@isSealed is ClassDescriptor)
-    }
-    return DescriptorUtils.isSealedClass(this)
-}
+//@OptIn(ExperimentalContracts::class)
+//fun DeclarationDescriptor.isSealed(): Boolean {
+//    contract {
+//        returns(true) implies (this@isSealed is ClassDescriptor)
+//    }
+//    return DescriptorUtils.isSealedClass(this)
+//}

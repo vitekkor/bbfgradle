@@ -5,7 +5,7 @@ import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.getAllParentsWithoutNode
 import com.stepanov.bbf.reduktor.util.replaceThis
 
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
@@ -58,6 +58,6 @@ class SimplifyWhen : SimplificationPass() {
     }
 
     private val whenToDepth = TreeMap<Int, ArrayList<KtWhenExpression>>(compareByDescending { it })
-    private val log = Logger.getLogger("transformationManagerLog")
+    private val log = LogManager.getLogger("transformationManagerLog")
 
 }

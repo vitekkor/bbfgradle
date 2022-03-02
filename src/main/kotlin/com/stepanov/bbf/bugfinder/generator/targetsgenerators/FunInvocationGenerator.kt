@@ -4,7 +4,7 @@ import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.tryToCreateExpression
 import com.stepanov.bbf.bugfinder.util.getTrue
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import com.stepanov.bbf.bugfinder.util.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
@@ -22,7 +22,7 @@ internal class FunInvocationGenerator(file: KtFile, val ctx: BindingContext) :
     TypeAndValueParametersGenerator(file) {
 
     private val MAX_DEPTH = 20
-    private val log = Logger.getLogger("mutatorLogger")
+    private val log = LogManager.getLogger("mutatorLogger")
 
     fun generateFunctionCallWithoutTypeParameters(
         functionDescriptor: FunctionDescriptor,

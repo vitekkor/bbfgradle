@@ -1,7 +1,9 @@
+// WITH_STDLIB
+// WORKS_WHEN_VALUE_CLASS
+// LANGUAGE: +ValueClasses
 
-// !LANGUAGE: +InlineClasses
-
-inline class Result<out T>(val value: Any?) {
+OPTIONAL_JVM_INLINE_ANNOTATION
+value class Result<out T>(val value: Any?) {
     val isFailure: Boolean get() = value is Failure
 
     public companion object {

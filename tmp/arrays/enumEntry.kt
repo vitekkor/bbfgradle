@@ -1,4 +1,4 @@
-// IGNORE_BACKEND: JS_IR, JS, NATIVE
+// IGNORE_BACKEND: JS_IR, JS, NATIVE, WASM
 // IGNORE_BACKEND: JS_IR_ES6
 // WITH_REFLECT
 package test
@@ -19,7 +19,7 @@ enum class TestEnum(val id: String? = null) {
 }
 
 fun box(): String {
-    assertEquals(listOf("fun <init>(kotlin.String?): test.TestEnum"), TestEnum.ENUM1::class.constructors.map { it.toString() })
+    assertEquals(listOf("fun `<init>`(kotlin.String?): test.TestEnum"), TestEnum.ENUM1::class.constructors.map { it.toString() })
     assertEquals(listOf(), TestEnum.ENUM2::class.constructors.map { it.toString() })
 
     return "OK"

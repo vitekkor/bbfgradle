@@ -8,7 +8,7 @@ import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.util.getAllParentsWithoutNode
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 
 open class MutationChecker(
     compilers: List<CommonCompiler>,
@@ -169,5 +169,5 @@ open class MutationChecker(
     }
 
     private val DUMMY_HOLDER_INDEX: Short = 86
-    private val log = Logger.getLogger("mutatorLogger")
+    private val log = LogManager.getLogger("mutatorLogger")
 }

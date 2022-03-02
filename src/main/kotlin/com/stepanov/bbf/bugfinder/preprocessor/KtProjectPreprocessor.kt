@@ -5,7 +5,7 @@ import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.util.getAllChildren
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
@@ -167,5 +167,5 @@ object KtProjectPreprocessor {
         return result
     }
 
-    private val log = Logger.getLogger("bugFinderLogger")
+    private val log = LogManager.getLogger("bugFinderLogger")
 }

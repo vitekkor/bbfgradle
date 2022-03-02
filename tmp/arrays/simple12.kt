@@ -1,15 +1,22 @@
-// !LANGUAGE: +NewInference +MixedNamedArgumentsInTheirOwnPosition
+open class A<T> {
+    open fun foo(t: T, vararg xs: Int) = "A"
+}
 
-fun foo(
-    p1: Int,
-    p2: String,
-    p3: Double
-) = "$p1 $p2 ${p3.toInt()}"
+open class B : A<String>()
+
+class Z : B() {
+    override fun foo(t: String, vararg xs: Int) = "Z"
+}
+
 
 fun box(): String {
-    if (foo(p1 = 1, "2", 3.0) != "1 2 3") return "fail 1"
-    if (foo(1, "2", p3 = 3.0) != "1 2 3") return "fail 2"
-    if (foo(p1 = 1, p2 = "2", 3.0) != "1 2 3") return "fail 3"
-
-    return "OK"
+    val z = Z()
+    val b: B = z
+    val a: A<String> = z
+    return when {
+        z.foo("") != "Z" -> "Fail #1"
+        b.foo("") != "Z" -> "Fail #2"
+        a.foo("") != "Z" -> "Fail #3"
+        else -> "OK"
+    }
 }

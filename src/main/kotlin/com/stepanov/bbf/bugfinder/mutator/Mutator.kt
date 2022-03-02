@@ -8,14 +8,13 @@ import com.stepanov.bbf.bugfinder.mutator.javaTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.*
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.LocalTCE
 import com.stepanov.bbf.bugfinder.mutator.transformations.util.ExpressionReplacer
-import com.stepanov.bbf.bugfinder.util.CoverageStatisticsCollector
 import com.stepanov.bbf.bugfinder.util.getTrue
 import com.stepanov.bbf.bugfinder.util.instrumentation.CoverageGuidingCoefficients
+import com.stepanov.bbf.bugfinder.util.statistic.CoverageStatisticWriter
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import kotlinx.serialization.ExperimentalSerializationApi
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.psi.KtFile
-import java.io.File
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.sqrt
@@ -45,7 +44,7 @@ class Mutator(val project: Project) {
     }
 
 
-    fun startMutate() {
+    fun startMutate(pathToOriginalSeed: String) {
         for (bbfFile in project.files) {
             log.debug("Mutation of ${bbfFile.name} started")
             Transformation.checker.curFile = bbfFile
@@ -53,7 +52,7 @@ class Mutator(val project: Project) {
                 //LANGUAGE.JAVA -> startJavaMutations()
                 LANGUAGE.KOTLIN ->
                     if (CompilerArgs.isGuidedByCoverage) {
-                        startGuidedKotlinMutations()
+                        startGuidedKotlinMutations(pathToOriginalSeed)
                     } else {
                         startKotlinMutations()
                     }
@@ -72,44 +71,7 @@ class Mutator(val project: Project) {
         return
     }
 
-    private fun saveMutationsInformationInFile(directedMutations: List<DirectedMutation>) {
-        val resString = StringBuilder()
-        for ((mutation, probability, scores) in directedMutations) {
-            val mutationName = mutation.javaClass.name
-            resString.appendLine("{$mutationName;$probability;$scores}")
-        }
-        File("tmp/mutationStatistics.txt").writeText(resString.toString())
-    }
-
-    private fun deserializeDirectedMutations(originalDirectedMutations: List<DirectedMutation>): List<DirectedMutation> {
-        val f = File("tmp/mutationStatistics.txt")
-        if (!f.exists()) return originalDirectedMutations
-        val directedMutationsInfo =
-            f.readText()
-                .split("\n")
-                .filter { it.trim().isNotEmpty() }
-                .map {
-                    val (n, s, p) = it.drop(1).dropLast(1).split(";")
-                    val scores = s.split(',').map { it.trim() }.mapNotNull { it.toDoubleOrNull() }
-                    val probability = p.toDouble()
-                    Triple(n, scores, probability)
-                }
-        return originalDirectedMutations.map { originalMutation ->
-            val deserializedInfo =
-                directedMutationsInfo.find { originalMutation.transformation.javaClass.name == it.first }
-            if (deserializedInfo != null) {
-                DirectedMutation(
-                    originalMutation.transformation,
-                    deserializedInfo.second.toMutableList(),
-                    deserializedInfo.third
-                )
-            } else {
-                originalMutation
-            }
-        }
-    }
-
-    private fun startGuidedKotlinMutations() {
+    private fun startGuidedKotlinMutations(pathToOriginalSeed: String) {
         val mutationList = mutableListOf(
             ChangeRandomASTNodesFromAnotherTrees,
             AddTryExpression,
@@ -134,18 +96,25 @@ class Mutator(val project: Project) {
             AddInheritance(),
             ReplaceDotExpression(),
             AddExpressionToLoop(),
-            ModifyForExpression()
+            ModifyForExpression(),
+            ConvertExtensionToContextReceiver(),
+            AddContextToFunOrFunWithContext(),
+            RemoveContextFromFunction()
         )
         val k = 100.0 / mutationList.size
         val directedMutations =
-            mutationList.mapIndexed { i, m -> DirectedMutation(m, mutableListOf(), k) }.toMutableList()
-        val deserializedDirectedMutations = deserializeDirectedMutations(directedMutations)
+            mutationList.mapIndexed { i, m -> DirectedMutation(pathToOriginalSeed, m, mutableListOf(), k) }.toMutableList()
+        val deserializedDirectedMutations = DirectedMutation.deserializeDirectedMutations(directedMutations)
+        //deserializedDirectedMutations
+        //.map { it.transformation::class.simpleName to it.scores }
+        //.sortedByDescending { it.second.size }
+        //.joinToString("\n") { it.second.average().toString().replace('.', ',') }
         if (!CompilerArgs.isMutationGuided) {
-            (1..100).forEach {
+            repeat(100) {
                 executeDirectedMutation(deserializedDirectedMutations.random())
             }
-            saveMutationsInformationInFile(deserializedDirectedMutations)
-            CoverageStatisticsCollector.saveCoverageStatistic()
+            DirectedMutation.saveMutationsInformationInFile(deserializedDirectedMutations)
+            CoverageStatisticWriter.instance.saveCoverageStatistic()
             exitProcess(0)
         }
         checker.currentScore = 0
@@ -175,6 +144,7 @@ class Mutator(val project: Project) {
                 }
             println("ITERATION = $iteration")
             executeDirectedMutation(transformationToExecute)
+            CoverageStatisticWriter.instance.saveCoverageStatistic()
         }
         println("LOL---------------------------")
         deserializedDirectedMutations.sortedBy { it.scores.size }.map {
@@ -184,13 +154,13 @@ class Mutator(val project: Project) {
             )
         }.forEach(::println)
         println("LOL---------------------------")
-        saveMutationsInformationInFile(deserializedDirectedMutations)
-        CoverageStatisticsCollector.saveCoverageStatistic()
+        DirectedMutation.saveMutationsInformationInFile(deserializedDirectedMutations)
         exitProcess(0)
     }
 
     private fun executeDirectedMutation(transformationToExecute: DirectedMutation) {
         println("Mutation ${transformationToExecute.transformation} started")
+        CoverageStatisticWriter.currentMutationName = transformationToExecute.transformation::class.simpleName.toString()
         executeMutation(transformationToExecute.transformation, 100)
         val score = checker.currentScore / CoverageGuidingCoefficients.SCORE_DIVIDER
         log.debug("Cur transformation ${transformationToExecute.transformation::class.simpleName}; Score = $score")
@@ -206,6 +176,12 @@ class Mutator(val project: Project) {
         val ktFile = checker.curFile.psiFile as KtFile
         RandomTypeGenerator.setFileAndContext(ktFile, ktx)
         if (!checker.checkCompiling()) return
+        repeat(Random.nextInt(1, 4)) {
+            executeMutation(ConvertExtensionToContextReceiver(), 80)
+            executeMutation(AddContextToFunOrFunWithContext(), 80)
+            executeMutation(RemoveContextFromFunction(), 80)
+        }
+        exitProcess(0)
         val mut1 = listOf(
             ChangeRandomASTNodesFromAnotherTrees to 75,
             AddTryExpression to 50,
@@ -369,7 +345,7 @@ class Mutator(val project: Project) {
 //        //AddTryExpression() to 50,
 //        //AddNodesFromAnotherFiles() to 50
 //    )
-    private val log = Logger.getLogger("bugFinderLogger")
+    private val log = LogManager.getLogger("bugFinderLogger")
     private val checker
         get() = Transformation.checker
 

@@ -1,18 +1,17 @@
-open class A<T> {
-    open fun foo(t: T) = "A"
-}
+// TARGET_BACKEND: JVM
+// JVM_TARGET: 1.8
+// SAM_CONVERSIONS: INDY
 
-class Z : A<String>() {
-    override fun foo(t: String) = "Z"
-}
+// CHECK_BYTECODE_TEXT
+// JVM_IR_TEMPLATES
+// 1 java/lang/invoke/LambdaMetafactory
 
+// FILE: simple.kt
+fun ok() = "OK"
 
-fun box(): String {
-    val z = Z()
-    val a: A<String> = z
-    return when {
-        z.foo("") != "Z" -> "Fail #1"
-        a.foo("") != "Z" -> "Fail #2"
-        else -> "OK"
-    }
+fun box() = Sam(::ok).get()
+
+// FILE: Sam.java
+public interface Sam {
+    String get();
 }

@@ -12,7 +12,7 @@ import com.stepanov.bbf.coverage.CompilerInstrumentation
 import com.stepanov.bbf.reduktor.executor.KotlincInvokeStatus
 import com.stepanov.bbf.reduktor.util.MsgCollector
 import org.apache.commons.io.FileUtils
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.jar.JarInputStream
 import java.util.jar.JarOutputStream
+import kotlin.system.exitProcess
 
 open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
     override val compilerInfo: String
@@ -166,8 +167,12 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
     override fun exec(path: String, streamType: Stream, mainClass: String): String {
         val mc =
             mainClass.ifEmpty { JarInputStream(File(path).inputStream()).manifest.mainAttributes.getValue("Main-class") }
+        var classPath = "${CompilerArgs.jvmStdLibPaths.joinToString(":")}:$path"
+        if (CompilerArgs.isGuidedByCoverage) {
+            classPath += ":${CompilerArgs.compilerJarPath}"
+        }
         return commonExec(
-            "java -classpath ${CompilerArgs.jvmStdLibPaths.joinToString(":")}:$path $mc",
+            "java -classpath $classPath $mc",
             streamType
         )
     }
@@ -175,5 +180,5 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
 
     private fun analyzeErrorMessage(msg: String): Boolean = !msg.split("\n").any { it.contains(": error:") }
 
-    private val log = Logger.getLogger("compilerErrorsLog")
+    private val log = LogManager.getLogger("compilerErrorsLog")
 }

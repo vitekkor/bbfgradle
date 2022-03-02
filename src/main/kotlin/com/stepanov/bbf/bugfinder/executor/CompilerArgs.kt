@@ -5,6 +5,8 @@ import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.util.BBFProperties
 import org.apache.commons.io.IOUtils
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.*
 import java.util.jar.JarFile
 
@@ -29,19 +31,33 @@ object CompilerArgs {
     fun getPropAsBoolean(name: String): Boolean = getPropValue(name)?.toBoolean()
         ?: throw IllegalArgumentException("Cannot init $name property")
 
-    fun getStdLibPath(libToSearch: String): String {
-        val kotlinVersion = File("build.gradle")
+    private fun getKotlinVersion() =
+        File("build.gradle")
             .readText()
             .lines()
             .firstOrNull { it.trim().contains("kotlin_version") }
             ?.substringAfter('\'')
             ?.substringBefore('\'')
             ?: throw Exception("Dont see kotlinVersion parameter in build.gradle file")
+
+    fun getStdLibPath(libToSearch: String): String {
+        val kotlinVersion = getKotlinVersion()
         "tmp/lib/$libToSearch-$kotlinVersion.jar".let {
             require(File(it).exists())
             return it
         }
     }
+
+    val compilerJarPath: String?
+        get() =
+            Files.walk(Paths.get("${System.getProperty("user.home")}/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler/"))
+                .map { it.toFile() }
+                .toArray()
+                .toList()
+                .map { it as File }
+                .find { it.name == "kotlin-compiler-${getKotlinVersion()}.jar" }
+                ?.absolutePath
+
 //    fun getStdLibPath(libToSearch: String): String {
 //        val kotlinVersion =
 //            File("build.gradle").readText().lines().firstOrNull { it.trim().contains("kotlin_version") }
@@ -140,10 +156,13 @@ object CompilerArgs {
     val isPerformanceMode = getPropAsBoolean("PERFORMANCE_MODE")
 
     //Instrumentation
+    val statisticMode = getPropValue("COLLECT_STATS")
+    val makeUnique = getPropAsBoolean("MAKE_UNIQUE")
     var isInstrumentationMode = getPropAsBoolean("WITH_INSTRUMENTATION")
     val isGuidedByCoverage = getPropAsBoolean("GUIDE_FUZZER_BY_COVERAGE")
     val isMutationGuided = getPropAsBoolean("GUIDE_MUTATIONS")
     val instrumentationLevel = getPropValue("INSTRUMENTATION_LEVEL")
+    val checkExecution = getPropAsBoolean("CHECK_EXECUTION")
 
     //ABI
     val isABICheckMode = getPropAsBoolean("ABI_CHECK_MODE")

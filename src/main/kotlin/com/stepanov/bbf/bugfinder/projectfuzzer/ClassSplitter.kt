@@ -5,7 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.stepanov.bbf.bugfinder.executor.checkers.CompilationChecker
 import com.stepanov.bbf.reduktor.util.replaceThis
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.kotlin.lexer.KtKeywordToken
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.parents
@@ -78,6 +78,6 @@ class ClassSplitter(private val files: List<KtFile>, private val checker: Compil
 
     private val factory = KtPsiFactory(files.first().project)
     private val randomConst = 100
-    private val log = Logger.getLogger("mutatorLogger")
+    private val log = LogManager.getLogger("mutatorLogger")
 
 }

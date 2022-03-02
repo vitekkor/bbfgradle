@@ -1,20 +1,11 @@
-// TARGET_BACKEND: JVM
-// WITH_RUNTIME
+// !LANGUAGE: +PartiallySpecifiedTypeArguments
+// WITH_STDLIB
 
-// FILE: foo.kt
+fun <K, T> foo(x: (K) -> T): Pair<K, T> = (1 as K) to (1f as T)
 
-@file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
-@file:JvmPackageName("baz.foo.quux.bar")
-package foo.bar
+//class `_` {}
 
-fun f(): String = "O"
-
-val g: String? get() = "K"
-
-inline fun <T> i(block: () -> T): T = block()
-
-// FILE: bar.kt
-
-import foo.bar.*
-
-fun box(): String = i { f() + g }
+fun box(): String {
+    val x = foo<Int, _> { it.toFloat() } // Pair<Int, Float>
+    return "OK"
+}

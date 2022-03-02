@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.calls.util.getType
 import com.stepanov.bbf.bugfinder.util.getType as getType1
 import java.io.File
 import kotlin.random.Random
@@ -39,7 +39,7 @@ object NodeDB {
             val usingExamples =
                 psiWithNeededNodes
                     .getAllPSIChildrenOfType<KtExpression> { it.text.contains(ds.name!!) }
-                    .map { it to it.getType(ctx) }
+                    .map { it to /*it.getType(ctx)*/it.getType(ctx) }
                     .filter { it.first !is KtClassOrObject && it.second != null && it.second.toString() != "Nothing" }
                     .map { UsingExample(it.first.node, it.second!!) }+
                 psiWithNeededNodes

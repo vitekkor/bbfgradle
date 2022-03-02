@@ -11,7 +11,7 @@ package com.stepanov.bbf.bugfinder.executor.checkers//package com.stepanov.bbf.b
 //import com.stepanov.bbf.reduktor.util.getAllChildrenNodes
 //import com.stepanov.bbf.reduktor.util.getAllParentsWithoutNode
 //import com.stepanov.bbf.reduktor.util.replaceThis
-//import org.apache.log4j.Logger
+//import org.apache.logging.log4j.LogManager
 //import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch
 //import org.jetbrains.kotlin.psi.KtFile
 //import org.jetbrains.kotlin.psi.KtPsiFactory
@@ -186,7 +186,7 @@ package com.stepanov.bbf.bugfinder.executor.checkers//package com.stepanov.bbf.b
 //    private lateinit var errs: String
 //    internal lateinit var psiFactory: KtPsiFactory
 //
-//    open val log = Logger.getLogger("reducerLogger")
+//    open val log = LogManager.getLogger("reducerLogger")
 //    private val patch = DiffMatchPatch()
 //    private val threshold = 0.5
 //    override var alreadyChecked = HashMap<Int, Boolean>()

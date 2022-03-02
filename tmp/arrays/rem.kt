@@ -1,8 +1,8 @@
 // !LANGUAGE: -ApproximateIntegerLiteralTypesInReceiverPosition
-// IGNORE_FIR_DIAGNOSTICS
+// IGNORE_BACKEND_FIR: JVM_IR
 // TARGET_BACKEND: JVM
 
-// WITH_RUNTIME
+// WITH_STDLIB
 
 @Retention(AnnotationRetention.RUNTIME)
 annotation class Ann(
