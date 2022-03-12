@@ -87,8 +87,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
     fun checkCompilingWithBugSaving(
         project: Project,
         curFile: BBFFile? = null,
-        original: Project? = null,
-        excludedPsiElements: List<PsiElement> = listOf()
+        original: Project? = null
     ): Boolean {
         log.debug("Compilation checking started")
         val allTexts = project.files.joinToString { it.psiFile.text }
@@ -99,11 +98,6 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
             StatisticCollector.incField("Incorrect programs")
             checkedConfigurations[allTexts] = false
             return false
-        }
-        if (CompilerArgs.isMetamorphicMode) {
-            val checkRes = checkMetamorphicMutationsTraces(project, original, excludedPsiElements)
-            checkedConfigurations[allTexts] = checkRes
-            return checkRes
         }
         val (statuses, compilationTimes) =
             compileAndGetStatusesWithExecutionTime(project).let { it.map { it.first } to it.map { it.second } }
@@ -196,6 +190,11 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
                     checkedConfigurations[allTexts] = checkRes
                     return checkRes
                 }
+                if (CompilerArgs.isMetamorphicMode) {
+                    val checkRes = checkMetamorphicMutationsTraces(project, original)
+                    checkedConfigurations[allTexts] = checkRes
+                    return checkRes
+                }
                 StatisticCollector.incField("Correct programs")
                 checkedConfigurations[allTexts] = true
                 return true
@@ -230,13 +229,13 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
         return TracesChecker(compilers).checkBehavior(copyOfProject)
     }
 
-    fun checkMetamorphicMutationsTraces(mutated: Project, original: Project?, excludedPsiElements: List<PsiElement>): Boolean {
+    fun trace(project: Project) {
+        Tracer(compilers.first(), project).trace()
+    }
+
+    fun checkMetamorphicMutationsTraces(mutated: Project, original: Project?): Boolean {
         original ?: return checkTraces(mutated)
-        val copyOfOriginal = original.copy()
-        val copyOfMutated = mutated.copy()
-        Tracer(compilers.first(), copyOfOriginal).trace()
-        Tracer(compilers.first(), copyOfMutated).traceMutatedProject(excludedPsiElements)
-        return TracesChecker(compilers).checkBehaviorAfterMetamorphicMutation(copyOfOriginal, copyOfMutated)
+        return TracesChecker(compilers).checkBehaviorAfterMetamorphicMutation(original, mutated)
     }
 
 

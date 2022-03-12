@@ -4,6 +4,7 @@ import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.tryToCreateExpression
 import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerator
 import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
@@ -20,13 +21,13 @@ class AddCasts : MetamorphicTransformation() {
         mutationPoint: PsiElement,
         scope: HashMap<Variable, MutableList<String>>,
         expected: Boolean
-    ): String {
+    ) {
         val ktFile = file as KtFile
         RandomTypeGenerator.setFileAndContext(ktFile, ctx!!)
         rig = RandomInstancesGenerator(ktFile, ctx!!)
-        val variable = scope.keys.randomOrNull() ?: generateVariable() ?: return ""
+        val variable = scope.keys.randomOrNull() ?: generateVariable() ?: return
         val currentModule =
-            ktFile.getMainFunc()?.getDeclarationDescriptorIncludingConstructors(ctx!!)?.module ?: return ""
+            ktFile.getMainFunc()?.getDeclarationDescriptorIncludingConstructors(ctx!!)?.module ?: return
 
         val userClassesDescriptors =
             StdLibraryGenerator.getUserClassesDescriptorsFromProject(project, currentModule)
@@ -37,15 +38,20 @@ class AddCasts : MetamorphicTransformation() {
                 randomType?.constructor?.declarationDescriptor as? ClassDescriptor
             } else {
                 chooseRandomTypeToCast(variable.type, userClassesDescriptors)
-            } ?: return ""
+            } ?: return
         if (expected) {
-            val supertype = variable.type.supertypes().randomOrNull() ?: return ""
+            val supertype = variable.type.supertypes().randomOrNull() ?: return
             val values = scope[variable]
             val updated = variable.copy(type = supertype)
             values?.let { scope[updated] = it; scope.remove(variable) }
-            return "$variable as ${supertype.name}"
+            mutationPoint.addAfterThisWithWhitespace(
+                Factory.psiFactory.createExpression("$variable as ${supertype.name}"),
+                "\n"
+            )
         } else {
-            return tryToCast(variable.psiElement, variable.type, randomTypeToCast)
+            Factory.psiFactory.tryToCreateExpression(tryToCast(variable.psiElement, variable.type, randomTypeToCast))?.let {
+                mutationPoint.addAfterThisWithWhitespace(it, "\n")
+            }
         }
     }
 

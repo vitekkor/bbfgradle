@@ -18,15 +18,17 @@ class AddLoop : MetamorphicTransformation() {
         mutationPoint: PsiElement,
         scope: HashMap<Variable, MutableList<String>>,
         expected: Boolean
-    ): String {
+    ) {
         val rig = RandomInstancesGenerator(file as KtFile, ctx!!)
         RandomTypeGenerator.setFileAndContext(file as KtFile, ctx!!)
         val body = run {
             removeMutation(AddLoop::class)
-            synthesisIfBody(mutationPoint, scope, expected)
+            val tmp = tmpMutationPoint
+            executeMutations(tmp, scope, expected, defaultMutations)
+            tmp.children.joinToString("\n") { it.text }
         }
-        val forExpr = generateForExpression(scope.keys, rig, body)
-        return forExpr?.text ?: ""
+        val forExpr = generateForExpression(scope.keys, rig, body) ?: return
+        mutationPoint.addAfterThisWithWhitespace(forExpr, "\n")
     }
 
     private fun generateForExpression(

@@ -9,10 +9,10 @@ import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.*
+import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.MetamorphicTransformation.Companion.defaultMutations
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.mutator.transformations.getPath
-import com.stepanov.bbf.bugfinder.mutator.transformations.tce.UsagesSamplesGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.util.ScopeCalculator
+import com.stepanov.bbf.bugfinder.tracer.Tracer
 import com.stepanov.bbf.bugfinder.util.addAfterThisWithWhitespace
 import com.stepanov.bbf.bugfinder.util.addToTheTop
 import com.stepanov.bbf.bugfinder.util.flatMap
@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.ImportPath
+import org.jetbrains.kotlin.resolve.bindingContextUtil.isUsedAsExpression
 import kotlin.system.exitProcess
 
 class MetamorphicMutator(val project: Project) {
@@ -61,6 +62,7 @@ class MetamorphicMutator(val project: Project) {
         val ktFile = checker.curFile.psiFile as KtFile
         RandomTypeGenerator.setFileAndContext(ktFile, ktx)
         if (!checker.checkCompiling()) return
+        val fileBackup = checker.curFile.psiFile.copy()
 
         file.addToTheTop(Factory.psiFactory.createImportDirective(ImportPath.fromString("kotlin.collections.*")))
 
@@ -75,17 +77,13 @@ class MetamorphicMutator(val project: Project) {
                 .randomOrNull() ?: return
 //            file.getAllPSIChildrenOfType<KtProperty> { !it.isMember }
 //                .randomOrNull() ?: return
-
+        //(mutationPoint as? KtExpression)?.isUsedAsExpression(ctx)
         val scope: HashMap<Variable, MutableList<String>> = profileScope(mutationPoint, ctx)
-        val metamorphicMutations = mutate(mutationPoint, scope) ?: return
+        checker.trace(originalProject)
+        mutate(mutationPoint, scope)
         CompilerArgs.isMetamorphicMode = true
-        checker.checkCompilingWithBugSaving(
-            project,
-            checker.curFile,
-            originalProject,
-            metamorphicMutations.getAllChildren().toMutableList().apply { add(metamorphicMutations) }
-        )
-
+        val success = checker.checkCompilingWithBugSaving(project, checker.curFile, originalProject)
+        if (!success) checker.curFile.changePsiFile(fileBackup, genCtx = false)
         //checker.curFile.changePsiFile(fileBackup, genCtx = false)
     }
 
@@ -125,19 +123,8 @@ class MetamorphicMutator(val project: Project) {
         return variablesToValues
     }
 
-    private fun mutate(mutationPoint: PsiElement, scope: HashMap<Variable, MutableList<String>>): PsiElement? {
+    private fun mutate(mutationPoint: PsiElement, scope: HashMap<Variable, MutableList<String>>) {
         val expected = false//Random.nextBoolean()
-        val predicate = synthesisPredicate(scope, expected, 2)
-        val thenStatement = synthesisIfBody(mutationPoint, scope, expected)
-        restoreMutations()
-        if (thenStatement.isEmpty()) {
-            log.debug("Metamorphic mutation is empty.")
-            return null
-        }
-        val ifStatement = with(Factory.psiFactory) {
-            createExpression("if ($predicate) ${createBlock(thenStatement).text}")
-        }
-        val mutated = mutationPoint.addAfterThisWithWhitespace(ifStatement, "\n")
-        return mutated
+        executeMutations(mutationPoint, scope, expected, defaultMutations)
     }
 }

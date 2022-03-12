@@ -2,6 +2,8 @@ package com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.util.addAfterThisWithWhitespace
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
@@ -20,44 +22,46 @@ class AddFunInvocations : MetamorphicTransformation() {
         mutationPoint: PsiElement,
         scope: HashMap<Variable, MutableList<String>>,
         expected: Boolean
-    ): String {
+    ) {
         val ktFile = file as KtFile
         rig = RandomInstancesGenerator(ktFile, ctx!!)
         functions =
             ktFile.getAllPSIChildrenOfType { !it.text.contains("fun main(.*)".toRegex()) }
         if (!expected) {
-            val func = functions.randomOrNull() ?: return ""
+            val func = functions.randomOrNull() ?: return
             if (func.getElementParentDeclaration() != null) {
                 val (klass, type) = rig.generateRandomInstanceOfClass(func.getElementParentDeclaration() as KtClassOrObject)!!
                 val v = scope.keys.find { it.type == type }?.name ?: Random.getRandomVariableNameNotIn(scope.keys)
-                return if (scope.keys.any { it.name == v }) {
-                    "$v." + rig.generateFunctionCall(functions[5].getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor)?.text
+                if (scope.keys.any { it.name == v }) {
+                    val funInvokeText = "$v." + rig.generateFunctionCall(functions[5].getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor)?.text
+                    Factory.psiFactory.createExpression(funInvokeText).let { mutationPoint.addAfterThisWithWhitespace(it, "\n") }
                 } else {
-                    "var $v = ${klass!!.text}\n$v." + rig.generateFunctionCall(
+                    val funInvokeText = "var $v = ${klass!!.text}\n$v." + rig.generateFunctionCall(
                         func.getDeclarationDescriptorIncludingConstructors(
                             ctx!!
                         ) as FunctionDescriptor
                     )?.text
+                    Factory.psiFactory.createExpression(funInvokeText).let { mutationPoint.addAfterThisWithWhitespace(it, "\n") }
                 }
             } else {
-                return rig.generateFunctionCall(func.getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor)?.text
-                    ?: ""
+                val funInvoke = rig.generateFunctionCall(func.getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor) ?: return
+                mutationPoint.addAfterThisWithWhitespace(funInvoke, "\n")
             }
         } else {
-            val parent = findMutationPointParentFun(mutationPoint) ?: return ""
+            val parent = findMutationPointParentFun(mutationPoint) ?: return
             val correct = functions.filter {
                 it.isTopLevel &&
                         !it.getAllChildren().contains(mutationPoint) &&
                         !checkRecursiveCall(it.getAllChildren(), mutationPoint, parent)
             }
-            var func = correct.randomOrNull() ?: return ""
+            var func = correct.randomOrNull() ?: return
             var i = 0
             while (func.getElementParentDeclaration() != null && ++i < 5) {
                 func = correct.random()
             }
-            if (func.getElementParentDeclaration() != null) return ""
-            return rig.generateFunctionCall(func.getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor)?.text
-                ?: ""
+            if (func.getElementParentDeclaration() != null) return
+            val funInvoke = rig.generateFunctionCall(func.getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor) ?: return
+            mutationPoint.addAfterThisWithWhitespace(funInvoke, "\n")
         }
     }
 
