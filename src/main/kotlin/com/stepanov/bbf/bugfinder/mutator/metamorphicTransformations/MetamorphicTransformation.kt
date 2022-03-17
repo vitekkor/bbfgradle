@@ -27,7 +27,7 @@ abstract class MetamorphicTransformation {
         var ctx: BindingContext? = null
         internal val log = Logger.getLogger("mutatorLogger")
 
-        val defaultMutations = mutableListOf(
+        private val mutations = mutableListOf(
             //AddCasts() to 75,
             AddLoop() to 75,
             //AddRandomClass() to 100
@@ -38,10 +38,11 @@ abstract class MetamorphicTransformation {
             AddVariablesToScope() to 60
         )
 
+        val defaultMutations get() = mutations.toMutableList()
+
         fun <T : MetamorphicTransformation> removeMutation(mutation: KClass<T>): MutableList<Pair<MetamorphicTransformation, Int>> {
-            val copy = defaultMutations.toMutableList()
-            copy.find { it.first::class == mutation }?.let { copy.remove(it) }
-            return copy
+            mutations.find { it.first::class == mutation }?.let { mutations.remove(it) }
+            return defaultMutations
         }
 
         fun restoreMutations() {
@@ -55,8 +56,8 @@ abstract class MetamorphicTransformation {
                 AddTryExpression() to 50,
                 AddVariablesToScope() to 60
             )
-            defaultMutations.clear()
-            defaultMutations.addAll(restored)
+            mutations.clear()
+            mutations.addAll(restored)
         }
 
         fun updateCtx() {

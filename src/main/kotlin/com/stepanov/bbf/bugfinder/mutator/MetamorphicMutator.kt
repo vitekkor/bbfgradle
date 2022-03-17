@@ -124,5 +124,6 @@ class MetamorphicMutator(val project: Project) {
     private fun mutate(mutationPoint: PsiElement, scope: HashMap<Variable, MutableList<String>>) {
         val expected = false//Random.nextBoolean()
         executeMutations(mutationPoint, scope, expected, defaultMutations)
+        MetamorphicTransformation.restoreMutations()
     }
 }

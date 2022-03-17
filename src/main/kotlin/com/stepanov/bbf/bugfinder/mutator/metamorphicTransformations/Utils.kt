@@ -30,7 +30,8 @@ fun executeMutations(
     mutationList: MutableList<Pair<MetamorphicTransformation, Int>>
 ) {
     val mutations = mutationList.shuffled()
-    defaultMutations.find { it.first::class == AddVariablesToScope::class }?.let { defaultMutations.remove(it) }
+    removeMutation(AddVariablesToScope::class)
+    //defaultMutations.find { it.first::class ==  }?.let { defaultMutations.remove(it) }
 
     //for (i in 0 until Random.nextInt(1, 3)) {
     for (it in mutations) {
@@ -41,7 +42,6 @@ fun executeMutations(
             it.first.transform(mutationPoint, scope, expected)
         }
     }
-    restoreMutations()
 }
 
 data class Variable(val name: String, val type: KotlinType, val psiElement: PsiElement) {
