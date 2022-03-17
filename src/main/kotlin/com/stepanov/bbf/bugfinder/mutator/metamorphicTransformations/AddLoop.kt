@@ -53,7 +53,7 @@ class AddLoop : MetamorphicTransformation() {
                     if (rightFromScope != null && Random.getTrue(50))
                         rightFromScope.psiElement
                     else rig.generateValueOfTypeAsExpression(randomVar.type)!!
-                Factory.psiFactory.createExpression("${left.text}..${right.text}")
+                Factory.psiFactory.createExpressionIfPossible("${left.text}..${right.text}")
             } else {
                 var resExpr: KtExpression? = null
                 for (i in 0 until 10) {

@@ -1,8 +1,6 @@
 package com.stepanov.bbf.bugfinder.mutator.transformations
 
-import com.intellij.psi.PsiFile
 import com.stepanov.bbf.reduktor.parser.PSICreator
-import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
 
 object Factory {

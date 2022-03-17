@@ -20,7 +20,7 @@ fun Random.getRandomVariableNameNotIn(scope: Set<Variable>): String? {
 }
 
 val tmpMutationPoint: PsiElement
-    get() = Factory.psiFactory.createProperty("val ${Random.getRandomVariableName(5)} = 42")
+    get() = Factory.psiFactory.createProperty("val ${Random.getRandomVariableName(5)} = ${Random.nextInt()}")
 
 fun executeMutations(
     mutationPoint: PsiElement,
