@@ -17,15 +17,15 @@ class AddIf : MetamorphicTransformation() {
     ) {
         val exp = Random.nextBoolean()
         val predicate = synthesisPredicate(scope, exp, Random.nextInt(4))
-        removeMutation(AddIf::class)
+        val mutations = removeMutation(AddIf::class)
         var tmp = tmpMutationPoint
-        executeMutations(tmp, scope, exp, defaultMutations)
+        executeMutations(tmp, scope, exp, mutations)
         val thenStatement = tmp.children.joinToString("\n") { it.text }
         if (thenStatement.isEmpty()) {
             return
         }
         tmp = tmpMutationPoint
-        executeMutations(tmp, scope, !exp, defaultMutations)
+        executeMutations(tmp, scope, !exp, mutations)
         val elseStatement =
             if (Random.getTrue(15)) "else {${tmp.children.joinToString("\n") { it.text }}}" else ""
         mutationPoint.addAfterThisWithWhitespace(
@@ -116,8 +116,8 @@ class AddIf : MetamorphicTransformation() {
         val values = scope[variable]!!
         when (variable.type.name) {
             in listOf("Int", "Byte", "Short", "Long", "UInt", "ULong") -> {
-                val max = values.maxOf { it.toLong() }
-                val min = values.minOf { it.toLong() }
+                val max = values.maxOf { it.replace("""\.to.*\(\)""".toRegex(), "").toLong() }
+                val min = values.minOf { it.replace("""\.to.*\(\)""".toRegex(), "").toLong() }
                 val operator: String
                 var value: String
                 val suffix = if (variable.type.name!![0] == 'U') "u" else ""

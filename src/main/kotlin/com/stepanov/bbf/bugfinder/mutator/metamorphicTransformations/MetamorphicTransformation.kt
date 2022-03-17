@@ -38,8 +38,10 @@ abstract class MetamorphicTransformation {
             AddVariablesToScope() to 60
         )
 
-        fun <T : MetamorphicTransformation> removeMutation(mutation: KClass<T>) {
-            defaultMutations.find { it.first::class == mutation }?.let { defaultMutations.remove(it) }
+        fun <T : MetamorphicTransformation> removeMutation(mutation: KClass<T>): MutableList<Pair<MetamorphicTransformation, Int>> {
+            val copy = defaultMutations.toMutableList()
+            copy.find { it.first::class == mutation }?.let { copy.remove(it) }
+            return copy
         }
 
         fun restoreMutations() {

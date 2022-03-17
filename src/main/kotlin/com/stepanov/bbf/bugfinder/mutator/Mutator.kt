@@ -28,7 +28,7 @@ import kotlin.system.exitProcess
 
 class Mutator(val project: Project) {
 
-    private fun executeMutation(t: Transformation, probPercentage: Int = 50) {
+    fun executeMutation(t: Transformation, probPercentage: Int = 50) {
         if (Random.nextInt(0, 100) < probPercentage) {
             //Update ctx
             Transformation.updateCtx()

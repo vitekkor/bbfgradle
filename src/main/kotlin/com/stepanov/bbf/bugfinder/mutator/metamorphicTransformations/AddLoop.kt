@@ -8,6 +8,7 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.tce.StdLibraryGenerato
 import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.replace
 import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
@@ -22,9 +23,9 @@ class AddLoop : MetamorphicTransformation() {
         val rig = RandomInstancesGenerator(file as KtFile, ctx!!)
         RandomTypeGenerator.setFileAndContext(file as KtFile, ctx!!)
         val body = run {
-            removeMutation(AddLoop::class)
+            val mutations = removeMutation(AddLoop::class)
             val tmp = tmpMutationPoint
-            executeMutations(tmp, scope, expected, defaultMutations)
+            executeMutations(tmp, scope, expected, mutations)
             tmp.children.joinToString("\n") { it.text }
         }
         val forExpr = generateForExpression(scope.keys, rig, body) ?: return
@@ -45,7 +46,7 @@ class AddLoop : MetamorphicTransformation() {
                 containerFromScopeToIterate.random().psiElement
             } else if (variablesFromScopeToIterate.isNotEmpty() && Random.getTrue(20)) {
                 val randomVar = variablesFromScopeToIterate.random()
-                val left = randomVar.psiElement
+                val left = randomVar.psiElement as KtProperty
                 val rightFromScope =
                     variablesFromScopeToIterate
                         .find { it.type.name == randomVar.type.name && it.psiElement.text != randomVar.psiElement.text }
@@ -53,7 +54,7 @@ class AddLoop : MetamorphicTransformation() {
                     if (rightFromScope != null && Random.getTrue(50))
                         rightFromScope.psiElement
                     else rig.generateValueOfTypeAsExpression(randomVar.type)!!
-                Factory.psiFactory.createExpressionIfPossible("${left.text}..${right.text}")
+                Factory.psiFactory.createExpressionIfPossible("${left.name}..${right.text}")
             } else {
                 var resExpr: KtExpression? = null
                 for (i in 0 until 10) {

@@ -42,9 +42,9 @@ class AddTryExpression : MetamorphicTransformation() {
                 "\n"
             )
         } else {
-            removeMutation(AddTryExpression::class)
+            val mutations = removeMutation(AddTryExpression::class)
             val tmp = tmpMutationPoint
-            executeMutations(tmp, scope, true, defaultMutations.toMutableList().apply {  })
+            executeMutations(tmp, scope, true, mutations.toMutableList().apply {  })
             val tryBlock = tmp.children.joinToString("\n") { it.text }
             mutationPoint.addAfterThisWithWhitespace(
                 Factory.psiFactory.createExpression("try{$tryBlock}catch(e: Exception){}"),
