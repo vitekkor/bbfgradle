@@ -54,7 +54,8 @@ abstract class MetamorphicTransformation {
             AddExpressionsWithVariables() to 75,
             AddTryExpression() to 50,
             AddVariablesToScope() to 60,
-            RunLetTransformation() to 75
+            RunLetTransformation() to 75,
+            EquivalentTransformation() to 50
         )
 
         val defaultMutations get() = mutations.toMutableList()

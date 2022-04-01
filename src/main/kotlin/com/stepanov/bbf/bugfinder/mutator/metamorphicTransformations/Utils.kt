@@ -30,6 +30,7 @@ fun executeMutations(
     val mutations = mutationList.shuffled()
     removeMutation(AddVariablesToScope::class)
     removeMutation(RunLetTransformation::class)
+    removeMutation(EquivalentTransformation::class)
     //defaultMutations.find { it.first::class ==  }?.let { defaultMutations.remove(it) }
 
     //for (i in 0 until Random.nextInt(1, 3)) {
