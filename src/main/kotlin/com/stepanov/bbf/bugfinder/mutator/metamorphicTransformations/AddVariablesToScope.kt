@@ -4,7 +4,6 @@ import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.util.addAfterThisWithWhitespace
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtProperty
@@ -23,7 +22,7 @@ class AddVariablesToScope : MetamorphicTransformation() {
         val variable = generateVariable() ?: return
         val value = (variable.psiElement as KtProperty).initializer?.text ?: return
         scope[variable] = mutableListOf(value)
-        mutationPoint.addAfterThisWithWhitespace(variable.psiElement, "\n")
+        addAfterMutationPoint(mutationPoint, variable.psiElement)
     }
 
     private fun generateVariable(): Variable? {

@@ -4,7 +4,6 @@ import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.typeGenerators.RandomTypeGenerator
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.util.addAfterThisWithWhitespace
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import org.jetbrains.kotlin.incremental.KotlinLookupLocation
 import org.jetbrains.kotlin.psi.KtFile
@@ -37,33 +36,28 @@ class AddExpressionsWithVariables : MetamorphicTransformation() {
                         variable.name
                     )
                 if (variable.isVar) {
-                    mutationPoint.addAfterThisWithWhitespace(
-                        Factory.psiFactory.createBlock("kotlin.run {\n${backup.text}\n${variable.name}?.${funCall.text}\n${variable.name} = ${backup.name}}"),
-                        "\n"
-                    )
+                    addAfterMutationPoint(mutationPoint) {
+                        it.createExpression("kotlin.run {\n${backup.text}\n${variable.name}?.${funCall.text}\n${variable.name} = ${backup.name}}")
+                    }
                 } else {
-                    mutationPoint.addAfterThisWithWhitespace(
-                        Factory.psiFactory.createBlock("kotlin.run {\n${backup.text}\n${backup.name}?.${funCall.text}}"),
-                        "\n"
-                    )
+                    addAfterMutationPoint(mutationPoint) {
+                        it.createExpression("kotlin.run {\n${backup.text}\n${backup.name}?.${funCall.text}}")
+                    }
                 }
             } else {
-                mutationPoint.addAfterThisWithWhitespace(
-                    Factory.psiFactory.createBlock("kotlin.run {\n${variable.psiElement.text}\n${variable.name}.${funCall.text}}"),
-                    "\n"
-                )
+                addAfterMutationPoint(mutationPoint) {
+                    it.createExpression("kotlin.run {\n${variable.psiElement.text}\n${variable.name}.${funCall.text}}")
+                }
             }
         } else {
             if (scope[variable] != null)
-                mutationPoint.addAfterThisWithWhitespace(
-                    Factory.psiFactory.createBlock("kotlin.run {\n${variable.name}?.${funCall.text}}"),
-                    "\n"
-                )
+                addAfterMutationPoint(mutationPoint) {
+                    it.createExpression("kotlin.run {\n${variable.name}?.${funCall.text}}")
+                }
             else
-                mutationPoint.addAfterThisWithWhitespace(
-                    Factory.psiFactory.createBlock("kotlin.run {\n${variable.psiElement.text}\n${variable.name}?.${funCall.text}}"),
-                    "\n"
-                )
+                addAfterMutationPoint(mutationPoint) {
+                    it.createExpression("kotlin.run {\n${variable.psiElement.text}\n${variable.name}?.${funCall.text}}")
+                }
         }
     }
 

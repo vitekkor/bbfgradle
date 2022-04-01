@@ -13,16 +13,13 @@ import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.*
 import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.MetamorphicTransformation.Companion.defaultMutations
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.util.ScopeCalculator
-import com.stepanov.bbf.bugfinder.util.addAfterThisWithWhitespace
-import com.stepanov.bbf.bugfinder.util.addToTheTop
-import com.stepanov.bbf.bugfinder.util.flatMap
-import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
+import com.stepanov.bbf.bugfinder.util.*
 import com.stepanov.bbf.reduktor.parser.PSICreator
+import com.stepanov.bbf.reduktor.util.getAllChildren
 import com.stepanov.bbf.reduktor.util.replaceThis
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.ImportPath
 import kotlin.system.exitProcess
 
@@ -36,8 +33,6 @@ class MetamorphicMutator(val project: Project) {
         get() = MetamorphicTransformation.checker
     private val file
         get() = MetamorphicTransformation.file
-    private val ctx
-        get() = MetamorphicTransformation.ctx
 
     fun startMutate() {
         for (bbfFile in project.files) {
@@ -76,16 +71,23 @@ class MetamorphicMutator(val project: Project) {
 //            file.getAllPSIChildrenOfType<KtProperty> { !it.isMember }
 //                .randomOrNull() ?: return
         //(mutationPoint as? KtExpression)?.isUsedAsExpression(ctx)
-        val scope: HashMap<Variable, MutableList<String>> = profileScope(mutationPoint, ctx)
+        val mutationPointBackup = mutationPoint.copy()
+        log.info("Mutation point: ${mutationPoint.text}")
+        val scope: HashMap<Variable, MutableList<String>> = profileScope(mutationPoint)
         checker.trace(originalProject)
         mutate(mutationPoint, scope)
+        file.getAllChildren().find { it.text.take(mutationPointBackup.text.length) == mutationPointBackup.text }!!.replaceThis(mutationPoint)
         CompilerArgs.isMetamorphicMode = true
         val success = checker.checkCompilingWithBugSaving(project, checker.curFile, originalProject)
         if (!success) checker.curFile.changePsiFile(fileBackup, genCtx = false)
         //checker.curFile.changePsiFile(fileBackup, genCtx = false)
     }
 
-    private fun profileScope(mutationPoint: PsiElement, ctx: BindingContext): HashMap<Variable, MutableList<String>> {
+    fun test() {
+
+    }
+
+    private fun profileScope(mutationPoint: PsiElement): HashMap<Variable, MutableList<String>> {
         val ktFile = file as KtFile
         val processedScope = ScopeCalculator(ktFile, project).run {
             ScopeCalculator.processScope(rig, calcScope(mutationPoint).shuffled(), generatedFunCalls)
@@ -103,7 +105,7 @@ class MetamorphicMutator(val project: Project) {
         project.addMainInCurrent()
         originalProject = project.copy()
 
-        val profiling = mutationPoint.addAfterThisWithWhitespace(block, "\n")
+        val profiling = file.addAfterWithWhiteSpace(mutationPoint, block, "\n")
 
         val profiled = checker.compileAndGetResult().split("\n")
         val variablesToValues = hashMapOf<Variable, MutableList<String>>()
@@ -117,7 +119,7 @@ class MetamorphicMutator(val project: Project) {
             variablesToValues.getOrPut(variable) { mutableListOf() }
                 .add(variableToValue[1].removeSuffix("\r"))
         }
-        profiling.replaceThis(Factory.psiFactory.createWhiteSpace("\n"))
+        profiling?.replaceThis(Factory.psiFactory.createWhiteSpace("\n"))
         return variablesToValues
     }
 

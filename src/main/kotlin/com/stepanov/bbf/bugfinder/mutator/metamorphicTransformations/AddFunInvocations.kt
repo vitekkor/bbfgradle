@@ -2,8 +2,6 @@ package com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.generator.targetsgenerators.RandomInstancesGenerator
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.util.addAfterThisWithWhitespace
 import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
@@ -33,19 +31,22 @@ class AddFunInvocations : MetamorphicTransformation() {
                 val (klass, type) = rig.generateRandomInstanceOfClass(func.getElementParentDeclaration() as KtClassOrObject)!!
                 val v = scope.keys.find { it.type == type }?.name ?: Random.getRandomVariableNameNotIn(scope.keys)
                 if (scope.keys.any { it.name == v }) {
-                    val funInvokeText = "$v." + rig.generateFunctionCall(functions[5].getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor)?.text
-                    Factory.psiFactory.createExpression(funInvokeText).let { mutationPoint.addAfterThisWithWhitespace(it, "\n") }
+                    val funInvokeText =
+                        "$v." + rig.generateFunctionCall(functions[5].getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor)?.text
+                    addAfterMutationPoint(mutationPoint) { it.createExpression(funInvokeText) }
                 } else {
                     val funInvokeText = "var $v = ${klass!!.text}\n$v." + rig.generateFunctionCall(
                         func.getDeclarationDescriptorIncludingConstructors(
                             ctx!!
                         ) as FunctionDescriptor
                     )?.text
-                    Factory.psiFactory.createExpression(funInvokeText).let { mutationPoint.addAfterThisWithWhitespace(it, "\n") }
+                    addAfterMutationPoint(mutationPoint) { it.createExpression(funInvokeText) }
                 }
             } else {
-                val funInvoke = rig.generateFunctionCall(func.getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor) ?: return
-                mutationPoint.addAfterThisWithWhitespace(funInvoke, "\n")
+                val funInvoke =
+                    rig.generateFunctionCall(func.getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor)
+                        ?: return
+                addAfterMutationPoint(mutationPoint, funInvoke)
             }
         } else {
             val parent = findMutationPointParentFun(mutationPoint) ?: return
@@ -60,8 +61,10 @@ class AddFunInvocations : MetamorphicTransformation() {
                 func = correct.random()
             }
             if (func.getElementParentDeclaration() != null) return
-            val funInvoke = rig.generateFunctionCall(func.getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor) ?: return
-            mutationPoint.addAfterThisWithWhitespace(funInvoke, "\n")
+            val funInvoke =
+                rig.generateFunctionCall(func.getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor)
+                    ?: return
+            addAfterMutationPoint(mutationPoint, funInvoke)
         }
     }
 

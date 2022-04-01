@@ -26,10 +26,20 @@ class AddLoop : MetamorphicTransformation() {
             val mutations = removeMutation(AddLoop::class)
             val tmp = tmpMutationPoint
             executeMutations(tmp, scope, expected, mutations)
-            tmp.children.joinToString("\n") { it.text }
+            tmp.children.joinToString("\n") { it.text }.split("\n").drop(1).joinToString("\n")
         }
-        val forExpr = generateForExpression(scope.keys, rig, body) ?: return
-        mutationPoint.addAfterThisWithWhitespace(forExpr, "\n")
+        val forExpr: KtExpression = if (Random.getTrue(33)) { // normal
+            generateForExpression(scope.keys, rig, body) ?: return
+        } else if (Random.getTrue(33)) { // one iteration
+            val value = Random.nextInt()
+            val forExpression = "for (${Random.getRandomVariableName(5)} in $value..$value) {\n$body\n}"
+            Factory.psiFactory.createExpressionIfPossible(forExpression) ?: return
+        } else { // endless loop with break
+            val forExpression =
+                "for (${Random.getRandomVariableName(5)} in generateSequence(0) { it }) {\n$body\nbreak\n}"
+            Factory.psiFactory.createExpressionIfPossible(forExpression) ?: return
+        }
+        addAfterMutationPoint(mutationPoint, forExpr)
     }
 
     private fun generateForExpression(
@@ -55,6 +65,12 @@ class AddLoop : MetamorphicTransformation() {
                         rightFromScope.psiElement
                     else rig.generateValueOfTypeAsExpression(randomVar.type)!!
                 Factory.psiFactory.createExpressionIfPossible("${left.name}..${right.text}")
+            } else if (Random.getTrue(20)) { // downTo for
+                val typeToIterate = typesToIterate.random()
+                val type = RandomTypeGenerator.generateType(typeToIterate) ?: return null
+                val left = rig.generateValueOfType(type)
+                val right = rig.generateValueOfType(type)
+                Factory.psiFactory.createExpressionIfPossible("$left downTo $right")
             } else {
                 var resExpr: KtExpression? = null
                 for (i in 0 until 10) {

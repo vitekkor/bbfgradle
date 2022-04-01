@@ -1,10 +1,13 @@
 package com.stepanov.bbf.bugfinder.util
 
-import com.intellij.lang.ASTNode
-import com.intellij.psi.*
+import com.intellij.psi.PsiComment
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.util.IncorrectOperationException
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.mutator.transformations.filterDuplicates
+import com.stepanov.bbf.reduktor.util.getAllChildren
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.psi.psiUtil.parents
@@ -12,7 +15,6 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.callUtil.getType
 import org.jetbrains.kotlin.types.KotlinType
-import kotlin.system.exitProcess
 
 fun PsiFile.getNodesBetweenWhitespaces(begin: Int, end: Int): List<PsiElement> {
     val resList = mutableListOf<PsiElement>()
@@ -78,5 +80,12 @@ fun PsiElement.addAfterThisWithWhitespace(psiElement: PsiElement, whiteSpace: St
         res
     } catch (e: IncorrectOperationException) {
         this
+    }
+}
+
+fun PsiFile.addAfterWithWhiteSpace(psiElement: PsiElement, psiToInsert: PsiElement, whiteSpace: String) :PsiElement? {
+    return run {
+        val elementInFile = this.getAllChildren().find { it.text.take(psiElement.text.length) == psiElement.text } ?: return null
+        elementInFile.addAfterThisWithWhitespace(psiToInsert, whiteSpace)
     }
 }

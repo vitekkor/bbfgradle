@@ -45,13 +45,10 @@ class AddCasts : MetamorphicTransformation() {
             val values = scope[variable]
             val updated = variable.copy(type = supertype)
             values?.let { scope[updated] = it; scope.remove(variable) }
-            mutationPoint.addAfterThisWithWhitespace(
-                Factory.psiFactory.createExpression("$variable as ${supertype.name}"),
-                "\n"
-            )
+            addAfterMutationPoint(mutationPoint) { it.createExpression("$variable as ${supertype.name}") }
         } else {
-            Factory.psiFactory.tryToCreateExpression(tryToCast(variable.psiElement as KtProperty, variable.type, randomTypeToCast))?.let {
-                mutationPoint.addAfterThisWithWhitespace(it, "\n")
+            addAfterMutationPoint(mutationPoint) {
+                it.tryToCreateExpression(tryToCast(variable.psiElement as KtProperty, variable.type, randomTypeToCast))
             }
         }
     }

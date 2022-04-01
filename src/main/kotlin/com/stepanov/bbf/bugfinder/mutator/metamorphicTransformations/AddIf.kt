@@ -1,8 +1,6 @@
 package com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations
 
 import com.intellij.psi.PsiElement
-import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.util.addAfterThisWithWhitespace
 import com.stepanov.bbf.bugfinder.util.getNameWithoutError
 import com.stepanov.bbf.bugfinder.util.getTrue
 import com.stepanov.bbf.bugfinder.util.name
@@ -20,18 +18,17 @@ class AddIf : MetamorphicTransformation() {
         val mutations = removeMutation(AddIf::class)
         var tmp = tmpMutationPoint
         executeMutations(tmp, scope, exp, mutations)
-        val thenStatement = tmp.children.joinToString("\n") { it.text }
+        val thenStatement = tmp.children.joinToString("\n") { it.text }.split("\n").drop(1).joinToString("\n")
         if (thenStatement.isEmpty()) {
             return
         }
         tmp = tmpMutationPoint
         executeMutations(tmp, scope, !exp, mutations)
         val elseStatement =
-            if (Random.getTrue(15)) "else {${tmp.children.joinToString("\n") { it.text }}}" else ""
-        mutationPoint.addAfterThisWithWhitespace(
-            Factory.psiFactory.createExpression("if ($predicate) {$thenStatement}$elseStatement"),
-            "\n"
-        )
+            if (Random.getTrue(15)) "else {${
+                tmp.children.joinToString("\n") { it.text }.split("\n").drop(1).joinToString("\n")
+            }}" else ""
+        addAfterMutationPoint(mutationPoint) { it.createExpression("if ($predicate) {$thenStatement}$elseStatement") }
     }
 
     fun synthesisPredicate(scope: HashMap<Variable, MutableList<String>>, expected: Boolean, depth: Int): Expression {
@@ -60,7 +57,11 @@ class AddIf : MetamorphicTransformation() {
         }*/
     }
 
-    private fun synthesisNegation(scope: HashMap<Variable, MutableList<String>>, expected: Boolean, depth: Int): Expression {
+    private fun synthesisNegation(
+        scope: HashMap<Variable, MutableList<String>>,
+        expected: Boolean,
+        depth: Int
+    ): Expression {
         return Expression("!", synthesisPredicate(scope, !expected, depth - 1))
     }
 
@@ -72,7 +73,11 @@ class AddIf : MetamorphicTransformation() {
         }
     }
 
-    private fun synthesisConjunction(scope: HashMap<Variable, MutableList<String>>, expected: Boolean, depth: Int): Expression {
+    private fun synthesisConjunction(
+        scope: HashMap<Variable, MutableList<String>>,
+        expected: Boolean,
+        depth: Int
+    ): Expression {
         val left: Boolean
         val right: Boolean
         if (expected) {
@@ -90,7 +95,11 @@ class AddIf : MetamorphicTransformation() {
         return Expression("&&", leftPred, rightPred)
     }
 
-    private fun synthesisDisjunction(scope: HashMap<Variable, MutableList<String>>, expected: Boolean, depth: Int): Expression {
+    private fun synthesisDisjunction(
+        scope: HashMap<Variable, MutableList<String>>,
+        expected: Boolean,
+        depth: Int
+    ): Expression {
         val left: Boolean
         val right: Boolean
         if (!expected) {

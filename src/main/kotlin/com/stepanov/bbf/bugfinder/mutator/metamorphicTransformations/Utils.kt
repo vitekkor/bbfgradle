@@ -1,9 +1,7 @@
 package com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations
 
 import com.intellij.psi.PsiElement
-import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.MetamorphicTransformation.Companion.defaultMutations
 import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.MetamorphicTransformation.Companion.removeMutation
-import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.MetamorphicTransformation.Companion.restoreMutations
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
 import org.jetbrains.kotlin.psi.KtProperty
@@ -31,6 +29,7 @@ fun executeMutations(
 ) {
     val mutations = mutationList.shuffled()
     removeMutation(AddVariablesToScope::class)
+    removeMutation(RunLetTransformation::class)
     //defaultMutations.find { it.first::class ==  }?.let { defaultMutations.remove(it) }
 
     //for (i in 0 until Random.nextInt(1, 3)) {

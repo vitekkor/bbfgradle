@@ -4,13 +4,31 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.project.Project
-import com.stepanov.bbf.bugfinder.mutator.MetamorphicMutator
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.util.addAfterThisWithWhitespace
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.apache.log4j.Logger
+import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.resolve.BindingContext
 import kotlin.reflect.KClass
 
 abstract class MetamorphicTransformation {
+
+    protected val log: Logger = Logger.getLogger("bugFinderLogger")
+
+    protected fun addAfterMutationPoint(mutationPoint: PsiElement, psiElement: PsiElement): PsiElement {
+        val result = mutationPoint.addAfterThisWithWhitespace(psiElement, "\n")
+        if (result != mutationPoint)
+            log.info("Apply ${this::class.java} mutation: ${psiElement.text}")
+        else
+            log.info("Couldn't apply ${this::class.java} mutation: ${psiElement.text}")
+        return result
+    }
+
+    protected inline fun addAfterMutationPoint(mutationPoint: PsiElement, create: (KtPsiFactory)-> PsiElement?): PsiElement {
+        val psiElement = create(Factory.psiFactory) ?: return mutationPoint
+        return addAfterMutationPoint(mutationPoint, psiElement)
+    }
 
     abstract fun transform(
         mutationPoint: PsiElement,
@@ -35,7 +53,8 @@ abstract class MetamorphicTransformation {
             AddIf() to 80,
             AddExpressionsWithVariables() to 75,
             AddTryExpression() to 50,
-            AddVariablesToScope() to 60
+            AddVariablesToScope() to 60,
+            RunLetTransformation() to 75
         )
 
         val defaultMutations get() = mutations.toMutableList()
