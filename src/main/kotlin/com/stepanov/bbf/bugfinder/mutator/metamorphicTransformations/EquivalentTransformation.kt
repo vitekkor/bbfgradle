@@ -31,7 +31,7 @@ class EquivalentTransformation : MetamorphicTransformation() {
         val typeAlias = Factory.psiFactory.createTypeAlias(typeAliasName, listOf(), random.text)
         file.addAtTheEnd(typeAlias)
         val typeAliasReference = Factory.psiFactory.createType(typeAliasName)
-        typeReferences.forEach { it.replace(typeAliasReference) }
+        typeReferences.forEach { if (it.text == random.text) it.replace(typeAliasReference) }
     }
 
     private fun inlineClass() {
