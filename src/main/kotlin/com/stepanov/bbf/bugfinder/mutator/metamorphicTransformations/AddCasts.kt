@@ -10,7 +10,6 @@ import com.stepanov.bbf.bugfinder.util.*
 import org.jetbrains.kotlin.cfg.getDeclarationDescriptorIncludingConstructors
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.supertypes
@@ -48,7 +47,7 @@ class AddCasts : MetamorphicTransformation() {
             addAfterMutationPoint(mutationPoint) { it.createExpression("$variable as ${supertype.name}") }
         } else {
             addAfterMutationPoint(mutationPoint) {
-                it.tryToCreateExpression(tryToCast(variable.psiElement as KtProperty, variable.type, randomTypeToCast))
+                it.tryToCreateExpression(tryToCast(variable.name, variable.type, randomTypeToCast))
             }
         }
     }
@@ -101,7 +100,7 @@ class AddCasts : MetamorphicTransformation() {
     }
 
     private fun tryToCast(
-        expression: KtProperty,
+        expressionName: String,
         typeOfExpression: KotlinType,
         castToTypeDescriptor: ClassDescriptor
     ): String {
@@ -110,9 +109,9 @@ class AddCasts : MetamorphicTransformation() {
         val newExpression =
             try {
                 if (Random.getTrue(5)) {
-                    Factory.psiFactory.createExpressionIfPossible("${expression.name} as T")
+                    Factory.psiFactory.createExpressionIfPossible("$expressionName as T")
                 } else {
-                    Factory.psiFactory.createExpressionIfPossible("${expression.name} as $castExpressionAsString")
+                    Factory.psiFactory.createExpressionIfPossible("$expressionName as $castExpressionAsString")
                 }
             } catch (e: Exception) {
                 null
@@ -120,7 +119,7 @@ class AddCasts : MetamorphicTransformation() {
         if (newExpression != null) return newExpression.text
         val newExpressionInBrackets =
             try {
-                Factory.psiFactory.createExpressionIfPossible("(${expression.name}) as $castExpressionAsString")
+                Factory.psiFactory.createExpressionIfPossible("($expressionName) as $castExpressionAsString")
             } catch (e: Exception) {
                 null
             } ?: return ""
