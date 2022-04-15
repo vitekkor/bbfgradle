@@ -5,6 +5,7 @@ import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.replaceThis
 import org.jetbrains.kotlin.psi.KtBlockExpression
+import org.jetbrains.kotlin.psi.KtNamedFunction
 import kotlin.random.Random
 
 class RunLetTransformation: MetamorphicTransformation() {
@@ -14,7 +15,8 @@ class RunLetTransformation: MetamorphicTransformation() {
         expected: Boolean
     ) {
         val block = file.getAllPSIChildrenOfType<KtBlockExpression>().randomOrNull() ?: return
-        val runOrLet = if (Random.nextBoolean()) "kotlin.run" else "let"
+        val isFunctionBody = (block.parent as? KtNamedFunction) != null
+        val runOrLet = if (isFunctionBody) "=" else "" + if (Random.nextBoolean()) "kotlin.run" else "let"
         val newBlock = Factory.psiFactory.createExpressionIfPossible("$runOrLet ${block.text}") ?: return
         block.replaceThis(newBlock)
     }
