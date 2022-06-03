@@ -28,15 +28,18 @@ class AddLoop : MetamorphicTransformation() {
             executeMutations(tmp, scope, expected, mutations)
             tmp.children.joinToString("\n") { it.text }.split("\n").drop(1).joinToString("\n")
         }
+        println("Body: $body")
         val forExpr: KtExpression = if (Random.getTrue(33)) { // normal
             generateForExpression(scope.keys, rig, body) ?: return
         } else if (Random.getTrue(33)) { // one iteration
             val value = Random.nextInt()
             val forExpression = "for (${Random.getRandomVariableName(5)} in $value..$value) {\n$body\n}"
+            println("forExpression: $forExpression")
             Factory.psiFactory.createExpressionIfPossible(forExpression) ?: return
         } else { // endless loop with break
             val forExpression =
                 "for (${Random.getRandomVariableName(5)} in generateSequence(0) { it }) {\n$body\nbreak\n}"
+            println("forExpression: $forExpression")
             Factory.psiFactory.createExpressionIfPossible(forExpression) ?: return
         }
         addAfterMutationPoint(mutationPoint, forExpr)
@@ -56,7 +59,7 @@ class AddLoop : MetamorphicTransformation() {
                 containerFromScopeToIterate.random().psiElement
             } else if (variablesFromScopeToIterate.isNotEmpty() && Random.getTrue(20)) {
                 val randomVar = variablesFromScopeToIterate.random()
-                val left = randomVar.psiElement as KtProperty
+                val left = randomVar.psiElement as? KtProperty ?: return null
                 val rightFromScope =
                     variablesFromScopeToIterate
                         .find { it.type.name == randomVar.type.name && it.psiElement.text != randomVar.psiElement.text }
@@ -105,8 +108,7 @@ class AddLoop : MetamorphicTransformation() {
         StdLibraryGenerator.klasses
             .filter {
                 it.getAllSuperClassifiersWithoutAnyAndItself()
-                    .map { it.name.asString() }
-                    .let { it.contains("Iterable") }
+                .map { it.name.asString() }.contains("Iterable")
             }
             .filterDuplicatesBy { it.name }
 

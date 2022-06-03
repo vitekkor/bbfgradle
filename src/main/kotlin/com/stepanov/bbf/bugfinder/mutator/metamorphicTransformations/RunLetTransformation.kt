@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations
 
 import com.intellij.psi.PsiElement
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.mutator.transformations.Factory.tryToCreateExpression
 import com.stepanov.bbf.reduktor.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.reduktor.util.replaceThis
 import org.jetbrains.kotlin.psi.KtBlockExpression
@@ -16,8 +17,10 @@ class RunLetTransformation: MetamorphicTransformation() {
     ) {
         val block = file.getAllPSIChildrenOfType<KtBlockExpression>().randomOrNull() ?: return
         val isFunctionBody = (block.parent as? KtNamedFunction) != null
-        val runOrLet = if (isFunctionBody) "=" else "" + if (Random.nextBoolean()) "kotlin.run" else "let"
-        val newBlock = Factory.psiFactory.createExpressionIfPossible("$runOrLet ${block.text}") ?: return
+        val runOrLet = (if (isFunctionBody) "=" else "") + (if (Random.nextBoolean()) "kotlin.run" else "kotlin.let")
+        println("RunLet block: ${block.text.removePrefix("{").removeSuffix("}")}")
+        println("RunLetTransformation: $runOrLet {${block.text.removePrefix("{").removeSuffix("}")}}")
+        val newBlock = Factory.psiFactory.tryToCreateExpression("$runOrLet {${block.text.removePrefix("{").removeSuffix("}")}}") ?: return
         block.replaceThis(newBlock)
     }
 }

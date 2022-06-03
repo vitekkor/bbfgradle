@@ -24,28 +24,32 @@ class AddFunInvocations : MetamorphicTransformation() {
         val ktFile = file as KtFile
         rig = RandomInstancesGenerator(ktFile, ctx!!)
         functions =
-            ktFile.getAllPSIChildrenOfType { !it.text.contains("fun main(.*)".toRegex()) }
+            ktFile.getAllPSIChildrenOfType { !it.text.contains("fun main(.*)".toRegex()) && !it.text.contains("fun box(.*)".toRegex()) }
         if (!expected) {
             val func = functions.randomOrNull() ?: return
             if (func.getElementParentDeclaration() != null) {
-                val (klass, type) = rig.generateRandomInstanceOfClass(func.getElementParentDeclaration() as KtClassOrObject)!!
+                val (klass, type) = rig.generateRandomInstanceOfClass(func.getElementParentDeclaration() as KtClassOrObject)
+                    ?: return
                 val v = scope.keys.find { it.type == type }?.name ?: Random.getRandomVariableNameNotIn(scope.keys)
                 if (scope.keys.any { it.name == v }) {
                     val funInvokeText =
-                        "$v." + rig.generateFunctionCall(functions[5].getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor)?.text
+                        "$v." + rig.generateFunctionCall(func.getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor)?.text
                     addAfterMutationPoint(mutationPoint) { it.createExpression(funInvokeText) }
                 } else {
-                    val funInvokeText = "var $v = ${klass!!.text}\n$v." + rig.generateFunctionCall(
+                    val funInvokeText = "$v." + rig.generateFunctionCall(
                         func.getDeclarationDescriptorIncludingConstructors(
                             ctx!!
-                        ) as FunctionDescriptor
+                        ) as? FunctionDescriptor ?: return
                     )?.text
+                    println("FUN IVOCATION: $funInvokeText")
                     addAfterMutationPoint(mutationPoint) { it.createExpression(funInvokeText) }
+                    addAfterMutationPoint(mutationPoint) { it.createProperty("var $v = ${klass!!.text}") }
                 }
             } else {
                 val funInvoke =
                     rig.generateFunctionCall(func.getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor)
                         ?: return
+                println("FUN IVOCATION: ${funInvoke.text}")
                 addAfterMutationPoint(mutationPoint, funInvoke)
             }
         } else {
@@ -64,6 +68,7 @@ class AddFunInvocations : MetamorphicTransformation() {
             val funInvoke =
                 rig.generateFunctionCall(func.getDeclarationDescriptorIncludingConstructors(ctx!!) as FunctionDescriptor)
                     ?: return
+            println("FUN IVOCATION: ${funInvoke.text}")
             addAfterMutationPoint(mutationPoint, funInvoke)
         }
     }

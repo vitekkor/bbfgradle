@@ -5,7 +5,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.TreeElement
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
-import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.compilers.JVMCompiler
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
@@ -30,7 +29,7 @@ open class MutationChecker(
         val allTexts = project.files.joinToString { it.psiFile.text }
         checkedConfigurationsWithExecutionResult[allTexts]?.let { log.debug("Already executed"); return it.first }
         val compiler = compilers.find(JVMCompiler::class::isInstance) ?: return "Error" //TODO
-        val compiled = compiler.compile(project)
+        val compiled = compiler.compile(project).also { if (it.status == -1) return "Error" }
         val startTime = System.currentTimeMillis()
         val res = compiler.exec(compiled.pathToCompiled, Stream.BOTH)
         checkedConfigurationsWithExecutionResult[allTexts] = res to System.currentTimeMillis() - startTime
