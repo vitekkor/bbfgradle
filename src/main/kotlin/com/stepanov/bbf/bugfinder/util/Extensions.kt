@@ -414,6 +414,9 @@ fun KtFile.getBoxFuncs(): List<KtNamedFunction>? =
 fun KtFile.getMainFunc(): KtNamedFunction? =
     this.getAllPSIChildrenOfType<KtNamedFunction> { it.text.contains(Regex("""fun main\(""")) }.firstOrNull()
 
+fun KtFile.getFunc(): KtNamedFunction? =
+    getAllPSIChildrenOfType<KtNamedFunction>().randomOrNull()
+
 fun PsiFile.addAtTheEnd(psiElement: PsiElement): PsiElement {
     return this.getAllPSIDFSChildrenOfType<PsiElement>().last().parent.let {
         it.add(Factory.psiFactory.createWhiteSpace("\n\n"))

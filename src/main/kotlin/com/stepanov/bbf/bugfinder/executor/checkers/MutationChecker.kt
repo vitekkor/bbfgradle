@@ -28,8 +28,16 @@ open class MutationChecker(
         log.debug("Compilation checking and getting result started")
         val allTexts = project.files.joinToString { it.psiFile.text }
         checkedConfigurationsWithExecutionResult[allTexts]?.let { log.debug("Already executed"); return it.first }
-        val compiler = compilers.find(JVMCompiler::class::isInstance) ?: return "Error" //TODO
-        val compiled = compiler.compile(project).also { if (it.status == -1) return "Error" }
+        val compiler = compilers.find(JVMCompiler::class::isInstance) ?: run {
+            log.info("Couldn't find JVM compiler")
+            return "Error"
+        } //TODO
+        val compiled = compiler.compile(project).also {
+            if (it.status == -1) {
+                log.info("JVM compiler $compiler cannot compile project $project")
+                return "Error"
+            }
+        }
         val startTime = System.currentTimeMillis()
         val res = compiler.exec(compiled.pathToCompiled, Stream.BOTH)
         checkedConfigurationsWithExecutionResult[allTexts] = res to System.currentTimeMillis() - startTime

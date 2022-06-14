@@ -26,25 +26,30 @@ class AddCasts : MetamorphicTransformation() {
         RandomTypeGenerator.setFileAndContext(ktFile, ctx!!)
         rig = RandomInstancesGenerator(ktFile, ctx!!)
         val variable = scope.keys.randomOrNull() ?: generateVariable() ?: return
-        val currentModule =
-            ktFile.getMainFunc()?.getDeclarationDescriptorIncludingConstructors(ctx!!)?.module ?: return
+        val currentModule = (ktFile.getMainFunc() ?: ktFile.getFunc())
+            ?.getDeclarationDescriptorIncludingConstructors(ctx!!)?.module ?: return
 
         val userClassesDescriptors =
             StdLibraryGenerator.getUserClassesDescriptorsFromProject(project, currentModule)
 
         val randomTypeToCast =
-            if (Random.getTrue(10)) {
+            if (Random.getTrue(20)) {
                 val randomType = RandomTypeGenerator.generateRandomTypeWithCtx()
                 randomType?.constructor?.declarationDescriptor as? ClassDescriptor
             } else {
                 chooseRandomTypeToCast(variable.type, userClassesDescriptors)
             } ?: return
         if (expected) {
-            val supertype = variable.type.supertypes().randomOrNull() ?: return
-            val values = scope[variable]
-            val updated = variable.copy(type = supertype)
-            values?.let { scope[updated] = it; scope.remove(variable) }
-            addAfterMutationPoint(mutationPoint) { it.createExpression("$variable as ${supertype.name}") }
+            if (Random.getTrue(42)) {
+                val typeArgsOfExpressionAsString = throwTypeParams(variable.type, randomTypeToCast)
+                addAfterMutationPoint(mutationPoint) {it.tryToCreateExpression("($variable) as? ${randomTypeToCast.name.asString()}$typeArgsOfExpressionAsString")}
+            } else {
+                val supertype = variable.type.supertypes().randomOrNull() ?: return
+                val values = scope[variable]
+                val updated = variable.copy(type = supertype)
+                values?.let { scope[updated] = it; scope.remove(variable) }
+                addAfterMutationPoint(mutationPoint) { it.createExpression("($variable) as ${supertype.name}") }
+            }
         } else {
             addAfterMutationPoint(mutationPoint) {
                 it.tryToCreateExpression(tryToCast(variable.name, variable.type, randomTypeToCast))
@@ -109,7 +114,7 @@ class AddCasts : MetamorphicTransformation() {
         val newExpression =
             try {
                 if (Random.getTrue(5)) {
-                    Factory.psiFactory.createExpressionIfPossible("$expressionName as T")
+                    Factory.psiFactory.createExpressionIfPossible("$expressionName as Any")
                 } else {
                     Factory.psiFactory.createExpressionIfPossible("$expressionName as $castExpressionAsString")
                 }

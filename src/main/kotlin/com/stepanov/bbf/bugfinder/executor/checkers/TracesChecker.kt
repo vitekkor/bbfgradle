@@ -30,9 +30,13 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         mutated: Project,
         saveFoundBugs: Boolean = true
     ): Boolean {
+        log.info("Compile original code")
         val (originalRes, _) = checkTest(original)
+        log.info("Compile mutated code")
         val (mutatedRes, didCrashMutated) = checkTest(mutated)
+        log.info("Comparison")
         if (originalRes != mutatedRes || didCrashMutated) {
+            log.info("Diff behaviour detected")
             val diff = originalRes.minus(mutatedRes)
             if (saveFoundBugs) {
                 BugManager.saveBug(
@@ -50,6 +54,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
     }
 
     fun checkBehavior(project: Project, saveFoundBugs: Boolean = true): Boolean {
+        log.info("Check behaviour")
         val (groupedRes, didCrash) = checkTest(project)
         if (groupedRes.size > 1) {
             if (groupedRes.keys.first().split("\n").any { it.matches(Regex(""".+@[0-9a-z]+""")) }) {
@@ -98,8 +103,10 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         var hasErrors = false
         for (comp in extendedCompilerList) {
             val status = comp.compile(project)
-            if (status.status == -1)
+            if (status.status == -1) {
+                log.info("Cannot copmile with $comp compiler")
                 return mapOf<String, List<CommonCompiler>>() to false
+            }
             val res = comp.exec(status.pathToCompiled)
             val errors = comp.exec(status.pathToCompiled, Stream.ERROR)
             if (errors.isNotEmpty()) hasErrors = true

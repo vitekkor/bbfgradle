@@ -91,6 +91,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
     ): Boolean {
         log.debug("Compilation checking started")
         val allTexts = project.files.joinToString { it.psiFile.text }
+        log.debug(allTexts)
         checkedConfigurations[allTexts]?.let { log.debug("Already checked"); return it }
         //Checking syntax correction
         if (!checkSyntaxCorrectnessAndAddCond(project, curFile)) {
@@ -103,6 +104,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
             compileAndGetStatusesWithExecutionTime(project).let { it.map { it.first } to it.map { it.second } }
         when {
             statuses.all { it == COMPILE_STATUS.OK } -> {
+                log.info("All compilers finished without errors")
                 if (CompilerArgs.isPerformanceMode) {
                     //-1 not interesting, 0 - ok, 1 - interesting
                     var compilationRetValue = -1
@@ -191,6 +193,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
                     return checkRes
                 }
                 if (CompilerArgs.isMetamorphicMode) {
+                    log.info("Start check metamorphic mutations traces")
                     val checkRes = checkMetamorphicMutationsTraces(project, original)
                     checkedConfigurations[allTexts] = checkRes
                     return checkRes
@@ -200,6 +203,7 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
                 return true
             }
             statuses.all { it == COMPILE_STATUS.ERROR } -> {
+                log.info("All compilers finished with errors")
                 StatisticCollector.incField("Incorrect programs")
                 checkedConfigurations[allTexts] = false
                 return false

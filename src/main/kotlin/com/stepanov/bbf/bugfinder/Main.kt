@@ -21,6 +21,7 @@ fun main(args: Array<String>) {
     //File("/home/vitekkor/IdeaProjects/bbfgradle/tmp/arrays/fieldInsideLambda.kt")
     //File(CompilerArgs.baseDir).listFiles()?.filter { it.path.endsWith(".kt") }?.random() ?: exitProcess(0)
     //File("/home/vitekkor/IdeaProjects/bbfgradle/tmp/arrays/funMetamorphExample.kt")
+    //"tmp/arrays/coerctionToUnitForLastExpressionWithStarProjection.kt"
     SingleFileBugFinder(file.absolutePath).findBugsInFile()
     exitProcess(0)
 //    val results = mutableMapOf<String, Pair<Double, Double>>()

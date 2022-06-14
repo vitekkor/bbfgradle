@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.psi.KtBlockExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import kotlin.random.Random
 
-class RunLetTransformation: MetamorphicTransformation() {
+class RunLetTransformation : MetamorphicTransformation() {
     override fun transform(
         mutationPoint: PsiElement,
         scope: HashMap<Variable, MutableList<String>>,
@@ -20,7 +20,13 @@ class RunLetTransformation: MetamorphicTransformation() {
         val runOrLet = (if (isFunctionBody) "=" else "") + (if (Random.nextBoolean()) "kotlin.run" else "kotlin.let")
         println("RunLet block: ${block.text.removePrefix("{").removeSuffix("}")}")
         println("RunLetTransformation: $runOrLet {${block.text.removePrefix("{").removeSuffix("}")}}")
-        val newBlock = Factory.psiFactory.tryToCreateExpression("$runOrLet {${block.text.removePrefix("{").removeSuffix("}")}}") ?: return
+        val newBlock =
+            Factory.psiFactory.tryToCreateExpression("$runOrLet {${block.text.removePrefix("{").removeSuffix("}")}}")
+                ?: return
         block.replaceThis(newBlock)
+    }
+
+    private fun doesntContainsMutationPoint(it: PsiElement, mutationPoint: PsiElement): Boolean {
+        TODO("Not yet implemented")
     }
 }

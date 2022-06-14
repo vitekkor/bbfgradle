@@ -21,6 +21,7 @@ import org.apache.log4j.Logger
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.ImportPath
+import kotlin.random.Random
 import kotlin.system.exitProcess
 
 class MetamorphicMutator(val project: Project) {
@@ -76,7 +77,9 @@ class MetamorphicMutator(val project: Project) {
         val scope: HashMap<Variable, MutableList<String>> = profileScope(mutationPoint)
         checker.trace(originalProject)
         mutate(mutationPoint, scope)
-        file.getAllChildren().find { it.text.take(mutationPointBackup.text.length) == mutationPointBackup.text }!!.replaceThis(mutationPoint)
+        file.getAllChildren().find { it.text.take(mutationPointBackup.text.length) == mutationPointBackup.text }
+            ?.replaceThis(mutationPoint)
+            ?: log.info("Mutation point was changed by mutations ${mutationPoint.text}")
         CompilerArgs.isMetamorphicMode = true
         val success = checker.checkCompilingWithBugSaving(project, checker.curFile, originalProject)
         if (!success) checker.curFile.changePsiFile(fileBackup, genCtx = false)
@@ -124,7 +127,7 @@ class MetamorphicMutator(val project: Project) {
     }
 
     private fun mutate(mutationPoint: PsiElement, scope: HashMap<Variable, MutableList<String>>) {
-        val expected = false//Random.nextBoolean()
+        val expected = Random.nextBoolean()
         executeMutations(mutationPoint, scope, expected, defaultMutations)
         MetamorphicTransformation.restoreMutations()
     }
