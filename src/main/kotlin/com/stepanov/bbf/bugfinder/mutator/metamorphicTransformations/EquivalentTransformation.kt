@@ -79,17 +79,13 @@ class EquivalentTransformation : MetamorphicTransformation() {
         val ktNameReferenceExpression = file.getAllPSIChildrenOfType<KtNameReferenceExpression>()
         prop.forEach { property ->
             ktNameReferenceExpression.filter { it.text.contains(property.name!!) }.forEach { replacement ->
-                if (property.initializer != null)
+                val binaryExpression = (replacement.parent as? KtBinaryExpression)
+                if (binaryExpression != null) {
+                    val newExpression =
+                        Factory.psiFactory.createExpression("${binaryExpression.left?.text} = $className(${binaryExpression.right?.text?.split("\n")?.first()})")
+                    binaryExpression.replace(newExpression)
+                } else {
                     replacement.replaceThis(Factory.psiFactory.createExpression("${replacement.text}.$propertyName"))
-                else {
-                    val binaryExpression = (replacement.parent as? KtBinaryExpression)
-                    if (binaryExpression != null) {
-                        val newExpression =
-                            Factory.psiFactory.createExpression("${binaryExpression.left?.text} = $className(${binaryExpression.left?.text})")
-                        binaryExpression.replace(newExpression)
-                    } else {
-                        replacement.replaceThis(Factory.psiFactory.createExpression("${replacement.text}.$propertyName"))
-                    }
                 }
             }
         }

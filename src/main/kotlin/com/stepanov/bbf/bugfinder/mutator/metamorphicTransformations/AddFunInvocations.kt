@@ -42,8 +42,8 @@ class AddFunInvocations : MetamorphicTransformation() {
                         ) as? FunctionDescriptor ?: return
                     )?.text
                     println("FUN IVOCATION: $funInvokeText")
-                    addAfterMutationPoint(mutationPoint) { it.createExpression(funInvokeText) }
                     addAfterMutationPoint(mutationPoint) { it.createProperty("var $v = ${klass!!.text}") }
+                    addAfterMutationPoint(mutationPoint) { it.createExpression(funInvokeText) }
                 }
             } else {
                 val funInvoke =

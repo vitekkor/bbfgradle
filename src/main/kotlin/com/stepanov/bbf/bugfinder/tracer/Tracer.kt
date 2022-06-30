@@ -31,6 +31,7 @@ import java.lang.StringBuilder
 class Tracer(val compiler: CommonCompiler, val project: Project) : KtVisitorVoid() {
 
     fun trace() {
+        val isMiscompilationMode = CompilerArgs.isMiscompilationMode
         CompilerArgs.isMiscompilationMode = false
         project.files.forEach {
             if (it.getLanguage() == LANGUAGE.KOTLIN) {
@@ -40,20 +41,7 @@ class Tracer(val compiler: CommonCompiler, val project: Project) : KtVisitorVoid
                 it.changePsiFile(traceCurFile())
             }
         }
-        CompilerArgs.isMiscompilationMode = true
-    }
-
-    fun traceMutatedProject(excluded: List<PsiElement>) {
-        CompilerArgs.isMetamorphicMode = false
-        project.files.forEach {
-            if (it.getLanguage() == LANGUAGE.KOTLIN) {
-                checker = MutationChecker(compiler, project, it)
-                tree = it.psiFile as KtFile
-                ctx = PSICreator.analyze(tree) ?: return
-                it.changePsiFile(traceMetamorphicMutatedFile(excluded))
-            }
-        }
-        CompilerArgs.isMetamorphicMode = true
+        CompilerArgs.isMiscompilationMode = isMiscompilationMode
     }
 
     private fun traceMetamorphicMutatedFile(excluded: List<PsiElement>): KtFile {

@@ -21,9 +21,10 @@ class AddExpressionsWithVariables : MetamorphicTransformation() {
         rig = RandomInstancesGenerator(ktFile, ctx!!)
         val variable = scope.keys.randomOrNull() ?: generateVariable() ?: return
 
-        val functionName = variable.type.memberScope.getFunctionNames().randomOrNull() ?: return
+        val functionName = variable.type.memberScope.getContributedDescriptors { true }
+            .filterNot { it.toString().startsWith("private") }.randomOrNull() ?: return
         val function =
-            variable.type.memberScope.getContributedFunctions(functionName, KotlinLookupLocation(file as KtFile))
+            variable.type.memberScope.getContributedFunctions(functionName.name, KotlinLookupLocation(file as KtFile))
                 .randomOrNull() ?: return
         val funCall = rig.generateFunctionCall(function) ?: return
         if (expected) {
@@ -46,7 +47,7 @@ class AddExpressionsWithVariables : MetamorphicTransformation() {
                 }
             } else {
                 addAfterMutationPoint(mutationPoint) {
-                    it.createExpression("kotlin.run {\n${variable.psiElement.text}\n${variable.name}.${funCall.text}}")
+                    it.createExpression("kotlin.run {\n${variable.psiElement.text}\n${variable.name}?.${funCall.text}}")
                 }
             }
         } else {

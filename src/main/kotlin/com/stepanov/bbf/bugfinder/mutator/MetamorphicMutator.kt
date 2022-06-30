@@ -65,7 +65,7 @@ class MetamorphicMutator(val project: Project) {
 
         val ctx = PSICreator.analyze(ktFile, project) ?: return
         rig = RandomInstancesGenerator(ktFile, ctx)
-        val mutationPoint =
+        var mutationPoint =
             file.getAllPSIChildrenOfType<KtBlockExpression>()
                 .flatMap { it.children.filterNot { it is PsiWhiteSpace || it is LeafPsiElement || it is KtReturnExpression } }
                 .randomOrNull() ?: return
@@ -76,6 +76,8 @@ class MetamorphicMutator(val project: Project) {
         log.info("Mutation point: ${mutationPoint.text}")
         val scope: HashMap<Variable, MutableList<String>> = profileScope(mutationPoint)
         checker.trace(originalProject)
+        mutationPoint =
+            checkNotNull(file.getAllChildren().find { it.text.removeNewLines() == mutationPoint.text.removeNewLines() })
         mutate(mutationPoint, scope)
         file.getAllChildren().find { it.text.take(mutationPointBackup.text.length) == mutationPointBackup.text }
             ?.replaceThis(mutationPoint)
@@ -86,9 +88,7 @@ class MetamorphicMutator(val project: Project) {
         //checker.curFile.changePsiFile(fileBackup, genCtx = false)
     }
 
-    fun test() {
-
-    }
+    private fun String.removeNewLines() = this.replace(Regex("""[\r\n]"""), "")
 
     private fun profileScope(mutationPoint: PsiElement): HashMap<Variable, MutableList<String>> {
         val ktFile = file as KtFile
@@ -122,7 +122,8 @@ class MetamorphicMutator(val project: Project) {
             variablesToValues.getOrPut(variable) { mutableListOf() }
                 .add(variableToValue[1].removeSuffix("\r"))
         }
-        profiling?.replaceThis(Factory.psiFactory.createWhiteSpace("\n"))
+        if (profiling != null && profiling.text.removeNewLines() != mutationPoint.text.removeNewLines())
+            profiling.replaceThis(Factory.psiFactory.createWhiteSpace("\n"))
         return variablesToValues
     }
 

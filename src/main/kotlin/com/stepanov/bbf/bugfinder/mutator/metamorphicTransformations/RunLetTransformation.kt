@@ -17,7 +17,7 @@ class RunLetTransformation : MetamorphicTransformation() {
     ) {
         val block = file.getAllPSIChildrenOfType<KtBlockExpression>().randomOrNull() ?: return
         val isFunctionBody = (block.parent as? KtNamedFunction) != null
-        val runOrLet = (if (isFunctionBody) "=" else "") + (if (Random.nextBoolean()) "kotlin.run" else "kotlin.let")
+        val runOrLet = (if (isFunctionBody) "=" else "") + (if (Random.nextBoolean()) "1.run" else "1.let")
         println("RunLet block: ${block.text.removePrefix("{").removeSuffix("}")}")
         println("RunLetTransformation: $runOrLet {${block.text.removePrefix("{").removeSuffix("}")}}")
         val newBlock =

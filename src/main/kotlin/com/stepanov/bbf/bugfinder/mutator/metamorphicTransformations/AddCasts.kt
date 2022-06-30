@@ -29,6 +29,10 @@ class AddCasts : MetamorphicTransformation() {
         val currentModule = (ktFile.getMainFunc() ?: ktFile.getFunc())
             ?.getDeclarationDescriptorIncludingConstructors(ctx!!)?.module ?: return
 
+        val createNewVariableExpression = if (scope[variable] == null) {
+            variable.psiElement.text + "\n"
+        } else ""
+
         val userClassesDescriptors =
             StdLibraryGenerator.getUserClassesDescriptorsFromProject(project, currentModule)
 
@@ -42,17 +46,22 @@ class AddCasts : MetamorphicTransformation() {
         if (expected) {
             if (Random.getTrue(42)) {
                 val typeArgsOfExpressionAsString = throwTypeParams(variable.type, randomTypeToCast)
-                addAfterMutationPoint(mutationPoint) {it.tryToCreateExpression("($variable) as? ${randomTypeToCast.name.asString()}$typeArgsOfExpressionAsString")}
+                addAfterMutationPoint(mutationPoint) {
+                    it.tryToCreateExpression("kotlin.run{\n$createNewVariableExpression($variable) as? ${randomTypeToCast.name.asString()}$typeArgsOfExpressionAsString}")
+                }
             } else {
                 val supertype = variable.type.supertypes().randomOrNull() ?: return
                 val values = scope[variable]
                 val updated = variable.copy(type = supertype)
                 values?.let { scope[updated] = it; scope.remove(variable) }
-                addAfterMutationPoint(mutationPoint) { it.createExpression("($variable) as ${supertype.name}") }
+                addAfterMutationPoint(mutationPoint) {
+                    it.createExpression("kotlin.run{\n$createNewVariableExpression($variable) as ${supertype.name}}")
+                }
             }
         } else {
             addAfterMutationPoint(mutationPoint) {
-                it.tryToCreateExpression(tryToCast(variable.name, variable.type, randomTypeToCast))
+                it.tryToCreateExpression("kotlin.run{\n$createNewVariableExpression"+
+                        it.tryToCreateExpression(tryToCast(variable.name, variable.type, randomTypeToCast))?.text + "}")
             }
         }
     }

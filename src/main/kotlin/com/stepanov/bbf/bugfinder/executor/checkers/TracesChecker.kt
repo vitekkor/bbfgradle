@@ -38,6 +38,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         if (originalRes != mutatedRes || didCrashMutated) {
             log.info("Diff behaviour detected")
             val diff = originalRes.minus(mutatedRes)
+            log.info("Diff - $diff")
             if (saveFoundBugs) {
                 BugManager.saveBug(
                     Bug(
