@@ -62,6 +62,9 @@ class MetamorphicMutator(val project: Project) {
 
         file.addToTheTop(Factory.psiFactory.createImportDirective(ImportPath.fromString("java.util.*")))
         file.addToTheTop(Factory.psiFactory.createImportDirective(ImportPath.fromString("kotlin.random.*")))
+        file.addToTheTop(Factory.psiFactory.createImportDirective(ImportPath.fromString("java.nio.*")))
+        file.addToTheTop(Factory.psiFactory.createImportDirective(ImportPath.fromString("java.nio.file.*")))
+        file.addToTheTop(Factory.psiFactory.createImportDirective(ImportPath.fromString("java.io.*")))
 
         val ctx = PSICreator.analyze(ktFile, project) ?: return
         rig = RandomInstancesGenerator(ktFile, ctx)
@@ -76,16 +79,20 @@ class MetamorphicMutator(val project: Project) {
         log.info("Mutation point: ${mutationPoint.text}")
         val scope: HashMap<Variable, MutableList<String>> = profileScope(mutationPoint)
         checker.trace(originalProject)
+        checker.curFile.changePsiFile(originalProject.files[0].psiFile, true)
+        MetamorphicTransformation.originalProject = originalProject
         mutationPoint =
-            checkNotNull(file.getAllChildren().find { it.text.removeNewLines() == mutationPoint.text.removeNewLines() })
+            checkNotNull(
+                file.getAllChildren().find {
+                    it.text.removeNewLines().replace(Regex("""\{? *println\(.*\); *"""), "")
+                        .removeSuffix("}") == mutationPoint.text.removeNewLines()
+                })
         mutate(mutationPoint, scope)
         file.getAllChildren().find { it.text.take(mutationPointBackup.text.length) == mutationPointBackup.text }
             ?.replaceThis(mutationPoint)
             ?: log.info("Mutation point was changed by mutations ${mutationPoint.text}")
         CompilerArgs.isMetamorphicMode = true
-        val success = checker.checkCompilingWithBugSaving(project, checker.curFile, originalProject)
-        if (!success) checker.curFile.changePsiFile(fileBackup, genCtx = false)
-        //checker.curFile.changePsiFile(fileBackup, genCtx = false)
+        checker.checkCompilingWithBugSaving(project, checker.curFile, originalProject)
     }
 
     private fun String.removeNewLines() = this.replace(Regex("""[\r\n]"""), "")

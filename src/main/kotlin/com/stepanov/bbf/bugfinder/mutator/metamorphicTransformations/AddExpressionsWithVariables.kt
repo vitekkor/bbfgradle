@@ -67,6 +67,7 @@ class AddExpressionsWithVariables : MetamorphicTransformation() {
         val expr = rig.generateValueOfTypeAsExpression(randomType) ?: return null
         val property =
             Factory.psiFactory.createProperty(Random.getRandomVariableName(), randomType.toString(), true, expr.text)
+        log.info("Generate variable: ${property.text}")
         return Variable(property.name!!, randomType, property)
     }
 }

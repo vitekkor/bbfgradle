@@ -6,6 +6,7 @@ import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
 import com.stepanov.bbf.bugfinder.manager.BugType
+import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.MetamorphicTransformation
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.Stream
 import com.stepanov.bbf.bugfinder.util.addToTheTop
@@ -35,6 +36,10 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         log.info("Compile mutated code")
         val (mutatedRes, didCrashMutated) = checkTest(mutated)
         log.info("Comparison")
+        if (mutatedRes.keys.any {it.contains("Exception")}) {
+            log.info("Mutated project threw an exception.")
+            return false
+        }
         if (originalRes != mutatedRes || didCrashMutated) {
             log.info("Diff behaviour detected")
             val diff = originalRes.minus(mutatedRes)
@@ -49,7 +54,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
                     )
                 )
             }
-            return false
+            return true
         }
         return true
     }

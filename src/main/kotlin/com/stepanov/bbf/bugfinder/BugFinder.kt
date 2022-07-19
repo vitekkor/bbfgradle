@@ -3,6 +3,7 @@ package com.stepanov.bbf.bugfinder
 import com.intellij.psi.PsiFile
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.checkers.MetamorphicMutationChecker
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
@@ -26,7 +27,7 @@ open class BugFinder(protected val dir: String) {
                 project,
                 curFile
             ).also { checker -> conditions.forEach { checker.additionalConditions.add(it) } }
-        else MetamorphicTransformation.checker = MutationChecker(
+        else MetamorphicTransformation.checker = MetamorphicMutationChecker(
             compilers,
             project,
             curFile

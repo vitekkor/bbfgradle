@@ -81,7 +81,7 @@ open class MutationChecker(
         replaceNodeIfPossibleWithNode(node, replacement) != null
 
 
-    fun addNodeIfPossible(anchor: PsiElement, node: PsiElement, before: Boolean = false): Boolean {
+    open fun addNodeIfPossible(anchor: PsiElement, node: PsiElement, before: Boolean = false): Boolean {
         log.debug("Trying to add $node to $anchor")
         if (node.text.isEmpty() || node == anchor) return checkCompilingWithBugSaving(project, curFile)
         try {
@@ -191,6 +191,6 @@ open class MutationChecker(
     }
 
     private val DUMMY_HOLDER_INDEX: Short = 86
-    private val log = Logger.getLogger("mutatorLogger")
+    protected val log = Logger.getLogger("mutatorLogger")
     private val checkedConfigurationsWithExecutionResult = hashMapOf<String, Pair<String, Long>>()
 }

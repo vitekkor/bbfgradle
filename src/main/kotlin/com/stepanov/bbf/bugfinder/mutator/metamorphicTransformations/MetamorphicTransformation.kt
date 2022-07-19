@@ -2,10 +2,10 @@ package com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
-import com.stepanov.bbf.bugfinder.util.addAfterThisWithWhitespace
 import com.stepanov.bbf.reduktor.parser.PSICreator
 import org.apache.log4j.Logger
 import org.jetbrains.kotlin.psi.KtPsiFactory
@@ -17,12 +17,23 @@ abstract class MetamorphicTransformation {
     protected val log: Logger = Logger.getLogger("bugFinderLogger")
 
     protected fun addAfterMutationPoint(mutationPoint: PsiElement, psiElement: PsiElement): PsiElement {
-        val result = mutationPoint.addAfterThisWithWhitespace(psiElement, "\n")
-        if (result != mutationPoint)
+        val isMetamorphicMode = CompilerArgs.isMetamorphicMode
+        CompilerArgs.isMetamorphicMode = true
+        if (!checker.addNodeIfPossible(mutationPoint, Factory.psiFactory.createWhiteSpace("\n"))) {
+            log.info("Couldn't apply ${this::class.java} mutation: ${psiElement.text}")
+            CompilerArgs.isMetamorphicMode = isMetamorphicMode
+            return mutationPoint
+        }
+        if (checker.addNodeIfPossible(mutationPoint.nextSibling ?: mutationPoint, psiElement)) {
             log.info("Apply ${this::class.java} mutation: ${psiElement.text}")
+            CompilerArgs.isMetamorphicMode = isMetamorphicMode
+            return psiElement
+        }
         else
             log.info("Couldn't apply ${this::class.java} mutation: ${psiElement.text}")
-        return result
+        mutationPoint.nextSibling?.delete()
+        CompilerArgs.isMetamorphicMode = isMetamorphicMode
+        return mutationPoint
     }
 
     protected inline fun addAfterMutationPoint(mutationPoint: PsiElement, create: (KtPsiFactory)-> PsiElement?): PsiElement {
@@ -42,12 +53,14 @@ abstract class MetamorphicTransformation {
             get() = checker.curFile.psiFile
         val project: Project
             get() = checker.project
+        lateinit var originalProject: Project
         var ctx: BindingContext? = null
         internal val log = Logger.getLogger("mutatorLogger")
 
         private val mutations = mutableListOf(
-            //AddCasts() to 75,
+            AddCasts() to 75,
             AddLoop() to 75,
+            AddDeadCodeTransformation() to 100,
             //AddRandomClass() to 100
             AddFunInvocations() to 50,
             AddIf() to 80,
@@ -55,7 +68,7 @@ abstract class MetamorphicTransformation {
             AddTryExpression() to 50,
             AddVariablesToScope() to 60,
             RunLetTransformation() to 75,
-            EquivalentTransformation() to 50
+            EquivalentTransformation() to 60
         )
 
         val defaultMutations get() = mutations.toMutableList()
@@ -67,8 +80,9 @@ abstract class MetamorphicTransformation {
 
         fun restoreMutations() {
             val restored = listOf(
-                //AddCasts() to 75,
+                AddCasts() to 75,
                 AddLoop() to 75,
+                AddDeadCodeTransformation() to 100,
                 //AddRandomClass() to 100
                 AddFunInvocations() to 50,
                 AddIf() to 80,

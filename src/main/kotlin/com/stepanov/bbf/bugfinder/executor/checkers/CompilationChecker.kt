@@ -237,6 +237,10 @@ open class CompilationChecker(private val compilers: List<CommonCompiler>) {
         Tracer(compilers.first(), project).trace()
     }
 
+    fun traceMetamorphicProject(project: Project, mutationPoint: PsiElement) {
+        Tracer(compilers.first(), project).trace() // TODO ???
+    }
+
     fun checkMetamorphicMutationsTraces(mutated: Project, original: Project?): Boolean {
         original ?: return checkTraces(mutated)
         return TracesChecker(compilers).checkBehaviorAfterMetamorphicMutation(original, mutated)

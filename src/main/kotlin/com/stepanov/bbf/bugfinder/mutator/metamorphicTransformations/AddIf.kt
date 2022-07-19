@@ -166,17 +166,18 @@ class AddIf : MetamorphicTransformation() {
             "String" -> {
                 return if (values.size > 1) {
                     if (expected)
-                        "$variable in listOf${values.joinToString("\",\"", "(\"", "\")")}"
+                        "$variable in listOf${values.joinToString("\",\"", "(\"", "\")") { it.replace("\"", "") }}"
                     else
-                        "$variable.contains(\"${values.random()}${values.random()}\")"
+                        "$variable.contains(\"${values.random().replace("\"", "")}${values.random()}\")"
                 } else {
                     if (values.isEmpty())
                         if (expected) "$variable.isEmpty()" else "$variable.isNotEmpty()"
                     else {
                         if (expected)
-                            "$variable == \"${values.joinToString("")}\""
+                            "$variable == \"${values.joinToString("") { it.replace("\"", "") }}\""
                         else
-                            "$variable.contains(\"${values.joinToString("")}${Random.nextInt()}\")"
+                            "$variable.contains(\"${values.joinToString("") { it.replace("\"", "") }}" +
+                                    "${Random.nextInt()}\")"
                     }
                 }
             }

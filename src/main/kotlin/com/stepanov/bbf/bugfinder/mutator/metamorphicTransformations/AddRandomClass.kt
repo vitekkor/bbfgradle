@@ -17,7 +17,7 @@ class AddRandomClass : MetamorphicTransformation() {
         scope: HashMap<Variable, MutableList<String>>,
         expected: Boolean
     ) {
-        val ktFile = Transformation.file as KtFile
+        val ktFile = file as KtFile
         if (ctx == null) return
         val parentClass = ktFile.getAllPSIChildrenOfType<KtClassOrObject>().randomOrNull()
         val klassGenerator =
