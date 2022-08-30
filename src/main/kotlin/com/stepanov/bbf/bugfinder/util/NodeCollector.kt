@@ -12,6 +12,7 @@ class NodeCollector(val dir: String) {
 
     companion object {
         val excludes = TokenSet.create(
+            KtTokens.IMPORT_KEYWORD,
             KtTokens.PACKAGE_KEYWORD,
             KtTokens.AS_KEYWORD,
             KtTokens.TYPE_ALIAS_KEYWORD,

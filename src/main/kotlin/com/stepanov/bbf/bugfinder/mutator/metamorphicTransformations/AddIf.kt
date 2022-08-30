@@ -125,8 +125,8 @@ class AddIf : MetamorphicTransformation() {
         val values = scope[variable]!!
         when (variable.type.name) {
             in listOf("Int", "Byte", "Short", "Long", "UInt", "ULong") -> {
-                val max = values.maxOf { it.replace("""\.to.*\(\)""".toRegex(), "").toLong() }
-                val min = values.minOf { it.replace("""\.to.*\(\)""".toRegex(), "").toLong() }
+                val max = values.maxOf { it.replace("""\.to.*\(\)""".toRegex(), "").toLongOrNull() ?: Long.MAX_VALUE }
+                val min = values.minOf { it.replace("""\.to.*\(\)""".toRegex(), "").toLongOrNull() ?: Long.MIN_VALUE }
                 val operator: String
                 var value: String
                 val suffix = if (variable.type.name!![0] == 'U') "u" else ""

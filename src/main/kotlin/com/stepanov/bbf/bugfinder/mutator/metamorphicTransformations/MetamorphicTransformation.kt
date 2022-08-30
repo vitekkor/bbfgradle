@@ -17,23 +17,12 @@ abstract class MetamorphicTransformation {
     protected val log: Logger = Logger.getLogger("bugFinderLogger")
 
     protected fun addAfterMutationPoint(mutationPoint: PsiElement, psiElement: PsiElement): PsiElement {
-        val isMetamorphicMode = CompilerArgs.isMetamorphicMode
-        CompilerArgs.isMetamorphicMode = true
-        if (!checker.addNodeIfPossible(mutationPoint, Factory.psiFactory.createWhiteSpace("\n"))) {
+        val result = checker.addAfter(mutationPoint, psiElement)
+        if (result == mutationPoint)
             log.info("Couldn't apply ${this::class.java} mutation: ${psiElement.text}")
-            CompilerArgs.isMetamorphicMode = isMetamorphicMode
-            return mutationPoint
-        }
-        if (checker.addNodeIfPossible(mutationPoint.nextSibling ?: mutationPoint, psiElement)) {
-            log.info("Apply ${this::class.java} mutation: ${psiElement.text}")
-            CompilerArgs.isMetamorphicMode = isMetamorphicMode
-            return psiElement
-        }
         else
-            log.info("Couldn't apply ${this::class.java} mutation: ${psiElement.text}")
-        mutationPoint.nextSibling?.delete()
-        CompilerArgs.isMetamorphicMode = isMetamorphicMode
-        return mutationPoint
+            log.info("Apply ${this::class.java} mutation: ${psiElement.text}")
+        return result
     }
 
     protected inline fun addAfterMutationPoint(mutationPoint: PsiElement, create: (KtPsiFactory)-> PsiElement?): PsiElement {

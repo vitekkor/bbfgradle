@@ -68,25 +68,19 @@ class MetamorphicMutator(val project: Project) {
 
         val ctx = PSICreator.analyze(ktFile, project) ?: return
         rig = RandomInstancesGenerator(ktFile, ctx)
-        var mutationPoint =
-            file.getAllPSIChildrenOfType<KtBlockExpression>()
-                .flatMap { it.children.filterNot { it is PsiWhiteSpace || it is LeafPsiElement || it is KtReturnExpression } }
-                .randomOrNull() ?: return
+        project.addMainInCurrent()
+        checker.trace(project)
+        originalProject = project.copy()
+        MetamorphicTransformation.originalProject = originalProject
+        var mutationPoint = chooseMutationPoint() ?: return
 //            file.getAllPSIChildrenOfType<KtProperty> { !it.isMember }
 //                .randomOrNull() ?: return
         //(mutationPoint as? KtExpression)?.isUsedAsExpression(ctx)
         val mutationPointBackup = mutationPoint.copy()
         log.info("Mutation point: ${mutationPoint.text}")
         val scope: HashMap<Variable, MutableList<String>> = profileScope(mutationPoint)
-        checker.trace(originalProject)
-        checker.curFile.changePsiFile(originalProject.files[0].psiFile, true)
-        MetamorphicTransformation.originalProject = originalProject
-        mutationPoint =
-            checkNotNull(
-                file.getAllChildren().find {
-                    it.text.removeNewLines().replace(Regex("""\{? *println\(.*\); *"""), "")
-                        .removeSuffix("}") == mutationPoint.text.removeNewLines()
-                })
+        // checker.curFile.changePsiFile(originalProject.files[0].psiFile, true)
+        mutationPoint = checkNotNull(file.find(mutationPoint))
         mutate(mutationPoint, scope)
         file.getAllChildren().find { it.text.take(mutationPointBackup.text.length) == mutationPointBackup.text }
             ?.replaceThis(mutationPoint)
@@ -112,10 +106,7 @@ class MetamorphicMutator(val project: Project) {
             }
         }\n}")
 
-        project.addMainInCurrent()
-        originalProject = project.copy()
-
-        val profiling = file.addAfterWithWhiteSpace(mutationPoint, block, "\n")
+        val profiling = checker.addAfter(mutationPoint, block, false)
 
         val profiled = checker.compileAndGetResult().split("\n")
         val variablesToValues = hashMapOf<Variable, MutableList<String>>()
@@ -130,8 +121,15 @@ class MetamorphicMutator(val project: Project) {
                 .add(variableToValue[1].removeSuffix("\r"))
         }
         if (profiling != null && profiling.text.removeNewLines() != mutationPoint.text.removeNewLines())
-            profiling.replaceThis(Factory.psiFactory.createWhiteSpace("\n"))
+            file.getAllChildren().filter { it.text.contains("kotlin.run") }.find { it.text == profiling.text }
+                ?.replaceThis(Factory.psiFactory.createWhiteSpace("\n"))
         return variablesToValues
+    }
+
+    private fun chooseMutationPoint(): PsiElement? {
+        return file.getAllPSIChildrenOfType<KtBlockExpression>()
+            .flatMap { it.children.filterNot { it is PsiWhiteSpace || it is LeafPsiElement || it is KtReturnExpression } }
+            .randomOrNull()
     }
 
     private fun mutate(mutationPoint: PsiElement, scope: HashMap<Variable, MutableList<String>>) {

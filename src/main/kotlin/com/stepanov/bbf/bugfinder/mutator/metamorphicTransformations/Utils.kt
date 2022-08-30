@@ -1,6 +1,8 @@
 package com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations
 
 import com.intellij.psi.PsiElement
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.MetamorphicTransformation.Companion.removeMutation
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
@@ -51,4 +53,20 @@ data class Variable(val name: String, val type: KotlinType, val psiElement: PsiE
 
     val isVar: Boolean
         get() = (psiElement as? KtProperty)?.isVar ?: false
+}
+
+fun MutationChecker.addAfter(mutationPoint: PsiElement, psiElement: PsiElement, metamorphicMode: Boolean = true): PsiElement {
+    val isMetamorphicMode = CompilerArgs.isMetamorphicMode
+    CompilerArgs.isMetamorphicMode = metamorphicMode
+    if (!addNodeIfPossible(mutationPoint, Factory.psiFactory.createWhiteSpace("\n"))) {
+        CompilerArgs.isMetamorphicMode = isMetamorphicMode
+        return mutationPoint
+    }
+    if (addNodeIfPossible(mutationPoint.nextSibling ?: mutationPoint, psiElement)) {
+        CompilerArgs.isMetamorphicMode = isMetamorphicMode
+        return psiElement
+    }
+    mutationPoint.nextSibling?.delete()
+    CompilerArgs.isMetamorphicMode = isMetamorphicMode
+    return mutationPoint
 }
