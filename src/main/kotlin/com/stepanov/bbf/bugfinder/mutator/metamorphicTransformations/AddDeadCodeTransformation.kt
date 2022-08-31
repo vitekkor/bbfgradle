@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.types.replace
 import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
 import org.jetbrains.kotlin.types.typeUtil.isAnyOrNullableAny
 import java.io.File
+import java.util.stream.Collectors
 import kotlin.random.Random
 
 class AddDeadCodeTransformation : MetamorphicTransformation() {
@@ -29,23 +30,39 @@ class AddDeadCodeTransformation : MetamorphicTransformation() {
         expected: Boolean
     ) {
         rig = RandomInstancesGenerator(file as KtFile, ctx!!)
-        for (i in 1..Random.nextInt(1, 10)) {
+        for (i in 0..Random.nextInt(10)) {
             AddVariablesToScope().transform(mutationPoint, scope, false)
         }
 
-        for (i in 1..Random.nextInt(1, 10)) {
+        for (i in 0..Random.nextInt(10)) {
             createThrow(mutationPoint)
         }
 
         removeMutation(AddDeadCodeTransformation::class)
+
+        val returnOrThrow = getReturnOrThrow()
+
         AddIf().apply {
-            transform(mutationPoint, scope, false)
-            transform(mutationPoint, scope, false)
+            if (returnOrThrow != null) {
+                transform(returnOrThrow, scope, false)
+                transform(returnOrThrow, scope, false)
+            }
         }
 
         addAfterReturn(scope)
 
         println()
+    }
+
+    private fun getReturnOrThrow(): PsiElement? {
+        val returnExpr = file.getAllPSIChildrenOfType<KtReturnExpression>()
+        val funExpr = file.getAllPSIChildrenOfType<KtNamedFunction>()
+        val throwExpr = file.getAllPSIChildrenOfType<KtThrowExpression>()
+        val expr = mutableListOf(returnExpr, funExpr, throwExpr).flatMap { it }.randomOrNull() ?: return null
+        return when (expr) {
+            is KtReturnExpression, is KtThrowExpression -> expr
+            else -> createReturn(expr as KtNamedFunction)
+        }
     }
 
     private fun addAfterReturn(scope: HashMap<Variable, MutableList<String>>) {
@@ -129,14 +146,15 @@ class AddDeadCodeTransformation : MetamorphicTransformation() {
     private fun getAllMutations(): MutableList<Pair<MetamorphicTransformation, Int>> {
         val old = defaultMutations
         restoreMutations()
-        val all = defaultMutations
-        all.map {
+        var all = defaultMutations
+        all = all.mapNotNull {
             if (it !in old) {
                 removeMutation(it.first::class)
             }
-            it.first to it.second / 2
-        }
-        all.removeIf { it.first is AddDeadCodeTransformation }
+            if (Random.nextBoolean() || it.first !is AddDeadCodeTransformation)
+                it.first to it.second / 2
+            else null
+        }.toMutableList()
         return all
     }
 
@@ -152,7 +170,7 @@ class AddDeadCodeTransformation : MetamorphicTransformation() {
                 .map { it.name.asString() }.contains("Throwable")
         }.toList().random().name.asString()
         addAfterMutationPoint(mutationPoint) {
-            it.createExpression("try{\n${expressionToThrow.text}\n}catch(e: $randomType){}")
+            it.createExpression("try{\nthrow ${expressionToThrow.text}\n}catch(e: $randomType){}")
         }
     }
 
@@ -168,33 +186,22 @@ class AddDeadCodeTransformation : MetamorphicTransformation() {
         val node = file.node.getAllChildrenNodes()
             .filter { it.elementType == KtTokens.RETURN_KEYWORD && it.treeParent.text == returnExpression.text }
             .map { it.treeParent }.firstOrNull() ?: return
-        log.debug("Trying to change some nodes to nodes from other programs $randConst times")
+        log.debug("Trying to add some nodes after return $randConst times")
         for (i in 0..randConst) {
             log.debug("Try №$i of $randConst")
-            val randomNode = getRandomNode(nodes)
 
-            if (randomNode.psi is KtNamedFunction && randomNode.text.contains("fun box")) continue
-
-            val line = File("database.txt").bufferedReader().lines()
-                .filter { it.takeWhile { it != ' ' } == randomNode.elementType.toString() }.findFirst()
-            if (!line.isPresent) continue
-            val files = line.get().dropLast(1).takeLastWhile { it != '[' }.split(", ")
+            val line = database.random()
+            val files = line.dropLast(1).takeLastWhile { it != '[' }.split(", ")
             val randomFile = files.random()
             val psi = Factory.psiFactory.createFile(File("${CompilerArgs.baseDir}/$randomFile").readText())
-            val targetNode = psi.node.getAllChildrenNodes()
-                .filter { it.elementType == randomNode.elementType && it.text.isNotBlank() }.randomOrNull() ?: continue
+            val targetNode = psi.node.getAllChildrenNodes().filter { it.text.isNotBlank() }.randomOrNull() ?: continue
             //if (targetNode.psi.getAllPSIChildrenOfType<KtNameReferenceExpression>().isNotEmpty()) continue
             if (targetNode.psi is KtConstantExpression) continue
             checker.addAfter(node.psi, targetNode.psi)
         }
     }
 
-    private fun getRandomNode(nodes: List<ASTNode>): ASTNode {
-        var randomNode = nodes[Random.nextInt(0, nodes.size - 1)]
-        while (randomNode.text == "\"\"" || randomNode.text == "")
-            randomNode = nodes[Random.nextInt(0, nodes.size - 1)]
-        return randomNode
-    }
+    private val database by lazy { File("database.txt").bufferedReader().lines().collect(Collectors.toList()) }
 
 
     private val numOfTries: Pair<Int, Int> by lazy { if (checker.project.files.size == 1) 500 to 1000 else 2000 to 4000 }
