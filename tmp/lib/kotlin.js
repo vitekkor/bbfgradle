@@ -22870,7 +22870,7 @@
     function minus_0($receiver, elements) {
       if (elements.length === 0)
         return toList_8($receiver);
-      var other = convertToSetForSetOperation_1(elements);
+      var other = toHashSet(elements);
       var destination = ArrayList_init();
       var tmp$;
       tmp$ = $receiver.iterator();
@@ -22896,7 +22896,7 @@
       return destination;
     }
     function minus_2($receiver, elements) {
-      var other = convertToSetForSetOperation_0(elements);
+      var other = toHashSet_9(elements);
       if (other.isEmpty())
         return toList_8($receiver);
       var destination = ArrayList_init();
@@ -26550,7 +26550,7 @@
       };
     }
     minus$ObjectLiteral_0.prototype.iterator = function () {
-      var other = convertToSetForSetOperation_1(this.closure$elements);
+      var other = toHashSet(this.closure$elements);
       return filterNot_9(this.this$minus, minus$ObjectLiteral$iterator$lambda_0(other)).iterator();
     };
     minus$ObjectLiteral_0.$metadata$ = {kind: Kind_CLASS, interfaces: [Sequence]};
@@ -26589,7 +26589,7 @@
       };
     }
     minus$ObjectLiteral_2.prototype.iterator = function () {
-      var other = convertToSetForSetOperation_0(this.closure$elements);
+      var other = toHashSet_9(this.closure$elements);
       if (other.isEmpty())
         return this.this$minus.iterator();
       else
@@ -37723,11 +37723,6 @@
     ExperimentalJsExport.$metadata$ = {kind: Kind_CLASS, simpleName: 'ExperimentalJsExport', interfaces: [Annotation]};
     var PI;
     var E;
-    function ReadAfterEOFException(message) {
-      RuntimeException_init_0(message, this);
-      this.name = 'ReadAfterEOFException';
-    }
-    ReadAfterEOFException.$metadata$ = {kind: Kind_CLASS, simpleName: 'ReadAfterEOFException', interfaces: [RuntimeException]};
     function Annotation() {
     }
     Annotation.$metadata$ = {kind: Kind_INTERFACE, simpleName: 'Annotation', interfaces: []};
@@ -41066,9 +41061,6 @@
         var message = 'capacity must be non-negative.';
         throw IllegalArgumentException_init_0(message.toString());
       }}
-    function brittleContainsOptimizationEnabled() {
-      return false;
-    }
     function AbstractMutableCollection() {
       AbstractCollection.call(this);
     }
@@ -41455,6 +41447,16 @@
     Object.defineProperty(AbstractMutableMap$get_AbstractMutableMap$values$ObjectLiteral.prototype, 'size', {configurable: true, get: function () {
       return this.this$AbstractMutableMap.size;
     }});
+    AbstractMutableMap$get_AbstractMutableMap$values$ObjectLiteral.prototype.equals = function (other) {
+      if (this === other)
+        return true;
+      if (!Kotlin.isType(other, Collection))
+        return false;
+      return AbstractList$Companion_getInstance().orderedEquals_e92ka7$(this, other);
+    };
+    AbstractMutableMap$get_AbstractMutableMap$values$ObjectLiteral.prototype.hashCode = function () {
+      return AbstractList$Companion_getInstance().orderedHashCode_nykoif$(this);
+    };
     AbstractMutableMap$get_AbstractMutableMap$values$ObjectLiteral.prototype.checkIsMutable = function () {
       this.this$AbstractMutableMap.checkIsMutable();
     };
@@ -41628,6 +41630,8 @@
       return $this;
     }
     function ArrayList_init_0(initialCapacity, $this) {
+      if (initialCapacity === void 0)
+        initialCapacity = 0;
       $this = $this || Object.create(ArrayList.prototype);
       ArrayList.call($this, []);
       return $this;
@@ -41871,6 +41875,8 @@
       return $this;
     }
     function HashMap_init_1(initialCapacity, loadFactor, $this) {
+      if (loadFactor === void 0)
+        loadFactor = 0.0;
       $this = $this || Object.create(HashMap.prototype);
       HashMap_init_0($this);
       if (!(initialCapacity >= 0)) {
@@ -41939,6 +41945,8 @@
       return $this;
     }
     function HashSet_init_1(initialCapacity, loadFactor, $this) {
+      if (loadFactor === void 0)
+        loadFactor = 0.0;
       $this = $this || Object.create(HashSet.prototype);
       AbstractMutableSet.call($this);
       HashSet.call($this);
@@ -42451,6 +42459,8 @@
       return $this;
     }
     function LinkedHashMap_init_1(initialCapacity, loadFactor, $this) {
+      if (loadFactor === void 0)
+        loadFactor = 0.0;
       $this = $this || Object.create(LinkedHashMap.prototype);
       HashMap_init_1(initialCapacity, loadFactor, $this);
       LinkedHashMap.call($this);
@@ -42506,6 +42516,8 @@
       return $this;
     }
     function LinkedHashSet_init_2(initialCapacity, loadFactor, $this) {
+      if (loadFactor === void 0)
+        loadFactor = 0.0;
       $this = $this || Object.create(LinkedHashSet.prototype);
       HashSet_init_3(LinkedHashMap_init_1(initialCapacity, loadFactor), $this);
       LinkedHashSet.call($this);
@@ -42601,12 +42613,6 @@
     }
     function print(message) {
       output.print_s8jyv4$(message);
-    }
-    function readln() {
-      throw UnsupportedOperationException_init_0('readln is not supported in Kotlin/JS');
-    }
-    function readlnOrNull() {
-      throw UnsupportedOperationException_init_0('readlnOrNull is not supported in Kotlin/JS');
     }
     function SafeContinuation(delegate, initialResult) {
       this.delegate_0 = delegate;
@@ -44888,7 +44894,6 @@
       this.options = toSet_8(options);
       this.nativePattern_0 = new RegExp(pattern, toFlags(options, 'gu'));
       this.nativeStickyPattern_0 = null;
-      this.nativeMatchesEntirePattern_0 = null;
     }
     Regex.prototype.initStickyPattern_0 = function () {
       var tmp$;
@@ -44898,23 +44903,6 @@
       else {
         var $receiver = new RegExp(this.pattern, toFlags(this.options, 'yu'));
         this.nativeStickyPattern_0 = $receiver;
-        tmp$_0 = $receiver;
-      }
-      return tmp$_0;
-    };
-    Regex.prototype.initMatchesEntirePattern_0 = function () {
-      var tmp$;
-      var tmp$_0;
-      if ((tmp$ = this.nativeMatchesEntirePattern_0) != null)
-        tmp$_0 = tmp$;
-      else {
-        var block$result;
-        if (startsWith_1(this.pattern, 94) && endsWith_0(this.pattern, 36)) {
-          block$result = this.nativePattern_0;
-        } else
-          return new RegExp('^' + trimEnd_2(trimStart_2(this.pattern, Kotlin.charArrayOf(94)), Kotlin.charArrayOf(36)) + '$', toFlags(this.options, 'gu'));
-        var $receiver = block$result;
-        this.nativeMatchesEntirePattern_0 = $receiver;
         tmp$_0 = $receiver;
       }
       return tmp$_0;
@@ -44940,7 +44928,7 @@
         startIndex = 0;
       if (startIndex < 0 || startIndex > input.length) {
         throw new IndexOutOfBoundsException('Start index out of bounds: ' + startIndex + ', input length: ' + input.length);
-      }return findNext(this.nativePattern_0, input.toString(), startIndex, this.nativePattern_0);
+      }return findNext(this.nativePattern_0, input.toString(), startIndex);
     };
     function Regex$findAll$lambda(closure$input, closure$startIndex, this$Regex) {
       return function () {
@@ -44958,56 +44946,53 @@
       }return generateSequence_1(Regex$findAll$lambda(input, startIndex, this), Regex$findAll$lambda_0);
     };
     Regex.prototype.matchEntire_6bul2c$ = function (input) {
-      return findNext(this.initMatchesEntirePattern_0(), input.toString(), 0, this.nativePattern_0);
+      if (startsWith_1(this.pattern, 94) && endsWith_0(this.pattern, 36))
+        return this.find_905azu$(input);
+      else
+        return (new Regex('^' + trimEnd_2(trimStart_2(this.pattern, Kotlin.charArrayOf(94)), Kotlin.charArrayOf(36)) + '$', this.options)).find_905azu$(input);
     };
     Regex.prototype.matchAt_905azu$ = function (input, index) {
       if (index < 0 || index > input.length) {
         throw new IndexOutOfBoundsException('index out of bounds: ' + index + ', input length: ' + input.length);
-      }return findNext(this.initStickyPattern_0(), input.toString(), index, this.nativePattern_0);
+      }return findNext(this.initStickyPattern_0(), input.toString(), index);
     };
-    function Regex$replace$lambda(closure$replacement) {
-      return function (it) {
-        return substituteGroupRefs(it, closure$replacement);
-      };
-    }
     Regex.prototype.replace_x2uqeu$ = function (input, replacement) {
-      if (!contains_54(replacement, 92) && !contains_54(replacement, 36)) {
-        return input.toString().replace(this.nativePattern_0, replacement);
-      }return this.replace_20wsma$(input, Regex$replace$lambda(replacement));
+      return input.toString().replace(this.nativePattern_0, replacement);
     };
-    Regex.prototype.replace_20wsma$ = function (input, transform) {
-      var match = this.find_905azu$(input);
-      if (match == null)
-        return input.toString();
-      var lastStart = 0;
-      var length = input.length;
-      var sb = StringBuilder_init(length);
-      do {
-        var foundMatch = ensureNotNull(match);
-        sb.append_ezbsdh$(input, lastStart, foundMatch.range.start);
-        sb.append_gw00v9$(transform(foundMatch));
-        lastStart = foundMatch.range.endInclusive + 1 | 0;
-        match = foundMatch.next();
-      }
-       while (lastStart < length && match != null);
-      if (lastStart < length) {
-        sb.append_ezbsdh$(input, lastStart, length);
-      }return sb.toString();
-    };
+    Regex.prototype.replace_20wsma$ = defineInlineFunction('kotlin.kotlin.text.Regex.replace_20wsma$', wrapFunction(function () {
+      var StringBuilder_init = _.kotlin.text.StringBuilder_init_za3lpa$;
+      var ensureNotNull = Kotlin.ensureNotNull;
+      return function (input, transform) {
+        var match = this.find_905azu$(input);
+        if (match == null)
+          return input.toString();
+        var lastStart = 0;
+        var length = input.length;
+        var sb = StringBuilder_init(length);
+        do {
+          var foundMatch = ensureNotNull(match);
+          sb.append_ezbsdh$(input, lastStart, foundMatch.range.start);
+          sb.append_gw00v9$(transform(foundMatch));
+          lastStart = foundMatch.range.endInclusive + 1 | 0;
+          match = foundMatch.next();
+        }
+         while (lastStart < length && match != null);
+        if (lastStart < length) {
+          sb.append_ezbsdh$(input, lastStart, length);
+        }return sb.toString();
+      };
+    }));
     Regex.prototype.replaceFirst_x2uqeu$ = function (input, replacement) {
+      var $receiver = this.options;
+      var destination = ArrayList_init_0(collectionSizeOrDefault($receiver, 10));
       var tmp$;
-      if (!contains_54(replacement, 92) && !contains_54(replacement, 36)) {
-        var nonGlobalOptions = toFlags(this.options, 'u');
-        return input.toString().replace(new RegExp(this.pattern, nonGlobalOptions), replacement);
-      }tmp$ = this.find_905azu$(input);
-      if (tmp$ == null) {
-        return input.toString();
-      }var match = tmp$;
-      var $receiver = StringBuilder_init_1();
-      $receiver.append_pdl1vj$(Kotlin.subSequence(input, 0, match.range.first).toString());
-      $receiver.append_pdl1vj$(substituteGroupRefs(match, replacement));
-      $receiver.append_pdl1vj$(Kotlin.subSequence(input, match.range.last + 1 | 0, input.length).toString());
-      return $receiver.toString();
+      tmp$ = $receiver.iterator();
+      while (tmp$.hasNext()) {
+        var item = tmp$.next();
+        destination.add_11rb$(item.value);
+      }
+      var nonGlobalOptions = joinToString_8(destination, '');
+      return input.toString().replace(new RegExp(this.pattern, nonGlobalOptions), replacement);
     };
     Regex.prototype.split_905azu$ = function (input, limit) {
       if (limit === void 0)
@@ -45128,8 +45113,7 @@
     function Regex$Companion() {
       Regex$Companion_instance = this;
       this.patternEscape_0 = new RegExp('[\\\\^$*+?.()|[\\]{}]', 'g');
-      this.replacementEscape_0 = new RegExp('[\\$]', 'g');
-      this.nativeReplacementEscape_0 = new RegExp('\\$', 'g');
+      this.replacementEscape_0 = new RegExp('\\$', 'g');
     }
     Regex$Companion.prototype.fromLiteral_61zpoe$ = function (literal) {
       return Regex_init_0(this.escape_61zpoe$(literal));
@@ -45138,10 +45122,7 @@
       return literal.replace(this.patternEscape_0, '\\$&');
     };
     Regex$Companion.prototype.escapeReplacement_61zpoe$ = function (literal) {
-      return literal.replace(this.replacementEscape_0, '\\$&');
-    };
-    Regex$Companion.prototype.nativeEscapeReplacement_y4putb$ = function (literal) {
-      return literal.replace(this.nativeReplacementEscape_0, '$$$$');
+      return literal.replace(this.replacementEscape_0, '$$$$');
     };
     Regex$Companion.$metadata$ = {kind: Kind_OBJECT, simpleName: 'Companion', interfaces: []};
     var Regex$Companion_instance = null;
@@ -45161,9 +45142,15 @@
       Regex.call($this, pattern, emptySet());
       return $this;
     }
-    function findNext$ObjectLiteral(closure$match, closure$nextPattern, closure$input, closure$range) {
+    function Regex_0(pattern, option) {
+      return new Regex(pattern, setOf(option));
+    }
+    function Regex_1(pattern) {
+      return new Regex(pattern, emptySet());
+    }
+    function findNext$ObjectLiteral(closure$match, this$findNext, closure$input, closure$range) {
       this.closure$match = closure$match;
-      this.closure$nextPattern = closure$nextPattern;
+      this.this$findNext = this$findNext;
       this.closure$input = closure$input;
       this.closure$range = closure$range;
       this.range_co6b9w$_0 = closure$range;
@@ -45197,7 +45184,7 @@
       }return ensureNotNull(this.groupValues__0);
     }});
     findNext$ObjectLiteral.prototype.next = function () {
-      return findNext(this.closure$nextPattern, this.closure$input, this.closure$range.isEmpty() ? this.closure$range.start + 1 | 0 : this.closure$range.endInclusive + 1 | 0, this.closure$nextPattern);
+      return findNext(this.this$findNext, this.closure$input, this.closure$range.isEmpty() ? this.closure$range.start + 1 | 0 : this.closure$range.endInclusive + 1 | 0);
     };
     function findNext$ObjectLiteral$groups$ObjectLiteral(closure$match) {
       this.closure$match = closure$match;
@@ -45220,56 +45207,13 @@
     };
     findNext$ObjectLiteral$groups$ObjectLiteral.$metadata$ = {kind: Kind_CLASS, interfaces: [AbstractCollection, MatchGroupCollection]};
     findNext$ObjectLiteral.$metadata$ = {kind: Kind_CLASS, interfaces: [MatchResult]};
-    function findNext($receiver, input, from, nextPattern) {
+    function findNext($receiver, input, from) {
       $receiver.lastIndex = from;
       var match = $receiver.exec(input);
       if (match == null)
         return null;
       var range = new IntRange(match.index, $receiver.lastIndex - 1 | 0);
-      return new findNext$ObjectLiteral(match, nextPattern, input, range);
-    }
-    function substituteGroupRefs(match, replacement) {
-      var tmp$, tmp$_0;
-      var index = 0;
-      var result = StringBuilder_init(replacement.length);
-      while (index < replacement.length) {
-        var char = replacement.charCodeAt((tmp$ = index, index = tmp$ + 1 | 0, tmp$));
-        if (char === 92) {
-          if (index === replacement.length)
-            throw IllegalArgumentException_init_0('The Char to be escaped is missing');
-          result.append_s8itvh$(replacement.charCodeAt((tmp$_0 = index, index = tmp$_0 + 1 | 0, tmp$_0)));
-        } else if (char === 36) {
-          if (index === replacement.length)
-            throw IllegalArgumentException_init_0('Capturing group index is missing');
-          if (replacement.charCodeAt(index) === 123)
-            throw IllegalArgumentException_init_0('Named capturing group reference currently is not supported');
-          if (!(new CharRange(48, 57)).contains_mef7kx$(replacement.charCodeAt(index)))
-            throw IllegalArgumentException_init_0('Invalid capturing group reference');
-          var endIndex = readGroupIndex(replacement, index, match.groupValues.size);
-          var groupIndex = toInt(replacement.substring(index, endIndex));
-          if (groupIndex >= match.groupValues.size)
-            throw new IndexOutOfBoundsException('Group with index ' + groupIndex + ' does not exist');
-          result.append_pdl1vj$(match.groupValues.get_za3lpa$(groupIndex));
-          index = endIndex;
-        } else {
-          result.append_s8itvh$(char);
-        }
-      }
-      return result.toString();
-    }
-    function readGroupIndex($receiver, startIndex, groupCount) {
-      var index = startIndex + 1 | 0;
-      var groupIndex = $receiver.charCodeAt(startIndex) - 48;
-      while (index < $receiver.length && (new CharRange(48, 57)).contains_mef7kx$($receiver.charCodeAt(index))) {
-        var newGroupIndex = (groupIndex * 10 | 0) + ($receiver.charCodeAt(index) - 48) | 0;
-        if (0 <= newGroupIndex && newGroupIndex < groupCount) {
-          groupIndex = newGroupIndex;
-          index = index + 1 | 0;
-        } else {
-          break;
-        }
-      }
-      return index;
+      return new findNext$ObjectLiteral(match, $receiver, input, range);
     }
     function String_1(chars) {
       var tmp$;
@@ -45407,20 +45351,23 @@
         var min = JsMath.min(n1, n2);
         if (min === 0)
           return n1 - n2 | 0;
-        for (var index = 0; index < min; index++) {
-          var thisChar = $receiver.charCodeAt(index);
-          var otherChar = other.charCodeAt(index);
-          if (thisChar !== otherChar) {
-            thisChar = uppercaseChar(thisChar);
-            otherChar = uppercaseChar(otherChar);
-            if (thisChar !== otherChar) {
-              var $receiver_0 = thisChar;
-              thisChar = String.fromCharCode($receiver_0).toLowerCase().charCodeAt(0);
-              var $receiver_1 = otherChar;
-              otherChar = String.fromCharCode($receiver_1).toLowerCase().charCodeAt(0);
-              if (thisChar !== otherChar) {
-                return Kotlin.compareTo(thisChar, otherChar);
-              }}}}
+        var start = 0;
+        while (true) {
+          var end = JsMath.min(start + 16 | 0, min);
+          var s1 = $receiver.substring(start, end);
+          var s2 = other.substring(start, end);
+          if (!equals(s1, s2)) {
+            s1 = s1.toUpperCase();
+            s2 = s2.toUpperCase();
+            if (!equals(s1, s2)) {
+              s1 = s1.toLowerCase();
+              s2 = s2.toLowerCase();
+              if (!equals(s1, s2)) {
+                return Kotlin.compareTo(s1, s2);
+              }}}if (end === min)
+            break;
+          start = end;
+        }
         return n1 - n2 | 0;
       } else {
         return Kotlin.compareTo($receiver, other);
@@ -45474,48 +45421,25 @@
       return result != null && result.length !== 0;
     }
     function isBlank($receiver) {
-      var tmp$ = $receiver.length === 0;
-      if (!tmp$) {
-        var $receiver_0 = get_indices_13($receiver);
-        var all$result;
-        all$break: do {
-          var tmp$_0;
-          if (Kotlin.isType($receiver_0, Collection) && $receiver_0.isEmpty()) {
-            all$result = true;
-            break all$break;
-          }tmp$_0 = $receiver_0.iterator();
-          while (tmp$_0.hasNext()) {
-            var element = tmp$_0.next();
-            if (!isWhitespace($receiver.charCodeAt(element))) {
-              all$result = false;
-              break all$break;
-            }}
-          all$result = true;
-        }
-         while (false);
-        tmp$ = all$result;
-      }return tmp$;
+      return $receiver.length === 0 || matches(typeof $receiver === 'string' ? $receiver : $receiver.toString(), '^[\\s\\xA0]+$');
     }
     function equals_0($receiver, other, ignoreCase) {
       if (ignoreCase === void 0)
         ignoreCase = false;
-      var tmp$;
       if ($receiver == null)
         return other == null;
-      if (other == null)
-        return false;
-      if (!ignoreCase)
+      else if (!ignoreCase)
         return equals($receiver, other);
-      if ($receiver.length !== other.length)
+      else if (other == null)
         return false;
-      tmp$ = $receiver.length;
-      for (var index = 0; index < tmp$; index++) {
-        var thisChar = $receiver.charCodeAt(index);
-        var otherChar = other.charCodeAt(index);
-        if (!equals_1(thisChar, otherChar, ignoreCase)) {
-          return false;
-        }}
-      return true;
+      else {
+        var thisLower = $receiver.toLowerCase();
+        var otherLower = other.toLowerCase();
+        var tmp$ = equals(thisLower, otherLower);
+        if (!tmp$) {
+          tmp$ = equals(thisLower.toUpperCase(), otherLower.toUpperCase());
+        }return tmp$;
+      }
     }
     function regionMatches($receiver, thisOffset, other, otherOffset, length, ignoreCase) {
       if (ignoreCase === void 0)
@@ -45560,7 +45484,7 @@
     function replace($receiver, oldValue, newValue, ignoreCase) {
       if (ignoreCase === void 0)
         ignoreCase = false;
-      return $receiver.replace(new RegExp(Regex$Companion_getInstance().escape_61zpoe$(oldValue), ignoreCase ? 'gui' : 'gu'), Regex$Companion_getInstance().nativeEscapeReplacement_y4putb$(newValue));
+      return $receiver.replace(new RegExp(Regex$Companion_getInstance().escape_61zpoe$(oldValue), ignoreCase ? 'gui' : 'gu'), Regex$Companion_getInstance().escapeReplacement_61zpoe$(newValue));
     }
     function replace_0($receiver, oldChar, newChar, ignoreCase) {
       if (ignoreCase === void 0)
@@ -45570,7 +45494,7 @@
     function replaceFirst($receiver, oldValue, newValue, ignoreCase) {
       if (ignoreCase === void 0)
         ignoreCase = false;
-      return $receiver.replace(new RegExp(Regex$Companion_getInstance().escape_61zpoe$(oldValue), ignoreCase ? 'ui' : 'u'), Regex$Companion_getInstance().nativeEscapeReplacement_y4putb$(newValue));
+      return $receiver.replace(new RegExp(Regex$Companion_getInstance().escape_61zpoe$(oldValue), ignoreCase ? 'ui' : 'u'), Regex$Companion_getInstance().escapeReplacement_61zpoe$(newValue));
     }
     function replaceFirst_0($receiver, oldChar, newChar, ignoreCase) {
       if (ignoreCase === void 0)
@@ -45868,30 +45792,6 @@
       return dropLast_10(stack, preLastBreak) + ('... and ' + (commonFrames - 1 | 0) + ' more common stack frames skipped');
     };
     ExceptionTraceBuilder.$metadata$ = {kind: Kind_CLASS, simpleName: 'ExceptionTraceBuilder', interfaces: []};
-    var get_durationAssertionsEnabled = defineInlineFunction('kotlin.kotlin.time.get_durationAssertionsEnabled_8be2vx$', function () {
-      return true;
-    });
-    function formatToExactDecimals(value, decimals) {
-      var tmp$, tmp$_0;
-      if (decimals === 0) {
-        tmp$ = value;
-      } else {
-        var pow = JsMath.pow(10.0, decimals);
-        tmp$ = Math.round(JsMath.abs(value) * pow) / pow * JsMath.sign(value);
-      }
-      var rounded = tmp$;
-      if (JsMath.abs(rounded) < 1.0E21) {
-        tmp$_0 = rounded.toFixed(decimals);
-      } else {
-        var positive = JsMath.abs(rounded);
-        var positiveString = positive.toPrecision(JsMath.ceil(JsMath.log10(positive)) + decimals);
-        tmp$_0 = rounded < 0 ? '-' + positiveString : positiveString;
-      }
-      return tmp$_0;
-    }
-    function formatUpToDecimals(value, decimals) {
-      return value.toLocaleString('en-us', json([to('maximumFractionDigits', decimals)]));
-    }
     function DurationUnit(name, ordinal, scale) {
       Enum.call(this);
       this.scale_8be2vx$ = scale;
@@ -46037,7 +45937,7 @@
       var f = this.this$HrTimeSource.process.hrtime(this.startedAt);
       var seconds = f[0];
       var nanos = f[1];
-      return toDuration_1(seconds, DurationUnit$SECONDS_getInstance()).plus_cgako$(toDuration_1(nanos, DurationUnit$NANOSECONDS_getInstance()));
+      return Duration$Companion_getInstance().seconds_14dthe$(seconds).plus_cgako$(Duration$Companion_getInstance().nanoseconds_14dthe$(nanos));
     };
     HrTimeSource$markNow$ObjectLiteral.$metadata$ = {kind: Kind_CLASS, interfaces: [TimeMark]};
     HrTimeSource.prototype.markNow = function () {
@@ -46074,6 +45974,27 @@
       if (DateNowTimeSource_instance === null) {
         new DateNowTimeSource();
       }return DateNowTimeSource_instance;
+    }
+    function formatToExactDecimals(value, decimals) {
+      var tmp$, tmp$_0;
+      if (decimals === 0) {
+        tmp$ = value;
+      } else {
+        var pow = JsMath.pow(10.0, decimals);
+        tmp$ = Math.round(JsMath.abs(value) * pow) / pow * JsMath.sign(value);
+      }
+      var rounded = tmp$;
+      if (JsMath.abs(rounded) < 1.0E21) {
+        tmp$_0 = rounded.toFixed(decimals);
+      } else {
+        var positive = JsMath.abs(rounded);
+        var positiveString = positive.toPrecision(JsMath.ceil(JsMath.log10(positive)) + decimals);
+        tmp$_0 = rounded < 0 ? '-' + positiveString : positiveString;
+      }
+      return tmp$_0;
+    }
+    function formatUpToDecimals(value, decimals) {
+      return value.toLocaleString('en-us', json([to('maximumFractionDigits', decimals)]));
     }
     function createElement_0($receiver, name, init) {
       var $receiver_0 = $receiver.createElement(name);
@@ -50330,34 +50251,6 @@
       result.append_s8itvh$(93);
       processed.removeAt_za3lpa$(get_lastIndex_12(processed));
     }
-    function safeToConvertToSet($receiver) {
-      return brittleContainsOptimizationEnabled() && $receiver.size > 2 && Kotlin.isType($receiver, ArrayList);
-    }
-    function convertToSetForSetOperationWith($receiver, source) {
-      if (Kotlin.isType($receiver, Set))
-        return $receiver;
-      else if (Kotlin.isType($receiver, Collection))
-        if (Kotlin.isType(source, Collection) && source.size < 2)
-          return $receiver;
-        else
-          return safeToConvertToSet($receiver) ? toHashSet_8($receiver) : $receiver;
-      else
-        return brittleContainsOptimizationEnabled() ? toHashSet_8($receiver) : toList_8($receiver);
-    }
-    function convertToSetForSetOperation($receiver) {
-      if (Kotlin.isType($receiver, Set))
-        return $receiver;
-      else if (Kotlin.isType($receiver, Collection))
-        return safeToConvertToSet($receiver) ? toHashSet_8($receiver) : $receiver;
-      else
-        return brittleContainsOptimizationEnabled() ? toHashSet_8($receiver) : toList_8($receiver);
-    }
-    function convertToSetForSetOperation_0($receiver) {
-      return brittleContainsOptimizationEnabled() ? toHashSet_9($receiver) : toList_10($receiver);
-    }
-    function convertToSetForSetOperation_1($receiver) {
-      return brittleContainsOptimizationEnabled() ? toHashSet($receiver) : asList($receiver);
-    }
     function EmptyIterator() {
       EmptyIterator_instance = this;
     }
@@ -50907,6 +50800,28 @@
     }
     function collectionSizeOrDefault($receiver, default_0) {
       return Kotlin.isType($receiver, Collection) ? $receiver.size : default_0;
+    }
+    function safeToConvertToSet($receiver) {
+      return $receiver.size > 2 && Kotlin.isType($receiver, ArrayList);
+    }
+    function convertToSetForSetOperationWith($receiver, source) {
+      if (Kotlin.isType($receiver, Set))
+        return $receiver;
+      else if (Kotlin.isType($receiver, Collection))
+        if (Kotlin.isType(source, Collection) && source.size < 2)
+          return $receiver;
+        else
+          return safeToConvertToSet($receiver) ? toHashSet_8($receiver) : $receiver;
+      else
+        return toHashSet_8($receiver);
+    }
+    function convertToSetForSetOperation($receiver) {
+      if (Kotlin.isType($receiver, Set))
+        return $receiver;
+      else if (Kotlin.isType($receiver, Collection))
+        return safeToConvertToSet($receiver) ? toHashSet_8($receiver) : $receiver;
+      else
+        return toHashSet_8($receiver);
     }
     function flatten_0($receiver) {
       var tmp$;
@@ -51757,11 +51672,11 @@
       return (Kotlin.isType(tmp$ = $receiver, MutableCollection) ? tmp$ : throwCCE()).removeAll_brywnq$(elements_0);
     }
     function removeAll_1($receiver, elements) {
-      var set = convertToSetForSetOperation_0(elements);
+      var set = toHashSet_9(elements);
       return !set.isEmpty() && $receiver.removeAll_brywnq$(set);
     }
     function removeAll_2($receiver, elements) {
-      return !(elements.length === 0) && $receiver.removeAll_brywnq$(convertToSetForSetOperation_1(elements));
+      return !(elements.length === 0) && $receiver.removeAll_brywnq$(toHashSet(elements));
     }
     function retainAll_0($receiver, elements) {
       var elements_0 = convertToSetForSetOperationWith(elements, $receiver);
@@ -51770,12 +51685,12 @@
     }
     function retainAll_1($receiver, elements) {
       if (!(elements.length === 0))
-        return $receiver.retainAll_brywnq$(convertToSetForSetOperation_1(elements));
+        return $receiver.retainAll_brywnq$(toHashSet(elements));
       else
         return retainNothing($receiver);
     }
     function retainAll_2($receiver, elements) {
-      var set = convertToSetForSetOperation_0(elements);
+      var set = toHashSet_9(elements);
       if (!set.isEmpty())
         return $receiver.retainAll_brywnq$(set);
       else
@@ -53744,9 +53659,6 @@
         new ReverseOrderComparator();
       }return ReverseOrderComparator_instance;
     }
-    var compareTo_0 = defineInlineFunction('kotlin.kotlin.compareTo_fir3sf$', function ($receiver, other) {
-      return Kotlin.compareTo($receiver, other);
-    });
     function ExperimentalContracts() {
     }
     ExperimentalContracts.$metadata$ = {kind: Kind_CLASS, simpleName: 'ExperimentalContracts', interfaces: [Annotation]};
@@ -54515,7 +54427,7 @@
             tmp$ = Kotlin.Long.fromInt(this.nextInt()).and(L4294967295);
           else {
             var bitCount_0 = fastLog2(nHigh);
-            tmp$ = Kotlin.Long.fromInt(this.nextBits_za3lpa$(bitCount_0)).shiftLeft(32).add(Kotlin.Long.fromInt(this.nextInt()).and(L4294967295));
+            tmp$ = Kotlin.Long.fromInt(this.nextBits_za3lpa$(bitCount_0)).shiftLeft(32).add(Kotlin.Long.fromInt(this.nextInt()));
           }
           rnd = tmp$;
         } else {
@@ -56242,9 +56154,35 @@
     var replace_1 = defineInlineFunction('kotlin.kotlin.text.replace_tb98gq$', function ($receiver, regex, replacement) {
       return regex.replace_x2uqeu$($receiver, replacement);
     });
-    var replace_2 = defineInlineFunction('kotlin.kotlin.text.replace_3avfay$', function ($receiver, regex, transform) {
-      return regex.replace_20wsma$($receiver, transform);
-    });
+    var replace_2 = defineInlineFunction('kotlin.kotlin.text.replace_3avfay$', wrapFunction(function () {
+      var StringBuilder_init = _.kotlin.text.StringBuilder_init_za3lpa$;
+      var ensureNotNull = Kotlin.ensureNotNull;
+      return function ($receiver, regex, transform) {
+        var replace_20wsma$result;
+        replace_20wsma$break: do {
+          var match = regex.find_905azu$($receiver);
+          if (match == null) {
+            replace_20wsma$result = $receiver.toString();
+            break replace_20wsma$break;
+          }var lastStart = 0;
+          var length = $receiver.length;
+          var sb = StringBuilder_init(length);
+          do {
+            var foundMatch = ensureNotNull(match);
+            sb.append_ezbsdh$($receiver, lastStart, foundMatch.range.start);
+            sb.append_gw00v9$(transform(foundMatch));
+            lastStart = foundMatch.range.endInclusive + 1 | 0;
+            match = foundMatch.next();
+          }
+           while (lastStart < length && match != null);
+          if (lastStart < length) {
+            sb.append_ezbsdh$($receiver, lastStart, length);
+          }replace_20wsma$result = sb.toString();
+        }
+         while (false);
+        return replace_20wsma$result;
+      };
+    }));
     var replaceFirst_1 = defineInlineFunction('kotlin.kotlin.text.replaceFirst_tb98gq$', function ($receiver, regex, replacement) {
       return regex.replaceFirst_x2uqeu$($receiver, replacement);
     });
@@ -56794,8 +56732,8 @@
       this.pound = toBoxedChar(163);
       this.section = toBoxedChar(167);
       this.copyright = toBoxedChar(169);
-      this.leftGuillemet = toBoxedChar(171);
-      this.rightGuillemet = toBoxedChar(187);
+      this.leftGuillemete = toBoxedChar(171);
+      this.rightGuillemete = toBoxedChar(187);
       this.registered = toBoxedChar(174);
       this.degree = toBoxedChar(176);
       this.plusMinus = toBoxedChar(177);
@@ -56822,8 +56760,6 @@
       this.notEqual = toBoxedChar(8800);
       this.lessOrEqual = toBoxedChar(8804);
       this.greaterOrEqual = toBoxedChar(8805);
-      this.leftGuillemete = toBoxedChar(171);
-      this.rightGuillemete = toBoxedChar(187);
     }
     Typography.$metadata$ = {kind: Kind_OBJECT, simpleName: 'Typography', interfaces: []};
     var Typography_instance = null;
@@ -56903,20 +56839,19 @@
       Duration$Companion_getInstance();
       this.rawValue_0 = rawValue;
       var tmp$, tmp$_0, tmp$_1;
-      if (true) {
-        if (this.isInNanos_0()) {
-          tmp$ = this.value_0;
-          if (!(L_4611686018426999999.lessThanOrEqual(tmp$) && tmp$.lessThanOrEqual(MAX_NANOS)))
-            throw AssertionError_init_0(this.value_0.toString() + ' ns is out of nanoseconds range');
-        } else {
-          tmp$_0 = this.value_0;
-          if (!(L_4611686018427387903.lessThanOrEqual(tmp$_0) && tmp$_0.lessThanOrEqual(MAX_MILLIS)))
-            throw AssertionError_init_0(this.value_0.toString() + ' ms is out of milliseconds range');
-          tmp$_1 = this.value_0;
-          if (L_4611686018426.lessThanOrEqual(tmp$_1) && tmp$_1.lessThanOrEqual(MAX_NANOS_IN_MILLIS))
-            throw AssertionError_init_0(this.value_0.toString() + ' ms is denormalized');
-        }
-      }}
+      if (this.isInNanos_0()) {
+        tmp$ = this.value_0;
+        if (!(L_4611686018426999999.lessThanOrEqual(tmp$) && tmp$.lessThanOrEqual(MAX_NANOS)))
+          throw AssertionError_init_0(this.value_0.toString() + ' ns is out of nanoseconds range');
+      } else {
+        tmp$_0 = this.value_0;
+        if (!(L_4611686018427387903.lessThanOrEqual(tmp$_0) && tmp$_0.lessThanOrEqual(MAX_MILLIS)))
+          throw AssertionError_init_0(this.value_0.toString() + ' ms is out of milliseconds range');
+        tmp$_1 = this.value_0;
+        if (L_4611686018426.lessThanOrEqual(tmp$_1) && tmp$_1.lessThanOrEqual(MAX_NANOS_IN_MILLIS))
+          throw AssertionError_init_0(this.value_0.toString() + ' ms is denormalized');
+      }
+    }
     Object.defineProperty(Duration.prototype, 'value_0', {configurable: true, get: function () {
       return this.rawValue_0.shiftRight(1);
     }});
@@ -56941,153 +56876,6 @@
     Duration$Companion.prototype.convert_d8pp1e$ = function (value, sourceUnit, targetUnit) {
       return convertDurationUnit(value, sourceUnit, targetUnit);
     };
-    Duration$Companion.prototype.get_nanoseconds_s8ev3n$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_nanoseconds_s8ev3n$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_14orw9$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.NANOSECONDS);
-      };
-    }));
-    Duration$Companion.prototype.get_nanoseconds_mts6qi$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_nanoseconds_mts6qi$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_rrkdm6$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.NANOSECONDS);
-      };
-    }));
-    Duration$Companion.prototype.get_nanoseconds_yrwdxr$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_nanoseconds_yrwdxr$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_n769wd$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.NANOSECONDS);
-      };
-    }));
-    Duration$Companion.prototype.get_microseconds_s8ev3n$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_microseconds_s8ev3n$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_14orw9$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.MICROSECONDS);
-      };
-    }));
-    Duration$Companion.prototype.get_microseconds_mts6qi$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_microseconds_mts6qi$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_rrkdm6$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.MICROSECONDS);
-      };
-    }));
-    Duration$Companion.prototype.get_microseconds_yrwdxr$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_microseconds_yrwdxr$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_n769wd$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.MICROSECONDS);
-      };
-    }));
-    Duration$Companion.prototype.get_milliseconds_s8ev3n$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_milliseconds_s8ev3n$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_14orw9$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.MILLISECONDS);
-      };
-    }));
-    Duration$Companion.prototype.get_milliseconds_mts6qi$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_milliseconds_mts6qi$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_rrkdm6$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.MILLISECONDS);
-      };
-    }));
-    Duration$Companion.prototype.get_milliseconds_yrwdxr$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_milliseconds_yrwdxr$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_n769wd$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.MILLISECONDS);
-      };
-    }));
-    Duration$Companion.prototype.get_seconds_s8ev3n$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_seconds_s8ev3n$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_14orw9$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.SECONDS);
-      };
-    }));
-    Duration$Companion.prototype.get_seconds_mts6qi$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_seconds_mts6qi$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_rrkdm6$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.SECONDS);
-      };
-    }));
-    Duration$Companion.prototype.get_seconds_yrwdxr$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_seconds_yrwdxr$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_n769wd$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.SECONDS);
-      };
-    }));
-    Duration$Companion.prototype.get_minutes_s8ev3n$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_minutes_s8ev3n$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_14orw9$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.MINUTES);
-      };
-    }));
-    Duration$Companion.prototype.get_minutes_mts6qi$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_minutes_mts6qi$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_rrkdm6$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.MINUTES);
-      };
-    }));
-    Duration$Companion.prototype.get_minutes_yrwdxr$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_minutes_yrwdxr$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_n769wd$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.MINUTES);
-      };
-    }));
-    Duration$Companion.prototype.get_hours_s8ev3n$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_hours_s8ev3n$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_14orw9$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.HOURS);
-      };
-    }));
-    Duration$Companion.prototype.get_hours_mts6qi$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_hours_mts6qi$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_rrkdm6$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.HOURS);
-      };
-    }));
-    Duration$Companion.prototype.get_hours_yrwdxr$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_hours_yrwdxr$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_n769wd$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.HOURS);
-      };
-    }));
-    Duration$Companion.prototype.get_days_s8ev3n$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_days_s8ev3n$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_14orw9$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.DAYS);
-      };
-    }));
-    Duration$Companion.prototype.get_days_mts6qi$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_days_mts6qi$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_rrkdm6$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.DAYS);
-      };
-    }));
-    Duration$Companion.prototype.get_days_yrwdxr$ = defineInlineFunction('kotlin.kotlin.time.Duration.Companion.get_days_yrwdxr$', wrapFunction(function () {
-      var DurationUnit = _.kotlin.time.DurationUnit;
-      var toDuration = _.kotlin.time.toDuration_n769wd$;
-      return function ($receiver) {
-        return toDuration($receiver, DurationUnit.DAYS);
-      };
-    }));
     Duration$Companion.prototype.nanoseconds_za3lpa$ = function (value) {
       return toDuration(value, DurationUnit$NANOSECONDS_getInstance());
     };
@@ -57342,15 +57130,24 @@
       var r = (this.rawValue_0.toInt() & 1) - (other.rawValue_0.toInt() & 1) | 0;
       return this.isNegative() ? -r | 0 : r;
     };
-    Duration.prototype.toComponents_hve5lh$ = defineInlineFunction('kotlin.kotlin.time.Duration.toComponents_hve5lh$', function (action) {
-      return action(this.inWholeDays, this.hoursComponent, this.minutesComponent, this.secondsComponent, this.nanosecondsComponent);
-    });
-    Duration.prototype.toComponents_s6np4d$ = defineInlineFunction('kotlin.kotlin.time.Duration.toComponents_s6np4d$', function (action) {
-      return action(this.inWholeHours, this.minutesComponent, this.secondsComponent, this.nanosecondsComponent);
-    });
-    Duration.prototype.toComponents_vtr74h$ = defineInlineFunction('kotlin.kotlin.time.Duration.toComponents_vtr74h$', function (action) {
-      return action(this.inWholeMinutes, this.secondsComponent, this.nanosecondsComponent);
-    });
+    Duration.prototype.toComponents_fnu26o$ = defineInlineFunction('kotlin.kotlin.time.Duration.toComponents_fnu26o$', wrapFunction(function () {
+      var DurationUnit = _.kotlin.time.DurationUnit;
+      return function (action) {
+        return action(this.toInt_p6uejw$(DurationUnit.DAYS), this.hoursComponent, this.minutesComponent, this.secondsComponent, this.nanosecondsComponent);
+      };
+    }));
+    Duration.prototype.toComponents_v6nad0$ = defineInlineFunction('kotlin.kotlin.time.Duration.toComponents_v6nad0$', wrapFunction(function () {
+      var DurationUnit = _.kotlin.time.DurationUnit;
+      return function (action) {
+        return action(this.toInt_p6uejw$(DurationUnit.HOURS), this.minutesComponent, this.secondsComponent, this.nanosecondsComponent);
+      };
+    }));
+    Duration.prototype.toComponents_sg9n6w$ = defineInlineFunction('kotlin.kotlin.time.Duration.toComponents_sg9n6w$', wrapFunction(function () {
+      var DurationUnit = _.kotlin.time.DurationUnit;
+      return function (action) {
+        return action(this.toInt_p6uejw$(DurationUnit.MINUTES), this.secondsComponent, this.nanosecondsComponent);
+      };
+    }));
     Duration.prototype.toComponents_obfv9r$ = defineInlineFunction('kotlin.kotlin.time.Duration.toComponents_obfv9r$', function (action) {
       return action(this.inWholeSeconds, this.nanosecondsComponent);
     });
@@ -57469,13 +57266,14 @@
         var $receiver = StringBuilder_init_1();
         if (isNegative)
           $receiver.append_s8itvh$(45);
-        var $this = this.absoluteValue;
-        var days = $this.inWholeDays;
-        var hours = $this.hoursComponent;
-        var minutes = $this.minutesComponent;
-        var seconds = $this.secondsComponent;
-        var nanoseconds = $this.nanosecondsComponent;
+        var $receiver_0 = this.absoluteValue;
+        $receiver_0.toInt_p6uejw$(DurationUnit.DAYS);
+        var hours = $receiver_0.hoursComponent;
+        var minutes = $receiver_0.minutesComponent;
+        var seconds = $receiver_0.secondsComponent;
+        var nanoseconds = $receiver_0.nanosecondsComponent;
         var tmp$_0, tmp$_1, tmp$_2;
+        var days = $receiver_0.inWholeDays;
         var hasDays = !equals(days, L0);
         var hasHours = hours !== 0;
         var hasMinutes = minutes !== 0;
@@ -57496,11 +57294,11 @@
           if ((tmp$_2 = components, components = tmp$_2 + 1 | 0, tmp$_2) > 0)
             $receiver.append_s8itvh$(32);
           if (seconds !== 0 || hasDays || hasHours || hasMinutes)
-            this.appendFractional_0($receiver, seconds, nanoseconds, 9, 's', false);
+            $receiver_0.appendFractional_0($receiver, seconds, nanoseconds, 9, 's', false);
           else if (nanoseconds >= 1000000)
-            this.appendFractional_0($receiver, nanoseconds / 1000000 | 0, nanoseconds % 1000000, 6, 'ms', false);
+            $receiver_0.appendFractional_0($receiver, nanoseconds / 1000000 | 0, nanoseconds % 1000000, 6, 'ms', false);
           else if (nanoseconds >= 1000)
-            this.appendFractional_0($receiver, nanoseconds / 1000 | 0, nanoseconds % 1000, 3, 'us', false);
+            $receiver_0.appendFractional_0($receiver, nanoseconds / 1000 | 0, nanoseconds % 1000, 3, 'us', false);
           else
             $receiver.append_s8jyv4$(nanoseconds).append_pdl1vj$('ns');
         }if (isNegative && components > 1)
@@ -57549,19 +57347,19 @@
       if (this.isNegative())
         $receiver.append_s8itvh$(45);
       $receiver.append_pdl1vj$('PT');
-      var $this = this.absoluteValue;
-      var hours = $this.inWholeHours;
-      var minutes = $this.minutesComponent;
-      var seconds = $this.secondsComponent;
-      var nanoseconds = $this.nanosecondsComponent;
-      var hours_0 = hours;
+      var absoluteValue = this.absoluteValue;
+      absoluteValue.toInt_p6uejw$(DurationUnit.HOURS);
+      var minutes = absoluteValue.minutesComponent;
+      var seconds = absoluteValue.secondsComponent;
+      var nanoseconds = absoluteValue.nanosecondsComponent;
+      var hours = absoluteValue.inWholeHours;
       if (this.isInfinite()) {
-        hours_0 = L9999999999999;
-      }var hasHours = !equals(hours_0, L0);
+        hours = L9999999999999;
+      }var hasHours = !equals(hours, L0);
       var hasSeconds = seconds !== 0 || nanoseconds !== 0;
       var hasMinutes = minutes !== 0 || (hasSeconds && hasHours);
       if (hasHours) {
-        $receiver.append_s8jyv4$(hours_0).append_s8itvh$(72);
+        $receiver.append_s8jyv4$(hours).append_s8itvh$(72);
       }if (hasMinutes) {
         $receiver.append_s8jyv4$(minutes).append_s8itvh$(77);
       }if (hasSeconds || (!hasHours && !hasMinutes)) {
@@ -58007,7 +57805,7 @@
         throw Error_init('Operation is disallowed.');
       };
     }));
-    var compareTo_1 = defineInlineFunction('kotlin.kotlin.time.compareTo_8lj69b$', wrapFunction(function () {
+    var compareTo_0 = defineInlineFunction('kotlin.kotlin.time.compareTo_8lj69b$', wrapFunction(function () {
       var Error_init = _.kotlin.Error_init_pdl1vj$;
       return function ($receiver, other) {
         throw Error_init('Operation is disallowed.');
@@ -58585,7 +58383,7 @@
       KotlinVersionCurrentValue_instance = this;
     }
     KotlinVersionCurrentValue.prototype.get = function () {
-      return new KotlinVersion(1, 6, 0);
+      return new KotlinVersion(1, 5, 30);
     };
     KotlinVersionCurrentValue.$metadata$ = {kind: Kind_OBJECT, simpleName: 'KotlinVersionCurrentValue', interfaces: []};
     var KotlinVersionCurrentValue_instance = null;
@@ -64078,8 +63876,6 @@
     Object.defineProperty(package$math, 'E', {get: function () {
       return E;
     }});
-    var package$io = package$kotlin.io || (package$kotlin.io = {});
-    package$io.ReadAfterEOFException = ReadAfterEOFException;
     package$kotlin.Annotation = Annotation;
     package$kotlin.CharSequence = CharSequence;
     package$collections.Iterable = Iterable;
@@ -64425,7 +64221,6 @@
     package$collections.toMutableMap_abgq59$ = toMutableMap;
     package$collections.toSingletonMap_3imywq$ = toSingletonMap;
     package$collections.copyToArrayOfAny_e0iprw$ = copyToArrayOfAny;
-    package$collections.brittleContainsOptimizationEnabled_8be2vx$ = brittleContainsOptimizationEnabled;
     package$collections.AbstractMutableCollection = AbstractMutableCollection;
     package$collections.AbstractMutableList = AbstractMutableList;
     AbstractMutableMap.SimpleEntry_init_trwmqg$ = AbstractMutableMap$AbstractMutableMap$SimpleEntry_init;
@@ -64471,6 +64266,7 @@
     package$collections.RandomAccess = RandomAccess;
     var package$contracts = package$kotlin.contracts || (package$kotlin.contracts = {});
     package$contracts.InvocationKind = InvocationKind;
+    var package$io = package$kotlin.io || (package$kotlin.io = {});
     package$io.BaseOutput = BaseOutput;
     package$io.NodeJsOutput = NodeJsOutput;
     package$io.OutputToConsoleLog = OutputToConsoleLog;
@@ -64484,8 +64280,6 @@
     package$io.println = println;
     package$io.println_s8jyv4$ = println_0;
     package$io.print_s8jyv4$ = print;
-    package$io.readln = readln;
-    package$io.readlnOrNull = readlnOrNull;
     package$coroutines.SafeContinuation_init_wj8d80$ = SafeContinuation_init;
     package$coroutines.SafeContinuation = SafeContinuation;
     var package$cancellation = package$coroutines.cancellation || (package$coroutines.cancellation = {});
@@ -64702,6 +64496,8 @@
     package$text.Regex_init_sb3q2$ = Regex_init;
     package$text.Regex_init_61zpoe$ = Regex_init_0;
     package$text.Regex = Regex;
+    package$text.Regex_sb3q2$ = Regex_0;
+    package$text.Regex_61zpoe$ = Regex_1;
     package$text.String_4hbowm$ = String_1;
     package$text.String_8chfmy$ = String_2;
     package$text.concatToString_355ntz$ = concatToString;
@@ -64736,10 +64532,6 @@
     package$kotlin.printStackTrace_dbl4o4$ = printStackTrace;
     package$kotlin.addSuppressed_oh0dqn$ = addSuppressed;
     package$kotlin.get_suppressedExceptions_dbl4o4$ = get_suppressedExceptions;
-    var package$time = package$kotlin.time || (package$kotlin.time = {});
-    Object.defineProperty(package$time, 'durationAssertionsEnabled_8be2vx$', {get: get_durationAssertionsEnabled});
-    package$time.formatToExactDecimals_coldnx$ = formatToExactDecimals;
-    package$time.formatUpToDecimals_coldnx$ = formatUpToDecimals;
     Object.defineProperty(DurationUnit, 'NANOSECONDS', {get: DurationUnit$NANOSECONDS_getInstance});
     Object.defineProperty(DurationUnit, 'MICROSECONDS', {get: DurationUnit$MICROSECONDS_getInstance});
     Object.defineProperty(DurationUnit, 'MILLISECONDS', {get: DurationUnit$MILLISECONDS_getInstance});
@@ -64747,6 +64539,7 @@
     Object.defineProperty(DurationUnit, 'MINUTES', {get: DurationUnit$MINUTES_getInstance});
     Object.defineProperty(DurationUnit, 'HOURS', {get: DurationUnit$HOURS_getInstance});
     Object.defineProperty(DurationUnit, 'DAYS', {get: DurationUnit$DAYS_getInstance});
+    var package$time = package$kotlin.time || (package$kotlin.time = {});
     package$time.DurationUnit = DurationUnit;
     package$time.convertDurationUnit_sgln0f$ = convertDurationUnit;
     package$time.convertDurationUnitOverflow_qayl78$ = convertDurationUnitOverflow;
@@ -64755,6 +64548,8 @@
     package$time.HrTimeSource = HrTimeSource;
     package$time.PerformanceTimeSource = PerformanceTimeSource;
     Object.defineProperty(package$time, 'DateNowTimeSource', {get: DateNowTimeSource_getInstance});
+    package$time.formatToExactDecimals_coldnx$ = formatToExactDecimals;
+    package$time.formatUpToDecimals_coldnx$ = formatUpToDecimals;
     package$dom_1.get_as__xbdrh1$ = get_as_;
     package$dom_1.set_as__lprayv$ = set_as_;
     package$dom_1.get_is__jkvip$ = get_is_;
@@ -64976,10 +64771,6 @@
     package$collections.unzip_v2dak7$ = unzip;
     package$collections.contentDeepEqualsImpl = contentDeepEqualsImpl;
     package$collections.contentDeepToStringImpl = contentDeepToStringImpl;
-    package$collections.convertToSetForSetOperationWith_wo44v8$ = convertToSetForSetOperationWith;
-    package$collections.convertToSetForSetOperation_tw993d$ = convertToSetForSetOperation;
-    package$collections.convertToSetForSetOperation_agw6o5$ = convertToSetForSetOperation_0;
-    package$collections.convertToSetForSetOperation_d6yotq$ = convertToSetForSetOperation_1;
     Object.defineProperty(package$collections, 'EmptyIterator', {get: EmptyIterator_getInstance});
     Object.defineProperty(package$collections, 'EmptyList', {get: EmptyList_getInstance});
     package$collections.asCollection_vj43ah$ = asCollection;
@@ -65010,6 +64801,8 @@
     package$collections.IndexedValue = IndexedValue;
     package$collections.IndexingIterable = IndexingIterable;
     package$collections.collectionSizeOrNull_7wnvza$ = collectionSizeOrNull;
+    package$collections.convertToSetForSetOperationWith_wo44v8$ = convertToSetForSetOperationWith;
+    package$collections.convertToSetForSetOperation_tw993d$ = convertToSetForSetOperation;
     package$collections.flatten_u0ad8z$ = flatten_0;
     package$collections.unzip_6hr0sd$ = unzip_0;
     package$collections.withIndex_35ci02$ = withIndex_15;
@@ -65344,11 +65137,11 @@
     package$text.MatchNamedGroupCollection = MatchNamedGroupCollection;
     MatchResult.Destructured = MatchResult$Destructured;
     package$text.MatchResult = MatchResult;
+    Object.defineProperty(Duration, 'Companion', {get: Duration$Companion_getInstance});
+    package$time.Duration = Duration;
     package$time.toDuration_14orw9$ = toDuration;
     package$time.toDuration_rrkdm6$ = toDuration_0;
     package$time.toDuration_n769wd$ = toDuration_1;
-    Object.defineProperty(Duration, 'Companion', {get: Duration$Companion_getInstance});
-    package$time.Duration = Duration;
     package$time.get_nanoseconds_s8ev3n$ = get_nanoseconds;
     package$time.get_nanoseconds_mts6qi$ = get_nanoseconds_0;
     package$time.get_nanoseconds_yrwdxr$ = get_nanoseconds_1;
