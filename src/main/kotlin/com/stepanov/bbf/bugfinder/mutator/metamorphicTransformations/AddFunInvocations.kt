@@ -28,8 +28,9 @@ class AddFunInvocations : MetamorphicTransformation() {
         if (!expected) {
             val func = functions.randomOrNull() ?: return
             if (func.getElementParentDeclaration() != null) {
-                val (klass, type) = rig.generateRandomInstanceOfClass(func.getElementParentDeclaration() as KtClassOrObject)
-                    ?: return
+                val (klass, type) = (func.getElementParentDeclaration() as? KtClassOrObject)?.let {
+                    rig.generateRandomInstanceOfClass(it)
+                } ?: return
                 val v = scope.keys.find { it.type == type }?.name ?: Random.getRandomVariableNameNotIn(scope.keys)
                 if (scope.keys.any { it.name == v }) {
                     val funInvokeText =

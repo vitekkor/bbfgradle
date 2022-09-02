@@ -134,7 +134,7 @@ class AddDeadCodeTransformation : MetamorphicTransformation() {
     }
 
     private fun createReturn(expr: KtNamedFunction): PsiElement? {
-        var returnValue = expr.getReturnType(ctx!!)?.let { rig.generateValueOfType(it) } ?: return null
+        var returnValue = ctx?.let { expr.getReturnType(it)?.let { rig.generateValueOfType(it) } } ?: return null
         if (returnValue == "{}") returnValue = ""
         val result = expr.bodyExpression?.lastChild?.prevLeaf()?.let { mp ->
             checker.addNodeIfPossibleWithNode(mp, Factory.psiFactory.createExpression("return $returnValue"))

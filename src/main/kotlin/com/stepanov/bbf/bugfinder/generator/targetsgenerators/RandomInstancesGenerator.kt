@@ -147,7 +147,7 @@ open class RandomInstancesGenerator(private val file: KtFile, private var ctx: B
             val recreatedType = recreateType(fileCopy, type)
             log.debug("RECREATED ERROR TYPE = $recreatedType")
             if (recreatedType == null || recreatedType.isError) {
-                val name = (type as? UnresolvedType)?.presentableName ?: return ""
+                val name = type.name ?: return ""
                 return generateDefValuesAsString(name)
             }
             if (recreatedType.arguments.flatten<TypeProjection>().any { it.type.isError }) return ""

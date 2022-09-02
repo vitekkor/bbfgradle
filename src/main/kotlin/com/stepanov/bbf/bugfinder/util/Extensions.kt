@@ -31,8 +31,9 @@ import com.stepanov.bbf.bugfinder.util.kcheck.nextInRange
 import com.stepanov.bbf.bugfinder.util.kcheck.nextString
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.calls.util.getType
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
+import org.jetbrains.kotlin.types.error.ErrorType
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -476,12 +477,7 @@ fun KotlinType.isPrimitiveTypeOrNullablePrimitiveTypeOrString(): Boolean {
 fun KotlinType.isErrorType(): Boolean = this.isError || this.arguments.any { it.type.isErrorType() }
 
 fun KotlinType.getNameWithoutError(): String {
-    val thisName =
-        when (this) {
-            is ErrorType -> this.presentableName
-            is UnresolvedType -> this.presentableName
-            else -> "${this.name}"
-        }
+    val thisName =this.name
     val argsName =
         if (arguments.isNotEmpty()) "<${this.arguments.joinToString { it.type.getNameWithoutError() }}>"
         else ""

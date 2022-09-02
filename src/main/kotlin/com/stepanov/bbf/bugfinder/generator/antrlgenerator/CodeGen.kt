@@ -126,6 +126,8 @@ class CodeGen(
                     code.append(node.text)
                 }
             }
+
+            else -> {}
         }
     }
 }

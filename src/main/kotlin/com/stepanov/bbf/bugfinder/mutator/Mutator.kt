@@ -22,7 +22,7 @@ import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
-import org.jetbrains.kotlin.resolve.calls.callUtil.getType
+import org.jetbrains.kotlin.resolve.calls.util.getType
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
@@ -55,6 +55,7 @@ class Mutator(val project: Project) {
             when (bbfFile.getLanguage()) {
                 LANGUAGE.JAVA -> startJavaMutations()
                 LANGUAGE.KOTLIN -> startKotlinMutations()
+                else -> {}
             }
             log.debug("End")
         }

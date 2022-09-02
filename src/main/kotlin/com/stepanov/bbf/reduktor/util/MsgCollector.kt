@@ -41,6 +41,8 @@ object MsgCollector : MessageCollector {
             CompilerMessageSeverity.WARNING, CompilerMessageSeverity.STRONG_WARNING -> {
                 warnings.add(message)
             }
+
+            else -> {}
         }
     }
 }
