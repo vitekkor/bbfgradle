@@ -30,7 +30,7 @@ val TIMEOUT_SEC = Properties()
 //    return BBFProcess(cmd, f, handler, executor)
 //}
 
-const val pathToErrorLogs = "tmp/results/errorLogs"
+val pathToErrorLogs = CompilerArgs.resultsDir + "/errorLogs"
 fun main(args: Array<String>) {
     File("logs/stats.log").let { if (it.exists()) it.delete() }
     File("bugsPerMinute.txt").writeText("""
@@ -80,7 +80,7 @@ Bugs per minute: 0.0
     while (true) {
         println("Elapsed: $timeElapsed")
         if (handler.hasResult()) {
-            if (timeElapsed > TIMEOUT_SEC * 1000) {
+            if (timeElapsed > TIMEOUT_SEC * 1000 && CompilerArgs.saveErrorLogs) {
                 var i = 0
                 var newPath: String
                 while (true) {

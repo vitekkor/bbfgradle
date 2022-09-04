@@ -197,4 +197,7 @@ object CompilerArgs {
     )
     val pathToStdLibScheme = "tmp/lib/standardLibraryTree.txt"
     val pathToSerializedCommits = "tmp/serializedPatches/"
+
+    // SETTINGS
+    val saveErrorLogs = getPropValue("SAVE_ERROR_LOGS")?.toBoolean() ?: true
 }
