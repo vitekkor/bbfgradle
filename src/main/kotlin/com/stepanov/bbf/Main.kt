@@ -94,7 +94,7 @@ Bugs per minute: 0.0
                 FileUtils.copyDirectory(File("logs"), dstDir)
             }
             //IF error then save logs
-            else if (handler.exitValue != 0) {
+            else if (handler.exitValue != 0 && CompilerArgs.saveErrorLogs) {
                 var i = 0
                 var newPath: String
                 while (true) {
