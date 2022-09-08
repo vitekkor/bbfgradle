@@ -8,6 +8,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.source.tree.TreeCopyHandler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.CompilerArgs.pathToTmpDir
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
 import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyCfg
 import com.stepanov.bbf.kootstrap.FooBarCompiler.setupMyEnv
@@ -40,13 +41,13 @@ object PSICreator {
 
     fun getPSIForText(text: String, generateCtx: Boolean = true): KtFile {
         //Save to tmp
-        val path = "tmp/tmp.kt"
+        val path = "$pathToTmpDir/tmp.kt"
         File(path).writeText(text)
         return getPSIForFile(path)
     }
 
     fun getPsiForTextWithName(text: String, fileName: String): KtFile {
-        val path = "tmp/$fileName"
+        val path = "$pathToTmpDir/$fileName"
         File(path).writeText(text)
         return getPSIForFile(path)
     }

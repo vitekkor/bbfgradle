@@ -68,6 +68,11 @@ abstract class MetamorphicTransformation {
             return defaultMutations
         }
 
+        fun <T : MetamorphicTransformation> removeAllMutations(mutation: KClass<T>): MutableList<Pair<MetamorphicTransformation, Int>> {
+            mutations.filter { it.first::class == mutation }.forEach { mutations.remove(it) }
+            return defaultMutations
+        }
+
         fun restoreMutations() {
             val restored = listOf(
                 AddCasts() to 75,
