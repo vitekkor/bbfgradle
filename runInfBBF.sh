@@ -2,8 +2,10 @@
 
 trap ctrl_c INT
 
+JAR_NAME=$1
+
 function ctrl_c() {
-  rm $1.jar
+  rm $JAR_NAME.jar
   exit 0
 }
 
