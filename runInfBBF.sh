@@ -3,7 +3,7 @@
 trap ctrl_c INT
 
 function ctrl_c() {
-  rm bbf.jar
+  rm $1.jar
   exit 0
 }
 
@@ -11,13 +11,13 @@ echo "Compiling jar file..."
 
 ./gradlew jar
 
-cp build/libs/bbf-1.0.jar bbf.jar
+cp build/libs/bbf-1.0.jar $1.jar
 
 echo "Start BBF inf..."
 
 while :
 do
   echo "Run BBF..."
-  java -jar bbf.jar
+  java -jar $1.jar
   echo "done"
 done
