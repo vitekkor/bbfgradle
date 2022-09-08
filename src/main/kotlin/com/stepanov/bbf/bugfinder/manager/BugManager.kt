@@ -132,6 +132,7 @@ object BugManager {
                 else -> ""
             }
             if (field.isNotEmpty()) StatisticCollector.incField(field)
+            log.info("SAVING ${bug.type} BUG")
             println("SAVING ${bug.type} BUG")
             if (ReportProperties.getPropAsBoolean("SAVE_STATS") == true) saveStats()
             //Check if bug is real project bug

@@ -38,7 +38,7 @@ class AddDeadCodeTransformation : MetamorphicTransformation() {
             createThrow(mutationPoint)
         }
 
-        removeMutation(AddDeadCodeTransformation::class)
+        removeAllMutations(AddDeadCodeTransformation::class)
 
         val returnOrThrow = getReturnOrThrow()
 
