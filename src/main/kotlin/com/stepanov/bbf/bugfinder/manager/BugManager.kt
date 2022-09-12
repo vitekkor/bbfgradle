@@ -3,11 +3,11 @@ package com.stepanov.bbf.bugfinder.manager
 import com.stepanov.bbf.bugfinder.Reducer
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.executor.*
+import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.util.FilterDuplcatesCompilerErrors
 import com.stepanov.bbf.bugfinder.util.StatisticCollector
 import org.apache.log4j.Logger
 import java.io.File
-import kotlin.system.exitProcess
 
 enum class BugType {
     BACKEND,
@@ -135,8 +135,15 @@ object BugManager {
             log.info("SAVING ${bug.type} BUG")
             println("SAVING ${bug.type} BUG")
             if (ReportProperties.getPropAsBoolean("SAVE_STATS") == true) saveStats()
-            //Check if bug is real project bug
-            val newBug = bug.copy()//checkIfBugIsProject(bug)
+
+            var originalBug: Bug? = null
+            val newBug = if (bug.type == BugType.DIFFBEHAVIOR) {
+                val project = bug.crashedProject
+                val targetProject = project.copy(files = project.files.drop(1).map(BBFFile::copy))
+                val originalProject = project.copy(files = project.files.take(1).map(BBFFile::copy))
+                originalBug = bug.copy(crashedProject = originalProject)
+                bug.copy(crashedProject = targetProject)
+            } else bug.copy()
             log.debug("Start to reduce ${newBug.crashedProject}")
             val reduced =
                 try {
@@ -161,10 +168,11 @@ object BugManager {
                 TextReporter.dump(bugs)
             }
             if (ReportProperties.getPropAsBoolean("FILE_REPORTER") == true) {
-                val bugList =
-                    if (bug.type == BugType.FRONTEND || bug.type == BugType.BACKEND)
-                        listOf(bug, newestBug)
-                    else listOf(newestBug)
+                val bugList = when(bug.type) {
+                    BugType.FRONTEND, BugType.BACKEND -> listOf(bug, newestBug)
+                    BugType.DIFFBEHAVIOR -> listOf(originalBug!!, newestBug)
+                    else -> listOf(newestBug)
+                }
                 FileReporter.dump(bugList)
             }
         } catch (e: Exception) {

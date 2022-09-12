@@ -2,6 +2,7 @@ package com.stepanov.bbf.bugfinder.executor.checkers
 
 import com.stepanov.bbf.bugfinder.executor.CommonCompiler
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
+import com.stepanov.bbf.bugfinder.executor.project.BBFFile
 import com.stepanov.bbf.bugfinder.executor.project.Project
 import com.stepanov.bbf.bugfinder.manager.Bug
 import com.stepanov.bbf.bugfinder.manager.BugManager
@@ -44,12 +45,13 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
             log.info("Diff behaviour detected")
             val diff = originalRes.minus(mutatedRes)
             log.info("Diff - $diff")
+            val targetProject = original.copy(files = original.files.plus(mutated.files).map(BBFFile::copy))
             if (saveFoundBugs) {
                 BugManager.saveBug(
                     Bug(
                         diff.map { it.value.first() },
                         "DIFF_BEHAVIOR after metamorphic mutation",
-                        mutated,
+                        targetProject,
                         BugType.DIFFBEHAVIOR
                     )
                 )

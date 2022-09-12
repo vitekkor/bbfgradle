@@ -223,6 +223,10 @@ class Project(
         return Project(configuration, files.map { it.copy() }, language)
     }
 
+    fun copy(configuration: Header = this.configuration, files: List<BBFFile> = this.files.map { it.copy() }, language: LANGUAGE = LANGUAGE.KOTLIN): Project {
+        return Project(configuration, files, language)
+    }
+
 
     override fun toString(): String = files.joinToString("\n\n") {
         it.name + "\n" +
