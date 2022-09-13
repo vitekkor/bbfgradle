@@ -37,7 +37,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         log.info("Compile mutated code")
         val (mutatedRes, didCrashMutated) = checkTest(mutated)
         log.info("Comparison")
-        if (mutatedRes.keys.any {it.contains("Exception")}) {
+        if (mutatedRes.keys.any { it.contains("Exception") }) {
             log.info("Mutated project threw an exception.")
             return false
         }
@@ -134,7 +134,8 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
         if (jvmCrashed) {
             return errorsMap.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap() to true
         }
-        if (results.all { it.second.trim().isEmpty() }) {
+        if (results.all { it.second.trim().isEmpty() }
+            || errorsMap.any { it.second.contains("Exception in thread \"main\"") }) {
             return mapOf<String, List<CommonCompiler>>("Exception" to listOf()) to true
         }
 //        //Compare with java
