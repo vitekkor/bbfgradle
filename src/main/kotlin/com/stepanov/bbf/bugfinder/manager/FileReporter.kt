@@ -35,11 +35,11 @@ object FileReporter : Reporter {
         val withoutDuplicates =
             if (isFrontendOrBackendBug || isDiffBehaviorBug) bugs.drop(1) else bugs
         for (bug in withoutDuplicates) {
-            val resDir = CompilerArgs.resultsDir
+            val resDir = CompilerArgs.resultsDir.removeSuffix("/")
             val name = Random().getRandomVariableName(7) +
                     if (bug.crashedProject.files.size == 1) "_FILE" else "_PROJECT"
             val newPath = when (bug.type) {
-                BugType.BACKEND, BugType.FRONTEND -> "$resDir${bug.compilerVersion.filter { it != ' ' }}/${bug.type.name}_$name.kt"
+                BugType.BACKEND, BugType.FRONTEND -> "$resDir/${bug.compilerVersion.filter { it != ' ' }}/${bug.type.name}_$name.kt"
                 BugType.DIFFCOMPILE -> "$resDir/diffCompile/$name.kt"
                 BugType.DIFFBEHAVIOR -> "$resDir/diffBehavior/$name.kt"
                 BugType.DIFFABI -> "$resDir/diffABI/$name.kt"
@@ -59,7 +59,7 @@ object FileReporter : Reporter {
             }
             if (isFrontendOrBackendBug) {
                 val pathForOriginal =
-                    "$resDir${bug.compilerVersion.filter { it != ' ' }}/${bug.type.name}_${name}_ORIGINAL.kt"
+                    "$resDir/${bug.compilerVersion.filter { it != ' ' }}/${bug.type.name}_${name}_ORIGINAL.kt"
                 File(pathForOriginal).writeText("$info\n${bugs.first().crashedProject.moveAllCodeInOneFile()}\n$commentedStackTrace")
             }
             if (isDiffBehaviorBug) {

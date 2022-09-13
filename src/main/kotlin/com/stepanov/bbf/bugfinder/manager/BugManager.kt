@@ -43,7 +43,7 @@ data class Bug(val compilers: List<CommonCompiler>, val msg: String, val crashed
         else compilerVersion.compareTo(other.compilerVersion)
 
     fun getDirWithSameTypeBugs(): String =
-        CompilerArgs.resultsDir +
+        CompilerArgs.resultsDir.removeSuffix("/").plus("/") +
                 when (type) {
                     BugType.DIFFBEHAVIOR -> "diffBehavior"
                     BugType.DIFFCOMPILE -> "diffCompile"
