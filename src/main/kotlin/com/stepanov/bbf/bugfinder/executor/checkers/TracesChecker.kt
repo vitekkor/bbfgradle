@@ -25,6 +25,15 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
             "ArithmeticException",
             "KotlinReflectionInternalError" //TODO!!
         )
+
+        val exclExceptionsMessages = listOf(
+            "Illegal Capacity",
+            "Both size .* and step .* must be greater than zero",
+            "NegativeArraySizeException",
+            "fromIndex .* or toIndex .* are out of range",
+            "IllegalFormatFlagsException",
+            "Step must be positive, was"
+            )
     }
 
     fun checkBehaviorAfterMetamorphicMutation(
@@ -135,7 +144,7 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
             return errorsMap.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap() to true
         }
         if (results.all { it.second.trim().isEmpty() }
-            || errorsMap.any { it.second.contains("Exception in thread \"main\"") }) {
+            || errorsMap.containsExclExceptions()) {
             return mapOf<String, List<CommonCompiler>>("Exception" to listOf()) to true
         }
 //        //Compare with java
@@ -152,6 +161,14 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
 //            }
 //        }
         return results.groupBy({ it.second }, valueTransform = { it.first }).toMutableMap() to hasErrors
+    }
+
+    private fun MutableList<Pair<CommonCompiler, String>>.containsExclExceptions(): Boolean {
+        return this.map { it.second }.any { err ->
+            exclExceptionsMessages.any { excep ->
+                err.contains(excep.toRegex())
+            }
+        }
     }
 
     private val log = Logger.getLogger("mutatorLogger")
