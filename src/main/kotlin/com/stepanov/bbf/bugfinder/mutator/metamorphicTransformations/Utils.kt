@@ -1,12 +1,19 @@
 package com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations
 
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.stepanov.bbf.bugfinder.executor.CompilerArgs
 import com.stepanov.bbf.bugfinder.executor.checkers.MutationChecker
 import com.stepanov.bbf.bugfinder.mutator.metamorphicTransformations.MetamorphicTransformation.Companion.removeMutation
 import com.stepanov.bbf.bugfinder.mutator.transformations.Factory
+import com.stepanov.bbf.bugfinder.util.flatMap
+import com.stepanov.bbf.bugfinder.util.getAllPSIChildrenOfType
 import com.stepanov.bbf.bugfinder.util.getRandomVariableName
+import org.jetbrains.kotlin.psi.KtBlockExpression
 import org.jetbrains.kotlin.psi.KtProperty
+import org.jetbrains.kotlin.psi.KtReturnExpression
 import org.jetbrains.kotlin.types.KotlinType
 import kotlin.random.Random
 
@@ -69,4 +76,10 @@ fun MutationChecker.addAfter(mutationPoint: PsiElement, psiElement: PsiElement, 
     mutationPoint.nextSibling?.delete()
     CompilerArgs.isMetamorphicMode = isMetamorphicMode
     return mutationPoint
+}
+
+fun PsiFile.chooseMutationPoint(): PsiElement? {
+    return getAllPSIChildrenOfType<KtBlockExpression>()
+        .flatMap { it.children.filterNot { it is PsiWhiteSpace || it is LeafPsiElement || it is KtReturnExpression } }
+        .randomOrNull()
 }

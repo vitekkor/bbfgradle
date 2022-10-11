@@ -72,7 +72,7 @@ class MetamorphicMutator(val project: Project) {
         checker.trace(project)
         originalProject = project.copy()
         MetamorphicTransformation.originalProject = originalProject
-        var mutationPoint = chooseMutationPoint() ?: return
+        var mutationPoint = file.chooseMutationPoint() ?: return
 //            file.getAllPSIChildrenOfType<KtProperty> { !it.isMember }
 //                .randomOrNull() ?: return
         //(mutationPoint as? KtExpression)?.isUsedAsExpression(ctx)
@@ -124,12 +124,6 @@ class MetamorphicMutator(val project: Project) {
             file.getAllChildren().filter { it.text.contains("kotlin.run") }.find { it.text == profiling.text }
                 ?.replaceThis(Factory.psiFactory.createWhiteSpace("\n"))
         return variablesToValues
-    }
-
-    private fun chooseMutationPoint(): PsiElement? {
-        return file.getAllPSIChildrenOfType<KtBlockExpression>()
-            .flatMap { it.children.filterNot { it is PsiWhiteSpace || it is LeafPsiElement || it is KtReturnExpression } }
-            .randomOrNull()
     }
 
     private fun mutate(mutationPoint: PsiElement, scope: HashMap<Variable, MutableList<String>>) {

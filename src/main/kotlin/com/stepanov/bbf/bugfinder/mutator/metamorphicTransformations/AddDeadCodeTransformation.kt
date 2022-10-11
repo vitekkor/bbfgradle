@@ -182,7 +182,6 @@ class AddDeadCodeTransformation : MetamorphicTransformation() {
 
     private fun addRandomNodes(returnExpression: PsiElement) {
         val randConst = Random.nextInt(numOfTries.first, numOfTries.second)
-        val nodes = file.node.getAllChildrenNodes().filter { it.elementType !in NodeCollector.excludes }
         val node = file.node.getAllChildrenNodes()
             .filter { it.elementType == KtTokens.RETURN_KEYWORD && it.treeParent.text == returnExpression.text }
             .map { it.treeParent }.firstOrNull() ?: return
@@ -195,8 +194,7 @@ class AddDeadCodeTransformation : MetamorphicTransformation() {
             val randomFile = files.random()
             val psi = Factory.psiFactory.createFile(File("${CompilerArgs.baseDir}/$randomFile").readText())
             val targetNode = psi.node.getAllChildrenNodes().filter { it.text.isNotBlank() }.randomOrNull() ?: continue
-            //if (targetNode.psi.getAllPSIChildrenOfType<KtNameReferenceExpression>().isNotEmpty()) continue
-            if (targetNode.psi is KtConstantExpression) continue
+            if (targetNode.psi is KtConstantExpression || targetNode.psi.text.matches("""//.*""".toRegex())) continue
             checker.addAfter(node.psi, targetNode.psi)
         }
     }
