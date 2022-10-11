@@ -32,7 +32,8 @@ class TracesChecker(private val compilers: List<CommonCompiler>) : CompilationCh
             "NegativeArraySizeException",
             "fromIndex .* or toIndex .* are out of range",
             "IllegalFormatFlagsException",
-            "Step must be positive, was"
+            "Step must be positive, was",
+            "ArrayIndexOutOfBoundsException"
             )
     }
 
