@@ -47,18 +47,19 @@ abstract class MetamorphicTransformation {
         internal val log = Logger.getLogger("mutatorLogger")
 
         private val mutations = mutableListOf(
-            AddCasts() to 0,
-            AddLoop() to 0,
+            AddCasts() to 50,
+            AddLoop() to 70,
             AddDeadCodeTransformation() to 100,
-            AddDeadCodeTransformation() to 100,
+            AddDeadCodeTransformation() to 0,
+            //AddRandomExpressions() to 100,
             //AddRandomClass() to 100
-            AddFunInvocations() to 0,
-            AddIf() to 0,
-            AddExpressionsWithVariables() to 0,
-            AddTryExpression() to 0,
-            AddVariablesToScope() to 0,
-            RunLetTransformation() to 0,
-            EquivalentTransformation() to 0
+            AddFunInvocations() to 75,
+            AddIf() to 90,
+            AddExpressionsWithVariables() to 60,
+            AddTryExpression() to 30,
+            AddVariablesToScope() to 80,
+            RunLetTransformation() to 65,
+            EquivalentTransformation() to 50
         )
 
         val defaultMutations get() = mutations.toMutableList()
